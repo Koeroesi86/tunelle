@@ -31,4 +31,4 @@ const updateMetadata = (platform, arch) =>
     win32: ['dist/latest.yml', /\.exe\b/]
   })[platform]
 
-module.exports = { packagedExecutable, resourcesFolder, updateMetadata }
+module.exports = { packagedExecutable, resourcesFolder, unpackedFolder, updateMetadata }
