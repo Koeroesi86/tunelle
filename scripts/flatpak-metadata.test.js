@@ -7,7 +7,7 @@ const en = JSON.parse(read('locales/en.json'))
 const hu = JSON.parse(read('locales/hu.json'))
 const metainfo = read(`flatpak/${build.appId}.metainfo.xml`)
 const desktop = read(`flatpak/${build.appId}.desktop`)
-const desktopValue = key => desktop.match(new RegExp(`^${key.replace(/[[\]]/g, '\\$&')}=(.*)$`, 'm'))?.[1]
+const desktopValue = key => desktop.split('\n').find(line => line.startsWith(`${key}=`))?.slice(key.length + 1)
 const pagesUrl = `https://${homepage.split('/')[3].toLowerCase()}.github.io/${homepage.split('/')[4]}/`
 
 // Flathub takes the app from these files (see flatpak/), so they have to stay in step with the app they describe
