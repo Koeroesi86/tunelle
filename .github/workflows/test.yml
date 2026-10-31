@@ -24,6 +24,13 @@ jobs:
           node-version: 24
           cache: npm
       - uses: ./.github/actions/install-dependencies
+      # the files Flathub takes the app from (flatpak/) are checked with the tools it uses
+      - name: Validate the Flatpak metadata
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get install -y appstream desktop-file-utils
+          appstreamcli validate --no-net flatpak/*.metainfo.xml
+          desktop-file-validate flatpak/*.desktop
       - run: npm run lint
       - run: npm run fallow
       - run: npm run typecheck

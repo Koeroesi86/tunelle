@@ -49,9 +49,9 @@ if (isDev && process.platform === 'linux') {
   app.on('will-quit', () => removeDevDesktopEntry(dataHome));
 }
 
-// the entry the AppImage launcher installs (electron/appImageLauncher.ts), so the running window gets its icon in the dock and taskbar
+// the entry the AppImage launcher installs (electron/appImageLauncher.ts), or the one the Flatpak installs under its id, so the running window gets its icon in the dock and taskbar
 if (!isDev && process.platform === 'linux') {
-  app.setDesktopName('tunelle.desktop');
+  app.setDesktopName(`${process.env.FLATPAK_ID ?? 'tunelle'}.desktop`);
 }
 
 const isMockUpdate = !app.isPackaged && process.env.MOCK_UPDATE === '1';

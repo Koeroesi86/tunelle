@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Tunelle
+Comment=Lossless Audio Player
+Comment[hu]=Veszteségmentes hanglejátszó
+Exec=Tunelle
+Icon=io.github.koeroesi86.Tunelle
+Terminal=false
+Categories=AudioVideo;Audio;Music;Player;
+Keywords=music;audio;flac;lossless;radio;player;equalizer;
+StartupWMClass=Tunelle

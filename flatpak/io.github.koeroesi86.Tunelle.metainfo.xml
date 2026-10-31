@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.koeroesi86.Tunelle</id>
+  <name>Tunelle</name>
+  <summary>Lossless audio player</summary>
+  <summary xml:lang="hu">Veszteségmentes hanglejátszó</summary>
+  <developer id="io.github.koeroesi86">
+    <name>Krisztian Korosi</name>
+  </developer>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>Tunelle plays your own music library and internet radio, and shows the format of everything it plays: FLAC 16/44.1, FLAC 24/96, MP3 320.</p>
+    <ul>
+      <li>Browse by album, artist, album artist, genre, song or folder, search and sort every list, and pick the folders that make up the library.</li>
+      <li>Plays FLAC, MP3, AAC and M4A, Ogg and Opus, WAV, AIFF, APE, WavPack and WMA, with the tags and the cover read from the files.</li>
+      <li>Internet radio from the open radio-browser.info directory, with logos, filters and the song that is on right now.</li>
+      <li>Liked tracks, playlists you can reorder by dragging, and a queue you control.</li>
+      <li>A ten band equalizer drawn as a curve, with presets.</li>
+      <li>Light, dark or the colours of the cover that is playing, in English and Hungarian.</li>
+      <li>Media keys and the media controls of the desktop.</li>
+    </ul>
+    <p>No account and no tracking. The photos of the artists come from Deezer, which is sent the names of the artists in your library; turn that off under Settings.</p>
+  </description>
+  <launchable type="desktop-id">io.github.koeroesi86.Tunelle.desktop</launchable>
+  <url type="homepage">https://koeroesi86.github.io/tunelle/</url>
+  <url type="bugtracker">https://github.com/Koeroesi86/tunelle/issues</url>
+  <url type="vcs-browser">https://github.com/Koeroesi86/tunelle</url>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Audio</category>
+    <category>Music</category>
+    <category>Player</category>
+  </categories>
+  <keywords>
+    <keyword>music</keyword>
+    <keyword>flac</keyword>
+    <keyword>lossless</keyword>
+    <keyword>radio</keyword>
+    <keyword>equalizer</keyword>
+  </keywords>
+  <content_rating type="oars-1.1"/>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+  <provides>
+    <binary>Tunelle</binary>
+  </provides>
+  <screenshots>
+    <screenshot type="default">
+      <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/album.webp</image>
+      <caption>An album with its cover and track list</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/albums.webp</image>
+      <caption>Every album, front and centre</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/radio.webp</image>
+      <caption>Internet radio next to your own music</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/equalizer.webp</image>
+      <caption>A ten band equalizer drawn as a curve</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/light.webp</image>
+      <caption>The light theme</caption>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="26.10.9" date="2026-10-29"/>
+  </releases>
+</component>

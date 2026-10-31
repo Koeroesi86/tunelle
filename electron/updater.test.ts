@@ -217,7 +217,7 @@ describe('getUpdateUnavailableReason', () => {
     ['a development run', false, 'linux', { APPIMAGE: '/x.AppImage' }, 'development'],
     ['a run with TUNELLE_NO_UPDATE=1', true, 'win32', { TUNELLE_NO_UPDATE: '1' }, 'disabled'],
     ['an AppImage with TUNELLE_NO_UPDATE=1', true, 'linux', { APPIMAGE: '/x.AppImage', TUNELLE_NO_UPDATE: '1' }, 'disabled'],
-    ['the Flatpak', true, 'linux', { FLATPAK_ID: 'io.github.koeroesi86.tunelle' }, 'flatpak'],
+    ['the Flatpak', true, 'linux', { FLATPAK_ID: 'io.github.koeroesi86.Tunelle' }, 'flatpak'],
     ['another Linux package', true, 'linux', {}, 'managed'],
   ] as const)('names the reason for %s', (_name, isPackaged, platform, env, reason) => {
     expect(getUpdateUnavailableReason(isPackaged, platform, env)).toBe(reason);
