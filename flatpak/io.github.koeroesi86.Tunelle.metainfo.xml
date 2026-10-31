@@ -20,7 +20,7 @@
       <li>Light, dark or the colours of the cover that is playing, in English and Hungarian.</li>
       <li>Media keys and the media controls of the desktop.</li>
     </ul>
-    <p>No account, no tracking: artist photos stay off until you allow them.</p>
+    <p>No account and no tracking. The photos of the artists come from Deezer, which is sent the names of the artists in your library; turn that off under Settings.</p>
   </description>
   <launchable type="desktop-id">io.github.koeroesi86.Tunelle.desktop</launchable>
   <url type="homepage">https://koeroesi86.github.io/tunelle/</url>
