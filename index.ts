@@ -17,7 +17,7 @@ import { tunelleOrigin, handleTunelleProtocol, registerTunelleScheme } from './e
 import { createRadioBrowser } from './electron/radioBrowser';
 import { createRadioArt } from './electron/radioArt';
 import { createRadioLogos } from './electron/radioLogos';
-import { getAppUserModelId } from './electron/appUserModelId';
+import { getAppUserModelId, setsAppUserModelId } from './electron/appUserModelId';
 import { holdSingleInstance } from './electron/singleInstance';
 import { registerDevDesktopEntry, removeDevDesktopEntry } from './electron/devDesktopEntry';
 import closeDatabase from './electron/closeDatabase';
@@ -103,7 +103,7 @@ registerTunelleScheme();
 function setAppId() {
   global._appId = getAppUserModelId(isDev, process.env.NODE_ENV);
 
-  if (isWin) {
+  if (setsAppUserModelId(process.platform, process.windowsStore)) {
     app.setAppUserModelId(global._appId);
     console.log('Registered app ID', global._appId);
   }
@@ -178,7 +178,7 @@ const serveApp = () =>
   });
 
 // a development run updates from the mock source only when asked to
-const unavailable = isMockUpdate ? undefined : getUpdateUnavailableReason(app.isPackaged, process.platform, process.env);
+const unavailable = isMockUpdate ? undefined : getUpdateUnavailableReason(app.isPackaged, process.platform, process.env, process.windowsStore);
 
 const getUpdateSource = (): UpdateSource | undefined => {
   if (isMockUpdate) return createMockUpdateSource();

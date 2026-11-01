@@ -105,6 +105,7 @@ describe('About', () => {
     ['flatpak', 'Updates come through Flatpak'],
     ['disabled', 'Updates are turned off'],
     ['managed', 'Updates come through the package manager'],
+    ['store', 'Updates come through the Microsoft Store'],
   ] as const)('shows the reason without a check button where updates are %s', (unavailable, reason) => {
     const { openReleases } = setup({ unavailable });
 
@@ -140,7 +141,7 @@ describe('About', () => {
     expect(setAutomatic).toHaveBeenCalledExactlyOnceWith(true);
   });
 
-  it.each(['development', 'disabled', 'flatpak', 'managed'] as const)('has no switch where updates are %s', (unavailable) => {
+  it.each(['development', 'disabled', 'flatpak', 'managed', 'store'] as const)('has no switch where updates are %s', (unavailable) => {
     setup({ unavailable });
 
     expect(screen.queryByRole('switch')).toBeNull();
