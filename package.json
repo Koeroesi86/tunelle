@@ -81,6 +81,7 @@
       "publisher": "CN=E0B88BF5-C453-41DE-AC11-4E0AE3617495",
       "publisherDisplayName": "KrisztianKorosi",
       "applicationId": "Tunelle",
+      "minVersion": "10.0.16299.0",
       "backgroundColor": "transparent"
     },
     "nsis": {
