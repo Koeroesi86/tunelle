@@ -1,0 +1,46 @@
+name: Watcher negative control
+
+# A one-off run, not part of the checks: scripts/watch-github.js has only been seen to pass (the Store package makes no request to GitHub). Here it
+# watches the app installed with the installer, which is not a Store package and looks for updates, so it has to fail with a connection to GitHub.
+# If it passes, the check cannot see the traffic of the app and the Store check proves nothing.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/watcher-negative-control.yml
+
+permissions:
+  contents: read
+
+jobs:
+  control:
+    name: The watcher sees the update check of the installed app
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Download and install the installer of the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release download --repo $env:GITHUB_REPOSITORY --pattern 'Tunelle-Setup-*-x64.exe' --dir installer
+          Start-Process -FilePath (Get-ChildItem installer/*.exe).FullName -ArgumentList '/S' -Wait
+          $app = Get-ChildItem "$env:LOCALAPPDATA\Programs" -Recurse -Filter Tunelle.exe | Select-Object -First 1
+          if (-not $app) { throw 'The app was not installed' }
+          "APP=$($app.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Watch the installed app, which has to be caught
+        shell: pwsh
+        run: |
+          $hosts = 'github.com', 'api.github.com', 'objects.githubusercontent.com', 'github-releases.githubusercontent.com', 'release-assets.githubusercontent.com'
+          $lines = $hosts | ForEach-Object { "127.0.0.1 $_"; "::1 $_" }
+          Add-Content -Path "$env:SystemRoot\System32\drivers\etc\hosts" -Value $lines
+          ipconfig /flushdns | Out-Null
+          $output = node scripts/watch-github.js 45 pwsh -NoProfile -Command "Start-Process -FilePath '$env:APP'" 2>&1
+          $output | Write-Host
+          # a failure of the control request or of the launch is not what is shown here
+          if (($output | Out-String) -notmatch 'connection\(s\) to GitHub') { throw 'The watcher did not catch a connection to GitHub from the installed app' }
