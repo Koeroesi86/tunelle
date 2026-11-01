@@ -18,6 +18,7 @@ import { createRadioBrowser } from './electron/radioBrowser';
 import { createRadioArt } from './electron/radioArt';
 import { createRadioLogos } from './electron/radioLogos';
 import { getAppUserModelId } from './electron/appUserModelId';
+import { holdSingleInstance } from './electron/singleInstance';
 import { registerDevDesktopEntry, removeDevDesktopEntry } from './electron/devDesktopEntry';
 import closeDatabase from './electron/closeDatabase';
 import { cancelScans } from './electron/scanCancellation';
@@ -40,6 +41,15 @@ process.env.ELECTRON_ENABLE_LOGGING = '1';
 const isWin = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
 const isDev = process.env.NODE_ENV === 'development';
+
+// a second start of the same profile brings the running window forward and leaves: two apps would open the library and play at once
+// the lock follows the user data folder, so a run with a folder of its own (a test, --user-data-dir) does not meet another one
+// app.exit does not stop the start up that follows, which would meet the lock of the first start and fail
+holdSingleInstance(
+  app,
+  () => windows.main ?? windows.loading,
+  (code) => process.exit(code)
+);
 
 // the development window gets its icon on linux from this desktop entry, which only exists while it runs
 if (isDev && process.platform === 'linux') {
