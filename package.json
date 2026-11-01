@@ -39,6 +39,9 @@
     "appId": "io.github.koeroesi86.Tunelle",
     "productName": "Tunelle",
     "compression": "normal",
+    "directories": {
+      "buildResources": "msix-resources"
+    },
     "files": [
       "build/**/*",
       "out/**/*",
@@ -76,7 +79,8 @@
       "identityName": "Koeroesi86.Tunelle",
       "publisher": "CN=00000000-0000-0000-0000-000000000000",
       "publisherDisplayName": "Koeroesi86",
-      "applicationId": "Tunelle"
+      "applicationId": "Tunelle",
+      "backgroundColor": "transparent"
     },
     "nsis": {
       "artifactName": "Tunelle-Setup-${version}-${arch}.${ext}"
