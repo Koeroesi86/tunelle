@@ -16,7 +16,7 @@ import { tunelleOrigin, handleTunelleProtocol, registerTunelleScheme } from './e
 import { createRadioBrowser } from './electron/radioBrowser';
 import { createRadioArt } from './electron/radioArt';
 import { createRadioLogos } from './electron/radioLogos';
-import { getAppUserModelId } from './electron/appUserModelId';
+import { getAppUserModelId, setsAppUserModelId } from './electron/appUserModelId';
 import { registerDevDesktopEntry, removeDevDesktopEntry } from './electron/devDesktopEntry';
 import closeDatabase from './electron/closeDatabase';
 import { cancelScans } from './electron/scanCancellation';
@@ -92,7 +92,7 @@ registerTunelleScheme();
 function setAppId() {
   global._appId = getAppUserModelId(isDev, process.env.NODE_ENV);
 
-  if (isWin) {
+  if (setsAppUserModelId(process.platform, process.windowsStore)) {
     app.setAppUserModelId(global._appId);
     console.log('Registered app ID', global._appId);
   }
