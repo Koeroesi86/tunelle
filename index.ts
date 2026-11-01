@@ -154,7 +154,7 @@ const radio = createRadioBrowser(`Tunelle/${app.getVersion()}`, process.env.TUNE
   streamsPath: resolve(appDataPath, './radio-streams.json'),
 });
 
-const radioArt = createRadioArt();
+const radioArt = createRadioArt(`Tunelle/${app.getVersion()} ( https://github.com/Koeroesi86/tunelle )`);
 
 const radioLogos = createRadioLogos(radio.getLogoUrl);
 
