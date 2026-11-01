@@ -37,7 +37,7 @@ describe('generateIcons', () => {
 
   afterEach(() => rmSync(output, { recursive: true, force: true }))
 
-  it('writes the png, ico and icns icons', async () => {
+  it('writes the png, ico and icns icons and the logos of the Store package', async () => {
     output = mkdtempSync(resolve(tmpdir(), 'icons-'))
 
     await generateIcons(resolve(__dirname, '../assets/icon.png'), output)
@@ -45,6 +45,12 @@ describe('generateIcons', () => {
     expect(readFileSync(resolve(output, 'icons/png/1024x1024.png')).subarray(1, 4).toString()).toBe('PNG')
     expect(readFileSync(resolve(output, 'icons/win/icon.ico')).readUInt16LE(4)).toBe(7)
     expect(readFileSync(resolve(output, 'icons/mac/icon.icns')).subarray(0, 4).toString()).toBe('icns')
+    // the logos of the Store package, with the sizes the manifest and the system ask for
+    const appx = (name) => readFileSync(resolve(output, 'icons/appx', name))
+    expect(['StoreLogo.png', 'Square44x44Logo.png', 'Square150x150Logo.png', 'Square44x44Logo.targetsize-24_altform-unplated.png'].every((name) => appx(name).subarray(1, 4).toString() === 'PNG')).toBe(true)
+    expect(appx('Wide310x150Logo.png').readUInt32BE(16)).toBe(310)
+    expect(appx('Wide310x150Logo.png').readUInt32BE(20)).toBe(150)
+    expect(appx('Square150x150Logo.png').readUInt32BE(16)).toBe(150)
     // it resizes the image to every size of the icons, which took 6 s on a slow Windows runner, over the 5 s of the default
   }, 30000)
 })

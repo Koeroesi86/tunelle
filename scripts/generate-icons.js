@@ -4,6 +4,14 @@ const sharp = require('sharp')
 
 const pngSizes = [16, 24, 32, 48, 64, 128, 256, 512, 1024]
 const icoSizes = [16, 24, 32, 48, 64, 128, 256]
+// the logos of the Windows Store package (the tiles, the list and the taskbar, with the sizes the system picks from), by the names its manifest uses
+const appxSquares = {
+  'StoreLogo.png': 50,
+  'Square44x44Logo.png': 44,
+  'Square150x150Logo.png': 150,
+  ...Object.fromEntries([16, 24, 32, 48, 256].flatMap((size) => [`Square44x44Logo.targetsize-${size}.png`, `Square44x44Logo.targetsize-${size}_altform-unplated.png`].map((name) => [name, size])))
+}
+const appxWide = { name: 'Wide310x150Logo.png', width: 310, height: 150 }
 const icnsTypes = { 16: 'icp4', 32: 'icp5', 64: 'icp6', 128: 'ic07', 256: 'ic08', 512: 'ic09', 1024: 'ic10' }
 
 // ICO directory entries store 256 as 0 and point at PNG-compressed images
@@ -42,6 +50,16 @@ function createIcns (images) {
   return Buffer.concat([fileHeader, ...chunks])
 }
 
+// the wide tile has the icon of the square tile on a transparent ground
+async function createAppxWide (input) {
+  const { width, height } = appxWide
+
+  return sharp({ create: { width, height, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: await sharp(input).resize(height, height).png().toBuffer(), gravity: 'centre' }])
+    .png()
+    .toBuffer()
+}
+
 async function generateIcons (input, output) {
   const resized = new Map(await Promise.all(
     pngSizes.map(async (size) => [size, await sharp(input).resize(size, size).png().toBuffer()])
@@ -50,6 +68,7 @@ async function generateIcons (input, output) {
   mkdirSync(resolve(output, 'icons/png'), { recursive: true })
   mkdirSync(resolve(output, 'icons/win'), { recursive: true })
   mkdirSync(resolve(output, 'icons/mac'), { recursive: true })
+  mkdirSync(resolve(output, 'icons/appx'), { recursive: true })
 
   pngSizes.forEach((size) => writeFileSync(resolve(output, `icons/png/${size}x${size}.png`), resized.get(size)))
   writeFileSync(resolve(output, 'icons/win/icon.ico'), createIco(icoSizes.map((size) => ({ size, data: resized.get(size) }))))
@@ -57,6 +76,11 @@ async function generateIcons (input, output) {
     resolve(output, 'icons/mac/icon.icns'),
     createIcns(Object.entries(icnsTypes).map(([size, type]) => ({ type, data: resized.get(Number(size)) })))
   )
+
+  await Promise.all(
+    Object.entries(appxSquares).map(async ([name, size]) => writeFileSync(resolve(output, 'icons/appx', name), await sharp(input).resize(size, size).png().toBuffer()))
+  )
+  writeFileSync(resolve(output, 'icons/appx', appxWide.name), await createAppxWide(input))
 }
 
 module.exports = { createIco, createIcns, generateIcons }
