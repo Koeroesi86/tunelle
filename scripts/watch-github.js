@@ -44,7 +44,8 @@ if (require.main === module) {
   }
 
   watch({
-    ports: [443, 80],
+    // Windows keeps port 80 for its own web server (EACCES), and the updater of the app asks GitHub over https
+    ports: [443],
     probe: () => fetch('https://api.github.com/', { signal: AbortSignal.timeout(5000) }).catch(() => undefined),
     run: () =>
       new Promise((resolve, reject) => {
