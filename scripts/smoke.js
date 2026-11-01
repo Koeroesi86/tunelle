@@ -308,7 +308,8 @@ const run = async () => {
     // the flatpak sandbox does not see the folder of the run
     if (!flatpak) await checkTracks(webSocketDebuggerUrl)
     if (!flatpak) await checkRadio(webSocketDebuggerUrl, station)
-    console.log(`Smoke test passed: ${library.length} tracks`)
+    const trackCount = Number.isFinite(library.length) ? Math.trunc(library.length) : 0
+    console.log(`Smoke test passed: ${trackCount} tracks`)
   } finally {
     station.close()
     await stop(child)
