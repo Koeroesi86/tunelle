@@ -14,6 +14,9 @@ const { waitForPage } = require('./wait-for-page')
 const root = resolve(__dirname, '..')
 const timeout = 60000
 
+// what comes from the app or its files is printed on one line per entry, so it cannot forge a line of the log of the run
+const printable = text => String(text).replace(/[\r\n]+/g, ' ')
+
 const flatpak = process.argv.includes('--flatpak')
 const packaged = flatpak || process.argv.includes('--packaged')
 const executablePath = flatpak ? 'flatpak' : packaged ? resolve(root, packagedExecutable(process.platform, process.arch)) : require('electron')
@@ -305,7 +308,7 @@ const run = async () => {
     // the flatpak sandbox does not see the folder of the run
     if (!flatpak) await checkTracks(webSocketDebuggerUrl)
     if (!flatpak) await checkRadio(webSocketDebuggerUrl, station)
-    console.log(`Smoke test passed: ${url}, ${library.length} tracks`)
+    console.log(`Smoke test passed: ${printable(url)}, ${library.length} tracks`)
   } finally {
     station.close()
     await stop(child)
@@ -316,7 +319,7 @@ run()
   .catch(error => {
     console.error(error)
     if (packaged && !flatpak) console.error(`Packaged dependencies:\n${loadDependencies()}`)
-    if (existsSync(logFile)) console.error(`Log of the app:\n${readFileSync(logFile, 'utf8')}`)
+    if (existsSync(logFile)) console.error(`Log of the app:\n${readFileSync(logFile, 'utf8').split(/\r?\n/).map(printable).join('\n')}`)
     process.exitCode = 1
   })
   .finally(() => rmSync(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }))

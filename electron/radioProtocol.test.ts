@@ -122,6 +122,12 @@ describe('serveRadio', () => {
     expect((await serve('gone')).status).toBe(502);
   });
 
+  it.each(['file:///etc/passwd', 'ftp://127.0.0.1/stream'])('answers 502 for the stream address %j that is not http', async (address) => {
+    resolved.local = address;
+
+    expect((await serve('local')).status).toBe(502);
+  });
+
   it('answers 502 for a station the directory does not know', async () => {
     expect((await serve('unknown')).status).toBe(502);
   });

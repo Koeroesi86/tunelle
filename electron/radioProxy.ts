@@ -15,6 +15,10 @@ const maxRedirects = 5;
 const openUpstream = (address: string, signal: AbortSignal, redirects = maxRedirects): Promise<http.IncomingMessage> =>
   new Promise((resolve, reject) => {
     const url = new URL(address);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+      reject(new Error('The stream is not an http address'));
+      return;
+    }
     const request = (url.protocol === 'https:' ? https : http).get(url, { headers: { 'Icy-MetaData': '1' }, signal });
     // an error after the answer ends the audio through the pipeline, and never reaches the main process unhandled
     request.on('error', reject);
