@@ -2,7 +2,8 @@ const { readFileSync } = require('fs')
 
 // usage: node scripts/wack-report.js <report.xml>
 // reads the report of the Windows App Certification Kit (appcert.exe test ... -reportoutputpath) and fails when the package did not pass
-// the report is UTF-16 with a byte order mark; a test is `<TEST NAME="..."><RESULT><![CDATA[PASS]]></RESULT>...` and its messages are `TEXT="..."`
+// the report is UTF-16 with a byte order mark; a test is `<TEST NAME="..." OPTIONAL="TRUE"><RESULT><![CDATA[PASS]]></RESULT>...` and its messages are `TEXT="..."`
+// a failed optional test (the kit marks "Blocked executables", which every Electron app fails for CreateProcess, and "Archive files usage") does not fail the package: the overall result of the kit stays a pass, and Partner Center does not reject it
 const decode = buffer => (buffer[0] === 0xff && buffer[1] === 0xfe ? buffer.toString('utf16le') : buffer.toString('utf8')).replace(/^﻿/, '')
 
 const attribute = (tag, name) => tag.match(new RegExp(`\\b${name}="([^"]*)"`))?.[1] ?? ''
@@ -11,6 +12,7 @@ const summarise = buffer => {
   const xml = decode(buffer)
   const tests = [...xml.matchAll(/<TEST\b([^>]*)>([\s\S]*?)<\/TEST>/g)].map(([, tag, body]) => ({
     name: attribute(tag, 'NAME'),
+    optional: attribute(tag, 'OPTIONAL') === 'TRUE',
     result: body.match(/<RESULT>\s*(?:<!\[CDATA\[)?\s*(\w+)/)?.[1] ?? '',
     messages: [...body.matchAll(/\bTEXT="([^"]*)"/g)].map(([, text]) => text)
   }))
@@ -18,7 +20,8 @@ const summarise = buffer => {
   return {
     overall: attribute(xml.match(/<REPORT\b[^>]*>/)?.[0] ?? '', 'OVERALL_RESULT'),
     tests,
-    failures: tests.filter(({ result }) => result === 'FAIL'),
+    failures: tests.filter(({ result, optional }) => result === 'FAIL' && !optional),
+    optionalFailures: tests.filter(({ result, optional }) => result === 'FAIL' && optional),
     warnings: tests.filter(({ result }) => result === 'WARNING')
   }
 }
@@ -44,6 +47,7 @@ if (require.main === module) {
   const summary = summarise(readFileSync(path))
   console.log(`Overall result: ${summary.overall || 'missing'}, ${summary.tests.length} tests`)
   describeTests('Warnings:', summary.warnings).forEach(line => console.log(line))
+  describeTests('Failed optional tests (the package still passes):', summary.optionalFailures).forEach(line => console.log(line))
   describeTests('Failures:', summary.failures).forEach(line => console.log(line))
 
   const problems = problemsOf(summary)

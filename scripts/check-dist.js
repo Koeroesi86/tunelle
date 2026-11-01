@@ -14,6 +14,7 @@ const forbidden = [
   [/\.(pem|key|p12|pfx|crt)$/, 'key or certificate'],
   [/(^|\/)\.git(\/|$)/, 'git folder'],
   [/\.map$/, 'source map'],
+  [/\.tar\.gz$/, 'archive (the sources of sqlite3 in its deps folder: the Windows App Certification Kit flags it)'],
   [/\.(test|spec)\.[jt]sx?$/, 'test'],
   [/^\/(electron|client|components|scripts|coverage|\.cache|\.claude|\.github)\//, 'source or tooling folder'],
   [/^\/(index|test-utils-style-stub)\.ts$/, 'source file']

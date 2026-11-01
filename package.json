@@ -53,7 +53,8 @@
       "package.json",
       "!**/*.map",
       "!**/*.d.ts",
-      "!**/*.{spec,test}.*"
+      "!**/*.{spec,test}.*",
+      "!node_modules/sqlite3/deps/**"
     ],
     "asarUnpack": [
       "**/node_modules/@img/**"
