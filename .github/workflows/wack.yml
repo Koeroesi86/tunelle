@@ -1,16 +1,17 @@
 name: Store certification
 
-# The Windows App Certification Kit (the tests that Partner Center runs on a package) on the x64 package of a release, so a problem shows before the
-# submission, and a run of the installed package that shows it does not look for updates on GitHub. It runs on the package of the latest release, or of the tag it is given (by hand, or by release.yml after a release), and when this file or
-# its parser changes. The package is unsigned, so a copy of it is signed with a certificate made for the run, which the kit needs to install it; the
-# package that is uploaded to the Store is the one of the release.
+# The Windows App Certification Kit (the tests that Partner Center runs on a package) on the x64 package, so a problem shows before the submission, and
+# a run of the installed package that shows it does not look for updates on GitHub. dist.yml calls it with the package it built, so it runs for every
+# pull request and before a release is published; by hand it checks the package of a published release (the latest, or the tag it is given). The package
+# is unsigned, so a copy of it is signed with a certificate made for the run, which the kit needs to install it; the package that is uploaded to the
+# Store is the one of the release.
 on:
-  pull_request:
-    paths:
-      - .github/workflows/wack.yml
-      - scripts/wack-report.js
   workflow_call:
     inputs:
+      # the artifact of dist.yml with the package, empty to take it from a release
+      artifact:
+        type: string
+        default: ''
       tag:
         type: string
         default: ''
@@ -36,7 +37,14 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+      - name: Download the package of the build
+        if: inputs.artifact != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.artifact }}
+          path: package
       - name: Download the package of the release
+        if: inputs.artifact == ''
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}

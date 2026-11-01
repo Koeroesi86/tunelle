@@ -51,6 +51,12 @@ describe('workflows', () => {
     expect(text).toMatch(/playwright-report/)
   })
 
+  it('dist.yml runs the certification of the Store package on the Windows x64 package it built', () => {
+    const text = read('dist.yml')
+
+    expect(text).toMatch(/needs: dist\n\s+uses: \.\/\.github\/workflows\/wack\.yml\n\s+with:\n\s+artifact: dist-win32-x64/)
+  })
+
   it('dist.yml builds before it packages', () => {
     const text = read('dist.yml')
 

@@ -124,3 +124,13 @@ jobs:
             dist/*.yml
             !dist/builder-debug.yml
           if-no-files-found: error
+
+  # the tests of Partner Center on the package for the Store, and that it does not look for updates on GitHub; a failure stops a release as well
+  certification:
+    name: Store certification
+    needs: dist
+    uses: ./.github/workflows/wack.yml
+    with:
+      artifact: dist-win32-x64
+    permissions:
+      contents: read
