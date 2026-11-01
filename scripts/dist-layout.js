@@ -31,4 +31,7 @@ const updateMetadata = (platform, arch) =>
     win32: ['dist/latest.yml', /\.exe\b/]
   })[platform]
 
-module.exports = { packagedExecutable, resourcesFolder, updateMetadata }
+// the package of the Microsoft Store, next to the installer: it is not in the update metadata, as the Store updates it, and its name has no space (GitHub renames an asset with one)
+const storePackage = (platform, arch) => (platform === 'win32' ? new RegExp(`^Tunelle-\\d[\\d.]*-${arch}\\.appx$`) : undefined)
+
+module.exports = { packagedExecutable, resourcesFolder, storePackage, updateMetadata }

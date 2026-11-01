@@ -39,6 +39,9 @@
     "appId": "io.github.koeroesi86.Tunelle",
     "productName": "Tunelle",
     "compression": "normal",
+    "directories": {
+      "buildResources": "icons"
+    },
     "files": [
       "build/**/*",
       "out/**/*",
@@ -57,7 +60,10 @@
     ],
     "win": {
       "icon": "icons/win/icon.ico",
-      "target": "nsis"
+      "target": [
+        "nsis",
+        "appx"
+      ]
     },
     "mac": {
       "category": "public.app-category.music",
@@ -68,6 +74,14 @@
       "icon": "icons/mac/icon.icns",
       "identity": "-",
       "hardenedRuntime": false
+    },
+    "appx": {
+      "artifactName": "Tunelle-${version}-${arch}.${ext}",
+      "identityName": "Koeroesi86.Tunelle",
+      "publisher": "CN=00000000-0000-0000-0000-000000000000",
+      "publisherDisplayName": "Koeroesi86",
+      "applicationId": "Tunelle",
+      "backgroundColor": "transparent"
     },
     "nsis": {
       "artifactName": "Tunelle-Setup-${version}-${arch}.${ext}"
