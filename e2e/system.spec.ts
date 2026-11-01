@@ -1,3 +1,4 @@
+import { spawn } from 'child_process';
 import { rmSync, writeFileSync } from 'fs';
 import { basename, dirname, join } from 'path';
 import { expect, libraryTracks, navigate, quit, test } from './app';
@@ -18,6 +19,19 @@ test('tells the desktop what plays', async ({ session: { page } }) => {
 
   await controls.next();
   await expect.poll(async () => (await mediaSession()).title).toBe('Octave Up');
+});
+
+test('a second start of the same profile leaves and keeps the window of the first', async ({ session: { app, page } }) => {
+  const { spawnfile, spawnargs } = app.process();
+  // the command of the first start without what Playwright adds to attach to it (the loader and the debugging ports)
+  const args = spawnargs.slice(spawnargs.findIndex((arg) => arg.endsWith('index.js')));
+  const { ELECTRON_RUN_AS_NODE, ...inherited } = process.env;
+  const second = spawn(spawnfile, args, { env: { ...inherited, NODE_ENV: 'production', TUNELLE_NO_UPDATE: '1' }, stdio: 'ignore' });
+  const exit = await new Promise<number | null>((done) => second.once('exit', done));
+
+  expect(exit).toBe(0);
+  expect(page.isClosed()).toBe(false);
+  await expect(page.locator('#root')).not.toBeEmpty();
 });
 
 test('serves a track in ranges, and nothing outside of the library', async ({ session: { page }, music }) => {
