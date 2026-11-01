@@ -77,9 +77,9 @@
     },
     "appx": {
       "artifactName": "Tunelle-${version}-${arch}.${ext}",
-      "identityName": "Koeroesi86.Tunelle",
-      "publisher": "CN=00000000-0000-0000-0000-000000000000",
-      "publisherDisplayName": "Koeroesi86",
+      "identityName": "KrisztianKorosi.Tunelle",
+      "publisher": "CN=E0B88BF5-C453-41DE-AC11-4E0AE3617495",
+      "publisherDisplayName": "KrisztianKorosi",
       "applicationId": "Tunelle",
       "backgroundColor": "transparent"
     },
