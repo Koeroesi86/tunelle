@@ -76,6 +76,12 @@ describe('RadioStations', () => {
     expect(container.querySelector('img')).toBeNull();
   });
 
+  it('says that the stations come from a community directory that Tunelle does not run', () => {
+    renderPanel();
+
+    expect(screen.getByText('Stations come from the community directory radio-browser.info. Tunelle does not run or check them.')).toBeTruthy();
+  });
+
   it('lists the stations with their details', () => {
     renderPanel();
 

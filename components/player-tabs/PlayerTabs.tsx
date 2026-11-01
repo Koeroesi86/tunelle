@@ -9,6 +9,7 @@ import PlaylistView from '../playlist-view';
 import Equalizer from '../equalizer';
 import FolderManagement from '../folder-management';
 import ArtistPhotos from '../artist-photos';
+import RadioSources from '../radio-sources';
 import LoudnessNormalization from '../loudness-normalization';
 import WatchFolders from '../watch-folders';
 import LauncherIntegration from '../launcher-integration';
@@ -88,6 +89,7 @@ function PlayerTabs({ tab = 'home', addFiles = () => {} }: PlayerTabsProps) {
           <LoudnessNormalization />
           <WatchFolders />
           <ArtistPhotos />
+          <RadioSources />
           <WindowBlur />
           <LauncherIntegration />
         </div>

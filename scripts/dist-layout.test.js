@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { packagedExecutable, resourcesFolder, updateMetadata } from './dist-layout'
+import { packagedExecutable, resourcesFolder, storePackage, updateMetadata } from './dist-layout'
 
 describe('packagedExecutable', () => {
   it.each([
@@ -32,5 +32,22 @@ describe('updateMetadata', () => {
     ['win32', 'arm64', 'dist/latest.yml']
   ])('names the update file of %s %s', (platform, arch, expected) => {
     expect(updateMetadata(platform, arch)[0]).toBe(expected)
+  })
+})
+
+describe('storePackage', () => {
+  it.each([
+    ['x64', 'Tunelle-26.11.7-x64.appx', true],
+    ['arm64', 'Tunelle-26.11.7-arm64.appx', true],
+    ['x64', 'Tunelle-26.11.7-arm64.appx', false],
+    ['x64', 'Tunelle 26.11.7.appx', false],
+    ['x64', 'Tunelle-Setup-26.11.7-x64.exe', false]
+  ])('for %s the name %s is %s', (arch, name, expected) => {
+    expect(storePackage('win32', arch).test(name)).toBe(expected)
+  })
+
+  it('is only for windows', () => {
+    expect(storePackage('linux', 'x64')).toBeUndefined()
+    expect(storePackage('darwin', 'arm64')).toBeUndefined()
   })
 })

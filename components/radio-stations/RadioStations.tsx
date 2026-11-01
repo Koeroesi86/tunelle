@@ -233,6 +233,7 @@ const RadioStations = ({ radio, currentStation, search, loadTags, loadOptions, p
             <FavouriteButton item={stationFavourite(station)} className={style.favourite} />
           </div>
         ))}
+        <div className={style.message}>{t('radio.source')}</div>
         {hasMore && !loading && (
           <button className={style.loadMore} type="button" onClick={() => search({ ...query, offset: offset + radioPageSize })}>
             {t('radio.loadMore')}
