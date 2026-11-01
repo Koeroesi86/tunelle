@@ -300,7 +300,7 @@ const run = async () => {
     stdio: 'inherit'
   })
   try {
-    const { url, webSocketDebuggerUrl } = await findWindowUrl(port, child)
+    const { webSocketDebuggerUrl } = await findWindowUrl(port, child)
     // the window exists before the page has loaded, which a slow runner shows: the library is asked from the page
     await waitForPage(expression => evaluateIn(webSocketDebuggerUrl, expression), Date.now() + timeout)
     const library = await evaluateIn(webSocketDebuggerUrl, `fetch('tunelle://app/library').then(response => (response.ok ? response.json() : Promise.reject(new Error('/library answered ' + response.status))))`)
@@ -308,7 +308,7 @@ const run = async () => {
     // the flatpak sandbox does not see the folder of the run
     if (!flatpak) await checkTracks(webSocketDebuggerUrl)
     if (!flatpak) await checkRadio(webSocketDebuggerUrl, station)
-    console.log(`Smoke test passed: ${printable(url)}, ${library.length} tracks`)
+    console.log(`Smoke test passed: ${library.length} tracks`)
   } finally {
     station.close()
     await stop(child)
