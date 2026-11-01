@@ -14,6 +14,9 @@ const { waitForPage } = require('./wait-for-page')
 const root = resolve(__dirname, '..')
 const timeout = 60000
 
+// what comes from the app or its files is printed on one line per entry, so it cannot forge a line of the log of the run
+const printable = text => String(text).replace(/[\r\n]+/g, ' ')
+
 const flatpak = process.argv.includes('--flatpak')
 const packaged = flatpak || process.argv.includes('--packaged')
 const executablePath = flatpak ? 'flatpak' : packaged ? resolve(root, packagedExecutable(process.platform, process.arch)) : require('electron')
@@ -297,7 +300,7 @@ const run = async () => {
     stdio: 'inherit'
   })
   try {
-    const { url, webSocketDebuggerUrl } = await findWindowUrl(port, child)
+    const { webSocketDebuggerUrl } = await findWindowUrl(port, child)
     // the window exists before the page has loaded, which a slow runner shows: the library is asked from the page
     await waitForPage(expression => evaluateIn(webSocketDebuggerUrl, expression), Date.now() + timeout)
     const library = await evaluateIn(webSocketDebuggerUrl, `fetch('tunelle://app/library').then(response => (response.ok ? response.json() : Promise.reject(new Error('/library answered ' + response.status))))`)
@@ -305,7 +308,8 @@ const run = async () => {
     // the flatpak sandbox does not see the folder of the run
     if (!flatpak) await checkTracks(webSocketDebuggerUrl)
     if (!flatpak) await checkRadio(webSocketDebuggerUrl, station)
-    console.log(`Smoke test passed: ${url}, ${library.length} tracks`)
+    const trackCount = Number.isFinite(library.length) ? Math.trunc(library.length) : 0
+    console.log(`Smoke test passed: ${trackCount} tracks`)
   } finally {
     station.close()
     await stop(child)
@@ -316,7 +320,7 @@ run()
   .catch(error => {
     console.error(error)
     if (packaged && !flatpak) console.error(`Packaged dependencies:\n${loadDependencies()}`)
-    if (existsSync(logFile)) console.error(`Log of the app:\n${readFileSync(logFile, 'utf8')}`)
+    if (existsSync(logFile)) console.error(`Log of the app:\n${readFileSync(logFile, 'utf8').split(/\r?\n/).map(printable).join('\n')}`)
     process.exitCode = 1
   })
   .finally(() => rmSync(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }))
