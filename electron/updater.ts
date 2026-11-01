@@ -127,11 +127,18 @@ export function createMockUpdateSource(stepDelay = 250): UpdateSource {
 
 /**
  * electron-updater only works in the packaged app, on Linux only in an AppImage (the Flatpak updates through its store, any other package
- * through its package manager), and TUNELLE_NO_UPDATE=1 turns it off, which the smoke tests of the packaged app set
+ * through its package manager, the Microsoft Store package through the Store), and TUNELLE_NO_UPDATE=1 turns it off, which the smoke tests of the packaged app set
  */
-export const getUpdateUnavailableReason = (isPackaged: boolean, platform: NodeJS.Platform, env: NodeJS.ProcessEnv): UpdateUnavailableReason | undefined => {
+export const getUpdateUnavailableReason = (
+  isPackaged: boolean,
+  platform: NodeJS.Platform,
+  env: NodeJS.ProcessEnv,
+  windowsStore?: boolean
+): UpdateUnavailableReason | undefined => {
   if (!isPackaged) return 'development';
   if (env.TUNELLE_NO_UPDATE === '1') return 'disabled';
+  // the Store update the package itself, and its policy does not let an app update outside of it; an env variable cannot say this, the Store starts the app
+  if (windowsStore) return 'store';
   if (platform !== 'linux' || env.APPIMAGE) return undefined;
 
   return env.FLATPAK_ID ? 'flatpak' : 'managed';

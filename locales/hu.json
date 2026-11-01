@@ -290,5 +290,6 @@
   "about.unavailable.disabled": "A frissítések ki vannak kapcsolva",
   "about.unavailable.flatpak": "A frissítések a Flatpakon keresztül érkeznek",
   "about.unavailable.managed": "A frissítések a csomagkezelőn keresztül érkeznek",
+  "about.unavailable.store": "A frissítések a Microsoft Store-on keresztül érkeznek",
   "about.releases": "A kiadások oldalának megnyitása"
 }

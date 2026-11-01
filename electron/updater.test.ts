@@ -223,6 +223,15 @@ describe('getUpdateUnavailableReason', () => {
     expect(getUpdateUnavailableReason(isPackaged, platform, env)).toBe(reason);
   });
 
+  it('names the Store for a Store package, which has no say over its updates', () => {
+    expect(getUpdateUnavailableReason(true, 'win32', {}, true)).toBe('store');
+  });
+
+  it('names a turned off update before the Store, and a development run before both', () => {
+    expect(getUpdateUnavailableReason(true, 'win32', { TUNELLE_NO_UPDATE: '1' }, true)).toBe('disabled');
+    expect(getUpdateUnavailableReason(false, 'win32', {}, true)).toBe('development');
+  });
+
   it.each([
     ['windows', 'win32', {}],
     ['macos', 'darwin', {}],

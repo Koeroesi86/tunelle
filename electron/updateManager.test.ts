@@ -173,7 +173,7 @@ describe('createUpdateManager', () => {
       expect(manager.getState().automatic).toBe(true);
     });
 
-    it.each(['development', 'disabled', 'flatpak', 'managed'] as const)('ignores the choice where updates are %s', async (unavailable) => {
+    it.each(['development', 'disabled', 'flatpak', 'managed', 'store'] as const)('ignores the choice where updates are %s', async (unavailable) => {
       const saveAutomatic = vi.fn(() => Promise.resolve());
       const manager = createUpdateManager({ source: undefined, info: { ...info, unavailable }, publish: vi.fn(), saveAutomatic });
 
