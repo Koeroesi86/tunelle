@@ -9,6 +9,7 @@ const mapState = ({ update, uiState: { isPlaying } }: RootState) => ({ update, i
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   check: () => dispatch({ type: 'CHECK_FOR_UPDATES' }),
   install: () => dispatch({ type: 'INSTALL_UPDATE' }),
+  setAutomatic: (enabled: boolean) => dispatch({ type: 'SET_AUTOMATIC_UPDATES', payload: { enabled } }),
   openReleases: () => dispatch({ type: 'OPEN_RELEASES' }),
 });
 

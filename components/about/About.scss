@@ -32,6 +32,19 @@
     opacity: 0.6;
   }
 
+  .automatic {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+
+    .automaticTitle {
+      font-size: 12px;
+      font-weight: 600;
+    }
+  }
+
   .action {
     @include tile-button;
     align-self: flex-start;
