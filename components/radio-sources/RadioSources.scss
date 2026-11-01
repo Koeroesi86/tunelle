@@ -1,0 +1,13 @@
+@use '../../client/styles/settings-tile' as *;
+
+.radioSources {
+  @include tile;
+
+  .sectionTitle {
+    @include tile-title;
+  }
+
+  .description {
+    @include tile-hint;
+  }
+}
