@@ -2,6 +2,7 @@ import { useState } from 'react';
 import classNames from 'classnames';
 import type { UpdateState } from '../../types/update';
 import Confirm from '../confirm';
+import Switch from '../switch/Switch';
 import { useTranslation } from '../../client/i18n';
 import appIcon from '../../assets/icon.svg';
 import style from './About.scss';
@@ -11,11 +12,12 @@ interface AboutProps {
   isPlaying: boolean;
   check: () => void;
   install: () => void;
+  setAutomatic: (enabled: boolean) => void;
   openReleases: () => void;
 }
 
 /** The installed version, and where the app updates itself the check for a new one; elsewhere the reason it does not */
-const About = ({ update, isPlaying, check, install, openReleases }: AboutProps) => {
+const About = ({ update, isPlaying, check, install, setAutomatic, openReleases }: AboutProps) => {
   const { t, language } = useTranslation();
   const [confirming, setConfirming] = useState(false);
 
@@ -51,6 +53,15 @@ const About = ({ update, isPlaying, check, install, openReleases }: AboutProps) 
       {!unavailable && ['idle', 'upToDate'].includes(status.kind) && action(t('about.check'), check)}
       {!unavailable && status.kind === 'failed' && action(t('about.retry'), check)}
       {!unavailable && status.kind === 'ready' && action(t('about.restart'), () => (isPlaying ? setConfirming(true) : install()))}
+      {!unavailable && (
+        <div className={style.automatic}>
+          <div>
+            <div className={style.automaticTitle}>{t('about.automatic')}</div>
+            <div className={style.status}>{update.automatic ? t('about.automatic.on') : t('about.automatic.off')}</div>
+          </div>
+          <Switch checked={update.automatic} label={t('about.automatic')} onChange={setAutomatic} />
+        </div>
+      )}
       {confirming && (
         <Confirm
           message={t('about.restartPlaying')}

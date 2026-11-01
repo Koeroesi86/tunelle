@@ -130,6 +130,7 @@ export type AppAction =
   | EmptyAction<'CHECK_FOR_UPDATES'>
   | EmptyAction<'INSTALL_UPDATE'>
   | EmptyAction<'OPEN_RELEASES'>
+  | PayloadAction<'SET_AUTOMATIC_UPDATES', { enabled: boolean }>
   | PayloadAction<'UPDATE_STATE', UpdateState>
   | PayloadAction<'SEARCH_RADIO', { query: RadioQuery }>
   | PayloadAction<'RADIO_STATIONS', { query: RadioQuery; stations: RadioStation[]; hasMore?: boolean; error?: string }>

@@ -97,7 +97,7 @@ describe('connection middleware', () => {
 
   it('asks the main process for the version when it starts and stores the update state it reports', async () => {
     const { store, send, listen } = await setup();
-    const state = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, status: { kind: 'checking' } };
+    const state = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, automatic: true, status: { kind: 'checking' } };
 
     listen('UPDATE_STATE', state);
 
@@ -113,6 +113,14 @@ describe('connection middleware', () => {
 
     expect(send).toHaveBeenCalledWith('CHECK_FOR_UPDATES');
     expect(send).toHaveBeenCalledWith('OPEN_RELEASES');
+  });
+
+  it('sends the choice to update at start to the main process', async () => {
+    const { store, send } = await setup();
+
+    store.dispatch({ type: 'SET_AUTOMATIC_UPDATES', payload: { enabled: false } });
+
+    expect(send).toHaveBeenCalledWith('SET_AUTOMATIC_UPDATES', { enabled: false });
   });
 
   it('saves the queue and the position before the restart for an update', async () => {

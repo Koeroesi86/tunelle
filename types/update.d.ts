@@ -15,5 +15,7 @@ export interface UpdateState {
   chrome: string;
   /** Why the app does not update itself, undefined where it does */
   unavailable: UpdateUnavailableReason | undefined;
+  /** Whether the app checks for an update and installs it at start; the check in the settings works either way */
+  automatic: boolean;
   status: UpdateStatus;
 }

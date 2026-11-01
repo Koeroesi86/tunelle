@@ -7,7 +7,7 @@ import type { AppAction } from '../../client/redux/types';
 import type { UpdateState } from '../../types/update';
 import About from './index';
 
-const state: UpdateState = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, status: { kind: 'idle' } };
+const state: UpdateState = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, automatic: true, status: { kind: 'idle' } };
 
 const setup = (actions: AppAction[]) => {
   const store = createStore(reducers);
@@ -56,6 +56,14 @@ describe('About connected to the store', () => {
 
     expect(dispatch).not.toHaveBeenCalled();
     expect(screen.getByText('The playback stops for the restart. The queue and the position are kept.')).toBeTruthy();
+  });
+
+  it('dispatches the choice to update at start', () => {
+    const dispatch = setup([{ type: 'UPDATE_STATE', payload: state }]);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Update at start' }));
+
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: 'SET_AUTOMATIC_UPDATES', payload: { enabled: false } });
   });
 
   it('dispatches opening the releases where updates do not apply', () => {

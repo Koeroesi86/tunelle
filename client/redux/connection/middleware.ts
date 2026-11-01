@@ -284,6 +284,7 @@ const handleActions = actionMiddleware((store) => [
   onAction('LOAD_RADIO_OPTIONS', () => electronAPI.send('RADIO_OPTIONS')),
   onAction('CHECK_FOR_UPDATES', () => electronAPI.send('CHECK_FOR_UPDATES')),
   onAction('OPEN_RELEASES', () => electronAPI.send('OPEN_RELEASES')),
+  onAction('SET_AUTOMATIC_UPDATES', ({ payload }) => electronAPI.send('SET_AUTOMATIC_UPDATES', payload)),
   // the restart quits the app, so the queue and the position are saved first (the main process closes the database after what it has queued)
   onAction('INSTALL_UPDATE', () => {
     saveSettings(store.getState().uiState);

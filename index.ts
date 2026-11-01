@@ -6,6 +6,7 @@ import minimist from 'minimist';
 import ws from 'windows-shortcuts-appid';
 import type { AppWindows } from './types/global';
 import getAppDataPath from './electron/appDataPath';
+import { readAutomaticUpdates, saveAutomaticUpdates } from './electron/updatePreference';
 import { copyOldLibrary, copyOldUserData, getAppName } from './electron/userData';
 import createWindow from './electron/createWindow';
 import getLoadingWindow from './electron/getLoadingWindow';
@@ -180,12 +181,14 @@ const updateSource = getUpdateSource();
 const updates = createUpdateManager({
   source: updateSource,
   info: { version: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome, unavailable },
+  automatic: readAutomaticUpdates(appDataPath),
+  saveAutomatic: (automatic) => saveAutomaticUpdates(appDataPath, automatic),
   publish: (state) => windows.main?.webContents.send('UPDATE_STATE', state),
 });
 
-// the splash stays up while the update is checked and downloaded, the app starts once it is done
+// the splash stays up while the update is checked and downloaded, the app starts once it is done; the user can turn this off and update from the settings
 const updateOnSplash = async (loading: BrowserWindow) => {
-  if (!updateSource) return;
+  if (!updateSource || !updates.getState().automatic) return;
 
   return runUpdate(updateSource, (progress) => loading.webContents.send('SPLASH_PROGRESS', progress), {
     install: !isMockUpdate,

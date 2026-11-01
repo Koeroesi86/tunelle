@@ -25,7 +25,7 @@ describe('createUpdateManager', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('starts idle with the versions of the app', () => {
-    expect(setup(notFound).manager.getState()).toEqual({ ...info, status: { kind: 'idle' } });
+    expect(setup(notFound).manager.getState()).toEqual({ ...info, automatic: true, status: { kind: 'idle' } });
   });
 
   it('reports up to date with the time of the check', async () => {
@@ -127,5 +127,60 @@ describe('createUpdateManager', () => {
 
     expect(publish).not.toHaveBeenCalled();
     expect(manager.getState().unavailable).toBe('flatpak');
+  });
+
+  describe('the update at start', () => {
+    it('keeps the choice and publishes it', async () => {
+      const saveAutomatic = vi.fn(() => Promise.resolve());
+      const { manager, kinds } = setup(notFound, undefined, { saveAutomatic });
+
+      await manager.setAutomatic(false);
+
+      expect(manager.getState().automatic).toBe(false);
+      expect(saveAutomatic).toHaveBeenCalledExactlyOnceWith(false);
+      expect(kinds()).toEqual(['idle']);
+    });
+
+    it('starts from the saved choice', () => {
+      expect(setup(notFound, undefined, { automatic: false }).manager.getState().automatic).toBe(false);
+    });
+
+    it('still checks, downloads and installs by hand while it is off', async () => {
+      const { manager, source } = setup(found, undefined, { automatic: false });
+
+      await manager.check();
+      manager.install();
+
+      expect(manager.getState().status).toEqual({ kind: 'ready', version: '26.10.6' });
+      expect(source.quitAndInstall).toHaveBeenCalledExactlyOnceWith(true, true);
+    });
+
+    it('does not save a choice that is already made', async () => {
+      const saveAutomatic = vi.fn(() => Promise.resolve());
+      const { manager } = setup(notFound, undefined, { saveAutomatic });
+
+      await manager.setAutomatic(true);
+
+      expect(saveAutomatic).not.toHaveBeenCalled();
+    });
+
+    it('takes the choice back when it was not saved', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const { manager } = setup(notFound, undefined, { saveAutomatic: () => Promise.reject(new Error('read only')) });
+
+      await manager.setAutomatic(false);
+
+      expect(manager.getState().automatic).toBe(true);
+    });
+
+    it.each(['development', 'disabled', 'flatpak', 'managed'] as const)('ignores the choice where updates are %s', async (unavailable) => {
+      const saveAutomatic = vi.fn(() => Promise.resolve());
+      const manager = createUpdateManager({ source: undefined, info: { ...info, unavailable }, publish: vi.fn(), saveAutomatic });
+
+      await manager.setAutomatic(false);
+
+      expect(manager.getState().automatic).toBe(true);
+      expect(saveAutomatic).not.toHaveBeenCalled();
+    });
   });
 });

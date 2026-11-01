@@ -3,10 +3,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { UpdateState, UpdateStatus } from '../../types/update';
 import About from './About';
 
-const base: UpdateState = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, status: { kind: 'idle' } };
+const base: UpdateState = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, automatic: true, status: { kind: 'idle' } };
 
 const setup = (overrides: Partial<UpdateState> = {}, isPlaying = false) => {
-  const handlers = { check: vi.fn(), install: vi.fn(), openReleases: vi.fn() };
+  const handlers = { check: vi.fn(), install: vi.fn(), setAutomatic: vi.fn(), openReleases: vi.fn() };
   render(<About update={{ ...base, ...overrides }} isPlaying={isPlaying} {...handlers} />);
 
   return handlers;
@@ -16,7 +16,7 @@ const withStatus = (status: UpdateStatus) => ({ status });
 
 describe('About', () => {
   it('shows nothing before the main process reports', () => {
-    const { container } = render(<About update={null} isPlaying={false} check={vi.fn()} install={vi.fn()} openReleases={vi.fn()} />);
+    const { container } = render(<About update={null} isPlaying={false} check={vi.fn()} install={vi.fn()} setAutomatic={vi.fn()} openReleases={vi.fn()} />);
 
     expect(container.innerHTML).toBe('');
   });
@@ -29,7 +29,7 @@ describe('About', () => {
   });
 
   it('shows the icon of the app next to the version', () => {
-    const { container } = render(<About update={base} isPlaying={false} check={vi.fn()} install={vi.fn()} openReleases={vi.fn()} />);
+    const { container } = render(<About update={base} isPlaying={false} check={vi.fn()} install={vi.fn()} setAutomatic={vi.fn()} openReleases={vi.fn()} />);
 
     expect(container.querySelector('img')?.getAttribute('src')).toContain('svg');
   });
@@ -119,5 +119,30 @@ describe('About', () => {
 
     expect(screen.getByText('Updates are off in a development run')).toBeTruthy();
     expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('turns the update at start off, and the check stays', () => {
+    const { setAutomatic } = setup();
+
+    expect(screen.getByText(/installs it before it opens/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('switch', { name: 'Update at start' }));
+
+    expect(setAutomatic).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it('says what the off switch means, still offers the check, and turns the update at start on', () => {
+    const { setAutomatic } = setup({ automatic: false });
+
+    expect(screen.getByText(/does not check when it starts/)).toBeTruthy();
+    expect(screen.getByText('Check for updates')).toBeTruthy();
+    fireEvent.click(screen.getByRole('switch', { name: 'Update at start' }));
+
+    expect(setAutomatic).toHaveBeenCalledExactlyOnceWith(true);
+  });
+
+  it.each(['development', 'disabled', 'flatpak', 'managed'] as const)('has no switch where updates are %s', (unavailable) => {
+    setup({ unavailable });
+
+    expect(screen.queryByRole('switch')).toBeNull();
   });
 });
