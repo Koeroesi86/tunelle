@@ -136,6 +136,18 @@ const AudioComponent = ({
 
   useEffect(gapless.preloadNext, [currentSong, upNext]);
 
+  // a paused station keeps its connection open and buffers, so play would continue with old audio: a pause lets go of the stream and play connects to the live one
+  useUpdateEffect(() => {
+    if (!isRadio || !currentSong) return;
+    if (!isPlaying) return gapless.release();
+    if (gapless.holdsSource()) return;
+
+    gapless
+      .load(sourceOf(currentSong))
+      ?.play()
+      .catch((err) => console.error(err));
+  }, [isPlaying]);
+
   // each element is levelled for the track it holds, the one that loads the next track too, so the hand-off needs no change; a station has no tags and plays as it is
   useEffect(
     () =>

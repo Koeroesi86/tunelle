@@ -75,6 +75,109 @@ describe('AudioComponent', () => {
     expect(play).toHaveBeenCalledTimes(1);
   });
 
+  it('lets go of a station when it is paused and connects again when it plays', () => {
+    const view = renderAudio(null);
+    const element = view.container.querySelector('audio');
+    const props = (isPlaying: boolean) => (
+      <AudioComponent
+        currentSong={station}
+        isPlaying={isPlaying}
+        volume={1}
+        trackEnded={vi.fn()}
+        connectNode={vi.fn()}
+        connectStandbyNode={vi.fn()}
+        activateNode={vi.fn()}
+        normalization="album"
+        setNormalization={vi.fn()}
+        upNext={null}
+      />
+    );
+    view.rerender(props(true));
+    expect(element?.hasAttribute('src')).toBe(true);
+
+    view.rerender(props(false));
+    expect(element?.hasAttribute('src')).toBe(false);
+
+    play.mockClear();
+    view.rerender(props(true));
+    expect(element?.getAttribute('src')).toContain('/radio/abc-1');
+    expect(play).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the source of a file track when it is paused', () => {
+    const file: Track = { ...station, path: '/music/a.flac' };
+    const view = renderAudio(null);
+    const element = view.container.querySelector('audio');
+    const props = (isPlaying: boolean) => (
+      <AudioComponent
+        currentSong={file}
+        isPlaying={isPlaying}
+        volume={1}
+        trackEnded={vi.fn()}
+        connectNode={vi.fn()}
+        connectStandbyNode={vi.fn()}
+        activateNode={vi.fn()}
+        normalization="album"
+        setNormalization={vi.fn()}
+        upNext={null}
+      />
+    );
+    view.rerender(props(true));
+    view.rerender(props(false));
+
+    expect(element?.hasAttribute('src')).toBe(true);
+  });
+
+  it('does not load a station again when play comes while it still holds its source', () => {
+    const view = renderAudio(null);
+    const props = (isPlaying: boolean) => (
+      <AudioComponent
+        currentSong={station}
+        isPlaying={isPlaying}
+        volume={1}
+        trackEnded={vi.fn()}
+        connectNode={vi.fn()}
+        connectStandbyNode={vi.fn()}
+        activateNode={vi.fn()}
+        normalization="album"
+        setNormalization={vi.fn()}
+        upNext={null}
+      />
+    );
+    view.rerender(props(false));
+    play.mockClear();
+    view.rerender(props(true));
+
+    expect(play).not.toHaveBeenCalled();
+  });
+
+  it('logs a station that cannot connect again after a pause', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const failure = new Error('offline');
+    const view = renderAudio(null);
+    const props = (isPlaying: boolean) => (
+      <AudioComponent
+        currentSong={station}
+        isPlaying={isPlaying}
+        volume={1}
+        trackEnded={vi.fn()}
+        connectNode={vi.fn()}
+        connectStandbyNode={vi.fn()}
+        activateNode={vi.fn()}
+        normalization="album"
+        setNormalization={vi.fn()}
+        upNext={null}
+      />
+    );
+    view.rerender(props(true));
+    view.rerender(props(false));
+    play.mockRejectedValueOnce(failure);
+    view.rerender(props(true));
+
+    await vi.waitFor(() => expect(error).toHaveBeenCalledWith(failure));
+    error.mockRestore();
+  });
+
   it('plays a station through the local server', () => {
     const view = renderAudio(null);
     view.rerender(
