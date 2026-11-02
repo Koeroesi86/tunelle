@@ -58,7 +58,7 @@ describe('the metainfo of the Flatpak', () => {
 
     expect(count(/<summary>/g)).toBe(count(/<summary xml:lang="hu">/g))
     expect(count(/<p>/g)).toBe(count(/<p xml:lang="hu">/g))
-    expect(count(/<ul>/g)).toBe(count(/<ul xml:lang="hu">/g))
+    expect(count(/<li>/g)).toBe(count(/<li xml:lang="hu">/g))
     expect(count(/<caption>/g)).toBe(count(/<caption xml:lang="hu">/g))
   })
 
