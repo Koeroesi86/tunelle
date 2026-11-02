@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'fs'
 import { describe, expect, it } from 'vitest'
-import { comment, description, findKey, refFile, repoFile } from './flatpak-repo'
+import { comment, description, findBranch, findKey, refFile, repoFile } from './flatpak-repo'
 
 const { build } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
 
@@ -32,26 +32,44 @@ describe('findKey', () => {
   })
 })
 
+describe('findBranch', () => {
+  const refs = (branch) => ['appstream/x86_64', 'appstream2/x86_64', `app/${build.appId}/x86_64/${branch}`, `app/${build.appId}/aarch64/${branch}`].join('\n')
+
+  it('returns the branch both architectures share', () => {
+    expect(findBranch(refs('stable'))).toBe('stable')
+  })
+
+  it('refuses bundles of different branches', () => {
+    expect(() => findBranch(`${refs('stable')}\napp/${build.appId}/x86_64/master`)).toThrow(/one branch/)
+  })
+
+  it('refuses a repository without the app', () => {
+    expect(() => findBranch('appstream/x86_64')).toThrow(/found: none/)
+  })
+})
+
 describe('the files of the repository', () => {
   it('points the remote at the repository of the website with the key', () => {
-    const text = repoFile('KEY')
+    const text = repoFile('KEY', 'stable')
 
     expect(text).toMatch(/^\[Flatpak Repo\]$/m)
     expect(text).toMatch(/^Url=https:\/\/koeroesi86\.github\.io\/tunelle\/repo\/$/m)
     expect(text).toMatch(/^GPGKey=KEY$/m)
+    expect(text).toMatch(/^DefaultBranch=stable$/m)
   })
 
   it('names the app and takes the runtime from Flathub', () => {
-    const text = refFile('KEY')
+    const text = refFile('KEY', 'stable')
 
     expect(text).toContain(`Name=${build.appId}\n`)
     expect(text).toMatch(/^Url=https:\/\/koeroesi86\.github\.io\/tunelle\/repo\/$/m)
+    expect(text).toMatch(/^Branch=stable$/m)
     expect(text).toMatch(/^RuntimeRepo=https:\/\/dl\.flathub\.org\/repo\/flathub\.flatpakrepo$/m)
     expect(text).toMatch(/^GPGKey=KEY$/m)
   })
 
   it('shows the summary, the description and the icon of the app before it is installed', () => {
-    ;[repoFile('KEY'), refFile('KEY')].forEach((text) => {
+    ;[repoFile('KEY', 'stable'), refFile('KEY', 'stable')].forEach((text) => {
       expect(text).toContain(`Comment=${comment}\n`)
       expect(text).toContain(`Description=${description}\n`)
       expect(text).toMatch(/^Icon=https:\/\/koeroesi86\.github\.io\/tunelle\/icon-512\.png$/m)

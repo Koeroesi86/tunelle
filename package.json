@@ -122,6 +122,7 @@
       "base": "org.electronjs.Electron2.BaseApp",
       "baseVersion": "25.08",
       "useWaylandFlags": true,
+      "branch": "stable",
       "files": [
         [
           "flatpak/io.github.koeroesi86.Tunelle.metainfo.xml",

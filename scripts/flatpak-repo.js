@@ -17,8 +17,6 @@ const flathubRepoUrl = 'https://dl.flathub.org/repo/flathub.flatpakrepo'
 const comment = 'Lossless audio player'
 const description = 'Tunelle plays your own music library and internet radio, and shows the format of everything it plays: FLAC 16/44.1, FLAC 24/96, MP3 320.'
 const iconUrl = `${siteUrl}icon-512.png`
-// the branch electron-builder gives the bundles
-const branch = 'master'
 
 // the first secret key of `gpg --list-secret-keys --with-colons`: sec:<validity>:::::<expires>:::::: and the fpr: line after it
 const findKey = (listing, now = Date.now()) => {
@@ -33,7 +31,15 @@ const findKey = (listing, now = Date.now()) => {
   return fingerprint
 }
 
-const repoFile = (publicKey) =>
+// the branch of the app in the bundles (build.flatpak.branch of package.json), from the refs of the repository, so the bundles of a release that was built
+// with another branch are published under theirs
+const findBranch = (refs) => {
+  const branches = [...new Set(refs.split('\n').filter((ref) => ref.startsWith(`app/${appId}/`)).map((ref) => ref.split('/')[3]))]
+  if (branches.length !== 1) throw new Error(`the bundles have to share one branch of ${appId}, found: ${branches.join(', ') || 'none'}`)
+  return branches[0]
+}
+
+const repoFile = (publicKey, branch) =>
   [
     '[Flatpak Repo]',
     'Title=Tunelle',
@@ -47,7 +53,7 @@ const repoFile = (publicKey) =>
     '',
   ].join('\n')
 
-const refFile = (publicKey) =>
+const refFile = (publicKey, branch) =>
   [
     '[Flatpak Ref]',
     'Title=Tunelle',
@@ -84,6 +90,7 @@ const buildRepo = (bundlesFolder, repoFolder, privateKey) => {
     const sign = [`--gpg-sign=${fingerprint}`, `--gpg-homedir=${gpgHome}`]
     run('ostree', ['init', `--repo=${repoFolder}`, '--mode=archive-z2'])
     bundles.forEach((bundle) => run('flatpak', ['build-import-bundle', ...sign, repoFolder, bundle]))
+    const branch = findBranch(run('ostree', ['refs', `--repo=${repoFolder}`]).toString())
     run('flatpak', [
       'build-update-repo',
       ...sign,
@@ -95,8 +102,8 @@ const buildRepo = (bundlesFolder, repoFolder, privateKey) => {
       '--prune',
       repoFolder,
     ])
-    writeFileSync(join(repoFolder, 'tunelle.flatpakrepo'), repoFile(publicKey.toString('base64')))
-    writeFileSync(join(repoFolder, 'tunelle.flatpakref'), refFile(publicKey.toString('base64')))
+    writeFileSync(join(repoFolder, 'tunelle.flatpakrepo'), repoFile(publicKey.toString('base64'), branch))
+    writeFileSync(join(repoFolder, 'tunelle.flatpakref'), refFile(publicKey.toString('base64'), branch))
   } finally {
     rmSync(gpgHome, { recursive: true, force: true })
   }
@@ -116,4 +123,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { comment, description, findKey, refFile, repoFile }
+module.exports = { comment, description, findBranch, findKey, refFile, repoFile }

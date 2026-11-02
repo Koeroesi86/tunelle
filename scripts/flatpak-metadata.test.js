@@ -57,6 +57,11 @@ describe('the metainfo of the Flatpak', () => {
     expect(build.flatpak.files).toContainEqual([`flatpak/${build.appId}.metainfo.xml`, `/share/metainfo/${build.appId}.metainfo.xml`])
   })
 
+  // GNOME Software marks an app of the branch master as coming from a development repository and shows it as a beta
+  it('is built on the stable branch of Flatpak', () => {
+    expect(build.flatpak.branch).toBe('stable')
+  })
+
   it('has a release', () => {
     expect(metainfo).toMatch(/<release version="\d+\.\d+\.\d+" date="\d{4}-\d{2}-\d{2}"\/>/)
   })
