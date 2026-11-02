@@ -1,3 +1,13 @@
+// the copy button next to a command; without the clipboard (or this script) the command is still there to select
+document.querySelectorAll('[data-copy]').forEach((copy) => {
+  if (!navigator.clipboard) return
+  copy.hidden = false
+  copy.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(document.getElementById(copy.dataset.copy).textContent)
+    copy.textContent = 'Copied'
+  })
+})
+
 // marks the download of the visitor's system and points the big button at it; without this script the three systems are all listed
 ;(async () => {
   const platform = navigator.userAgentData?.platform || navigator.platform || navigator.userAgent
@@ -21,4 +31,9 @@
   button.textContent = `Download for ${card.querySelector('h3').textContent}`
   preferred.classList.add('button')
   other.classList.remove('button')
+
+  // Linux has the Flatpak as the first choice: the big button leads to it instead of the AppImage
+  if (system !== 'linux') return
+  button.href = '#flatpak'
+  button.textContent = 'Install for Linux'
 })()

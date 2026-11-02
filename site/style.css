@@ -365,6 +365,57 @@ h3 {
   box-shadow: 0 0 0 1px var(--accent), 0 12px 30px -16px var(--accent);
 }
 
+.flatpak {
+  margin: 16px 0;
+  padding: 20px;
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px -16px var(--accent);
+}
+
+.flatpak h3 {
+  margin-top: 0;
+}
+
+.flatpak .badge {
+  margin-left: 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--glow);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.command {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--code);
+}
+
+.command code {
+  flex: 1;
+  padding: 0;
+  background: none;
+  font-size: 0.95em;
+}
+
+.command button {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
 .help {
   margin: 16px 0;
   padding: 12px 20px;

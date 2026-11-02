@@ -218,9 +218,21 @@
           </article>
           <article data-system="linux">
             <h3>Linux</h3>
+            <p><a href="#flatpak">Flatpak is recommended</a>, or the AppImage:</p>
             <p><a class="button" href="{{asset:linux-x64}}">AppImage (Intel / AMD)</a></p>
             <p><a href="{{asset:linux-arm64}}">AppImage (ARM)</a></p>
           </article>
+        </div>
+
+        <div class="flatpak" id="flatpak">
+          <h3>Linux: install with Flatpak <span class="badge">recommended</span></h3>
+          <p>Works on every distribution with Flatpak. The runtime comes from Flathub, the repository of this site is signed, and <code>flatpak update</code> brings every new release.</p>
+          <p><a class="button" href="https://koeroesi86.github.io/tunelle/repo/tunelle.flatpakref">Install with Flatpak</a> opens GNOME Software or KDE Discover. Or paste this in a terminal, it adds the repository and installs the app:</p>
+          <div class="command">
+            <code id="flatpak-command">flatpak install --user https://koeroesi86.github.io/tunelle/repo/tunelle.flatpakref</code>
+            <button type="button" data-copy="flatpak-command" hidden>Copy</button>
+          </div>
+          <p class="meta">Then start it from the application menu or with <code>flatpak run io.github.koeroesi86.Tunelle</code>. To add only the repository: <code>flatpak remote-add --user --if-not-exists tunelle https://koeroesi86.github.io/tunelle/repo/tunelle.flatpakrepo</code>. The repository holds the latest release; a <code>.flatpak</code> file from the releases page has no repository and does not update, so install it again with the command above.</p>
         </div>
 
         <details class="help">
