@@ -40,9 +40,12 @@ files
   .filter(file => extractFile(archive, normalize(file.slice(1))).subarray(0, 4).toString('latin1') !== 'wOF2')
   .forEach(file => problems.push(`not a woff2 font: ${file}`))
 
+// a job that builds the Flatpak only (TUNELLE_LINUX_PACKAGE, see scripts/dist.js) has no update metadata: the Flatpak updates through its repository
+const linuxPackage = process.env.TUNELLE_LINUX_PACKAGE
 const [metadataPath, installer] = updateMetadata(process.platform, process.arch)
 const metadataFile = resolve(__dirname, '..', metadataPath)
-if (!existsSync(metadataFile)) problems.push(`missing: ${metadataPath}`)
+if (linuxPackage === 'flatpak') console.log('Flatpak only, no update metadata to check')
+else if (!existsSync(metadataFile)) problems.push(`missing: ${metadataPath}`)
 else {
   const metadata = readFileSync(metadataFile, 'utf8')
   if (!installer.test(metadata)) problems.push(`${metadataPath} does not list ${installer}`)
@@ -61,7 +64,7 @@ if (process.platform !== 'linux' && !existsSync(resolve(archive, '..', 'app-upda
 
 // the AppImage catalogues run the app on the oldest supported Ubuntu LTS (22.04, glibc 2.35): a binary that asks for a newer glibc does not start there
 const maxGlibc = [2, 35]
-if (process.platform === 'linux') {
+if (linuxPackage === 'appimage') {
   const unpacked = resolve(archive, '..')
   readdirSync(unpacked, { recursive: true, withFileTypes: true })
     .filter(entry => entry.isFile() && (/\.(node|so(\.\d+)*)$/.test(entry.name) || entry.name === 'Tunelle'))

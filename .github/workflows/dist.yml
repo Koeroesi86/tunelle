@@ -14,20 +14,30 @@ permissions:
 
 jobs:
   dist:
-    name: Dist (${{ matrix.platform }} ${{ matrix.arch }})
+    name: Dist (${{ matrix.platform }} ${{ matrix.arch }}${{ matrix.package && format(' {0}', matrix.package) || '' }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Linux is built on the oldest Ubuntu LTS the AppImage catalogues test on (appimage.github.io runs it there): a native module built
-          # on a newer one needs a newer glibc than that (npm run check:dist fails on a symbol above 2.35)
+          # the AppImage is built on the oldest Ubuntu LTS the AppImage catalogues test on (appimage.github.io runs it there): a native module built
+          # on a newer one needs a newer glibc than that (npm run check:dist fails on a symbol above 2.35); the Flatpak is built on the latest
           - os: ubuntu-22.04
             platform: linux
             arch: x64
+            package: appimage
           - os: ubuntu-22.04-arm
             platform: linux
             arch: arm64
+            package: appimage
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            package: flatpak
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+            package: flatpak
           - os: macos-15-intel
             platform: darwin
             arch: x64
@@ -41,8 +51,12 @@ jobs:
             platform: win32
             arch: arm64
     env:
-      ELECTRON_CACHE: ${{ github.workspace }}/.cache/${{ matrix.platform }}-${{ matrix.arch }}/electron
-      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/${{ matrix.platform }}-${{ matrix.arch }}/electron-builder
+      # which Linux package the job builds (scripts/dist.js, scripts/check-dist.js); empty on the other systems
+      TUNELLE_LINUX_PACKAGE: ${{ matrix.package }}
+      # names the caches and the artifact of the job: a system has a job for each Linux package
+      DIST_ID: ${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.package && format('-{0}', matrix.package) || '' }}
+      ELECTRON_CACHE: ${{ github.workspace }}/.cache/${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.package && format('-{0}', matrix.package) || '' }}/electron
+      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.package && format('-{0}', matrix.package) || '' }}/electron-builder
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -54,15 +68,15 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            .cache/${{ matrix.platform }}-${{ matrix.arch }}
+            .cache/${{ env.DIST_ID }}
             ~/.electron-gyp
-          key: build-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          key: build-${{ env.DIST_ID }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
           restore-keys: |
-            build-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package-lock.json') }}-
-            build-${{ matrix.platform }}-${{ matrix.arch }}-
+            build-${{ env.DIST_ID }}-${{ hashFiles('package-lock.json') }}-
+            build-${{ env.DIST_ID }}-
       # the downloads of apt are kept between runs; the first try skips the update of the package lists, which needs the mirror, and falls back to it when a package is gone from there
       - name: Restore the packaging tools
-        if: runner.os == 'Linux'
+        if: matrix.package == 'flatpak'
         id: apt-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -70,7 +84,7 @@ jobs:
           key: apt-flatpak-${{ matrix.arch }}-${{ github.run_id }}
           restore-keys: apt-flatpak-${{ matrix.arch }}-
       - name: Install Linux packaging tools
-        if: runner.os == 'Linux'
+        if: matrix.package == 'flatpak'
         timeout-minutes: 15
         run: |
           mkdir -p ~/apt-archives/partial
@@ -79,14 +93,14 @@ jobs:
           sudo chown -R "$USER" ~/apt-archives
       # saved when the install fails too: the mirror of x64 is slow at times, and the next run continues with the packages that were downloaded
       - name: Keep the packaging tools
-        if: always() && runner.os == 'Linux' && steps.apt-cache.outputs.cache-hit != 'true'
+        if: always() && matrix.package == 'flatpak' && steps.apt-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/apt-archives
           key: apt-flatpak-${{ matrix.arch }}-${{ github.run_id }}
       # electron-builder bundles the flatpak from the runtime, the sdk and the base app, which it does not download itself
       - name: Install the Flatpak runtime
-        if: runner.os == 'Linux'
+        if: matrix.package == 'flatpak'
         timeout-minutes: 15
         run: |
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
@@ -114,7 +128,7 @@ jobs:
         run: xvfb-run --auto-servernum npm run smoke:packaged
       # the sandbox, the finish args and the zypak wrapper of the bundle only show when the installed flatpak starts
       - name: Smoke test of the Flatpak bundle
-        if: runner.os == 'Linux'
+        if: matrix.package == 'flatpak'
         run: |
           flatpak install --user --noninteractive --bundle dist/Tunelle-*.flatpak
           xvfb-run --auto-servernum dbus-run-session npm run smoke:flatpak
@@ -135,7 +149,7 @@ jobs:
           xvfb-run --auto-servernum dbus-run-session npm run smoke:flatpak
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: dist-${{ matrix.platform }}-${{ matrix.arch }}
+          name: dist-${{ env.DIST_ID }}
           path: |
             dist/Tunelle*
             dist/*.yml

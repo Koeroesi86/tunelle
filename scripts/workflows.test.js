@@ -51,6 +51,15 @@ describe('workflows', () => {
     expect(text).toMatch(/\n  test:\n(?:.*\n)*?    needs: static\n/)
   })
 
+  // appimage.github.io tests the AppImage on the oldest supported Ubuntu LTS: a native module built on a newer one needs a newer glibc (npm run check:dist)
+  it('dist.yml builds the AppImage on Ubuntu 22.04 and the Flatpak on the latest', () => {
+    const text = read('dist.yml')
+
+    expect(text).toMatch(/- os: ubuntu-22\.04\n\s+platform: linux\n\s+arch: x64\n\s+package: appimage/)
+    expect(text).toMatch(/- os: ubuntu-22\.04-arm\n\s+platform: linux\n\s+arch: arm64\n\s+package: appimage/)
+    expect(text).toMatch(/- os: ubuntu-latest\n\s+platform: linux\n\s+arch: x64\n\s+package: flatpak/)
+  })
+
   it('test.yml keeps the report of the end to end tests', () => {
     const text = read('test.yml')
 

@@ -35,8 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the Linux runners are the ones the AppImage is built on (see dist.yml), so the tests run against the native modules it ships
-        os: [ubuntu-22.04, ubuntu-22.04-arm, macos-15-intel, macos-15, windows-2025, windows-11-arm]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-15-intel, macos-15, windows-2025, windows-11-arm]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -48,7 +47,7 @@ jobs:
       - uses: ./.github/actions/install-dependencies
       # the files Flathub takes the app from (flatpak/) are checked with the tools it uses
       - name: Validate the Flatpak metadata
-        if: matrix.os == 'ubuntu-22.04'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get install -y appstream desktop-file-utils
           appstreamcli validate --no-net flatpak/*.metainfo.xml
@@ -60,14 +59,14 @@ jobs:
         timeout-minutes: 20
         run: npm run test:e2e
       - name: Coverage summary
-        if: matrix.os == 'ubuntu-22.04' && !cancelled()
+        if: matrix.os == 'ubuntu-latest' && !cancelled()
         run: |
           {
             echo '### Coverage'
             node -e "const { total } = require('./coverage/coverage-summary.json'); Object.entries(total).forEach(([name, { pct }]) => console.log('- ' + name + ': ' + pct + '%'))"
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: matrix.os == 'ubuntu-22.04' && !cancelled()
+        if: matrix.os == 'ubuntu-latest' && !cancelled()
         with:
           name: coverage
           path: coverage/lcov-report
