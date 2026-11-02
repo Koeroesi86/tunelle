@@ -99,7 +99,7 @@ export interface UiState extends PersistedSettings {
   /** The key of the art the main process found for the stream title, null while it is looked up or when there is none */
   streamArt: string | null;
   /** Whether the app can add itself to the application menu (from an AppImage on Linux), and whether it did, and whether the user was asked */
-  launcher: { available: boolean; enabled: boolean; offered: boolean };
+  launcher: { available: boolean; enabled: boolean; offered: boolean; external: boolean };
 }
 
 type EmptyPayload = Record<string, never>;
@@ -190,7 +190,7 @@ export type AppAction =
   | PayloadAction<'MAXIMIZED_APP', { maximized: boolean }>
   | PayloadAction<'SET_PLAYING', { isPlaying: boolean }>
   | PayloadAction<'SET_UP_NEXT', { track: Track | null }>
-  | PayloadAction<'LAUNCHER_STATE', { available: boolean; enabled: boolean; offered: boolean }>
+  | PayloadAction<'LAUNCHER_STATE', { available: boolean; enabled: boolean; offered: boolean; external: boolean }>
   | PayloadAction<'SET_LAUNCHER', { enabled: boolean }>
   | PayloadAction<'SET_LANGUAGE', { language: string | undefined }>
   | PayloadAction<'SET_THEME_MODE', { mode: ThemeMode }>

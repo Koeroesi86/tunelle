@@ -206,7 +206,16 @@ const RadioStations = ({ radio, currentStation, search, loadTags, loadOptions, p
         </div>
       )}
       <div className={style.stations}>
-        {error && <div className={style.message}>{t('radio.error', { error })}</div>}
+        {error && (
+          <div className={style.message} role="alert">
+            <strong>{t('radio.offline.title')}</strong>
+            <span>{t('radio.offline.text')}</span>
+            <small>{t('radio.error', { error })}</small>
+            <button className={style.loadMore} type="button" onClick={() => search({ ...query, offset })}>
+              {t('radio.retry')}
+            </button>
+          </div>
+        )}
         {loading && <div className={style.message}>{t('radio.loading')}</div>}
         {!loading && !error && stations.length === 0 && <div className={style.message}>{t('radio.empty')}</div>}
         {stations.map((station) => (

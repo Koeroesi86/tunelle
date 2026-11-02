@@ -5,16 +5,17 @@ interface LauncherOfferProps {
   available: boolean;
   enabled: boolean;
   offered: boolean;
+  external: boolean;
   setEnabled: (enabled: boolean) => void;
 }
 
-/** Asks once, on the first run from an AppImage, whether to add the app to the application menu; either answer is remembered */
-const LauncherOffer = ({ available, enabled, offered, setEnabled }: LauncherOfferProps) => {
+/** Asks once, on the first run from an AppImage, whether to add the app to the application menu; either answer is remembered, and nothing is asked when another tool added it */
+const LauncherOffer = ({ available, enabled, offered, external, setEnabled }: LauncherOfferProps) => {
   const { t } = useTranslation();
 
   return (
     <Confirm
-      message={available && !enabled && !offered ? t('launcher.offer') : null}
+      message={available && !enabled && !offered && !external ? t('launcher.offer') : null}
       confirmLabel={t('launcher.offerAdd')}
       cancelLabel={t('launcher.offerLater')}
       confirm={() => setEnabled(true)}

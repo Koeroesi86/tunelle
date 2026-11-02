@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { packagedExecutable, resourcesFolder, storePackage, updateMetadata } from './dist-layout'
+import { linuxBuilds, packagedExecutable, resourcesFolder, storePackage, updateMetadata } from './dist-layout'
 
 describe('packagedExecutable', () => {
   it.each([
@@ -49,5 +49,17 @@ describe('storePackage', () => {
   it('is only for windows', () => {
     expect(storePackage('linux', 'x64')).toBeUndefined()
     expect(storePackage('darwin', 'arm64')).toBeUndefined()
+  })
+})
+
+describe('linuxBuilds', () => {
+  it('builds the AppImage from the targets of package.json and the Flatpak without publishing', () => {
+    expect(linuxBuilds('')).toEqual([{ linux: [] }, { linux: ['flatpak'], config: { publish: null } }])
+    expect(linuxBuilds(undefined)).toHaveLength(2)
+  })
+
+  it('builds only the package of the job', () => {
+    expect(linuxBuilds('appimage')).toEqual([{ linux: [] }])
+    expect(linuxBuilds('flatpak')).toEqual([{ linux: ['flatpak'], config: { publish: null } }])
   })
 })

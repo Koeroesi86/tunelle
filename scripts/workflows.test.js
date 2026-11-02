@@ -36,6 +36,14 @@ describe('workflows', () => {
     expect(text).toMatch(/windows/)
   })
 
+  it('test.yml also runs the tests and the end to end tests on Ubuntu 22.04, the system the AppImage is built for', () => {
+    const text = read('test.yml')
+
+    expect(text).toMatch(/os: \[.*ubuntu-22\.04,/)
+    expect(text).toMatch(/os: \[.*ubuntu-22\.04-arm,/)
+    expect(text).toMatch(/startsWith\(matrix\.os, 'ubuntu-22\.04'\)[\s\S]*npm_config_build_from_source=true/)
+  })
+
   it('test.yml runs the cheap checks first', () => {
     const text = read('test.yml')
     const order = ['npm run lint', 'npm run fallow', 'npm run typecheck', 'npm run test:coverage', 'npm run build', 'npm run test:e2e'].map((command) => text.indexOf(command))
@@ -49,6 +57,15 @@ describe('workflows', () => {
 
     expect(text).toMatch(/\n  static:\n(?:.*\n)*?    runs-on: ubuntu-latest\n/)
     expect(text).toMatch(/\n  test:\n(?:.*\n)*?    needs: static\n/)
+  })
+
+  // appimage.github.io tests the AppImage on the oldest supported Ubuntu LTS: a native module built on a newer one needs a newer glibc (npm run check:dist)
+  it('dist.yml builds the AppImage on Ubuntu 22.04 and the Flatpak on the latest', () => {
+    const text = read('dist.yml')
+
+    expect(text).toMatch(/- os: ubuntu-22\.04\n\s+platform: linux\n\s+arch: x64\n\s+package: appimage/)
+    expect(text).toMatch(/- os: ubuntu-22\.04-arm\n\s+platform: linux\n\s+arch: arm64\n\s+package: appimage/)
+    expect(text).toMatch(/- os: ubuntu-latest\n\s+platform: linux\n\s+arch: x64\n\s+package: flatpak/)
   })
 
   it('test.yml keeps the report of the end to end tests', () => {

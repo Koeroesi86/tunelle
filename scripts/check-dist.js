@@ -1,6 +1,7 @@
 const { listPackage, extractFile } = require('@electron/asar')
 const { existsSync, readdirSync, readFileSync } = require('fs')
 const { normalize, resolve } = require('path')
+const { exceedsGlibc, highestGlibc } = require('./glibc')
 const { resourcesFolder, storePackage, updateMetadata } = require('./dist-layout')
 
 // usage: node scripts/check-dist.js
@@ -39,9 +40,12 @@ files
   .filter(file => extractFile(archive, normalize(file.slice(1))).subarray(0, 4).toString('latin1') !== 'wOF2')
   .forEach(file => problems.push(`not a woff2 font: ${file}`))
 
+// a job that builds the Flatpak only (TUNELLE_LINUX_PACKAGE, see scripts/dist.js) has no update metadata: the Flatpak updates through its repository
+const linuxPackage = process.env.TUNELLE_LINUX_PACKAGE
 const [metadataPath, installer] = updateMetadata(process.platform, process.arch)
 const metadataFile = resolve(__dirname, '..', metadataPath)
-if (!existsSync(metadataFile)) problems.push(`missing: ${metadataPath}`)
+if (linuxPackage === 'flatpak') console.log('Flatpak only, no update metadata to check')
+else if (!existsSync(metadataFile)) problems.push(`missing: ${metadataPath}`)
 else {
   const metadata = readFileSync(metadataFile, 'utf8')
   if (!installer.test(metadata)) problems.push(`${metadataPath} does not list ${installer}`)
@@ -57,6 +61,18 @@ if (store && !readdirSync(resolve(__dirname, '..', 'dist')).some(name => store.t
 if (store && existsSync(metadataFile) && /\.appx\b/.test(readFileSync(metadataFile, 'utf8'))) problems.push(`${metadataPath} lists the package of the Microsoft Store`)
 // the packaged app must know where to look for updates, linux-unpacked is rebuilt by the flatpak build, which has none on purpose
 if (process.platform !== 'linux' && !existsSync(resolve(archive, '..', 'app-update.yml'))) problems.push('missing: app-update.yml')
+
+// the AppImage catalogues run the app on the oldest supported Ubuntu LTS (22.04, glibc 2.35): a binary that asks for a newer glibc does not start there
+const maxGlibc = [2, 35]
+if (linuxPackage === 'appimage') {
+  const unpacked = resolve(archive, '..')
+  readdirSync(unpacked, { recursive: true, withFileTypes: true })
+    .filter(entry => entry.isFile() && (/\.(node|so(\.\d+)*)$/.test(entry.name) || entry.name === 'Tunelle'))
+    .map(entry => resolve(entry.parentPath, entry.name))
+    .map(file => [file, highestGlibc(readFileSync(file))])
+    .filter(([, version]) => exceedsGlibc(version, maxGlibc))
+    .forEach(([file, version]) => problems.push(`needs glibc ${version.join('.')}, more than ${maxGlibc.join('.')}: ${file}`))
+}
 
 problems.slice(0, 50).forEach(problem => console.error(problem))
 console.log(`${files.length} files in ${archive}, ${problems.length} problems`)

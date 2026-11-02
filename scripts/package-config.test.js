@@ -18,3 +18,19 @@ describe('Store package', () => {
     expect(build.appx.minVersion).toBe('10.0.16299.0')
   })
 })
+
+// appimage.github.io checks the desktop file of the AppImage with desktop-file-validate, which wants a main category (AudioVideo) next to Audio,
+// and the metainfo of the Flatpak travels in the AppImage, where the catalogues and tools like Gear Lever read it: its appdata.xml name is the one
+// appdir-lint.sh looks for, and the lint then validates the tree, so the desktop file the metainfo names is there too
+describe('AppImage', () => {
+  it('lists a main category next to the registered ones', () => {
+    expect(build.linux.category.split(';')).toEqual(expect.arrayContaining(['AudioVideo', 'Audio']))
+  })
+
+  it('carries the metainfo of the Flatpak and the desktop file it names', () => {
+    expect(build.linux.extraFiles).toEqual([
+      { from: `flatpak/${build.appId}.metainfo.xml`, to: `usr/share/metainfo/${build.appId}.appdata.xml` },
+      { from: `appimage/${build.appId}.desktop`, to: `usr/share/applications/${build.appId}.desktop` }
+    ])
+  })
+})

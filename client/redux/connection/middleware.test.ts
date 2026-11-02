@@ -30,9 +30,9 @@ describe('connection middleware', () => {
   it('stores the launcher state the main process reports', async () => {
     const { store, listen } = await setup();
 
-    listen('LAUNCHER_STATE', { available: true, enabled: true, offered: true });
+    listen('LAUNCHER_STATE', { available: true, enabled: true, offered: true, external: false });
 
-    expect(store.getState().uiState.launcher).toEqual({ available: true, enabled: true, offered: true });
+    expect(store.getState().uiState.launcher).toEqual({ available: true, enabled: true, offered: true, external: false });
   });
 
   it('sends the request to add or remove the launcher to the main process', async () => {

@@ -122,6 +122,8 @@ interface LaunchOptions {
   /** Added to the page before its own code runs, so the first audio context of the app is seen by them */
   /** The first one installs window.activeAudio, which says whether they ran */
   initScripts: (() => void)[];
+  /** Every name but localhost fails to resolve, as on a machine without a network: the station directory and the update server are out of reach */
+  offline?: boolean;
 }
 
 /** The language of the app in the run: English, or another file of locales/ with SCREENSHOTS_LANG=hu (the pictures of the Store listing) */
@@ -144,7 +146,7 @@ export const ui = (english: string) => {
 };
 
 /** Starts the built app (npm run build first) on a profile, and answers when its window shows the page */
-export const launchApp = async ({ home, radioDirectory, initScripts }: LaunchOptions): Promise<Session> => {
+export const launchApp = async ({ home, radioDirectory, initScripts, offline = false }: LaunchOptions): Promise<Session> => {
   const { ELECTRON_RUN_AS_NODE, ...inherited } = process.env;
   // Windows keeps its profile folders (chromium needs them, and the app data folder does not follow the variables there)
   const profile: Record<string, string> =
@@ -158,6 +160,7 @@ export const launchApp = async ({ home, radioDirectory, initScripts }: LaunchOpt
       '--autoplay-policy=no-user-gesture-required',
       `--lang=${language}`,
       `--user-data-dir=${join(home, 'user-data')}`,
+      ...(offline ? ['--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost'] : []),
       // Linux draws without a display server: a window on a desktop session gets no frames while the compositor does not ask for them (a locked screen, another workspace)
       // the chromium sandbox needs user namespaces that the runners of CI (containers, locked down images) do not give; macOS and Windows run it
       ...(process.platform === 'linux' ? ['--no-sandbox', '--ozone-platform=headless'] : []),
@@ -166,7 +169,7 @@ export const launchApp = async ({ home, radioDirectory, initScripts }: LaunchOpt
       ...Object.fromEntries(Object.entries(inherited).filter((entry): entry is [string, string] => entry[1] !== undefined)),
       ...profile,
       NODE_ENV: 'production',
-      TUNELLE_NO_UPDATE: '1',
+      ...(offline ? {} : { TUNELLE_NO_UPDATE: '1' }),
       TUNELLE_NO_ARTIST_PHOTOS: '1',
       // the library is in the profile of the run on every system, not in the app data folder of the user (macOS and Windows do not follow HOME there)
       TUNELLE_APP_DATA: home,

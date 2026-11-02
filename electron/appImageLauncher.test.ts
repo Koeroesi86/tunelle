@@ -7,6 +7,7 @@ import {
   disableLauncher,
   enableLauncher,
   getLauncherLink,
+  hasOtherLauncher,
   isLauncherEnabled,
   markLauncherOffered,
   readLauncherTarget,
@@ -29,7 +30,7 @@ describe('buildDesktopEntry', () => {
     expect(entry).toContain('Comment=Lossless Audio Player');
     expect(entry).toContain('Comment[hu]=');
     expect(entry).toContain('Icon=tunelle');
-    expect(entry).toContain('Categories=AudioVideo;Audio;Player;');
+    expect(entry).toContain('Categories=AudioVideo;Audio;Music;Player;');
     expect(entry).toContain('StartupWMClass=Tunelle');
   });
 
@@ -317,5 +318,69 @@ describe('launcher offer', () => {
 
     await expect(wasLauncherOffered(userData)).resolves.toBe(true);
     await rm(folder, { recursive: true, force: true });
+  });
+});
+
+describe('hasOtherLauncher', () => {
+  let dataHome: string;
+  const appImage = '/home/me/Apps/Tunelle.AppImage';
+  const options = () => ({ dataHome, dataDirs: [join(dataHome, 'system')] });
+  const writeSystemEntry = (name: string, content: string) =>
+    mkdir(join(dataHome, 'system/applications'), { recursive: true }).then(() => writeFile(join(dataHome, 'system/applications', name), content));
+  const writeEntry = (name: string, content: string) =>
+    mkdir(join(dataHome, 'applications'), { recursive: true }).then(() => writeFile(join(dataHome, 'applications', name), content));
+
+  beforeEach(async () => {
+    dataHome = await createFolder('tunelle-other-launcher-');
+  });
+
+  afterEach(() => rm(dataHome, { recursive: true, force: true }));
+
+  it('finds no entry in a menu without an applications folder', async () => {
+    expect(await hasOtherLauncher(appImage, options())).toBe(false);
+  });
+
+  it('finds the entry of a tool that starts this AppImage', async () => {
+    await writeEntry('appimagekit_1234-Tunelle.desktop', `[Desktop Entry]\nName=Tunelle\nExec=${appImage} %U\n`);
+
+    expect(await hasOtherLauncher(appImage, options())).toBe(true);
+  });
+
+  it('finds an entry that quotes the path, and one that only has a TryExec of it', async () => {
+    await writeEntry('gearlever.desktop', `[Desktop Entry]\nExec="${appImage}" --flag\n`);
+    expect(await hasOtherLauncher(appImage, options())).toBe(true);
+
+    await rm(join(dataHome, 'applications/gearlever.desktop'));
+    await writeEntry('other.desktop', `[Desktop Entry]\nTryExec=${appImage}\n`);
+    expect(await hasOtherLauncher(appImage, options())).toBe(true);
+  });
+
+  it('finds the entry AM (portable-linux-apps) writes, in the folder of the user or of all users', async () => {
+    const installed = '/opt/tunelle/tunelle';
+    const entry = '[Desktop Entry]\nName=Tunelle\nExec=tunelle\nIcon=/opt/tunelle/icons/tunelle\n';
+
+    await writeSystemEntry('tunelle-AM.desktop', entry);
+    expect(await hasOtherLauncher(installed, options())).toBe(true);
+
+    await rm(join(dataHome, 'system'), { recursive: true });
+    expect(await hasOtherLauncher(installed, options())).toBe(false);
+
+    await writeEntry('tunelle-AM.desktop', entry.replace('/opt/tunelle', '/home/me/.local/am-apps/tunelle'));
+    expect(await hasOtherLauncher('/home/me/.local/am-apps/tunelle/tunelle', options())).toBe(true);
+  });
+
+  it('does not take an entry of the same command for another AppImage as this one', async () => {
+    await writeSystemEntry('tunelle.desktop', '[Desktop Entry]\nExec=Tunelle.AppImage\nIcon=/usr/share/icons/tunelle.png\n');
+
+    expect(await hasOtherLauncher(appImage, options())).toBe(false);
+  });
+
+  it('ignores the entries of the app itself, of another AppImage and files that are no entry', async () => {
+    await writeEntry('tunelle.desktop', `[Desktop Entry]\nExec="${appImage}" %U\n`);
+    await writeEntry('emusic.desktop', `[Desktop Entry]\nExec="${appImage}" %U\n`);
+    await writeEntry('Other.desktop', '[Desktop Entry]\nExec=/home/me/Apps/Other.AppImage\n');
+    await writeEntry('notes.txt', `Exec=${appImage}`);
+
+    expect(await hasOtherLauncher(appImage, options())).toBe(false);
   });
 });

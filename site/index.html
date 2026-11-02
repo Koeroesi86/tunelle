@@ -238,6 +238,7 @@
         <details class="help">
           <summary>Linux: how to start the AppImage</summary>
           <ol>
+            <li>It runs on Ubuntu 22.04 or any newer distribution (glibc 2.35 or newer).</li>
             <li>Make the downloaded file executable: <code>chmod +x Tunelle-&lt;version&gt;-&lt;arch&gt;.AppImage</code>, or tick "Allow executing as a program" in the file manager.</li>
             <li>Start it with <code>./Tunelle-&lt;version&gt;-&lt;arch&gt;.AppImage</code> or by double click.</li>
             <li>It needs FUSE 3: the <code>fuse3</code> package gives the <code>fusermount3</code> helper, and desktop installs have it. Without FUSE, start it with <code>APPIMAGE_EXTRACT_AND_RUN=1 ./Tunelle-&lt;version&gt;-&lt;arch&gt;.AppImage</code>.</li>

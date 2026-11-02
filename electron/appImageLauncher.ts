@@ -1,5 +1,5 @@
 import { execFile } from 'child_process';
-import { copyFile, mkdir, readFile, readlink, rename, rm, rmdir, stat, symlink, utimes, writeFile } from 'fs/promises';
+import { copyFile, mkdir, readdir, readFile, readlink, rename, rm, rmdir, stat, symlink, utimes, writeFile } from 'fs/promises';
 import { join, posix } from 'path';
 import { catalog } from '../locales';
 
@@ -11,6 +11,8 @@ const iconSizes = [16, 24, 32, 48, 64, 128, 256, 512];
 export interface LauncherOptions {
   /** `$XDG_DATA_HOME`, usually `~/.local/share` */
   dataHome: string;
+  /** `$XDG_DATA_DIRS`, where entries of all users are; the environment by default */
+  dataDirs?: string[];
   /** The folder with the `<size>x<size>.png` icons of the app */
   iconsPath: string;
   /** Tells the desktop about the changed entry, `update-desktop-database` by default; it must not reject, it is best effort */
@@ -46,7 +48,7 @@ export const buildDesktopEntry = (appImage: string) => {
     `Exec="${appImage}" %U`,
     `Icon=${launcherName}`,
     'Terminal=false',
-    'Categories=AudioVideo;Audio;Player;',
+    'Categories=AudioVideo;Audio;Music;Player;',
     'StartupWMClass=Tunelle',
     '',
   ].join('\n');
@@ -121,6 +123,39 @@ const exists = (path: string) =>
   );
 
 const readIfThere = (path: string) => readFile(path).catch(() => undefined);
+
+const isOtherEntry = (name: string) => name.endsWith('.desktop') && ![launcherName, legacyLauncherName].some((own) => name === `${own}.desktop`);
+
+const valueOf = (lines: string[], key: string) => lines.find((line) => line.startsWith(`${key}=`))?.slice(key.length + 1);
+
+// Gear Lever and appimaged start the AppImage by its path; AM (portable-linux-apps) installs it as /opt/<app>/<app>, puts a link of that name on the PATH,
+// and writes an entry with `Exec=<app>` and an icon in the folder of the AppImage
+const startsAppImage = (appImage: string) => (entry: Buffer | undefined) => {
+  const lines = entry?.toString().split('\n') ?? [];
+  const command = valueOf(lines, 'Exec')?.trim().split(/\s+/)[0]?.replaceAll('"', '');
+
+  return (
+    [valueOf(lines, 'Exec'), valueOf(lines, 'TryExec')].some((value) => value?.includes(appImage)) ||
+    (command === posix.basename(appImage) && valueOf(lines, 'Icon')?.startsWith(`${posix.dirname(appImage)}/`) === true)
+  );
+};
+
+// where the desktop looks for entries next to the ones of the user: AM installs for all users as well
+const getApplicationsPaths = ({ dataHome, dataDirs }: Pick<LauncherOptions, 'dataHome' | 'dataDirs'>) =>
+  [dataHome, ...(dataDirs ?? (process.env.XDG_DATA_DIRS || '/usr/local/share:/usr/share').split(':'))].filter(Boolean).map(getApplicationsPath);
+
+const readEntriesOf = async (applicationsPath: string) => {
+  const names = (await readdir(applicationsPath).catch(() => [])).filter(isOtherEntry);
+
+  return Promise.all(names.map((name) => readIfThere(join(applicationsPath, name))));
+};
+
+/** Whether a tool that integrates AppImages (Gear Lever, appimaged, AM) already put an entry for this AppImage in the menu: a second one would show the app twice */
+export const hasOtherLauncher = async (appImage: string, options: Pick<LauncherOptions, 'dataHome' | 'dataDirs'>) => {
+  const entries = (await Promise.all(getApplicationsPaths(options).map(readEntriesOf))).flat();
+
+  return entries.some(startsAppImage(appImage));
+};
 
 /** Whether the installed entry and icons are what a fresh `enableLauncher` would write */
 const isCurrent = async (appImage: string, { dataHome, iconsPath }: LauncherOptions) => {
