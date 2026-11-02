@@ -4,6 +4,7 @@ import { useUpdateEffect } from '../../client/hooks/use-update-effect';
 import { radioUuidOf } from '../../client/radio-track';
 import { sourceOf } from '../../client/audio/track-source';
 import { useGaplessAudio } from '../../client/hooks/use-gapless-audio';
+import { liveEdgeTarget } from '../../client/audio/gapless';
 import { normalizationGain } from '../../client/audio/loudness';
 import type { NormalizationMode } from '../../client/audio/loudness';
 
@@ -107,6 +108,14 @@ const AudioComponent = ({
     skipped.current = 0;
   };
 
+  // a station that is read slower than it sends (a throttled window, a stall) plays old audio, so it continues with the newest audio it holds
+  const catchUpToLive = (node: HTMLAudioElement) => {
+    if (!isRadio || node.paused || !node.buffered.length) return;
+
+    const target = liveEdgeTarget(node.buffered.end(node.buffered.length - 1), node.currentTime);
+    if (target !== undefined) node.currentTime = target;
+  };
+
   useEffect(() => stopReconnecting, []);
 
   useEffect(() => {
@@ -175,7 +184,10 @@ const AudioComponent = ({
           onPause={(event) => gapless.handlePause(index, event)}
           onError={() => handleError(index)}
           onPlaying={() => handlePlaying(index)}
-          onTimeUpdate={() => gapless.handleTimeUpdate(index)}
+          onTimeUpdate={(event) => {
+            gapless.handleTimeUpdate(index);
+            if (gapless.isActive(index)) catchUpToLive(event.currentTarget);
+          }}
         />
       ))}
     </>

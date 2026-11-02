@@ -297,6 +297,31 @@ describe('AudioComponent radio reconnect', () => {
     return view.container.querySelector('audio') as HTMLAudioElement;
   };
 
+  describe('catching up to the live stream', () => {
+    const buffer = (element: HTMLAudioElement, end: number, currentTime: number) => {
+      Object.defineProperty(element, 'buffered', { configurable: true, value: { length: 1, end: () => end } });
+      Object.defineProperty(element, 'paused', { configurable: true, value: false });
+      element.currentTime = currentTime;
+      fireEvent.timeUpdate(element);
+    };
+
+    it('continues with the newest audio when a station plays far behind it', () => {
+      const element = playStation();
+
+      buffer(element, 100, 60);
+
+      expect(element.currentTime).toBe(99);
+    });
+
+    it('leaves a station alone that plays close to the newest audio', () => {
+      const element = playStation();
+
+      buffer(element, 100, 95);
+
+      expect(element.currentTime).toBe(95);
+    });
+  });
+
   it('asks a station again when its stream ends', () => {
     const audio = playStation();
 
