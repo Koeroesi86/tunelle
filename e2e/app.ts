@@ -1,6 +1,6 @@
 import { _electron as electron, test as base, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { spawnSync } from 'child_process';
-import { mkdtempSync, rmSync } from 'fs';
+import { mkdtempSync, readFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { startDirectory } from '../scripts/screenshot-fixtures';
@@ -124,11 +124,31 @@ interface LaunchOptions {
   initScripts: (() => void)[];
 }
 
+/** The language of the app in the run: English, or another file of locales/ with SCREENSHOTS_LANG=hu (the pictures of the Store listing) */
+const language = process.env.SCREENSHOTS_LANG ?? 'en';
+const locale = language === 'en' ? 'en_US' : `${language}_${language.toUpperCase()}`;
+
+const messages = (tag: string): Record<string, string> => JSON.parse(readFileSync(join(root, 'locales', `${tag}.json`), 'utf8'));
+
+/** The text of the app in the language of the run, from its English text: a text with a number ("20 tracks") is found by its {count} message */
+export const ui = (english: string) => {
+  const source = messages('en');
+  const target = messages(language);
+  const key = Object.keys(source).find((candidate) => source[candidate] === english);
+  if (key) return target[key] ?? english;
+  const counted = Object.keys(source).find((candidate) =>
+    new RegExp(`^${source[candidate].replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace('{count}', '(\\d+)')}$`).test(english)
+  );
+  if (!counted) return english;
+  return target[counted]?.replace('{count}', english.match(/\d+/)?.[0] ?? '') ?? english;
+};
+
 /** Starts the built app (npm run build first) on a profile, and answers when its window shows the page */
 export const launchApp = async ({ home, radioDirectory, initScripts }: LaunchOptions): Promise<Session> => {
   const { ELECTRON_RUN_AS_NODE, ...inherited } = process.env;
   // Windows keeps its profile folders (chromium needs them, and the app data folder does not follow the variables there)
-  const profile: Record<string, string> = process.platform === 'win32' ? {} : { HOME: home, XDG_CONFIG_HOME: home, LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' };
+  const profile: Record<string, string> =
+    process.platform === 'win32' ? {} : { HOME: home, XDG_CONFIG_HOME: home, LANG: `${locale}.UTF-8`, LC_ALL: `${locale}.UTF-8` };
 
   const app = await electron.launch({
     args: [
@@ -136,7 +156,7 @@ export const launchApp = async ({ home, radioDirectory, initScripts }: LaunchOpt
       // the audio runs with its clock and its graph, to a sink that plays nothing: the tests measure what the app sends to it
       '--disable-audio-output',
       '--autoplay-policy=no-user-gesture-required',
-      '--lang=en-US',
+      `--lang=${language}`,
       `--user-data-dir=${join(home, 'user-data')}`,
       // Linux draws without a display server: a window on a desktop session gets no frames while the compositor does not ask for them (a locked screen, another workspace)
       // the chromium sandbox needs user namespaces that the runners of CI (containers, locked down images) do not give; macOS and Windows run it
@@ -178,4 +198,4 @@ export const libraryTracks = (page: Page): Promise<{ path: string; title?: strin
   page.evaluate(() => fetch('tunelle://app/library').then((response) => response.json()));
 
 /** Opens a page from the navigation (the same words are headings of the pages themselves) */
-export const navigate = (page: Page, label: string) => page.locator('[class*="Navigation__label"]').getByText(label, { exact: true }).click();
+export const navigate = (page: Page, label: string) => page.locator('[class*="Navigation__label"]').getByText(ui(label), { exact: true }).click();

@@ -5,12 +5,12 @@ import { join, resolve } from 'path';
 import { albums, startDirectory, writeLibrary } from '../../scripts/screenshot-fixtures';
 import { installActiveAudio } from '../active-audio';
 import { installAudioProbe } from '../audio-probe';
-import { addFolder, launchApp, navigate } from '../app';
+import { addFolder, launchApp, navigate, ui } from '../app';
 
 // the pictures of site/screenshots (npm run screenshots [-- -g scene]), one test each, in the order of the list: a scene starts from an album playing, and from what the ones before left
-// the same pictures every time: a library of generated tagged files and a made up station directory (scripts/screenshot-fixtures.js), a clean profile, English, reduced motion, 1360 x 850,
+// the same pictures every time: a library of generated tagged files and a made up station directory (scripts/screenshot-fixtures.js), a clean profile, English (SCREENSHOTS_LANG=hu for another language of locales/), reduced motion, 1360 x 850,
 // and the clock of the player held where the scene wants it; Linux draws headless, Windows and macOS need their desktop
-// SCREENSHOTS_OUT=folder writes the pictures there instead of site/screenshots
+// SCREENSHOTS_OUT=folder writes the pictures there instead of site/screenshots, SCREENSHOTS_LANG=hu takes them in Hungarian (the texts of the steps are English, ui() finds them in the language of the run)
 
 const output = resolve(__dirname, '../..', process.env.SCREENSHOTS_OUT ?? 'site/screenshots');
 
@@ -67,7 +67,7 @@ const playAlbum = async (page: Page, { title, tracks }: Album) => {
   await expect(visible(page, tracks.at(-1) ?? '')).toBeVisible();
   // a click the page was not ready for does nothing: it is made again until the track runs
   await expect(async () => {
-    await page.getByRole('button', { name: 'Play album' }).click();
+    await page.getByRole('button', { name: ui('Play album') }).click();
     await expect.poll(() => currentTime(page), { timeout: 3000 }).toBeGreaterThan(0.2);
   }).toPass();
   await closeDialog(page);
@@ -113,25 +113,30 @@ const hidePaths = (page: Page) =>
 
 // the heart in the row or tile that says the text: the nearest parent with a heart of its own
 const like = (page: Page, text: string) =>
-  page.evaluate((label) => {
-    const heart = '[aria-label="Add to favourites"]';
-    let element =
-      Array.from(document.body.querySelectorAll('*')).find((candidate) => !candidate.children.length && candidate.textContent?.trim() === label) ?? null;
-    while (element && element.querySelectorAll(heart).length !== 1) element = element.parentElement;
-    element?.querySelector<HTMLElement>(heart)?.click();
-  }, text);
+  page.evaluate(
+    ({ label, heart }) => {
+      let element =
+        Array.from(document.body.querySelectorAll('*')).find((candidate) => !candidate.children.length && candidate.textContent?.trim() === label) ?? null;
+      while (element && element.querySelectorAll(heart).length !== 1) element = element.parentElement;
+      element?.querySelector<HTMLElement>(heart)?.click();
+    },
+    { label: text, heart: `[aria-label="${ui('Add to favourites')}"]` }
+  );
 
 // a playlist of the albums, built through the dialog of each: the dialog is the last of the page, so is its menu
 const playlist = async (page: Page, name: string, listed: Album[]) => {
-  await page.getByRole('button', { name: 'New playlist' }).click();
-  await page.getByLabel('Playlist name').first().fill(name);
-  await page.getByLabel('Playlist name').first().press('Enter');
+  await page.getByRole('button', { name: ui('New playlist') }).click();
+  await page.getByLabel(ui('Playlist name')).first().fill(name);
+  await page.getByLabel(ui('Playlist name')).first().press('Enter');
   await expect(visible(page, name)).toBeVisible();
   for (const { title, tracks } of listed) {
     await navigate(page, 'Albums');
     await visible(page, title).click();
     await expect(visible(page, tracks.at(-1) ?? '')).toBeVisible();
-    await page.getByRole('button', { name: 'Add to a playlist' }).last().click();
+    await page
+      .getByRole('button', { name: ui('Add to a playlist') })
+      .last()
+      .click();
     await page.getByRole('menuitem', { name }).last().click();
     await closeDialog(page);
   }
@@ -187,7 +192,7 @@ const capture = async (page: Page, name: string) => {
 
 test('songs', async ({ window: page }) => {
   await navigate(page, 'Songs');
-  await shown(page, '20 tracks');
+  await shown(page, ui('20 tracks'));
   await holdAt(page, 16);
   await shown(page, clock(16));
   await capture(page, 'songs');
@@ -195,7 +200,7 @@ test('songs', async ({ window: page }) => {
 
 test('now', async ({ window: page }) => {
   await navigate(page, 'Now playing');
-  await shown(page, /up next/i);
+  await shown(page, new RegExp(ui('Up next'), 'i'));
   await holdAt(page, 22);
   await shown(page, clock(22));
   await capture(page, 'now');
@@ -236,13 +241,13 @@ test('genre', async ({ window: page }) => {
   await navigate(page, 'Genres');
   await expect(visible(page, 'Indie')).toBeVisible();
   await visible(page, 'Indie').click();
-  await shown(page, 'Play all');
+  await shown(page, ui('Play all'));
   await capture(page, 'genre');
 });
 
 test('folders', async ({ window: page }) => {
   await navigate(page, 'Folders');
-  await shown(page, 'Drop music folders here');
+  await shown(page, ui('Drop music folders here'));
   await hidePaths(page);
   await capture(page, 'folders');
 });
@@ -254,7 +259,7 @@ test('liked', async ({ window: page }) => {
   await like(page, albums[2].title);
   await like(page, albums[4].title);
   await navigate(page, 'Songs');
-  await shown(page, '20 tracks');
+  await shown(page, ui('20 tracks'));
   await like(page, albums[1].tracks[0]);
   await like(page, albums[3].tracks[2]);
   await navigate(page, 'Radio stations');
@@ -276,20 +281,20 @@ test('playlist', async ({ window: page }) => {
 
 test('equalizer', async ({ window: page }) => {
   await navigate(page, 'Equalizer');
-  await shown(page, 'Drag a dot');
-  await page.getByRole('button', { name: 'Bass boost' }).click();
+  await shown(page, ui('Drag a dot, or use the up and down arrows on a focused one'));
+  await page.getByRole('button', { name: ui('Bass boost') }).click();
   await capture(page, 'equalizer');
 });
 
 test('home', async ({ window: page }) => {
   await navigate(page, 'Home');
-  await shown(page, /recently played/i);
+  await shown(page, new RegExp(ui('Recently played'), 'i'));
   await capture(page, 'home');
 });
 
 test('settings', async ({ window: page }) => {
   await navigate(page, 'Settings');
-  await shown(page, 'Accent colour');
+  await shown(page, ui('Accent colour'));
   // the version and the update line of a development run are not what the picture is about
   await page.locator('[class*="About__about"]').evaluate((about) => about instanceof HTMLElement && (about.style.display = 'none'));
   await hidePaths(page);
@@ -297,7 +302,7 @@ test('settings', async ({ window: page }) => {
 });
 
 test('light', async ({ window: page }) => {
-  await visible(page, 'Light').click();
+  await visible(page, ui('Light')).click();
   await navigate(page, 'Albums');
   await expect(visible(page, albums[4].title)).toBeVisible();
   await capture(page, 'light');
