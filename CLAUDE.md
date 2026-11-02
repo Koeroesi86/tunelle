@@ -4,7 +4,7 @@ Electron lossless audio player: main process in `electron/` (TypeScript, SQLite 
 
 ## Checks
 
-CI (`.github/workflows/`: `test.yml`, `dist.yml`, wired together by `pr-checks.yml` for pull requests and `build.yml` for `master`) runs these on Linux, macOS and Windows, in this order:
+CI (`.github/workflows/`: `test.yml`, `dist.yml`, wired together by `pr-checks.yml` for pull requests and `build.yml` for `master`) runs these in this order: 1, 2, 3 and 6 once on Linux (the `static` job of `test.yml`), then the rest on Linux, macOS and Windows (the `test` job, which needs `static`, runs 4, 5 and the build of 7):
 
 1. `npm run lint` (ESLint with Prettier; fix with `npm run lint:fix`, not `prettier --write`)
 2. `npm run fallow` (dead code, unused dependencies and stale suppressions fail; complexity and duplication are reported)
