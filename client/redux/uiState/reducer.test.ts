@@ -82,15 +82,57 @@ describe('uiState reducer', () => {
       expect(run({ type: 'MOVE_QUEUE_TRACK', payload: { from, to } }, queue)).toBe(queue);
     });
 
-    it('clears the queue but the song that plays, and the history of shuffle', () => {
-      const playing = run({ type: 'CLEAR_QUEUE', payload: {} }, { ...queue, currentSong: track('b'), played: [track('a')] });
+    it('clears the queue, stops the song that plays and forgets the history of shuffle', () => {
+      const cleared = run(
+        { type: 'CLEAR_QUEUE', payload: {} },
+        { ...queue, currentSong: track('b'), currentTime: 42, isPlaying: true, played: [track('a')], playNext: ['c'] }
+      );
 
-      expect(paths(playing)).toEqual(['b']);
-      expect(playing.played).toEqual([]);
+      expect(cleared.nowPlaying).toEqual([]);
+      expect(cleared.currentSong).toBeNull();
+      expect(cleared.currentTime).toBe(0);
+      expect(cleared.isPlaying).toBe(false);
+      expect(cleared.played).toEqual([]);
+      expect(cleared.playNext).toEqual([]);
     });
 
-    it('clears the whole queue when nothing plays', () => {
-      expect(run({ type: 'CLEAR_QUEUE', payload: {} }, queue).nowPlaying).toEqual([]);
+    describe('play next', () => {
+      const playing = { ...queue, nowPlaying: [track('a'), track('b'), track('c')], currentSong: track('a') };
+      const playNext = (tracks: Track[], state: UiState = playing) => run({ type: 'PLAY_NEXT', payload: { tracks } }, state);
+
+      it('puts a track right after the song that plays', () => {
+        const state = playNext([track('d')]);
+
+        expect(paths(state)).toEqual(['a', 'd', 'b', 'c']);
+        expect(state.playNext).toEqual(['d']);
+      });
+
+      it('puts the next one after the one that was put next before, and keeps the order of the tracks', () => {
+        const state = playNext([track('f'), track('g')], playNext([track('d'), track('e')]));
+
+        expect(paths(state)).toEqual(['a', 'd', 'e', 'f', 'g', 'b', 'c']);
+      });
+
+      it('moves a track that is in the queue already instead of adding it a second time', () => {
+        expect(paths(playNext([track('c'), track('c')]))).toEqual(['a', 'c', 'b']);
+      });
+
+      it('leaves the song that plays where it is', () => {
+        expect(playNext([track('a')])).toBe(playing);
+      });
+
+      it('goes after the new song once a track that was put next plays', () => {
+        const queued = playNext([track('d')]);
+        const next = run({ type: 'PLAY_TRACK', payload: { track: track('d') } }, queued);
+
+        expect(next.playNext).toEqual([]);
+        expect(paths(playNext([track('e')], next))).toEqual(['a', 'd', 'e', 'b', 'c']);
+      });
+
+      it('goes to the start when nothing plays, and is forgotten with a new queue', () => {
+        expect(paths(playNext([track('d')], queue))).toEqual(['d', 'a', 'b', 'c']);
+        expect(run({ type: 'PLAY_TRACKS', payload: { tracks: [track('x')] } }, playNext([track('d')])).playNext).toEqual([]);
+      });
     });
 
     it('adds tracks at the end of the queue, once, and leaves the queue as it is when all are in it', () => {

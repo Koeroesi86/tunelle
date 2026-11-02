@@ -12,8 +12,8 @@ vi.mock('../add-to-queue', async () => {
   const { createElement } = await import('react');
 
   return {
-    default: ({ getTracks }: { getTracks: () => Promise<unknown[]> }) =>
-      createElement('button', { 'aria-label': 'Add to the queue', onClick: () => void getTracks().then(queued) }),
+    default: ({ getTracks, next }: { getTracks: () => Promise<unknown[]>; next?: boolean }) =>
+      createElement('button', { 'aria-label': next ? 'Play next' : 'Add to the queue', onClick: () => void getTracks().then(queued) }),
   };
 });
 

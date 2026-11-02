@@ -41,6 +41,30 @@ describe('uiState middleware', () => {
     expect(store.getState().uiState.nowPlaying).toEqual([b, c]);
   });
 
+  it('starts the first track that is put next when nothing is loaded', () => {
+    const store = createTestStore({ nowPlaying: [] });
+    dispatch(store, { type: 'PLAY_NEXT', payload: { tracks: [b, c] } });
+
+    expect(store.getState().uiState.currentSong).toEqual(b);
+    expect(store.getState().uiState.nowPlaying).toEqual([b, c]);
+  });
+
+  it('plays the track that was put next when the song ends', () => {
+    const store = createTestStore({ nowPlaying: [a, c], currentSong: a });
+    dispatch(store, { type: 'PLAY_NEXT', payload: { tracks: [b] } });
+    dispatch(store, { type: 'TRACK_ENDED', payload: {} });
+
+    expect(store.getState().uiState.currentSong).toEqual(b);
+  });
+
+  it('puts a track next inside a shuffled queue as well, and shuffle picks among all of them', () => {
+    const store = createTestStore({ nowPlaying: [a], currentSong: a, shuffle: true });
+    dispatch(store, { type: 'PLAY_NEXT', payload: { tracks: [b] } });
+
+    expect(store.getState().uiState.nowPlaying).toEqual([a, b]);
+    expect(store.getState().uiState.upNext).toEqual(b);
+  });
+
   it('keeps the song that plays when a track is added to the queue', () => {
     const store = createTestStore({ nowPlaying: [a], currentSong: a });
     dispatch(store, { type: 'ADD_TO_QUEUE', payload: { tracks: [b] } });

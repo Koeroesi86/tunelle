@@ -72,6 +72,16 @@
       }
     }
 
+    // the buttons of the queue with their words, as small as the others of the header
+    .queue {
+      height: 28px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 14px;
+      font-size: 12px;
+      gap: 4px;
+    }
+
     .playAll {
       padding-left: 10px;
       font-weight: 600;

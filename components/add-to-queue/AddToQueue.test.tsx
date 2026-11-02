@@ -80,4 +80,15 @@ describe('AddToQueue', () => {
 
     expect(screen.getByText('Add to queue')).toBeTruthy();
   });
+
+  it('puts the tracks next with its own words when asked to', async () => {
+    const add = vi.fn();
+    render(<AddToQueue next withLabel getTracks={() => Promise.resolve([track])} add={add} />);
+
+    expect(screen.getByText('Play next')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Play next' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Playing next' })).toBeTruthy());
+    expect(add).toHaveBeenCalledWith([track]);
+  });
 });

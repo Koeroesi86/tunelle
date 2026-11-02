@@ -80,6 +80,8 @@ const PlaylistView = ({ playlist, playTracks, rename, remove, removeEntry, moveE
           <PlayIcon size="16px" aria-hidden />
           {t('playlists.playAll')}
         </button>
+        {playable.length > 0 && <AddToQueue withLabel className={style.queue} getTracks={() => Promise.resolve(playable)} />}
+        {playable.length > 0 && <AddToQueue next withLabel className={style.queue} getTracks={() => Promise.resolve(playable)} />}
         <button
           type="button"
           className={classNames(style.delete, { [style.danger]: confirming })}
@@ -115,6 +117,7 @@ const PlaylistView = ({ playlist, playTracks, rename, remove, removeEntry, moveE
               <PlayIcon size="12px" />
             </button>
             {available && <AddToQueue className={style.action} getTracks={() => Promise.resolve([track])} />}
+            {available && <AddToQueue next className={style.action} getTracks={() => Promise.resolve([track])} />}
             <button
               type="button"
               className={style.action}

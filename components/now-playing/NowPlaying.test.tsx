@@ -165,6 +165,28 @@ describe('NowPlaying', () => {
     expect(moveTrack).toHaveBeenCalledWith(0, 1);
   });
 
+  it.each([
+    ['ArrowDown', 0, 1],
+    ['ArrowUp', 1, 0],
+  ])('moves the row that has the focus with Alt and %s', (key, from, to) => {
+    const moveTrack = vi.fn();
+    renderPage({ moveTrack });
+
+    fireEvent.keyDown(screen.getByTitle(`#${from + 1} ${from ? 'Two' : 'One'}`), { key, altKey: true });
+
+    expect(moveTrack).toHaveBeenCalledWith(from, to);
+  });
+
+  it('does not move a row for the arrow keys alone, or from a button inside it', () => {
+    const moveTrack = vi.fn();
+    renderPage({ moveTrack });
+
+    fireEvent.keyDown(screen.getByTitle('#1 One'), { key: 'ArrowDown' });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Remove Two from the queue' }), { key: 'ArrowUp', altKey: true });
+
+    expect(moveTrack).not.toHaveBeenCalled();
+  });
+
   it('clears the queue on the second click, and asks first', () => {
     const clearQueue = vi.fn();
     renderPage({ clearQueue });
@@ -186,10 +208,10 @@ describe('NowPlaying', () => {
     expect(screen.getByRole('button', { name: 'Clear' })).toBeTruthy();
   });
 
-  it('has nothing to clear while the song that plays is the only one in the queue', () => {
+  it('can clear a queue of the song that plays alone, as that stops it', () => {
     renderPage({ nowPlaying: [flac] });
 
-    expect((screen.getByRole('button', { name: 'Clear' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Clear' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('shows a message and a way into the library when nothing is loaded', () => {

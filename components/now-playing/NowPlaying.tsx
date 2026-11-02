@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import classNames from 'classnames';
 import slugify from 'slugify';
 import { MdClose as RemoveIcon, MdMusicNote as NoteIcon, MdPlayArrow as PlayIcon } from 'react-icons/md';
@@ -29,6 +30,9 @@ interface NowPlayingProps {
   openLibrary: () => void;
 }
 
+/** How far Alt and the arrow keys move a row */
+const arrowSteps: Record<string, number | undefined> = { ArrowUp: -1, ArrowDown: 1 };
+
 const NowPlaying = ({
   nowPlaying,
   currentSong,
@@ -49,6 +53,15 @@ const NowPlaying = ({
   const current = useRef<HTMLDivElement>(null);
   // a track is identified by its place in the queue, it can be in it more than once
   const { itemProps, overIndex } = useDragReorder(moveTrack);
+
+  // the keyboard moves the row that has the focus, not a button inside it
+  const moveWithKeys = (event: KeyboardEvent<HTMLDivElement>, index: number) => {
+    const step = event.altKey && event.target === event.currentTarget ? arrowSteps[event.key] : undefined;
+    if (!step) return;
+
+    event.preventDefault();
+    moveTrack(index, index + step);
+  };
 
   // the list opens, and follows the song, with the current track in the middle
   useEffect(() => {
@@ -95,11 +108,10 @@ const NowPlaying = ({
             </span>
             <span className={style.queueTotals}>
               <Time seconds={nowPlaying.reduce((total, track) => total + (track.duration || 0), 0)} />
-              {/* the song that plays stays, so there is nothing to clear when it is the only one */}
+              {/* the song that plays stops with the queue */}
               <button
                 type="button"
                 className={classNames(style.clearButton, { [style.confirming]: confirming })}
-                disabled={!nowPlaying.some((track) => track.path !== currentSong?.path)}
                 onClick={() => {
                   if (confirming) clearQueue();
                   setConfirming(!confirming);
@@ -121,6 +133,9 @@ const NowPlaying = ({
                   className={classNames(style.track, { [style.current]: isCurrent, [style.dropTarget]: overIndex === index })}
                   onDoubleClick={() => playTrack(track)}
                   title={`#${track.track ? track.track + ' ' : ''}${track.title}`}
+                  tabIndex={0}
+                  aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                  onKeyDown={(event) => moveWithKeys(event, index)}
                   {...itemProps(index, index)}
                 >
                   <span className={style.number}>
