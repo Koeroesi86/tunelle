@@ -88,7 +88,7 @@ export async function runUpdate(source: UpdateSource, report: (progress: SplashP
     translate = getTranslator(undefined, []).t,
   } = options;
 
-  try {
+  const update = async () => {
     report({ text: translate('update.checking') });
     const version = await checkForUpdate(source, checkTimeout);
 
@@ -104,6 +104,10 @@ export async function runUpdate(source: UpdateSource, report: (progress: SplashP
     installUpdate(source);
     await wait(installTimeout);
     console.error(`The app did not quit ${installTimeout} ms after the update was installed, starting the installed version`);
+  };
+
+  try {
+    await update();
   } catch (error) {
     console.error('Update failed, starting the installed version', error);
   }

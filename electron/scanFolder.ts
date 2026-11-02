@@ -19,6 +19,10 @@ const fileReadTimeout = 2000;
 
 const normalizePath = (filePath?: string) => (filePath || '').replace(/\\/g, '/');
 
+const ignoreExisting = (error: unknown) => {
+  if (!(error instanceof Error && 'code' in error && error.code === 'EEXIST')) throw error;
+};
+
 const parsePicture = (picture: IPicture, album: string, appDataPath: string): string | null => {
   const extension = picture.format.replace(/^image\//, '').replace(/^jpeg$/, 'jpg');
   if (!extension) return null;
@@ -33,9 +37,7 @@ const parsePicture = (picture: IPicture, album: string, appDataPath: string): st
   try {
     fs.writeFileSync(filePath, picture.data, { flag: 'wx' });
   } catch (error) {
-    if (!(error instanceof Error && 'code' in error && error.code === 'EEXIST')) {
-      throw error;
-    }
+    ignoreExisting(error);
   }
 
   return path.basename(filePath);
@@ -62,17 +64,19 @@ const isEqual = (a: Track, b: Track) => {
   return Object.entries(a).every(([key, value]) => `${value}` === `${other.get(key)}`);
 };
 
+// an entry that is a symbolic link is neither a directory nor a file here
+const findEntryFiles = async (directory: string, entry: fs.Dirent, deep: boolean): Promise<string[]> => {
+  const entryPath = path.join(directory, entry.name);
+  if (entry.isDirectory()) return deep ? findFiles(entryPath, deep) : [];
+  return entry.isFile() && isSupported(entryPath) ? [entryPath] : [];
+};
+
 /** Collect the supported audio files of a folder tree, or of the folder itself when it is not deep, one folder at a time, symbolic links are skipped */
 const findFiles = async (directory: string, deep: boolean): Promise<string[]> => {
   const entries = await fs.promises.readdir(directory, { withFileTypes: true });
   const found: string[] = [];
 
-  for (const entry of entries) {
-    const entryPath = path.join(directory, entry.name);
-    // an entry that is a symbolic link is neither a directory nor a file here
-    if (entry.isDirectory() && deep) found.push(...(await findFiles(entryPath, deep)));
-    else if (entry.isFile() && isSupported(entryPath)) found.push(entryPath);
-  }
+  for (const entry of entries) found.push(...(await findEntryFiles(directory, entry, deep)));
 
   return found;
 };
@@ -107,19 +111,19 @@ const scanFolder = async (folderPath: string, sender: WebContents, deep = true, 
   const existingTracks = new Map(library.map((track) => [track.path, track]));
   let currentFolder = folderPath;
 
-  for (const [progress, fileName] of files.entries()) {
+  const scanFile = async (fileName: string, progress: number) => {
     signal.throwIfAborted();
     const folder = path.dirname(fileName);
-    if (folder !== currentFolder) {
-      sender.send('SCANNING_FOLDER', { folder });
-      currentFolder = folder;
-    }
+    if (folder !== currentFolder) sender.send('SCANNING_FOLDER', { folder });
+    currentFolder = folder;
 
     sender.send('SCANNING_FILE', { fileName, progress, totalCount: files.length });
     await writeMeta(fileName, existingTracks, database, appDataPath).catch((error) => console.error(fileName, error));
     // yields to the event loop between files, so the server and the window stay responsive during a scan
     await yieldToEventLoop();
-  }
+  };
+
+  for (const [progress, fileName] of files.entries()) await scanFile(fileName, progress);
 };
 
 export default scanFolder;

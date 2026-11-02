@@ -139,13 +139,17 @@ export const createArtistPhotoQueue = ({ database, getFolder, onFound, fetcher =
       unreported = 0;
     };
 
-    try {
+    const drain = async () => {
       let artist = pending.shift();
       while (artist) {
         await lookupNext(artist);
         await wait(gap);
         artist = pending.shift();
       }
+    };
+
+    try {
+      await drain();
     } catch (error) {
       console.error(error);
       pending.length = 0;

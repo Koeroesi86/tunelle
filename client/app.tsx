@@ -5,7 +5,7 @@ import ThemeProvider from '../components/theme-provider';
 import LanguageProvider from '../components/language-provider';
 import { store } from './redux/store';
 
-if (typeof document !== 'undefined') {
+const mount = () => {
   store.dispatch({ type: 'APP_INIT' });
 
   const root = document.getElementById('root');
@@ -20,4 +20,6 @@ if (typeof document !== 'undefined') {
       </ThemeProvider>
     </Provider>
   );
-}
+};
+
+if (typeof document !== 'undefined') mount();
