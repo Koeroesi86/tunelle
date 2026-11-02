@@ -53,6 +53,10 @@
   </provides>
   <screenshots>
     <screenshot type="default">
+      <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/home.webp</image>
+      <caption>The home page with what you played lately, your Liked tracks and favourite stations</caption>
+    </screenshot>
+    <screenshot>
       <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/album.webp</image>
       <caption>An album with its cover and track list</caption>
     </screenshot>
