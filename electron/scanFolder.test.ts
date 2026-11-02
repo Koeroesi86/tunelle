@@ -6,6 +6,7 @@ import type { WebContents } from 'electron';
 import type { Database } from 'sqlite3';
 import scanFolder from './scanFolder';
 import { createTestDatabase } from './test-database';
+import { cancelScansInside } from './scanCancellation';
 
 describe('scanFolder', () => {
   let database: Database;
@@ -70,7 +71,32 @@ describe('scanFolder', () => {
       vi.useRealTimers();
     }
 
-    expect(scanningFiles()).toHaveLength(3);
+    expect(scanningFiles().map((file) => file.progress)).toEqual([0, 2]);
+  });
+
+  it('tells the window about the files a few times a second, with the first and the last always', async () => {
+    Array.from({ length: 50 }, (_, index) => fs.writeFileSync(path.join(root, `${index}.mp3`), 'not audio'));
+
+    await scanFolder(root, sender);
+
+    const progress = scanningFiles().map((file) => file.progress);
+    expect(progress.length).toBeLessThan(50);
+    expect([progress[0], progress.at(-1)]).toEqual([0, 49]);
+  });
+
+  it('names the folder at once, before the files are listed', async () => {
+    await scanFolder(root, sender);
+
+    expect(send).toHaveBeenCalledWith('SCANNING_FOLDER', { folder: root });
+  });
+
+  it('ends without an error, and stores nothing more, when its folder is removed from the library', async () => {
+    ['a.mp3', 'b.mp3', 'c.mp3'].forEach((name) => fs.writeFileSync(path.join(root, name), 'not audio'));
+    send.mockImplementation((channel) => channel === 'SCANNING_FILE' && cancelScansInside(root));
+
+    await expect(scanFolder(root, sender)).resolves.toBeUndefined();
+
+    expect(scanningFiles()).toHaveLength(1);
   });
 
   it('finds the audio files of nested folders', async () => {

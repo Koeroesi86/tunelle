@@ -7,6 +7,7 @@ import addTrack from './addTrack';
 import { getFolders, getLibrary, saveFolders } from './libraryRepository';
 import removeFolderFromLibrary from './removeFolderFromLibrary';
 import { createTestDatabase } from './test-database';
+import { trackScan } from './scanCancellation';
 
 const track = (trackPath: string): Track => ({
   path: trackPath,
@@ -54,6 +55,16 @@ describe('removeFolderFromLibrary', () => {
     await removeFolderFromLibrary(database, 'C:\\music\\win', sender);
 
     expect(paths(await getLibrary(database))).not.toContain('C:/music/win/four.flac');
+  });
+
+  it('stops the scan of the folder, and leaves the scan of another one', async () => {
+    const scanned = trackScan(at('a', 'live'));
+    const other = trackScan(at('ab'));
+
+    await removeFolderFromLibrary(database, at('a'), sender);
+
+    expect([scanned.signal.aborted, other.signal.aborted]).toEqual([true, false]);
+    [scanned, other].forEach((scan) => scan.release());
   });
 
   it('ignores a path that is not a library folder', async () => {

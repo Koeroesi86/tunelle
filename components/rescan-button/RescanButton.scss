@@ -63,11 +63,8 @@
     top: calc(100% + 8px);
     right: 0;
     display: grid;
-    // minmax(0, ...) keeps a long folder path from widening the column, which moved the percent and the count around
-    grid-template-columns: minmax(0, 1fr);
     gap: 7px;
     width: 240px;
-    box-sizing: border-box;
     padding: 10px 12px 12px;
     font-size: 12px;
     background: var(--panel-solid);
@@ -95,8 +92,6 @@
   }
 
   .percent {
-    flex: 0 0 auto;
-    margin-left: 8px;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
   }
@@ -121,7 +116,6 @@
   }
 
   .folder {
-    min-width: 0;
     padding: 0;
     overflow: hidden;
     font: inherit;

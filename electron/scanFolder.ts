@@ -13,7 +13,7 @@ import type { Track } from '../types/library';
 import addTrack from './addTrack';
 import { getTracksInside } from './libraryRepository';
 import isSupported from './isSupported';
-import { quitSignal } from './scanCancellation';
+import { quitSignal, trackScan } from './scanCancellation';
 
 const fileReadTimeout = 2000;
 
@@ -76,13 +76,14 @@ const findFiles = async (directory: string, deep: boolean): Promise<string[]> =>
   const entries = await fs.promises.readdir(directory, { withFileTypes: true });
   const found: string[] = [];
 
-  for (const entry of entries) found.push(...(await findEntryFiles(directory, entry, deep)));
+  // not found.push(...files): a folder with many files is more arguments than the stack takes
+  for (const entry of entries) (await findEntryFiles(directory, entry, deep)).forEach((file) => found.push(file));
 
   return found;
 };
 
 /** Store the tags of a file, unless the library holds them already; a file that takes too long to read is not stored */
-const writeMeta = async (fileName: string, existingTracks: Map<string, Track>, database: Database, appDataPath: string) => {
+const writeMeta = async (fileName: string, existingTracks: Map<string, Track>, database: Database, appDataPath: string, scanSignal: AbortSignal) => {
   const timeout = AbortSignal.timeout(fileReadTimeout);
   const timedOut = new Promise<never>((_, reject) => {
     timeout.addEventListener('abort', () => reject(new Error(`File access timeout ${fileName}`)), { once: true });
@@ -91,6 +92,8 @@ const writeMeta = async (fileName: string, existingTracks: Map<string, Track>, d
   const store = async () => {
     const meta = transformMeta(await parseFile(fileName), fileName, appDataPath);
     timeout.throwIfAborted();
+    // a folder removed while the file was read must not get the track back
+    scanSignal.throwIfAborted();
 
     const existingTrack = existingTracks.get(meta.path);
     if (!existingTrack || !isEqual(existingTrack, meta)) await addTrack(database, meta);
@@ -99,31 +102,60 @@ const writeMeta = async (fileName: string, existingTracks: Map<string, Track>, d
   await Promise.race([store(), timedOut]);
 };
 
-/** Scan a defined folder for tracks, and the folders below it unless it is not deep; an aborted signal ends the scan with its error, so the caller does not take the folder for scanned */
-const scanFolder = async (folderPath: string, sender: WebContents, deep = true, signal: AbortSignal = quitSignal) => {
-  if (!global._database) throw new Error('Database is not connected');
+const progressInterval = 100;
+
+/** Tells the window about a file a few times a second, with the last one always, as a message for each of tens of thousands of files keeps it from answering */
+const createProgressReporter = (sender: WebContents, folderPath: string, totalCount: number) => {
+  let shownFolder = folderPath;
+  let shownAt = 0;
+
+  return (fileName: string, progress: number) => {
+    if (Date.now() - shownAt < progressInterval && progress !== totalCount - 1) return;
+
+    const folder = path.dirname(fileName);
+    if (folder !== shownFolder) sender.send('SCANNING_FOLDER', { folder });
+    shownFolder = folder;
+    shownAt = Date.now();
+    sender.send('SCANNING_FILE', { fileName, progress, totalCount });
+  };
+};
+
+const scanFiles = async (folderPath: string, sender: WebContents, deep: boolean, signal: AbortSignal) => {
   const database = global._database;
-  const appDataPath = global._appDataPath;
+  if (!database) throw new Error('Database is not connected');
 
   const files = (await findFiles(folderPath, deep)).sort();
   signal.throwIfAborted();
   const library = await getTracksInside(database, folderPath);
   const existingTracks = new Map(library.map((track) => [track.path, track]));
-  let currentFolder = folderPath;
+  const report = createProgressReporter(sender, folderPath, files.length);
 
   const scanFile = async (fileName: string, progress: number) => {
     signal.throwIfAborted();
-    const folder = path.dirname(fileName);
-    if (folder !== currentFolder) sender.send('SCANNING_FOLDER', { folder });
-    currentFolder = folder;
+    report(fileName, progress);
 
-    sender.send('SCANNING_FILE', { fileName, progress, totalCount: files.length });
-    await writeMeta(fileName, existingTracks, database, appDataPath).catch((error) => console.error(fileName, error));
+    // the abort is for the loop, which stops at the next file; a failed file is logged and skipped
+    await writeMeta(fileName, existingTracks, database, global._appDataPath, signal).catch((error) => !signal.aborted && console.error(fileName, error));
     // yields to the event loop between files, so the server and the window stay responsive during a scan
     await yieldToEventLoop();
   };
 
   for (const [progress, fileName] of files.entries()) await scanFile(fileName, progress);
+};
+
+/** Scan a defined folder for tracks, and the folders below it unless it is not deep; an aborted signal ends the scan with its error, so the caller does not take the folder for scanned, but a folder that is removed from the library ends it without one */
+const scanFolder = async (folderPath: string, sender: WebContents, deep = true, parent: AbortSignal = quitSignal) => {
+  if (!global._database) throw new Error('Database is not connected');
+  const { signal, wasRemoved, release } = trackScan(folderPath, parent);
+
+  // shown while the folders are listed, which takes a while on a big drive
+  sender.send('SCANNING_FOLDER', { folder: folderPath });
+
+  await scanFiles(folderPath, sender, deep, signal)
+    .catch((error) => {
+      if (!wasRemoved()) throw error;
+    })
+    .finally(release);
 };
 
 export default scanFolder;
