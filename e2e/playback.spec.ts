@@ -135,7 +135,10 @@ test('plays the track that was moved up with the keyboard, and stops with the qu
   // the number stays on the row that has the focus, the play button replaces it under the pointer only
   await expect(row.locator('[class*="numberText"]')).toBeVisible();
   await page.keyboard.press('Alt+ArrowUp');
-  await expect(page.getByTitle('#2 Deep Bass').filter({ visible: true }).locator('[class*="numberText"]')).toHaveText('2');
+  const moved = page.getByTitle('#2 Deep Bass').filter({ visible: true });
+  await expect(moved.locator('[class*="numberText"]')).toHaveText('2');
+  // the row keeps the focus (and so its highlight) where it moved to
+  await expect(moved).toBeFocused();
   await controls.next();
   await expectTone(page, 100);
 

@@ -51,6 +51,8 @@ const NowPlaying = ({
   const [confirming, setConfirming] = useState(false);
   const list = useRef<HTMLDivElement>(null);
   const current = useRef<HTMLDivElement>(null);
+  // the place of the row that was moved with the keyboard: a row that moves in the page loses the focus
+  const movedTo = useRef<number | undefined>(undefined);
   // a track is identified by its place in the queue, it can be in it more than once
   const { itemProps, overIndex } = useDragReorder(moveTrack);
 
@@ -60,8 +62,16 @@ const NowPlaying = ({
     if (!step) return;
 
     event.preventDefault();
+    movedTo.current = index + step;
     moveTrack(index, index + step);
   };
+
+  useEffect(() => {
+    if (movedTo.current === undefined) return;
+
+    list.current?.querySelectorAll<HTMLElement>('[tabindex]')[movedTo.current]?.focus();
+    movedTo.current = undefined;
+  }, [nowPlaying]);
 
   // the list opens, and follows the song, with the current track in the middle
   useEffect(() => {

@@ -191,6 +191,29 @@ describe('NowPlaying', () => {
     expect(moveTrack).toHaveBeenCalledWith(from, to);
   });
 
+  it('gives the focus back to the row once it has moved', () => {
+    const moveTrack = vi.fn();
+    const { rerender } = renderPage({ moveTrack });
+
+    fireEvent.keyDown(screen.getByTitle('#1 One'), { key: 'ArrowDown', altKey: true });
+    rerender(
+      <NowPlaying
+        nowPlaying={[mp3, flac]}
+        currentSong={flac}
+        streamTitle={null}
+        streamArt={null}
+        isPlaying
+        playTrack={vi.fn()}
+        moveTrack={moveTrack}
+        removeTrack={vi.fn()}
+        clearQueue={vi.fn()}
+        openLibrary={vi.fn()}
+      />
+    );
+
+    expect(document.activeElement).toBe(screen.getByTitle('#2 One'));
+  });
+
   it('does not move a row for the arrow keys alone, or from a button inside it', () => {
     const moveTrack = vi.fn();
     renderPage({ moveTrack });
