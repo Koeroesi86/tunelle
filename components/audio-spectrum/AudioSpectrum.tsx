@@ -83,21 +83,23 @@ const AudioSpectrum = ({
       }
     };
 
+    const drawFrame = (node: AnalyserNode) => {
+      const data = new Uint8Array(node.frequencyBinCount); // item value of array: 0 - 255
+      node.getByteFrequencyData(data);
+      if (!isPlaying.current) data.fill(0);
+      drawBars(data);
+    };
+
+    // once all the caps reached the bottom there is nothing left to draw
+    const isSettled = () => !isPlaying.current && !caps.some((cap) => cap > 0);
+
     const drawMeter = () => {
-      if (analyser.current) {
-        const data = new Uint8Array(analyser.current.frequencyBinCount); // item value of array: 0 - 255
-        analyser.current.getByteFrequencyData(data);
-        if (!isPlaying.current) {
-          data.fill(0);
-          // once all the caps reached the bottom there is nothing left to draw
-          if (!caps.some((cap) => cap > 0)) {
-            clearCanvas();
-            if (animationId.current) window.cancelAnimationFrame(animationId.current);
-            return;
-          }
-        }
-        drawBars(data);
+      if (analyser.current && isSettled()) {
+        clearCanvas();
+        if (animationId.current) window.cancelAnimationFrame(animationId.current);
+        return;
       }
+      if (analyser.current) drawFrame(analyser.current);
 
       timer.current = setTimeout(() => {
         animationId.current = window.requestAnimationFrame(drawMeter);

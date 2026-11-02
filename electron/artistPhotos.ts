@@ -130,15 +130,19 @@ export const createArtistPhotoQueue = ({ database, getFolder, onFound, fetcher =
 
   const run = async () => {
     let unreported = 0;
+
+    const lookupNext = async (artist: ArtistName) => {
+      unreported += (await lookup(artist)) ? 1 : 0;
+      queued.delete(artist.key);
+      if (unreported < reportEvery) return;
+      onFound();
+      unreported = 0;
+    };
+
     try {
       let artist = pending.shift();
       while (artist) {
-        unreported += (await lookup(artist)) ? 1 : 0;
-        queued.delete(artist.key);
-        if (unreported >= reportEvery) {
-          onFound();
-          unreported = 0;
-        }
+        await lookupNext(artist);
         await wait(gap);
         artist = pending.shift();
       }

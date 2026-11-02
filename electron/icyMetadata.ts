@@ -33,29 +33,33 @@ export class IcyMetadataStripper extends Transform {
     let offset = 0;
 
     while (offset < chunk.length) {
-      if (this.audioLeft > 0) {
-        const part = chunk.subarray(offset, offset + this.audioLeft);
-        audio.push(part);
-        this.audioLeft -= part.length;
-        offset += part.length;
-        continue;
-      }
-
-      if (this.metadataLeft === undefined) {
-        this.metadataLeft = chunk[offset] * metadataBlock;
-        offset += 1;
-        if (this.metadataLeft === 0) this.finishMetadata();
-        continue;
-      }
-
-      const part = chunk.subarray(offset, offset + this.metadataLeft);
-      this.metadata.push(part);
-      this.metadataLeft -= part.length;
-      offset += part.length;
-      if (this.metadataLeft === 0) this.finishMetadata();
+      offset = this.audioLeft > 0 ? this.readAudio(chunk, offset, audio) : this.readMetadata(chunk, offset);
     }
 
     callback(undefined, Buffer.concat(audio));
+  }
+
+  private readAudio(chunk: Buffer, offset: number, audio: Buffer[]) {
+    const part = chunk.subarray(offset, offset + this.audioLeft);
+    audio.push(part);
+    this.audioLeft -= part.length;
+    return offset + part.length;
+  }
+
+  private readMetadata(chunk: Buffer, offset: number) {
+    if (this.metadataLeft === undefined) return this.readMetadataLength(chunk[offset], offset);
+
+    const part = chunk.subarray(offset, offset + this.metadataLeft);
+    this.metadata.push(part);
+    this.metadataLeft -= part.length;
+    if (this.metadataLeft === 0) this.finishMetadata();
+    return offset + part.length;
+  }
+
+  private readMetadataLength(blocks: number, offset: number) {
+    this.metadataLeft = blocks * metadataBlock;
+    if (this.metadataLeft === 0) this.finishMetadata();
+    return offset + 1;
   }
 
   private finishMetadata() {
