@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { PageLocals } from '../index-page/Index';
+import Wordmark from '../wordmark/Wordmark';
 import loading from './assets/loading.svg';
 
 const style: Record<'body' | 'container' | 'wrapper' | 'logo' | 'name' | 'text' | 'track' | 'bar', CSSProperties> = {
@@ -35,10 +36,10 @@ const style: Record<'body' | 'container' | 'wrapper' | 'logo' | 'name' | 'text' 
     height: '112px',
   },
   name: {
+    display: 'block',
     marginTop: '8px',
-    fontSize: '22px',
-    fontWeight: '600',
-    letterSpacing: '0.04em',
+    height: '40px',
+    width: 'auto',
   },
   text: {
     marginTop: '10px',
@@ -75,7 +76,7 @@ function LoadingSplash(props: { locals: Pick<PageLocals, 'title'> }) {
         <div style={style.container}>
           <div style={style.wrapper}>
             <img src={loading} style={style.logo} />
-            <div style={style.name}>{props.locals.title}</div>
+            <Wordmark style={style.name} />
             <div id="status" style={style.text} />
             <div id="progress-track" style={style.track} hidden>
               <div id="progress-bar" style={style.bar} />

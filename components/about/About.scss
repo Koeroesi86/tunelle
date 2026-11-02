@@ -8,6 +8,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    margin-bottom: 6px;
 
     .icon {
       width: 40px;
@@ -15,8 +16,11 @@
       flex: none;
     }
 
-    .details {
-      margin-top: 2px;
+    .wordmark {
+      display: block;
+      height: 32px;
+      width: auto;
+      min-width: 0;
     }
   }
 

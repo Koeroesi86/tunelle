@@ -4,6 +4,7 @@ import type { UpdateState } from '../../types/update';
 import Confirm from '../confirm';
 import Switch from '../switch/Switch';
 import { useTranslation } from '../../client/i18n';
+import Wordmark from '../wordmark/Wordmark';
 import appIcon from '../../assets/icon.svg';
 import style from './About.scss';
 
@@ -34,11 +35,10 @@ const About = ({ update, isPlaying, check, install, setAutomatic, openReleases }
     <section className={classNames(style.about, style.wide)} aria-label={t('about.title')}>
       <div className={style.identity}>
         <img className={style.icon} src={appIcon} alt="" />
-        <div>
-          <div className={style.version}>{t('about.version', { version: update.version })}</div>
-          <div className={style.details}>{t('about.details', { electron: update.electron, chrome: update.chrome })}</div>
-        </div>
+        <Wordmark className={style.wordmark} />
       </div>
+      <div className={style.version}>{t('about.version', { version: update.version })}</div>
+      <div className={style.details}>{t('about.details', { electron: update.electron, chrome: update.chrome })}</div>
       {unavailable && <div className={style.status}>{t(`about.unavailable.${unavailable}`)}</div>}
       {unavailable && unavailable !== 'development' && action(t('about.releases'), openReleases)}
       {!unavailable && status.kind === 'checking' && <div className={style.status}>{t('about.checking')}</div>}

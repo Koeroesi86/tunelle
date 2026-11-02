@@ -24,11 +24,13 @@ const track: Track = {
 };
 
 describe('TitleBar', () => {
-  it('shows the icon of the app before the title', () => {
-    const { container } = render(<TitleBar title="Tunelle" />);
+  it('shows the icon of the app before the wordmark', () => {
+    const { container } = render(<TitleBar />);
+    const wordmark = screen.getByRole('img', { name: 'Tunelle' });
 
-    expect(screen.getByText('Tunelle').querySelector('img')?.getAttribute('src')).toContain('svg');
+    expect(container.querySelector('img')?.getAttribute('src')).toContain('svg');
     expect(container.querySelectorAll('img')).toHaveLength(1);
+    expect(container.querySelector('img')?.compareDocumentPosition(wordmark)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it('holds the window controls', () => {

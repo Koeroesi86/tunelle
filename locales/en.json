@@ -1,4 +1,5 @@
 {
+  "app.name": "Tunelle",
   "app.description": "Lossless Audio Player",
   "confirm.yes": "Yes",
   "confirm.no": "No",

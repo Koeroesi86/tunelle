@@ -12,9 +12,9 @@ describe('LoadingSplash', () => {
     expect(page.getElementById('status')?.textContent).toBe('');
   });
 
-  it('shows the name of the app under the animated logo', () => {
+  it('shows the wordmark of the app under the animated logo', () => {
     expect(page.querySelector('img')).toBeTruthy();
-    expect(page.body.textContent).toContain('Tunelle');
+    expect(page.querySelector('svg[aria-label="Tunelle"]')).toBeTruthy();
   });
 
   it('has a progress bar for the download that stays hidden until there is progress', () => {
