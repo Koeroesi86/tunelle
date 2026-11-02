@@ -1,6 +1,6 @@
 name: Test
 
-# lint, dead code, types, unit tests with coverage, the end to end tests of the built app and the Electron security scan, used by the workflows that package the app
+# lint, dead code and types (once), unit tests with coverage, the end to end tests of the built app and the Electron security scan, used by the workflows that package the app
 on:
   workflow_call:
 
@@ -8,8 +8,29 @@ permissions:
   contents: read
 
 jobs:
+  # the checks that do not depend on the system run once, so a mistake fails here and not on six runners
+  static:
+    name: Lint, dead code, types and security scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - uses: ./.github/actions/install-dependencies
+      - run: npm run lint
+      - run: npm run fallow
+      - run: npm run typecheck
+      - name: Electron security scan
+        run: npm run security:electron
+
   test:
-    name: Lint and test (${{ matrix.os }})
+    name: Test (${{ matrix.os }})
+    needs: static
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -31,18 +52,12 @@ jobs:
           sudo apt-get install -y appstream desktop-file-utils
           appstreamcli validate --no-net flatpak/*.metainfo.xml
           desktop-file-validate flatpak/*.desktop
-      - run: npm run lint
-      - run: npm run fallow
-      - run: npm run typecheck
       - run: npm run test:coverage
       # the built app is started and driven (e2e/); the audio goes to a sink that plays nothing (--disable-audio-output), so the runners need no sound device, and Linux draws the window headless
       - run: npm run build
       - name: End to end tests
         timeout-minutes: 20
         run: npm run test:e2e
-      - name: Electron security scan
-        if: matrix.os == 'ubuntu-latest'
-        run: npm run security:electron
       - name: Coverage summary
         if: matrix.os == 'ubuntu-latest' && !cancelled()
         run: |

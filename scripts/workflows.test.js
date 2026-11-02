@@ -44,6 +44,13 @@ describe('workflows', () => {
     expect(order).toEqual([...order].sort((a, b) => a - b))
   })
 
+  it('test.yml runs the checks of every system only after the static ones passed', () => {
+    const text = read('test.yml')
+
+    expect(text).toMatch(/\n  static:\n(?:.*\n)*?    runs-on: ubuntu-latest\n/)
+    expect(text).toMatch(/\n  test:\n(?:.*\n)*?    needs: static\n/)
+  })
+
   it('test.yml keeps the report of the end to end tests', () => {
     const text = read('test.yml')
 
