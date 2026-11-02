@@ -21,6 +21,17 @@
       <li>Media keys and the media controls of the desktop.</li>
     </ul>
     <p>No account and no tracking. The photos of the artists come from Deezer, which is sent the names of the artists in your library; turn that off under Settings.</p>
+    <p xml:lang="hu">A Tunelle a saját zenei könyvtáradat és az internetes rádiót játssza le, és megmutatja minden lejátszott szám formátumát: FLAC 16/44.1, FLAC 24/96, MP3 320.</p>
+    <ul xml:lang="hu">
+      <li>Böngéssz album, előadó, albumelőadó, műfaj, szám vagy mappa szerint, keress és rendezz minden listát, és válaszd ki a könyvtárat alkotó mappákat.</li>
+      <li>Lejátssza a FLAC, MP3, AAC és M4A, Ogg és Opus, WAV, AIFF, APE, WavPack és WMA fájlokat, a címkékkel és a borítóval a fájlokból olvasva.</li>
+      <li>Internetes rádió a nyílt radio-browser.info címtárból, logókkal, szűrőkkel és az éppen szóló számmal.</li>
+      <li>Kedvelt számok, húzással átrendezhető lejátszási listák és egy általad vezérelt lejátszási sor.</li>
+      <li>Tíz sávos, görbeként megrajzolt hangszínszabályzó, előbeállításokkal.</li>
+      <li>Világos, sötét vagy a most játszott borító színei, angolul és magyarul.</li>
+      <li>Médiabillentyűk és az asztali környezet médiavezérlői.</li>
+    </ul>
+    <p xml:lang="hu">Nincs fiók és nincs nyomkövetés. Az előadók fotói a Deezertől jönnek, amely megkapja a könyvtárad előadóinak nevét; ezt a Beállításokban kikapcsolhatod.</p>
   </description>
   <launchable type="desktop-id">io.github.koeroesi86.Tunelle.desktop</launchable>
   <url type="homepage">https://koeroesi86.github.io/tunelle/</url>
@@ -55,26 +66,32 @@
     <screenshot type="default">
       <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/home.webp</image>
       <caption>The home page with what you played lately, your Liked tracks and favourite stations</caption>
+      <caption xml:lang="hu">A kezdőlap a nemrég játszott számokkal, a kedvelt számokkal és a kedvenc állomásokkal</caption>
     </screenshot>
     <screenshot>
       <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/album.webp</image>
       <caption>An album with its cover and track list</caption>
+      <caption xml:lang="hu">Egy album a borítójával és a számlistával</caption>
     </screenshot>
     <screenshot>
       <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/albums.webp</image>
       <caption>Every album, front and centre</caption>
+      <caption xml:lang="hu">Minden album, előtérben</caption>
     </screenshot>
     <screenshot>
       <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/radio.webp</image>
       <caption>Internet radio next to your own music</caption>
+      <caption xml:lang="hu">Internetes rádió a saját zenéd mellett</caption>
     </screenshot>
     <screenshot>
       <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/equalizer.webp</image>
       <caption>A ten band equalizer drawn as a curve</caption>
+      <caption xml:lang="hu">Tíz sávos, görbeként megrajzolt hangszínszabályzó</caption>
     </screenshot>
     <screenshot>
       <image type="source" width="1360" height="850">https://koeroesi86.github.io/tunelle/screenshots/light.webp</image>
       <caption>The light theme</caption>
+      <caption xml:lang="hu">A világos téma</caption>
     </screenshot>
   </screenshots>
   <releases>
