@@ -44,6 +44,10 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      # the prebuilt sqlite3 is linked against glibc 2.38, Ubuntu 22.04 has 2.35
+      - name: Compile the native modules
+        if: startsWith(matrix.os, 'ubuntu-22.04')
+        run: echo "npm_config_build_from_source=true" >> "$GITHUB_ENV"
       - uses: ./.github/actions/install-dependencies
       # the files Flathub takes the app from (flatpak/) are checked with the tools it uses
       - name: Validate the Flatpak metadata

@@ -41,6 +41,7 @@ describe('workflows', () => {
 
     expect(text).toMatch(/os: \[.*ubuntu-22\.04,/)
     expect(text).toMatch(/os: \[.*ubuntu-22\.04-arm,/)
+    expect(text).toMatch(/startsWith\(matrix\.os, 'ubuntu-22\.04'\)[\s\S]*npm_config_build_from_source=true/)
   })
 
   it('test.yml runs the cheap checks first', () => {
