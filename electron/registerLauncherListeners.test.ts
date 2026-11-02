@@ -24,6 +24,7 @@ vi.mock('./appImageLauncher', async (importOriginal) => {
   return {
     ...original,
     enableLauncher: (appImage: string, options: LauncherOptions) => original.enableLauncher(appImage, { ...options, iconsPath: join(home, 'icons') }),
+    syncLauncher: (appImage: string | undefined, options: LauncherOptions) => original.syncLauncher(appImage, { ...options, iconsPath: join(home, 'icons') }),
   };
 });
 
@@ -112,6 +113,9 @@ describe('registerLauncherListeners', () => {
     });
 
     it('still lets the user turn the own entry of the app off, and reports no other one while it is on', async () => {
+      // an entry that works, as the one the app made: the sync at the start finds nothing to repair and does not write while the test goes on
+      await mkdir(join(home, 'data/tunelle'), { recursive: true });
+      await writeFile(join(home, 'data/tunelle/Tunelle.AppImage'), '');
       await writeFile(desktopFile(), `[Desktop Entry]\nExec="${join(home, 'data/tunelle/Tunelle.AppImage')}" %U\n`);
       (await registerLauncherListeners())(undefined, appImage());
       const state = lastState();
