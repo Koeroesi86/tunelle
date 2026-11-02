@@ -2,13 +2,15 @@ name: Pages
 
 # The website (site/) on GitHub Pages. It is deployed when site/ changes on master, after every release (called by release.yml, so the version and the
 # download links of the page are the ones of the release that was just published) and by hand. The latest release is written into the page while it is
-# built (scripts/build-site.js), so the page needs no request to GitHub.
+# built (scripts/build-site.js), so the page needs no request to GitHub. The Flatpak repository (repo/) is part of the site, built from the bundles of the
+# latest release and signed with FLATPAK_GPG_PRIVATE_KEY (scripts/flatpak-repo.js): a deployment replaces everything that was published, so every one carries it.
 on:
   push:
     branches: [master]
     paths:
       - site/**
       - scripts/build-site.js
+      - scripts/flatpak-repo.js
       - .github/workflows/pages.yml
   workflow_call:
   workflow_dispatch:
@@ -25,7 +27,7 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
       pages: write
@@ -46,6 +48,22 @@ jobs:
         run: |
           gh api "repos/${GITHUB_REPOSITORY}/releases/latest" > release.json
           node scripts/build-site.js release.json _site
+      # without the key the site is deployed without the repository, never with an unsigned one
+      - name: Build the Flatpak repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FLATPAK_GPG_PRIVATE_KEY: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
+        run: |
+          if [ -z "$FLATPAK_GPG_PRIVATE_KEY" ]; then
+            echo '::warning::FLATPAK_GPG_PRIVATE_KEY is not set, the site is deployed without the Flatpak repository'
+            exit 0
+          fi
+          sudo apt-get update
+          sudo apt-get install -y flatpak ostree gnupg
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern '*.flatpak' --dir flatpak-bundles
+          node scripts/flatpak-repo.js flatpak-bundles _site/repo
+          # the local state of the repository is not for the clients
+          rm -rf _site/repo/tmp _site/repo/state
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

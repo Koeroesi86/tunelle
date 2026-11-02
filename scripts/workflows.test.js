@@ -64,6 +64,22 @@ describe('workflows', () => {
     expect(text).toMatch(/needs: dist\n\s+uses: \.\/\.github\/workflows\/wack\.yml\n\s+with:\n\s+artifact: dist-win32-x64/)
   })
 
+  it('pages.yml signs the Flatpak repository with a secret and release.yml hands the secrets on', () => {
+    expect(read('pages.yml')).toMatch(/FLATPAK_GPG_PRIVATE_KEY: \$\{\{ secrets\.FLATPAK_GPG_PRIVATE_KEY \}\}/)
+    expect(read('release.yml')).toMatch(/uses: \.\/\.github\/workflows\/pages\.yml\n(?:\s+#.*\n)?\s+secrets: inherit/)
+  })
+
+  it('pages.yml builds the Flatpak repository into the site before it is uploaded', () => {
+    const text = read('pages.yml')
+
+    expect(text.indexOf('scripts/build-site.js')).toBeLessThan(text.indexOf('scripts/flatpak-repo.js flatpak-bundles _site/repo'))
+    expect(text.indexOf('scripts/flatpak-repo.js flatpak-bundles _site/repo')).toBeLessThan(text.indexOf('upload-pages-artifact'))
+  })
+
+  it('dist.yml installs the app from the Flatpak repository it builds', () => {
+    expect(read('dist.yml')).toMatch(/scripts\/flatpak-repo\.js dist[\s\S]*flatpak install --user --noninteractive tunelle-test/)
+  })
+
   it('dist.yml builds before it packages', () => {
     const text = read('dist.yml')
 

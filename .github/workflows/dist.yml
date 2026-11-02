@@ -72,7 +72,7 @@ jobs:
         timeout-minutes: 15
         run: |
           mkdir -p ~/apt-archives/partial
-          install() { sudo timeout 10m apt-get install -y -o Acquire::Retries=3 -o Dir::Cache::archives="$HOME/apt-archives" flatpak flatpak-builder; }
+          install() { sudo timeout 10m apt-get install -y -o Acquire::Retries=3 -o Dir::Cache::archives="$HOME/apt-archives" flatpak flatpak-builder ostree gnupg; }
           install || { sudo timeout 10m apt-get update && install; }
           sudo chown -R "$USER" ~/apt-archives
       # saved when the install fails too: the mirror of x64 is slow at times, and the next run continues with the packages that were downloaded
@@ -115,6 +115,19 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           flatpak install --user --noninteractive --bundle dist/Tunelle-*.flatpak
+          xvfb-run --auto-servernum dbus-run-session npm run smoke:flatpak
+      # the repository that is published after a release is built from this bundle with a key of this run: it has to install the app and start it
+      - name: Smoke test of the Flatpak repository
+        if: runner.os == 'Linux'
+        run: |
+          export GNUPGHOME="$(mktemp -d)"
+          gpg --batch --passphrase '' --quick-generate-key 'Tunelle test <test@example.com>' default default 1d
+          export FLATPAK_GPG_PRIVATE_KEY="$(gpg --armor --export-secret-keys)"
+          gpg --export > "$RUNNER_TEMP/test-key.gpg"
+          node scripts/flatpak-repo.js dist "$RUNNER_TEMP/flatpak-repo"
+          flatpak uninstall --user --noninteractive io.github.koeroesi86.Tunelle
+          flatpak remote-add --user --gpg-import="$RUNNER_TEMP/test-key.gpg" tunelle-test "file://$RUNNER_TEMP/flatpak-repo"
+          flatpak install --user --noninteractive tunelle-test io.github.koeroesi86.Tunelle
           xvfb-run --auto-servernum dbus-run-session npm run smoke:flatpak
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
