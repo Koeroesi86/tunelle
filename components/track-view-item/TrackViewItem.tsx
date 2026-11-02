@@ -114,6 +114,7 @@ const TrackViewItem = ({
             <FavouriteButton item={trackFavourite(track)} className={style.heart} />
             <AddToPlaylist source={track} className={style.action} />
             <AddToQueue getTracks={() => Promise.resolve([track])} className={style.action} />
+            <AddToQueue next getTracks={() => Promise.resolve([track])} className={style.action} />
           </>
         )}
       </TrackViewItemField>

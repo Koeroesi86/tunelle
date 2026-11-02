@@ -123,3 +123,43 @@ test('changes the level of a bass tone with the equalizer presets', async ({ ses
   await page.getByRole('button', { name: 'Flat' }).click();
   await expect.poll(async () => (await levelNow(page)) / flat).toBeCloseTo(1, 1);
 });
+
+test('plays the track that was moved up with the keyboard, and stops with the queue when it is cleared', async ({ session: { page } }) => {
+  const controls = player(page);
+  await controls.playAlbum('Pitch Perfect');
+  await expectTone(page, 440);
+  await navigate(page, 'Now playing');
+
+  const row = page.getByTitle('#3 Deep Bass').filter({ visible: true });
+  await row.focus();
+  // the number stays on the row that has the focus, the play button replaces it under the pointer only
+  await expect(row.locator('[class*="numberText"]')).toBeVisible();
+  await page.keyboard.press('Alt+ArrowUp');
+  const moved = page.getByTitle('#2 Deep Bass').filter({ visible: true });
+  await expect(moved.locator('[class*="numberText"]')).toHaveText('2');
+  // the row keeps the focus (and so its highlight) where it moved to
+  await expect(moved).toBeFocused();
+  await controls.next();
+  await expectTone(page, 100);
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).filter({ visible: true }).click();
+  await page.getByRole('button', { name: 'Clear the queue?' }).click();
+
+  await expectSilence(page);
+  await expect(page.getByText('Nothing is playing').filter({ visible: true })).toBeVisible();
+});
+
+test('plays the track that was put next after the song that plays', async ({ session: { page } }) => {
+  const controls = player(page);
+  await controls.playAlbum('Pitch Perfect');
+  await expectTone(page, 440);
+  await navigate(page, 'Songs');
+
+  const row = page.locator('[class*="TrackViewItem__trackViewItem"]').filter({ hasText: 'Deep Bass' });
+  await row.hover();
+  await row.getByRole('button', { name: 'Play next' }).click();
+  await controls.next();
+
+  await expectTone(page, 100);
+  await expect(controls.title()).toHaveText('Deep Bass');
+});

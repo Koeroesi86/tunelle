@@ -120,14 +120,14 @@
       color: var(--accent);
     }
 
-    // the heart, the playlist button and the queue button, shown on the row under the pointer, the playing row, the selected rows and
+    // the heart, the playlist button and the buttons of the queue, shown on the row under the pointer, the playing row, the selected rows and
     // while one of them has the focus; a heart that is set stays
     &.actions {
       display: inline-flex;
       align-items: center;
       gap: 4px;
       box-sizing: border-box;
-      width: 78px;
+      width: 102px;
       height: 28px;
       padding-right: 0;
       vertical-align: top;

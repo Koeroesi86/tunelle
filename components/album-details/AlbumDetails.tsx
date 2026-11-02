@@ -81,6 +81,7 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
                 <span className={style.label}>{t('album.play')}</span>
               </button>
               <AddToQueue withLabel getTracks={() => Promise.resolve(displayed.tracks ?? [])} />
+              <AddToQueue next withLabel getTracks={() => Promise.resolve(displayed.tracks ?? [])} />
             </div>
           </div>
         </div>
@@ -92,6 +93,7 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
               <AudioFormatBadge track={track} />
               {track.duration ? <Time seconds={track.duration} /> : null}
               <AddToQueue getTracks={() => Promise.resolve([track])} className={style.trackQueue} />
+              <AddToQueue next getTracks={() => Promise.resolve([track])} className={style.trackQueue} />
             </div>
           ))}
         </div>

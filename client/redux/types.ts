@@ -92,6 +92,8 @@ export interface UiState extends PersistedSettings {
   isPlaying: boolean;
   /** The track that plays after the current one, chosen early so the player can load it before the current one ends; it follows the queue, not saved */
   upNext: Track | null;
+  /** The paths of the tracks that were put next and did not play yet, so the next one goes after them; not saved */
+  playNext: string[];
   /** The track the current radio station is playing, as the stream announces it */
   streamTitle: string | null;
   /** The key of the art the main process found for the stream title, null while it is looked up or when there is none */
@@ -207,6 +209,7 @@ export type AppAction =
   | PayloadAction<'PLAY_TRACKS', { tracks: Track[] }>
   | EmptyAction<'CLEAR_QUEUE'>
   | PayloadAction<'ADD_TO_QUEUE', { tracks: Track[] }>
+  | PayloadAction<'PLAY_NEXT', { tracks: Track[] }>
   | PayloadAction<'MOVE_QUEUE_TRACK', { from: number; to: number }>
   | PayloadAction<'REMOVE_FROM_QUEUE', { index: number }>
   | PayloadAction<'PLAY_TRACK', { track: Track | null }>

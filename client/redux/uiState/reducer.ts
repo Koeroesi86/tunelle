@@ -31,6 +31,7 @@ const initialState: UiState = {
   maximized: false,
   isPlaying: false,
   upNext: null,
+  playNext: [],
   streamTitle: null,
   streamArt: null,
   launcher: { available: false, enabled: false, offered: false },
@@ -102,10 +103,32 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
     case 'SEARCH_RADIO':
       return { ...state, radioQuery: parseRadioQuery(action.payload.query) };
     case 'PLAY_TRACKS':
-      return { ...state, nowPlaying: action.payload.tracks, played: [] };
-    // the song that plays stays, as the queue finds it by its path
+      return { ...state, nowPlaying: action.payload.tracks, played: [], playNext: [] };
+    // nothing is left to play, so the song stops with the queue
     case 'CLEAR_QUEUE':
-      return { ...state, nowPlaying: state.nowPlaying.filter(({ path }) => path === state.currentSong?.path), played: [] };
+      return { ...state, nowPlaying: [], played: [], playNext: [], currentSong: null, currentTime: 0, isPlaying: false, streamTitle: null, streamArt: null };
+    // the tracks go right after the song that plays and after the ones that were put next before, in the order they come, and
+    // a track that is in the queue already moves there; the song that plays is not moved
+    case 'PLAY_NEXT': {
+      // the handler that starts the first track runs before this, so the song that plays can be one that is not in the queue yet
+      const playing = state.nowPlaying.some(({ path }) => path === state.currentSong?.path) ? state.currentSong?.path : undefined;
+      const tracks = action.payload.tracks.filter(({ path }, index, all) => path !== playing && all.findIndex((other) => other.path === path) === index);
+      if (!tracks.length) return state;
+
+      const moved = new Set(tracks.map(({ path }) => path));
+      const rest = state.nowPlaying.filter(({ path }) => !moved.has(path));
+      const waiting = new Set(state.playNext);
+      const current = rest.findIndex(({ path }) => path === state.currentSong?.path);
+      const following = rest.slice(current + 1);
+      const queued = following.findIndex(({ path }) => !waiting.has(path));
+      const at = current + 1 + (queued === -1 ? following.length : queued);
+
+      return {
+        ...state,
+        nowPlaying: [...rest.slice(0, at), ...tracks, ...rest.slice(at)],
+        playNext: [...state.playNext.filter((path) => !moved.has(path)), ...tracks.map(({ path }) => path).filter((path) => path !== state.currentSong?.path)],
+      };
+    }
     // a track that is in the queue already is not added a second time, the queue finds the song that plays by its path
     case 'ADD_TO_QUEUE': {
       const queued = new Set(state.nowPlaying.map(({ path }) => path));
@@ -124,7 +147,15 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return state.nowPlaying[action.payload.index] ? { ...state, nowPlaying: state.nowPlaying.filter((_, index) => index !== action.payload.index) } : state;
     case 'PLAY_TRACK':
       // the position of the previous song would seek the new one to its end
-      return { ...state, currentSong: action.payload.track || null, currentTime: 0, isPlaying: true, streamTitle: null, streamArt: null };
+      return {
+        ...state,
+        currentSong: action.payload.track || null,
+        currentTime: 0,
+        isPlaying: true,
+        streamTitle: null,
+        streamArt: null,
+        playNext: state.playNext.filter((path) => path !== action.payload.track?.path),
+      };
     case 'SET_VOLUME':
       return { ...state, volume: toNumber(action.payload.volume) };
     case 'SET_CURRENT_TIME': {

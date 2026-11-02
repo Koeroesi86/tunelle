@@ -86,6 +86,20 @@ describe('NowPlaying', () => {
     expect(second?.textContent).toBe('2');
   });
 
+  it('numbers the rows by their place in the queue, not by the number of the track on its album', () => {
+    renderPage({
+      nowPlaying: [
+        { ...mp3, track: 9 },
+        { ...flac, track: 5 },
+      ],
+      currentSong: null,
+    });
+    const numbers = screen.getAllByRole('button', { name: /^Play / }).map((button) => button.previousElementSibling?.textContent);
+
+    expect(numbers).toEqual(['1', '2']);
+    expect(screen.getByTitle('#2 One')).toBeTruthy();
+  });
+
   it('stops the meter while paused', () => {
     const { container, rerender } = renderPage({ isPlaying: false });
 
@@ -165,6 +179,76 @@ describe('NowPlaying', () => {
     expect(moveTrack).toHaveBeenCalledWith(0, 1);
   });
 
+  it.each([
+    ['ArrowDown', 0, 1],
+    ['ArrowUp', 1, 0],
+  ])('moves the row that has the focus with Alt and %s', (key, from, to) => {
+    const moveTrack = vi.fn();
+    renderPage({ moveTrack });
+
+    fireEvent.keyDown(screen.getByTitle(`#${from + 1} ${from ? 'Two' : 'One'}`), { key, altKey: true });
+
+    expect(moveTrack).toHaveBeenCalledWith(from, to);
+  });
+
+  it('gives the focus back to the row once it has moved', () => {
+    const moveTrack = vi.fn();
+    const { rerender } = renderPage({ moveTrack });
+
+    fireEvent.keyDown(screen.getByTitle('#1 One'), { key: 'ArrowDown', altKey: true });
+    rerender(
+      <NowPlaying
+        nowPlaying={[mp3, flac]}
+        currentSong={flac}
+        streamTitle={null}
+        streamArt={null}
+        isPlaying
+        playTrack={vi.fn()}
+        moveTrack={moveTrack}
+        removeTrack={vi.fn()}
+        clearQueue={vi.fn()}
+        openLibrary={vi.fn()}
+      />
+    );
+
+    expect(document.activeElement).toBe(screen.getByTitle('#2 One'));
+  });
+
+  it('does not move the first row up or the last row down, nor take the focus later', () => {
+    const moveTrack = vi.fn();
+    const { rerender } = renderPage({ moveTrack });
+
+    fireEvent.keyDown(screen.getByTitle('#1 One'), { key: 'ArrowUp', altKey: true });
+    fireEvent.keyDown(screen.getByTitle('#2 Two'), { key: 'ArrowDown', altKey: true });
+    rerender(
+      <NowPlaying
+        nowPlaying={[flac, mp3, { ...mp3, path: '/music/3.mp3', title: 'Three' }]}
+        currentSong={flac}
+        streamTitle={null}
+        streamArt={null}
+        isPlaying
+        playTrack={vi.fn()}
+        moveTrack={moveTrack}
+        removeTrack={vi.fn()}
+        clearQueue={vi.fn()}
+        openLibrary={vi.fn()}
+      />
+    );
+
+    expect(moveTrack).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('does not move a row for the arrow keys alone, or from a button inside it', () => {
+    const moveTrack = vi.fn();
+    renderPage({ moveTrack });
+
+    fireEvent.keyDown(screen.getByTitle('#1 One'), { key: 'ArrowDown' });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Remove Two from the queue' }), { key: 'ArrowUp', altKey: true });
+
+    expect(moveTrack).not.toHaveBeenCalled();
+  });
+
   it('clears the queue on the second click, and asks first', () => {
     const clearQueue = vi.fn();
     renderPage({ clearQueue });
@@ -186,10 +270,10 @@ describe('NowPlaying', () => {
     expect(screen.getByRole('button', { name: 'Clear' })).toBeTruthy();
   });
 
-  it('has nothing to clear while the song that plays is the only one in the queue', () => {
+  it('can clear a queue of the song that plays alone, as that stops it', () => {
     renderPage({ nowPlaying: [flac] });
 
-    expect((screen.getByRole('button', { name: 'Clear' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Clear' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('shows a message and a way into the library when nothing is loaded', () => {

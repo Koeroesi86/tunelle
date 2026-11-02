@@ -9,8 +9,8 @@ vi.mock('../add-to-queue', async () => {
   const { createElement } = await import('react');
 
   return {
-    default: ({ getTracks }: { getTracks: () => Promise<unknown[]> }) =>
-      createElement('button', { 'aria-label': 'Add to the queue', onClick: () => void getTracks().then(queued) }),
+    default: ({ getTracks, next }: { getTracks: () => Promise<unknown[]>; next?: boolean }) =>
+      createElement('button', { 'aria-label': next ? 'Play next' : 'Add to the queue', onClick: () => void getTracks().then(queued) }),
   };
 });
 
@@ -64,10 +64,32 @@ describe('PlaylistView', () => {
     renderView();
 
     const buttons = screen.getAllByRole('button', { name: 'Add to the queue' });
-    expect(buttons).toHaveLength(2);
+    expect(buttons).toHaveLength(3);
+
+    fireEvent.click(buttons[2]);
+    await waitFor(() => expect(queued).toHaveBeenCalledWith([playlist.entries[2].track]));
+  });
+
+  it('adds the tracks that are available, or puts them next, from the header', async () => {
+    renderView();
+    const available = [playlist.entries[0].track, playlist.entries[2].track];
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Add to the queue' })[0]);
+    await waitFor(() => expect(queued).toHaveBeenLastCalledWith(available));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Play next' })[0]);
+    await waitFor(() => expect(queued).toHaveBeenCalledTimes(2));
+
+    expect(queued).toHaveBeenLastCalledWith(available);
+  });
+
+  it('puts a track that is available next', async () => {
+    renderView();
+
+    const buttons = screen.getAllByRole('button', { name: 'Play next' });
+    expect(buttons).toHaveLength(3);
 
     fireEvent.click(buttons[1]);
-    await waitFor(() => expect(queued).toHaveBeenCalledWith([playlist.entries[2].track]));
+    await waitFor(() => expect(queued).toHaveBeenCalledWith([playlist.entries[0].track]));
   });
 
   it('says so when the playlist is not there', () => {

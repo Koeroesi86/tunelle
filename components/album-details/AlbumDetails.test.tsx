@@ -12,8 +12,8 @@ vi.mock('../add-to-queue', async () => {
   const { createElement } = await import('react');
 
   return {
-    default: ({ getTracks }: { getTracks: () => Promise<unknown[]> }) =>
-      createElement('button', { 'aria-label': 'Add to the queue', onClick: () => void getTracks().then(queued) }),
+    default: ({ getTracks, next }: { getTracks: () => Promise<unknown[]>; next?: boolean }) =>
+      createElement('button', { 'aria-label': next ? 'Play next' : 'Add to the queue', onClick: () => void getTracks().then(queued) }),
   };
 });
 vi.mock('../../client/cover-tint', () => ({ getImageTint: vi.fn() }));
@@ -75,6 +75,18 @@ describe('AlbumDetails', () => {
   it('adds the tracks of the album, or one of them, to the queue', async () => {
     setup(album);
     const [albumButton, trackButton] = screen.getAllByRole('button', { name: 'Add to the queue' });
+
+    fireEvent.click(albumButton);
+    await waitFor(() => expect(queued).toHaveBeenLastCalledWith(album.tracks));
+    fireEvent.click(trackButton);
+    await waitFor(() => expect(queued).toHaveBeenCalledTimes(2));
+
+    expect(queued).toHaveBeenLastCalledWith([album.tracks![0]]);
+  });
+
+  it('puts the tracks of the album, or one of them, next', async () => {
+    setup(album);
+    const [albumButton, trackButton] = screen.getAllByRole('button', { name: 'Play next' });
 
     fireEvent.click(albumButton);
     await waitFor(() => expect(queued).toHaveBeenLastCalledWith(album.tracks));
