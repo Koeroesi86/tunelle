@@ -313,7 +313,20 @@ describe('RadioStations', () => {
     expect(screen.getByText('No stations found')).toBeTruthy();
 
     view.rerender(<RadioStations radio={radio({ stations: [], error: 'offline' })} search={vi.fn()} loadTags={vi.fn()} loadOptions={vi.fn()} play={vi.fn()} />);
+    expect(screen.getByText('The station directory could not be reached')).toBeTruthy();
+    expect(screen.getByText('Radio stations need an internet connection. Your own library plays without one.')).toBeTruthy();
     expect(screen.getByText('The station directory is not available: offline')).toBeTruthy();
     expect(screen.queryByText('No stations found')).toBeNull();
+  });
+
+  it('tries the search again from the page that failed', () => {
+    const search = vi.fn();
+    render(
+      <RadioStations radio={radio({ stations: [], error: 'offline', offset: 100 })} search={search} loadTags={vi.fn()} loadOptions={vi.fn()} play={vi.fn()} />
+    );
+    search.mockClear();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(search).toHaveBeenCalledWith(expect.objectContaining({ offset: 100 }));
   });
 });
