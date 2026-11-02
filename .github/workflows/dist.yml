@@ -139,7 +139,7 @@ jobs:
           xvfb-run --auto-servernum dbus-run-session npm run smoke:flatpak
       # the repository that is published after a release is built from this bundle with a key of this run: it has to install the app and start it
       - name: Smoke test of the Flatpak repository
-        if: runner.os == 'Linux'
+        if: matrix.package == 'flatpak'
         run: |
           export GNUPGHOME="$(mktemp -d)"
           gpg --batch --passphrase '' --quick-generate-key 'Tunelle test <test@example.com>' default default 1d
