@@ -34,8 +34,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-      # a push with GITHUB_TOKEN starts no workflow, so the rebased pull request would get no checks: REBASE_TOKEN is a token of the owner (a fine-grained
+      # a push with GITHUB_TOKEN starts no workflow, so the rebased pull request would get no checks: GH_REBASE_TOKEN is a token of the owner (a fine-grained
       # personal access token with Pull requests and Contents write on this repository) or of a GitHub App
       - run: node scripts/rebase-auto-merge.js
         env:
-          GH_TOKEN: ${{ secrets.REBASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_REBASE_TOKEN }}
