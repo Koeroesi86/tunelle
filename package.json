@@ -95,7 +95,11 @@
       "extraFiles": [
         {
           "from": "flatpak/io.github.koeroesi86.Tunelle.metainfo.xml",
-          "to": "usr/share/metainfo/io.github.koeroesi86.Tunelle.metainfo.xml"
+          "to": "usr/share/metainfo/io.github.koeroesi86.Tunelle.appdata.xml"
+        },
+        {
+          "from": "appimage/io.github.koeroesi86.Tunelle.desktop",
+          "to": "usr/share/applications/io.github.koeroesi86.Tunelle.desktop"
         }
       ],
       "target": [
