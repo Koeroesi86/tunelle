@@ -125,6 +125,8 @@ jobs:
           export FLATPAK_GPG_PRIVATE_KEY="$(gpg --armor --export-secret-keys)"
           gpg --export > "$RUNNER_TEMP/test-key.gpg"
           node scripts/flatpak-repo.js dist "$RUNNER_TEMP/flatpak-repo"
+          # the metainfo is what the software centre shows (icon, description, screenshots): the bundle has to carry it
+          ostree ls --repo="$RUNNER_TEMP/flatpak-repo" "app/io.github.koeroesi86.Tunelle/$(flatpak --default-arch)/master" /files/share/metainfo/io.github.koeroesi86.Tunelle.metainfo.xml
           flatpak uninstall --user --noninteractive io.github.koeroesi86.Tunelle
           flatpak remote-add --user --gpg-import="$RUNNER_TEMP/test-key.gpg" tunelle-test "file://$RUNNER_TEMP/flatpak-repo"
           flatpak install --user --noninteractive tunelle-test io.github.koeroesi86.Tunelle
