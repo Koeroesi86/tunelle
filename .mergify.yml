@@ -1,0 +1,18 @@
+# the merge queue of Mergify: a queued pull request is rebased onto master, waits for the
+# required check and is squash merged, one after the other
+queue_rules:
+  - name: default
+    merge_method: squash
+    update_method: rebase
+    merge_conditions:
+      - check-success = required-checks
+
+pull_request_rules:
+  - name: queue when labelled
+    conditions:
+      - base = master
+      - label = automerge
+      - -draft
+    actions:
+      queue:
+        name: default

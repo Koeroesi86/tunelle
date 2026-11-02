@@ -16,6 +16,8 @@ CI (`.github/workflows/`: `test.yml`, `dist.yml`, wired together by `pr-checks.y
 
 Pull requests also run `fallow audit --base` (findings of the changed files), CodeQL, dependency review (high severity, GPL/AGPL licences denied) and OSV.
 
+A pull request with the `automerge` label goes into the Mergify merge queue (`.mergify.yml`): it is rebased onto `master` in turn, waits for `required-checks` and is squash merged. The Mergify app must be in the bypass list of the `master-pr` ruleset.
+
 Releases come from `release.yml`: Monday and Thursday 06:00 UTC and by hand, from `master` only. A scheduled run skips when only docs or `.github/` changed since the latest `vYY.M.N` tag. The version is `YY.M.<run number>` (`scripts/version.js`, stamped into `package.json` in the packaging job; never edit `version` by hand, no zero padded month and no prerelease part, electron-updater would take it for a channel), the plan job refuses a version that is not greater than the latest tag, and `release.yml` must not be renamed or recreated (its run number would restart), and the published release is what installed apps update from. `TUNELLE_NO_UPDATE=1` turns the updater off and `TUNELLE_RADIO_DIRECTORY=<url>` replaces the station directory (the smoke tests set both, the second to a station of their own), and `TUNELLE_APP_DATA=<folder>` replaces the app data folder, where the library lives (the end to end tests set it to the profile of the run: on macOS and Windows the app data folder does not follow `HOME`, and a test would use the library of the user).
 
 `node scripts/verify.js` runs 1, 2, 3, 4, 6 and the build of 7 in order and prints only the end of the failed check. A SessionStart hook puts Node 24 of nvm on `PATH` for Claude.
