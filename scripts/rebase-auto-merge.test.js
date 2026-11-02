@@ -82,6 +82,16 @@ describe('createRequest', () => {
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer secret')
   })
 
+  it('has no request without a token', async () => {
+    await expect(createRequest(undefined)('/x')).rejects.toThrow(/GH_TOKEN is not set/)
+  })
+
+  it('names a GET that is not ok', async () => {
+    vi.stubGlobal('fetch', async () => ({ ok: false, status: 404, text: async () => 'missing' }))
+
+    await expect(createRequest('secret')('/x')).rejects.toThrow(/GET \/x answered 404/)
+  })
+
   it('throws on a status that is not ok', async () => {
     vi.stubGlobal('fetch', async () => ({ ok: false, status: 403, text: async () => 'forbidden' }))
 

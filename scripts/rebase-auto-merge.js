@@ -27,6 +27,7 @@ const pickNext = (pullRequests) =>
     .at(0)
 
 const createRequest = (token) => async (path, options) => {
+  if (!token) throw new Error('GH_TOKEN is not set')
   const response = await fetch(`https://api.github.com${path}`, {
     ...options,
     headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -54,7 +55,6 @@ const run = async (request, repository, base) => {
 }
 
 if (require.main === module) {
-  if (!process.env.GH_TOKEN || !process.env.GITHUB_REPOSITORY) throw new Error('GH_TOKEN and GITHUB_REPOSITORY are not set')
   run(createRequest(process.env.GH_TOKEN), process.env.GITHUB_REPOSITORY, 'master').catch((error) => {
     console.error(error)
     process.exitCode = 1
