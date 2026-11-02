@@ -20,10 +20,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          # Linux is built on the oldest Ubuntu LTS the AppImage catalogues test on (appimage.github.io runs it there): a native module built
+          # on a newer one needs a newer glibc than that (npm run check:dist fails on a symbol above 2.35)
+          - os: ubuntu-22.04
             platform: linux
             arch: x64
-          - os: ubuntu-24.04-arm
+          - os: ubuntu-22.04-arm
             platform: linux
             arch: arm64
           - os: macos-15-intel

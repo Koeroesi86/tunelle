@@ -91,7 +91,13 @@
     "linux": {
       "artifactName": "Tunelle-${version}-${arch}.${ext}",
       "executableName": "Tunelle",
-      "category": "Audio",
+      "category": "AudioVideo;Audio;Music;Player",
+      "extraFiles": [
+        {
+          "from": "flatpak/io.github.koeroesi86.Tunelle.metainfo.xml",
+          "to": "usr/share/metainfo/io.github.koeroesi86.Tunelle.metainfo.xml"
+        }
+      ],
       "target": [
         "AppImage"
       ],
