@@ -318,7 +318,7 @@ const run = async () => {
 
 run()
   .catch(error => {
-    console.error(error)
+    console.error((error instanceof Error ? error.stack ?? error.message : String(error)).split(/\r?\n/).map(printable).join('\n'))
     if (packaged && !flatpak) console.error(`Packaged dependencies:\n${loadDependencies()}`)
     if (existsSync(logFile)) console.error(`Log of the app:\n${readFileSync(logFile, 'utf8').split(/\r?\n/).map(printable).join('\n')}`)
     process.exitCode = 1
