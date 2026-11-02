@@ -56,7 +56,7 @@ const RescanButton = ({ current, total, scanningFolder, onRescan }: RescanButton
             {total > 0 && <span className={style.percent}>{Math.floor(fraction * 100)}%</span>}
           </div>
           <div className={style.bar}>
-            <div className={style.barFill} style={{ width: `${fraction * 100}%` }} />
+            <div className={style.barFill} style={{ transform: `scaleX(${fraction})` }} />
           </div>
           {total > 0 && <div className={style.muted}>{t('scan.count', { current: formatNumber(current), total: formatNumber(total) })}</div>}
           <button
