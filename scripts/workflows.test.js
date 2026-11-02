@@ -36,6 +36,13 @@ describe('workflows', () => {
     expect(text).toMatch(/windows/)
   })
 
+  it('test.yml also runs the tests and the end to end tests on Ubuntu 22.04, the system the AppImage is built for', () => {
+    const text = read('test.yml')
+
+    expect(text).toMatch(/os: \[.*ubuntu-22\.04,/)
+    expect(text).toMatch(/os: \[.*ubuntu-22\.04-arm,/)
+  })
+
   it('test.yml runs the cheap checks first', () => {
     const text = read('test.yml')
     const order = ['npm run lint', 'npm run fallow', 'npm run typecheck', 'npm run test:coverage', 'npm run build', 'npm run test:e2e'].map((command) => text.indexOf(command))
