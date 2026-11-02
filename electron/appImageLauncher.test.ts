@@ -324,7 +324,9 @@ describe('launcher offer', () => {
 describe('hasOtherLauncher', () => {
   let dataHome: string;
   const appImage = '/home/me/Apps/Tunelle.AppImage';
-  const options = () => ({ dataHome });
+  const options = () => ({ dataHome, dataDirs: [join(dataHome, 'system')] });
+  const writeSystemEntry = (name: string, content: string) =>
+    mkdir(join(dataHome, 'system/applications'), { recursive: true }).then(() => writeFile(join(dataHome, 'system/applications', name), content));
   const writeEntry = (name: string, content: string) =>
     mkdir(join(dataHome, 'applications'), { recursive: true }).then(() => writeFile(join(dataHome, 'applications', name), content));
 
@@ -351,6 +353,26 @@ describe('hasOtherLauncher', () => {
     await rm(join(dataHome, 'applications/gearlever.desktop'));
     await writeEntry('other.desktop', `[Desktop Entry]\nTryExec=${appImage}\n`);
     expect(await hasOtherLauncher(appImage, options())).toBe(true);
+  });
+
+  it('finds the entry AM (portable-linux-apps) writes, in the folder of the user or of all users', async () => {
+    const installed = '/opt/tunelle/tunelle';
+    const entry = '[Desktop Entry]\nName=Tunelle\nExec=tunelle\nIcon=/opt/tunelle/icons/tunelle\n';
+
+    await writeSystemEntry('tunelle-AM.desktop', entry);
+    expect(await hasOtherLauncher(installed, options())).toBe(true);
+
+    await rm(join(dataHome, 'system'), { recursive: true });
+    expect(await hasOtherLauncher(installed, options())).toBe(false);
+
+    await writeEntry('tunelle-AM.desktop', entry.replace('/opt/tunelle', '/home/me/.local/am-apps/tunelle'));
+    expect(await hasOtherLauncher('/home/me/.local/am-apps/tunelle/tunelle', options())).toBe(true);
+  });
+
+  it('does not take an entry of the same command for another AppImage as this one', async () => {
+    await writeSystemEntry('tunelle.desktop', '[Desktop Entry]\nExec=Tunelle.AppImage\nIcon=/usr/share/icons/tunelle.png\n');
+
+    expect(await hasOtherLauncher(appImage, options())).toBe(false);
   });
 
   it('ignores the entries of the app itself, of another AppImage and files that are no entry', async () => {
