@@ -212,8 +212,9 @@
         cursor: pointer;
       }
 
+      // the number gives way to the play button only while the button shows
       &:hover .numberText,
-      &:focus-within .numberText {
+      .number:has(.playButton:focus-visible) .numberText {
         visibility: hidden;
       }
 

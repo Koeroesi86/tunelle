@@ -132,7 +132,7 @@ const NowPlaying = ({
                   ref={isCurrent ? current : undefined}
                   className={classNames(style.track, { [style.current]: isCurrent, [style.dropTarget]: overIndex === index })}
                   onDoubleClick={() => playTrack(track)}
-                  title={`#${track.track ? track.track + ' ' : ''}${track.title}`}
+                  title={`#${index + 1} ${track.title}`}
                   tabIndex={0}
                   aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
                   onKeyDown={(event) => moveWithKeys(event, index)}
@@ -147,7 +147,7 @@ const NowPlaying = ({
                           <i />
                         </span>
                       ) : (
-                        track.track || index + 1
+                        index + 1
                       )}
                     </span>
                     <button

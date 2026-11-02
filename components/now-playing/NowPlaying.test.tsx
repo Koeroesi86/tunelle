@@ -86,6 +86,20 @@ describe('NowPlaying', () => {
     expect(second?.textContent).toBe('2');
   });
 
+  it('numbers the rows by their place in the queue, not by the number of the track on its album', () => {
+    renderPage({
+      nowPlaying: [
+        { ...mp3, track: 9 },
+        { ...flac, track: 5 },
+      ],
+      currentSong: null,
+    });
+    const numbers = screen.getAllByRole('button', { name: /^Play / }).map((button) => button.previousElementSibling?.textContent);
+
+    expect(numbers).toEqual(['1', '2']);
+    expect(screen.getByTitle('#2 One')).toBeTruthy();
+  });
+
   it('stops the meter while paused', () => {
     const { container, rerender } = renderPage({ isPlaying: false });
 
