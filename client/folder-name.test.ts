@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { splitFolderPath } from './folder-name';
+import { displayFolderPath, splitFolderPath } from './folder-name';
 
 describe('splitFolderPath', () => {
   it.each([
@@ -13,5 +13,16 @@ describe('splitFolderPath', () => {
 
   it('keeps a root as its own name', () => {
     expect(splitFolderPath('/')).toEqual({ name: '/', parent: '' });
+  });
+});
+
+describe('displayFolderPath', () => {
+  it.each([
+    ['/run/user/1000/doc/a1b2c3d4/Music', 'Music'],
+    ['/run/user/1000/doc/a1b2c3d4/Music/Jazz/Live', 'Music/Jazz/Live'],
+    ['/home/me/Music', '/home/me/Music'],
+    ['/run/user/1000/doc/a1b2c3d4', '/run/user/1000/doc/a1b2c3d4'],
+  ])('shows %s as %s', (path, shown) => {
+    expect(displayFolderPath(path)).toBe(shown);
   });
 });

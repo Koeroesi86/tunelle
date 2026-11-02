@@ -1,6 +1,7 @@
 import classNames from 'classnames';
 import { FaSyncAlt } from 'react-icons/fa';
 import { electronAPI } from '../../client/electron-api';
+import { displayFolderPath } from '../../client/folder-name';
 import { useTranslation } from '../../client/i18n';
 import style from './RescanButton.scss';
 
@@ -61,10 +62,10 @@ const RescanButton = ({ current, total, scanningFolder, onRescan }: RescanButton
           <button
             type="button"
             className={style.folder}
-            title={t('scan.open', { folder: scanningFolder })}
+            title={t('scan.open', { folder: displayFolderPath(scanningFolder) })}
             onClick={() => electronAPI.send('OPEN_LIBRARY_PATH', scanningFolder)}
           >
-            {scanningFolder}
+            {displayFolderPath(scanningFolder)}
           </button>
         </div>
       )}
