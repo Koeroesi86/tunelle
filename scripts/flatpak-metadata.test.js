@@ -52,6 +52,11 @@ describe('the metainfo of the Flatpak', () => {
     })
   })
 
+  // without it in /app/share/metainfo the repository has no AppStream data and the software centre shows no icon, screenshots or description
+  it('is copied into the Flatpak bundle', () => {
+    expect(build.flatpak.files).toContainEqual([`flatpak/${build.appId}.metainfo.xml`, `/share/metainfo/${build.appId}.metainfo.xml`])
+  })
+
   it('has a release', () => {
     expect(metainfo).toMatch(/<release version="\d+\.\d+\.\d+" date="\d{4}-\d{2}-\d{2}"\/>/)
   })

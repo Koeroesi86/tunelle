@@ -112,6 +112,12 @@
       "base": "org.electronjs.Electron2.BaseApp",
       "baseVersion": "25.08",
       "useWaylandFlags": true,
+      "files": [
+        [
+          "flatpak/io.github.koeroesi86.Tunelle.metainfo.xml",
+          "/share/metainfo/io.github.koeroesi86.Tunelle.metainfo.xml"
+        ]
+      ],
       "finishArgs": [
         "--socket=wayland",
         "--socket=fallback-x11",
