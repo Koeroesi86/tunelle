@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      # dependabot and the draft pull requests of the merge queue have no template
+      # dependabot pull requests have no template
       - name: The description says what was not verified
-        if: github.actor != 'dependabot[bot]' && github.actor != 'mergify[bot]'
+        if: github.actor != 'dependabot[bot]'
         env:
           BODY: ${{ github.event.pull_request.body }}
         run: |
