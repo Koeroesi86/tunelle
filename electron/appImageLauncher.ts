@@ -1,5 +1,5 @@
 import { execFile } from 'child_process';
-import { copyFile, mkdir, readFile, readlink, rename, rm, rmdir, stat, symlink, utimes, writeFile } from 'fs/promises';
+import { copyFile, mkdir, readdir, readFile, readlink, rename, rm, rmdir, stat, symlink, utimes, writeFile } from 'fs/promises';
 import { join, posix } from 'path';
 import { catalog } from '../locales';
 
@@ -46,7 +46,7 @@ export const buildDesktopEntry = (appImage: string) => {
     `Exec="${appImage}" %U`,
     `Icon=${launcherName}`,
     'Terminal=false',
-    'Categories=AudioVideo;Audio;Player;',
+    'Categories=AudioVideo;Audio;Music;Player;',
     'StartupWMClass=Tunelle',
     '',
   ].join('\n');
@@ -121,6 +121,19 @@ const exists = (path: string) =>
   );
 
 const readIfThere = (path: string) => readFile(path).catch(() => undefined);
+
+const isOtherEntry = (name: string) => name.endsWith('.desktop') && ![launcherName, legacyLauncherName].some((own) => name === `${own}.desktop`);
+const startsAppImage = (appImage: string) => (entry: Buffer | undefined) =>
+  (entry?.toString().split('\n') ?? []).some((line) => /^(Try)?Exec=/.test(line) && line.includes(appImage));
+
+/** Whether a tool that integrates AppImages (Gear Lever, appimaged) already put an entry for this AppImage in the menu: a second one would show the app twice */
+export const hasOtherLauncher = async (appImage: string, { dataHome }: Pick<LauncherOptions, 'dataHome'>) => {
+  const applicationsPath = getApplicationsPath(dataHome);
+  const names = (await readdir(applicationsPath).catch(() => [])).filter(isOtherEntry);
+  const entries = await Promise.all(names.map((name) => readIfThere(join(applicationsPath, name))));
+
+  return entries.some(startsAppImage(appImage));
+};
 
 /** Whether the installed entry and icons are what a fresh `enableLauncher` would write */
 const isCurrent = async (appImage: string, { dataHome, iconsPath }: LauncherOptions) => {

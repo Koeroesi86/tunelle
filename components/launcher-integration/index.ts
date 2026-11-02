@@ -4,7 +4,7 @@ import type { RootState } from '../../client/redux/reducers';
 import type { AppAction } from '../../client/redux/types';
 import LauncherIntegration from './LauncherIntegration';
 
-const mapState = ({ uiState: { launcher } }: RootState) => ({ available: launcher.available, enabled: launcher.enabled });
+const mapState = ({ uiState: { launcher } }: RootState) => ({ available: launcher.available, enabled: launcher.enabled, external: launcher.external });
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   setEnabled: (enabled: boolean) => dispatch({ type: 'SET_LAUNCHER', payload: { enabled } }),

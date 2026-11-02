@@ -33,7 +33,7 @@ function addListeners(store: Store) {
   electronAPI.on<{ maximized: boolean }>('MAXIMIZED_APP', (payload) => store.dispatch({ type: 'MAXIMIZED_APP', payload }));
   electronAPI.on<{ playlist: PlaylistItem[]; url: string }>('CLICKED_URL', (payload) => store.dispatch({ type: 'CLICKED_URL', payload }));
   electronAPI.on<{ isPlaying: boolean }>('SET_PLAYING', (payload) => store.dispatch({ type: 'SET_PLAYING', payload }));
-  electronAPI.on<{ available: boolean; enabled: boolean; offered: boolean }>('LAUNCHER_STATE', (payload) =>
+  electronAPI.on<{ available: boolean; enabled: boolean; offered: boolean; external: boolean }>('LAUNCHER_STATE', (payload) =>
     store.dispatch({ type: 'LAUNCHER_STATE', payload })
   );
   electronAPI.on<UpdateState>('UPDATE_STATE', (payload) => store.dispatch({ type: 'UPDATE_STATE', payload }));

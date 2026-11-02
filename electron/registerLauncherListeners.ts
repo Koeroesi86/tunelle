@@ -1,7 +1,15 @@
 import { app, ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import { join, resolve } from 'path';
-import { disableLauncher, enableLauncher, isLauncherEnabled, markLauncherOffered, syncLauncher, wasLauncherOffered } from './appImageLauncher';
+import {
+  disableLauncher,
+  enableLauncher,
+  hasOtherLauncher,
+  isLauncherEnabled,
+  markLauncherOffered,
+  syncLauncher,
+  wasLauncherOffered,
+} from './appImageLauncher';
 import type { LauncherOptions } from './appImageLauncher';
 
 // the menu entry is only offered from an AppImage, it has no install step of its own
@@ -12,9 +20,10 @@ const getOptions = (): LauncherOptions => ({
   iconsPath: resolve(__dirname, '../../icons/png'),
 });
 
-const sendState = (sender: WebContents) =>
-  Promise.all([isLauncherEnabled(getOptions().dataHome), wasLauncherOffered(app.getPath('userData'))]).then(([enabled, offered]) =>
-    sender.send('LAUNCHER_STATE', { available: true, enabled, offered })
+// an entry of another tool for this AppImage is no reason to add a second one, unless the app added its own before
+const sendState = (sender: WebContents, appImage: string) =>
+  Promise.all([isLauncherEnabled(getOptions().dataHome), wasLauncherOffered(app.getPath('userData')), hasOtherLauncher(appImage, getOptions())]).then(
+    ([enabled, offered, other]) => sender.send('LAUNCHER_STATE', { available: true, enabled, offered, external: other && !enabled })
   );
 
 const isEnabledRequest = (payload: unknown): payload is { enabled: boolean } =>
@@ -26,17 +35,21 @@ const registerLauncherListeners = (_context?: unknown, appImage = findAppImage()
   syncLauncher(appImage, getOptions()).catch((e) => console.error(e));
 
   ipcMain.on('APP_READY', (event) => {
-    sendState(event.sender).catch((e) => console.error(e));
+    sendState(event.sender, appImage).catch((e) => console.error(e));
   });
 
   // an answer to the offer on the first run and the toggle in the settings are the same request, either way the user was asked
   ipcMain.on('SET_LAUNCHER', (event, payload: unknown) => {
     if (!isEnabledRequest(payload)) return;
 
-    (payload.enabled ? enableLauncher(appImage, getOptions()) : disableLauncher(getOptions()))
+    const change = () => (payload.enabled ? enableLauncher(appImage, getOptions()) : disableLauncher(getOptions()));
+
+    // the other tool's entry stays the only one; turning the app's own off is always possible
+    (payload.enabled ? hasOtherLauncher(appImage, getOptions()) : Promise.resolve(false))
+      .then((other) => (other ? undefined : change()))
       .catch((e) => console.error(e))
       .then(() => markLauncherOffered(app.getPath('userData')))
-      .then(() => sendState(event.sender))
+      .then(() => sendState(event.sender, appImage))
       .catch((e) => console.error(e));
   });
 };

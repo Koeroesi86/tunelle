@@ -62,7 +62,7 @@ describe('registerLauncherListeners', () => {
 
     listeners.get('APP_READY')?.(event);
 
-    await expect(state).resolves.toEqual({ available: true, enabled: false, offered: false });
+    await expect(state).resolves.toEqual({ available: true, enabled: false, offered: false, external: false });
   });
 
   it('adds the app to the menu when the user agrees, and remembers it was asked', async () => {
@@ -71,7 +71,7 @@ describe('registerLauncherListeners', () => {
 
     listeners.get('SET_LAUNCHER')?.(event, { enabled: true });
 
-    await expect(state).resolves.toEqual({ available: true, enabled: true, offered: true });
+    await expect(state).resolves.toEqual({ available: true, enabled: true, offered: true, external: false });
     await expect(readFile(desktopFile(), 'utf8')).resolves.toContain(`Exec="${join(home, 'data/tunelle/Tunelle.AppImage')}"`);
     await expect(readlink(join(home, 'data/tunelle/Tunelle.AppImage')).then((target) => target.replaceAll('\\', '/'))).resolves.toBe(appImage());
   });
@@ -82,8 +82,47 @@ describe('registerLauncherListeners', () => {
 
     listeners.get('SET_LAUNCHER')?.(event, { enabled: false });
 
-    await expect(state).resolves.toEqual({ available: true, enabled: false, offered: true });
+    await expect(state).resolves.toEqual({ available: true, enabled: false, offered: true, external: false });
     await expect(stat(desktopFile())).rejects.toThrow();
+  });
+
+  describe('when another tool has an entry for this AppImage', () => {
+    beforeEach(async () => {
+      await mkdir(join(home, 'data/applications'), { recursive: true });
+      await writeFile(join(home, 'data/applications/appimagekit_1-Tunelle.desktop'), `[Desktop Entry]\nExec=${appImage()} %U\n`);
+    });
+
+    it('reports it, so that nothing is offered', async () => {
+      (await registerLauncherListeners())(undefined, appImage());
+      const state = lastState();
+
+      listeners.get('APP_READY')?.(event);
+
+      await expect(state).resolves.toEqual({ available: true, enabled: false, offered: false, external: true });
+    });
+
+    it('adds no second entry when the user asks for one', async () => {
+      (await registerLauncherListeners())(undefined, appImage());
+      const state = lastState();
+
+      listeners.get('SET_LAUNCHER')?.(event, { enabled: true });
+
+      await expect(state).resolves.toEqual({ available: true, enabled: false, offered: true, external: true });
+      await expect(stat(desktopFile())).rejects.toThrow();
+    });
+
+    it('still lets the user turn the own entry of the app off, and reports no other one while it is on', async () => {
+      await writeFile(desktopFile(), `[Desktop Entry]\nExec="${join(home, 'data/tunelle/Tunelle.AppImage')}" %U\n`);
+      (await registerLauncherListeners())(undefined, appImage());
+      const state = lastState();
+
+      listeners.get('APP_READY')?.(event);
+      await expect(state).resolves.toMatchObject({ enabled: true, external: false });
+
+      const off = lastState();
+      listeners.get('SET_LAUNCHER')?.(event, { enabled: false });
+      await expect(off).resolves.toMatchObject({ enabled: false, external: true });
+    });
   });
 
   it.each([undefined, 'yes', {}, { enabled: 'yes' }])('ignores the request %j', async (payload) => {

@@ -84,6 +84,7 @@
   "watchFolders.off": "A könyvtármappákat az app futás közben nem figyeli és nem nézi át. A változásokat az Újraolvasással veheted fel; induláskor és a meghajtó visszatérésekor is megnézi őket.",
   "launcher.title": "Alkalmazásmenü",
   "launcher.hint": "Megjeleníti a Tunellét az asztal alkalmazásmenüjében.",
+  "launcher.external": "Egy másik eszköz már felvette a Tunelle-t az alkalmazásmenübe.",
   "launcher.offer": "Hozzáadod a Tunellét az alkalmazásmenühöz? Ezt később a beállításokban módosíthatod.",
   "launcher.offerAdd": "Hozzáadás",
   "launcher.offerLater": "Most nem",

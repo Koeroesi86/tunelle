@@ -34,7 +34,7 @@ const initialState: UiState = {
   playNext: [],
   streamTitle: null,
   streamArt: null,
-  launcher: { available: false, enabled: false, offered: false },
+  launcher: { available: false, enabled: false, offered: false, external: false },
   shuffle: false,
   repeat: false,
   equalizer: defaultGains,

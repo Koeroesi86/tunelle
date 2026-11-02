@@ -85,6 +85,7 @@
   "watchFolders.off": "The library folders are not watched or looked at while the app runs. Use Rescan to pick up changes; they are also looked for when the app starts and when a drive is back.",
   "launcher.title": "Application menu",
   "launcher.hint": "Shows Tunelle in the application menu of the desktop.",
+  "launcher.external": "Another tool already added Tunelle to the application menu.",
   "launcher.offer": "Add Tunelle to the application menu? You can change this later in the settings.",
   "launcher.offerAdd": "Add",
   "launcher.offerLater": "Not now",
