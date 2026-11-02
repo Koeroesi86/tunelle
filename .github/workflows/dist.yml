@@ -105,6 +105,11 @@ jobs:
         run: |
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --noninteractive flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08 org.electronjs.Electron2.BaseApp//25.08
+      # the prebuilt sqlite3 is built on a newer system and needs glibc 2.38; compiled here it needs what 22.04 has (checked by npm run check:dist)
+      # it goes into the environment for the later steps (the install and the rebuild of electron-builder), and not as a value of the job: an empty value would count as set
+      - name: Compile the native modules
+        if: matrix.package == 'appimage'
+        run: echo "npm_config_build_from_source=true" >> "$GITHUB_ENV"
       - uses: ./.github/actions/install-dependencies
         with:
           fresh: ${{ inputs.version != '' }}
