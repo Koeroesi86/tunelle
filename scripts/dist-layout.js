@@ -34,4 +34,13 @@ const updateMetadata = (platform, arch) =>
 // the package of the Microsoft Store, next to the installer: it is not in the update metadata, as the Store updates it, and its name has no space (GitHub renames an asset with one)
 const storePackage = (platform, arch) => (platform === 'win32' ? new RegExp(`^Tunelle-\\d[\\d.]*-${arch}\\.appx$`) : undefined)
 
-module.exports = { packagedExecutable, resourcesFolder, storePackage, updateMetadata }
+// the electron-builder runs of linux: the targets of package.json (the AppImage), and the Flatpak, which needs flatpak-builder on the machine and is not known to be safe next to
+// the other targets, so it has its own run; it updates through its own repository: without a publish config it writes no latest-linux.yml over the one of the AppImage,
+// and the package has no app-update.yml, so electron-updater stays inactive; the AppImage is built on an older system than the Flatpak (see .github/workflows/dist.yml),
+// so a job builds one of them (TUNELLE_LINUX_PACKAGE), both when it is empty
+const linuxBuilds = linuxPackage => [
+  ...(linuxPackage === 'flatpak' ? [] : [{ linux: [] }]),
+  ...(linuxPackage === 'appimage' ? [] : [{ linux: ['flatpak'], config: { publish: null } }])
+]
+
+module.exports = { linuxBuilds, packagedExecutable, resourcesFolder, storePackage, updateMetadata }

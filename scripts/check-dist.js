@@ -1,7 +1,7 @@
 const { listPackage, extractFile } = require('@electron/asar')
 const { existsSync, readdirSync, readFileSync } = require('fs')
 const { normalize, resolve } = require('path')
-const { highestGlibc } = require('./glibc')
+const { exceedsGlibc, highestGlibc } = require('./glibc')
 const { resourcesFolder, storePackage, updateMetadata } = require('./dist-layout')
 
 // usage: node scripts/check-dist.js
@@ -70,7 +70,7 @@ if (linuxPackage === 'appimage') {
     .filter(entry => entry.isFile() && (/\.(node|so(\.\d+)*)$/.test(entry.name) || entry.name === 'Tunelle'))
     .map(entry => resolve(entry.parentPath, entry.name))
     .map(file => [file, highestGlibc(readFileSync(file))])
-    .filter(([, [major, minor]]) => major > maxGlibc[0] || (major === maxGlibc[0] && minor > maxGlibc[1]))
+    .filter(([, version]) => exceedsGlibc(version, maxGlibc))
     .forEach(([file, version]) => problems.push(`needs glibc ${version.join('.')}, more than ${maxGlibc.join('.')}: ${file}`))
 }
 

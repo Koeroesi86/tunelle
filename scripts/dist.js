@@ -2,6 +2,7 @@ const { resolve } = require('path')
 const rimraf = require('rimraf')
 const fs = require('fs')
 const cache = require('../config/cache')
+const { linuxBuilds } = require('./dist-layout')
 
 process.env.ELECTRON_CACHE = process.env.ELECTRON_CACHE || cache.electron
 process.env.ELECTRON_BUILDER_CACHE = process.env.ELECTRON_BUILDER_CACHE || cache.electronBuilder
@@ -31,16 +32,10 @@ const platforms = [
   [isLinux, 'linux', 'Linux']
 ]
 
-// flatpak needs flatpak-builder on the machine and is not known to be safe next to the other targets, so it has its own build
-// flatpak updates through its own store: without a publish config it writes no latest-linux.yml over the one of the AppImage, and the package has no app-update.yml, so electron-updater stays inactive
-const flatpakBuild = { linux: ['flatpak'], config: { publish: null } }
-
-// TUNELLE_LINUX_PACKAGE says which of the two a job builds: the AppImage is built on an older system than the Flatpak (see .github/workflows/dist.yml); both when empty
-const linuxPackage = process.env.TUNELLE_LINUX_PACKAGE
 const builds = {
   win: [{ win: [] }],
   mac: [{ mac: [] }],
-  linux: [linuxPackage !== 'flatpak' && { linux: [] }, linuxPackage !== 'appimage' && flatpakBuild].filter(Boolean)
+  linux: linuxBuilds(process.env.TUNELLE_LINUX_PACKAGE)
 }
 
 // the release workflow uploads the files, electron-builder only writes the update metadata next to them
