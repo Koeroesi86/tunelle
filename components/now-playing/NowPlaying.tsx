@@ -62,6 +62,9 @@ const NowPlaying = ({
     if (!step) return;
 
     event.preventDefault();
+    // the first row has no place above and the last none below
+    if (index + step < 0 || index + step >= nowPlaying.length) return;
+
     movedTo.current = index + step;
     moveTrack(index, index + step);
   };

@@ -148,3 +148,18 @@ test('plays the track that was moved up with the keyboard, and stops with the qu
   await expectSilence(page);
   await expect(page.getByText('Nothing is playing').filter({ visible: true })).toBeVisible();
 });
+
+test('plays the track that was put next after the song that plays', async ({ session: { page } }) => {
+  const controls = player(page);
+  await controls.playAlbum('Pitch Perfect');
+  await expectTone(page, 440);
+  await navigate(page, 'Songs');
+
+  const row = page.locator('[class*="TrackViewItem__trackViewItem"]').filter({ hasText: 'Deep Bass' });
+  await row.hover();
+  await row.getByRole('button', { name: 'Play next' }).click();
+  await controls.next();
+
+  await expectTone(page, 100);
+  await expect(controls.title()).toHaveText('Deep Bass');
+});

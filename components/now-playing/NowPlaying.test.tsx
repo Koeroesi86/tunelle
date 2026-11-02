@@ -214,6 +214,31 @@ describe('NowPlaying', () => {
     expect(document.activeElement).toBe(screen.getByTitle('#2 One'));
   });
 
+  it('does not move the first row up or the last row down, nor take the focus later', () => {
+    const moveTrack = vi.fn();
+    const { rerender } = renderPage({ moveTrack });
+
+    fireEvent.keyDown(screen.getByTitle('#1 One'), { key: 'ArrowUp', altKey: true });
+    fireEvent.keyDown(screen.getByTitle('#2 Two'), { key: 'ArrowDown', altKey: true });
+    rerender(
+      <NowPlaying
+        nowPlaying={[flac, mp3, { ...mp3, path: '/music/3.mp3', title: 'Three' }]}
+        currentSong={flac}
+        streamTitle={null}
+        streamArt={null}
+        isPlaying
+        playTrack={vi.fn()}
+        moveTrack={moveTrack}
+        removeTrack={vi.fn()}
+        clearQueue={vi.fn()}
+        openLibrary={vi.fn()}
+      />
+    );
+
+    expect(moveTrack).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it('does not move a row for the arrow keys alone, or from a button inside it', () => {
     const moveTrack = vi.fn();
     renderPage({ moveTrack });
