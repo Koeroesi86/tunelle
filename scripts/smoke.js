@@ -3,6 +3,7 @@ const { createServer } = require('net')
 const { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = require('fs')
 const { createServer: createHttpServer } = require('http')
 const { tmpdir } = require('os')
+const { inspect } = require('util')
 const { join, resolve } = require('path')
 const { packagedExecutable, resourcesFolder } = require('./dist-layout')
 const { waitForPage } = require('./wait-for-page')
@@ -318,7 +319,7 @@ const run = async () => {
 
 run()
   .catch(error => {
-    console.error((error instanceof Error ? error.stack ?? error.message : String(error)).split(/\r?\n/).map(printable).join('\n'))
+    console.error(inspect(error).split(/\r?\n/).map(printable).join('\n'))
     if (packaged && !flatpak) console.error(`Packaged dependencies:\n${loadDependencies()}`)
     if (existsSync(logFile)) console.error(`Log of the app:\n${readFileSync(logFile, 'utf8').split(/\r?\n/).map(printable).join('\n')}`)
     process.exitCode = 1
