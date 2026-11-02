@@ -52,6 +52,16 @@ describe('the metainfo of the Flatpak', () => {
     })
   })
 
+  // an element without a Hungarian twin shows in English in a Hungarian software centre
+  it('translates the summary, the description and the captions into Hungarian', () => {
+    const count = (pattern) => [...metainfo.matchAll(pattern)].length
+
+    expect(count(/<summary>/g)).toBe(count(/<summary xml:lang="hu">/g))
+    expect(count(/<p>/g)).toBe(count(/<p xml:lang="hu">/g))
+    expect(count(/<li>/g)).toBe(count(/<li xml:lang="hu">/g))
+    expect(count(/<caption>/g)).toBe(count(/<caption xml:lang="hu">/g))
+  })
+
   // without it in /app/share/metainfo the repository has no AppStream data and the software centre shows no icon, screenshots or description
   it('is copied into the Flatpak bundle', () => {
     expect(build.flatpak.files).toContainEqual([`flatpak/${build.appId}.metainfo.xml`, `/share/metainfo/${build.appId}.metainfo.xml`])
