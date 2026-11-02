@@ -8,6 +8,8 @@ const fakeGain = () => ({
   gain: { cancelScheduledValues: vi.fn(), setValueAtTime: vi.fn(), setTargetAtTime: vi.fn() },
 });
 
+const setSinkId = vi.fn();
+
 /** A fresh module on a fake AudioContext, which records how the nodes are wired */
 const setup = async () => {
   vi.resetModules();
@@ -19,6 +21,8 @@ const setup = async () => {
     'AudioContext',
     class {
       destination = {};
+      sinkId = '';
+      setSinkId = setSinkId;
       createMediaElementSource = createMediaElementSource;
       currentTime = 3;
       createGain = () => {
@@ -48,6 +52,36 @@ describe('audio context', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+  });
+
+  describe('output device', () => {
+    beforeEach(() => setSinkId.mockReset().mockResolvedValue(undefined));
+
+    it('moves the sound of the context to the device', async () => {
+      const { audio } = await setup();
+
+      await audio.setOutputDevice('a1');
+
+      expect(setSinkId).toHaveBeenCalledExactlyOnceWith('a1');
+    });
+
+    it('falls back to the system default when the device cannot be opened', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const { audio } = await setup();
+      setSinkId.mockRejectedValueOnce(new Error('unplugged'));
+
+      await audio.setOutputDevice('a1');
+
+      expect(setSinkId.mock.calls).toEqual([['a1'], ['']]);
+    });
+
+    it('leaves the default alone when it is asked for', async () => {
+      const { audio } = await setup();
+
+      await audio.setOutputDevice('');
+
+      expect(setSinkId).not.toHaveBeenCalled();
+    });
   });
 
   it('has no analyser before an audio element is connected', async () => {

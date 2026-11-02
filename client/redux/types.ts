@@ -4,6 +4,7 @@ import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag }
 import type { Playlist } from '../../types/playlists';
 import type { ThemeMode, ThemeSettings } from '../../types/theme';
 import type { NormalizationMode } from '../audio/loudness';
+import type { OutputDevice } from '../audio/output-device';
 import type { AlbumSort, GroupKind, GroupSort, TrackSort } from '../../types/library-query';
 import type { UpdateState } from '../../types/update';
 
@@ -45,6 +46,8 @@ export interface PersistedSettings {
   volume: number;
   /** Whether the tracks are levelled by their ReplayGain tags, and by which of them */
   normalization: NormalizationMode;
+  /** The output device picked in the settings, undefined follows the system default */
+  outputDevice: OutputDevice | undefined;
   selectedAlbum: Album | null;
   maximized: boolean;
   shuffle: boolean;
@@ -195,6 +198,7 @@ export type AppAction =
   | PayloadAction<'SET_TAB', { tab: Tab }>
   | PayloadAction<'SET_NAVIGATION_GROUP', { group: NavigationGroup; open: boolean }>
   | PayloadAction<'SET_NORMALIZATION', { mode: NormalizationMode }>
+  | PayloadAction<'SET_OUTPUT_DEVICE', { device: OutputDevice | undefined }>
   | PayloadAction<'SET_VOLUME', { volume: number | string }>
   | PayloadAction<'SET_CURRENT_TIME', { currentTime: number | string }>
   | PayloadAction<'SET_GAIN', { value: number | string; index: number }>

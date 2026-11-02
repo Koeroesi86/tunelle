@@ -11,6 +11,7 @@ import FolderManagement from '../folder-management';
 import ArtistPhotos from '../artist-photos';
 import RadioSources from '../radio-sources';
 import LoudnessNormalization from '../loudness-normalization';
+import OutputDevice from '../output-device';
 import WatchFolders from '../watch-folders';
 import LauncherIntegration from '../launcher-integration';
 import WindowBlur from '../window-blur';
@@ -86,6 +87,7 @@ function PlayerTabs({ tab = 'home', addFiles = () => {} }: PlayerTabsProps) {
           <ThemeSelect />
           <LanguageSelect />
           <FolderManagement />
+          <OutputDevice />
           <LoudnessNormalization />
           <WatchFolders />
           <ArtistPhotos />
