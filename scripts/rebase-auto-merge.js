@@ -26,16 +26,16 @@ const pickNext = (pullRequests) =>
     .sort((a, b) => a.autoMergeRequest.enabledAt.localeCompare(b.autoMergeRequest.enabledAt))
     .at(0)
 
-const request = async (path, options) => {
+const createRequest = (token) => async (path, options) => {
   const response = await fetch(`https://api.github.com${path}`, {
     ...options,
-    headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${process.env.GH_TOKEN}`, 'Content-Type': 'application/json' }
+    headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
   })
   if (!response.ok) throw new Error(`${options?.method ?? 'GET'} ${path} answered ${response.status}: ${await response.text()}`)
   return response.json()
 }
 
-const run = async (repository, base) => {
+const run = async (request, repository, base) => {
   const [owner, name] = repository.split('/')
   const { data, errors } = await request('/graphql', { method: 'POST', body: JSON.stringify({ query, variables: { owner, name, base } }) })
   if (errors) throw new Error(`GraphQL: ${JSON.stringify(errors)}`)
@@ -55,10 +55,10 @@ const run = async (repository, base) => {
 
 if (require.main === module) {
   if (!process.env.GH_TOKEN || !process.env.GITHUB_REPOSITORY) throw new Error('GH_TOKEN and GITHUB_REPOSITORY are not set')
-  run(process.env.GITHUB_REPOSITORY, 'master').catch((error) => {
+  run(createRequest(process.env.GH_TOKEN), process.env.GITHUB_REPOSITORY, 'master').catch((error) => {
     console.error(error)
     process.exitCode = 1
   })
 }
 
-module.exports = { pickNext }
+module.exports = { createRequest, pickNext, run }
