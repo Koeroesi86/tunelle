@@ -27,3 +27,12 @@ export const createLeadMeter = () => {
 /** The wait in ms until the next track has to start, undefined for a stream or a track whose length is not known */
 export const msUntilHandoff = (duration: number, currentTime: number, lead: number) =>
   Number.isFinite(duration) && duration > 0 ? Math.max(0, (duration - currentTime - lead) * 1000) : undefined;
+
+/** A station that plays more seconds behind its newest audio than this is behind the live stream */
+const maxLiveLag = 8;
+/** Where a station that fell behind continues: this many seconds before the newest audio it holds */
+const liveMargin = 1;
+
+/** The time a station seeks to when it plays far behind the newest audio that it holds, undefined while it is close enough */
+export const liveEdgeTarget = (bufferedEnd: number | undefined, currentTime: number) =>
+  bufferedEnd !== undefined && bufferedEnd - currentTime > maxLiveLag ? bufferedEnd - liveMargin : undefined;
