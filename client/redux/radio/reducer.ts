@@ -2,7 +2,6 @@ import type { Reducer } from 'redux';
 import type { RadioOption, RadioQuery, RadioStation, RadioTag } from '../../../types/radio';
 import { isSameRadioQuery, parseRadioQuery } from '../../../types/radio-query';
 import { isAppAction } from '../types';
-import type { AppAction } from '../types';
 
 export interface RadioState {
   /** The filters and the sort of the list, the page is apart */
@@ -32,25 +31,21 @@ const append = (stations: RadioStation[], more: RadioStation[]) => [
   ...more.filter(({ uuid }) => !stations.some((station) => station.uuid === uuid)),
 ];
 
-type StationsPayload = Extract<AppAction, { type: 'RADIO_STATIONS' }>['payload'];
-
-const receiveStations = (state: RadioState, payload: StationsPayload): RadioState => {
-  const { query, offset } = splitOffset(payload.query);
-  // the answer of a search that was replaced in the meantime is dropped
-  if (!isSameRadioQuery(query, state.query) || offset !== state.offset) return state;
-  const { stations, hasMore = false, error } = payload;
-  // a failed next page keeps the loaded ones and can be asked for again
-  return { ...state, stations: offset > 0 ? append(state.stations, stations) : stations, hasMore: error ? offset > 0 : hasMore, error, loading: false };
-};
-
 const reducer: Reducer<RadioState> = (state = initialState, action) => {
   if (!isAppAction(action)) return state;
 
   switch (action.type) {
     case 'SEARCH_RADIO':
       return { ...state, ...splitOffset(action.payload.query), loading: true, error: undefined };
-    case 'RADIO_STATIONS':
-      return receiveStations(state, action.payload);
+    case 'RADIO_STATIONS': {
+      const { query, offset } = splitOffset(action.payload.query);
+      const { stations, hasMore = false, error } = action.payload;
+      // the answer of a search that was replaced in the meantime is dropped
+      return !isSameRadioQuery(query, state.query) || offset !== state.offset
+        ? state
+        : // a failed next page keeps the loaded ones and can be asked for again
+          { ...state, stations: offset > 0 ? append(state.stations, stations) : stations, hasMore: error ? offset > 0 : hasMore, error, loading: false };
+    }
     // the saved filters and sort are the ones the list opens with
     case 'RESTORE_SETTINGS':
       return 'radioQuery' in action.payload.settings ? { ...state, query: parseRadioQuery(action.payload.settings.radioQuery), offset: 0 } : state;
