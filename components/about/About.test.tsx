@@ -21,6 +21,12 @@ describe('About', () => {
     expect(container.innerHTML).toBe('');
   });
 
+  it('shows the name of the app above the version', () => {
+    setup();
+
+    expect(screen.getByRole('img', { name: 'Tunelle' })).toBeTruthy();
+  });
+
   it('shows the version with the Electron and Chromium versions', () => {
     setup();
 

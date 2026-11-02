@@ -5,10 +5,10 @@ import appIcon from '../../assets/icon.svg';
 import style from './TitleBar.scss';
 import AudioSpectrum from '../audio-spectrum';
 import WindowControls from '../window-controls';
+import Wordmark from '../wordmark/Wordmark';
 import CoverFade from '../cover-fade';
 
 interface TitleBarProps {
-  title?: string;
   currentSong?: Track | null;
   streamTitle?: string | null;
   streamArt?: string | null;
@@ -16,7 +16,7 @@ interface TitleBarProps {
 }
 
 /** The bar across the top of the window: the app, the track that plays in the middle, and the window buttons; the empty part of it drags the window */
-function TitleBar({ title = 'Tunelle', currentSong = null, streamTitle = null, streamArt = null, openNowPlaying = () => {} }: TitleBarProps) {
+function TitleBar({ currentSong = null, streamTitle = null, streamArt = null, openNowPlaying = () => {} }: TitleBarProps) {
   const { t } = useTranslation();
   const shown = currentSong ? toNowPlaying(currentSong, streamTitle, streamArt) : undefined;
 
@@ -24,7 +24,7 @@ function TitleBar({ title = 'Tunelle', currentSong = null, streamTitle = null, s
     <div className={style.titleBar}>
       <div className={style.title}>
         <img className={style.icon} src={appIcon} alt="" />
-        {title}
+        <Wordmark className={style.wordmark} />
       </div>
       {shown ? (
         <button type="button" className={style.track} title={t('nowPlaying.title')} onClick={openNowPlaying}>

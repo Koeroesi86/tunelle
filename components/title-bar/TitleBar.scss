@@ -11,8 +11,12 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 16px;
-    color: var(--accent);
+    color: var(--text);
+  }
+
+  .wordmark {
+    height: 22px;
+    width: auto;
   }
 
   .icon {
