@@ -110,6 +110,16 @@ const setNormalization = (node: HTMLAudioElement, factor: number) => {
   else gain.setTargetAtTime(factor, audioContext.currentTime, normalizationRamp);
 };
 
+/** Plays on the output device with this id, '' is the system default; a device that cannot be opened (unplugged) leaves the sound on the default */
+const setOutputDevice = async (id: string) => {
+  if (audioContext.sinkId === id) return;
+
+  await audioContext.setSinkId(id).catch((err) => {
+    console.warn('output device unavailable', id, err);
+    return audioContext.setSinkId('');
+  });
+};
+
 const connectToSource = (item: AudioNode) => {
   input.connect(item);
 };
@@ -156,6 +166,7 @@ export const Audio = createContext({
   connectStandbyNode,
   activateNode,
   setNormalization,
+  setOutputDevice,
   connectToSource,
   connectDestination,
   createBiquadFilter,

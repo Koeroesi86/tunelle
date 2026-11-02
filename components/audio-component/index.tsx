@@ -12,6 +12,7 @@ const mapState = (state: RootState) => ({
   upNext: state.uiState.upNext,
   volume: state.uiState.volume,
   normalization: state.uiState.normalization,
+  outputDevice: state.uiState.outputDevice,
 });
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
@@ -22,13 +23,14 @@ const connector = connect(mapState, mapDispatch);
 
 const ContextualAudioComponent = (props: ConnectedProps<typeof connector>) => (
   <Audio.Consumer>
-    {({ connectNode, connectStandbyNode, activateNode, setNormalization }) => (
+    {({ connectNode, connectStandbyNode, activateNode, setNormalization, setOutputDevice }) => (
       <AudioComponent
         {...props}
         connectNode={connectNode}
         connectStandbyNode={connectStandbyNode}
         activateNode={activateNode}
         setNormalization={setNormalization}
+        setOutputDevice={setOutputDevice}
       />
     )}
   </Audio.Consumer>

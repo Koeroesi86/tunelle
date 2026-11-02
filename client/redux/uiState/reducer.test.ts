@@ -345,6 +345,17 @@ describe('uiState reducer', () => {
       expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { volume: 0.1 } } }, track).normalization).toBe('track');
     });
 
+    it('picks the output device, restores a saved one and drops one that is not valid', () => {
+      const dac = { id: 'a1', label: 'USB DAC' };
+      const picked = run({ type: 'SET_OUTPUT_DEVICE', payload: { device: dac } });
+
+      expect(initial.outputDevice).toBeUndefined();
+      expect(picked.outputDevice).toEqual(dac);
+      expect(run({ type: 'SET_OUTPUT_DEVICE', payload: { device: undefined } }, picked).outputDevice).toBeUndefined();
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { outputDevice: dac } } }).outputDevice).toEqual(dac);
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { outputDevice: 'dac' as never } } }, picked).outputDevice).toBeUndefined();
+    });
+
     it('watches the library folders unless it is turned off, and keeps what was saved', () => {
       const off = run({ type: 'SET_WATCH_FOLDERS', payload: { enabled: false } });
 

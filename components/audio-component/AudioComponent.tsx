@@ -7,12 +7,17 @@ import { useGaplessAudio } from '../../client/hooks/use-gapless-audio';
 import { liveEdgeTarget } from '../../client/audio/gapless';
 import { normalizationGain } from '../../client/audio/loudness';
 import type { NormalizationMode } from '../../client/audio/loudness';
+import { resolveOutputId } from '../../client/audio/output-device';
+import type { OutputDevice } from '../../client/audio/output-device';
+import { useOutputDevices } from '../../client/hooks/use-output-devices';
 
 interface AudioComponentProps {
   currentSong: Track | null;
   isPlaying: boolean;
   volume: number;
   normalization: NormalizationMode;
+  /** The output device picked in the settings, undefined is the system default */
+  outputDevice: OutputDevice | undefined;
   /** The track that follows the current one, the second element loads it while the current one plays */
   upNext: Track | null;
   trackEnded: () => void;
@@ -20,6 +25,7 @@ interface AudioComponentProps {
   connectStandbyNode: (node: HTMLAudioElement | null) => void;
   activateNode: (node: HTMLAudioElement) => void;
   setNormalization: (node: HTMLAudioElement, factor: number) => void;
+  setOutputDevice: (id: string) => Promise<void>;
 }
 
 /** After this many files in a row that cannot be played, the player stops instead of cycling through the whole queue */
@@ -34,13 +40,16 @@ const AudioComponent = ({
   isPlaying,
   volume,
   normalization,
+  outputDevice,
   upNext,
   trackEnded,
   connectNode,
   connectStandbyNode,
   activateNode,
   setNormalization,
+  setOutputDevice,
 }: AudioComponentProps) => {
+  const devices = useOutputDevices();
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const attempts = useRef(0);
   const skipped = useRef(0);
@@ -124,6 +133,11 @@ const AudioComponent = ({
   }, [isPlaying]);
 
   useEffect(() => gapless.setVolume(volume), [volume]);
+
+  // the saved device is looked for again as devices come and go, so an unplugged one gives the default and a plugged in one takes the sound back
+  useEffect(() => {
+    setOutputDevice(resolveOutputId(outputDevice, devices)).catch((err) => console.error(err));
+  }, [outputDevice, devices]);
 
   useEffect(() => {
     connectNode(gapless.elements.current[0]);

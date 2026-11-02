@@ -7,6 +7,7 @@ import type { OnlineView, UiState } from '../types';
 import { radioUuidOf } from '../../radio-track';
 import { autoAccent, defaultTheme, parseAccent, restoreTheme } from '../../theme';
 import { defaultNormalization, restoreNormalization } from '../../audio/loudness';
+import { restoreOutputDevice } from '../../audio/output-device';
 import { clampGain, defaultGains, restoreGains } from '../../audio/equalizer';
 
 const initialState: UiState = {
@@ -22,6 +23,7 @@ const initialState: UiState = {
   currentTime: 0,
   volume: 0.5,
   normalization: defaultNormalization,
+  outputDevice: undefined,
   selectedAlbum: null,
   scanningFolder: null,
   progress: 0,
@@ -176,6 +178,8 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, language: action.payload.language };
     case 'SET_NORMALIZATION':
       return { ...state, normalization: action.payload.mode };
+    case 'SET_OUTPUT_DEVICE':
+      return { ...state, outputDevice: action.payload.device };
     case 'SET_THEME_MODE':
       return { ...state, theme: { ...state.theme, mode: action.payload.mode } };
     case 'SET_ACCENT':
@@ -209,6 +213,7 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
         ...('playlistsOpen' in settings && { playlistsOpen: settings.playlistsOpen !== false }),
         ...(settings.equalizer && { equalizer: restoreGains(settings.equalizer) }),
         ...('normalization' in settings && { normalization: restoreNormalization(settings.normalization) }),
+        ...('outputDevice' in settings && { outputDevice: restoreOutputDevice(settings.outputDevice) }),
         ...(settings.theme && { theme: restoreTheme(settings.theme) }),
         // a saved value that is not valid gives the default order and all folders
         ...('trackSort' in settings && { trackSort: restoreTrackSort(settings.trackSort) }),

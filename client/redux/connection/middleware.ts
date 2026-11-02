@@ -146,6 +146,7 @@ const persistedKeys = [
   'currentTime',
   'volume',
   'normalization',
+  'outputDevice',
   'selectedAlbum',
   'maximized',
   'shuffle',
@@ -291,6 +292,7 @@ const handleActions = actionMiddleware((store) => [
     electronAPI.send('INSTALL_UPDATE');
   }),
   onAction('SET_NORMALIZATION', ({ payload }) => saveSettings({ ...store.getState().uiState, normalization: payload.mode })),
+  onAction('SET_OUTPUT_DEVICE', ({ payload }) => saveSettings({ ...store.getState().uiState, outputDevice: payload.device })),
   onAction('SET_LAUNCHER', ({ payload }) => electronAPI.send('SET_LAUNCHER', payload)),
   // the main process has text of its own and follows the language from the saved settings
   // the handlers run before the reducer, so the saved settings get the new language here
