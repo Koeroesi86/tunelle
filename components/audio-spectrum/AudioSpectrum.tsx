@@ -68,9 +68,9 @@ const AudioSpectrum = ({
       const cap = capColor ?? readThemeColor('--spectrum-cap');
       const fill = meterColor ?? readThemeColor('--spectrum-meter');
       clearCanvas();
+      caps.push(...values.slice(caps.length, Math.round(meterCount)));
       for (let i = 0; i < meterCount; i++) {
         const value = values[i];
-        if (caps.length < Math.round(meterCount)) caps.push(value);
 
         context.fillStyle = cap;
         // the cap falls slowly and jumps up with the meter
@@ -93,12 +93,13 @@ const AudioSpectrum = ({
     // once all the caps reached the bottom there is nothing left to draw
     const isSettled = () => !isPlaying.current && !caps.some((cap) => cap > 0);
 
+    const settle = () => {
+      clearCanvas();
+      if (animationId.current) window.cancelAnimationFrame(animationId.current);
+    };
+
     const drawMeter = () => {
-      if (analyser.current && isSettled()) {
-        clearCanvas();
-        if (animationId.current) window.cancelAnimationFrame(animationId.current);
-        return;
-      }
+      if (analyser.current && isSettled()) return settle();
       if (analyser.current) drawFrame(analyser.current);
 
       timer.current = setTimeout(() => {

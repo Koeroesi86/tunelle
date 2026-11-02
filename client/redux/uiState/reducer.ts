@@ -113,7 +113,6 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       // the handler that starts the first track runs before this, so the song that plays can be one that is not in the queue yet
       const playing = state.nowPlaying.some(({ path }) => path === state.currentSong?.path) ? state.currentSong?.path : undefined;
       const tracks = action.payload.tracks.filter(({ path }, index, all) => path !== playing && all.findIndex((other) => other.path === path) === index);
-      if (!tracks.length) return state;
 
       const moved = new Set(tracks.map(({ path }) => path));
       const rest = state.nowPlaying.filter(({ path }) => !moved.has(path));
@@ -123,11 +122,16 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       const queued = following.findIndex(({ path }) => !waiting.has(path));
       const at = current + 1 + (queued === -1 ? following.length : queued);
 
-      return {
-        ...state,
-        nowPlaying: [...rest.slice(0, at), ...tracks, ...rest.slice(at)],
-        playNext: [...state.playNext.filter((path) => !moved.has(path)), ...tracks.map(({ path }) => path).filter((path) => path !== state.currentSong?.path)],
-      };
+      return tracks.length
+        ? {
+            ...state,
+            nowPlaying: [...rest.slice(0, at), ...tracks, ...rest.slice(at)],
+            playNext: [
+              ...state.playNext.filter((path) => !moved.has(path)),
+              ...tracks.map(({ path }) => path).filter((path) => path !== state.currentSong?.path),
+            ],
+          }
+        : state;
     }
     // a track that is in the queue already is not added a second time, the queue finds the song that plays by its path
     case 'ADD_TO_QUEUE': {
@@ -137,11 +141,10 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
     }
     case 'MOVE_QUEUE_TRACK': {
       const { from, to } = action.payload;
-      const queue = [...state.nowPlaying];
-      if (from === to || !queue[from] || to < 0 || to >= queue.length) return state;
-
-      queue.splice(to, 0, ...queue.splice(from, 1));
-      return { ...state, nowPlaying: queue };
+      const track = state.nowPlaying[from];
+      return from === to || !track || to < 0 || to >= state.nowPlaying.length
+        ? state
+        : { ...state, nowPlaying: state.nowPlaying.toSpliced(from, 1).toSpliced(to, 0, track) };
     }
     case 'REMOVE_FROM_QUEUE':
       return state.nowPlaying[action.payload.index] ? { ...state, nowPlaying: state.nowPlaying.filter((_, index) => index !== action.payload.index) } : state;

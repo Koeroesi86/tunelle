@@ -111,9 +111,7 @@ function setAppId() {
   if (isWin && isDev) {
     const shortcutPath = `${app.getPath('appData')}\\Microsoft\\Windows\\Start Menu\\Programs\\Tunelle${isDev ? '-' + process.env.NODE_ENV : ''}.lnk`;
 
-    if (fs.existsSync(shortcutPath)) {
-      fs.unlinkSync(shortcutPath);
-    }
+    fs.rmSync(shortcutPath, { force: true });
 
     ws.create(
       shortcutPath,
