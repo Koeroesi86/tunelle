@@ -10,8 +10,9 @@
   top: -100vh;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--card-background);
-  border: 1px solid var(--card-border-strong);
+  color: var(--text);
+  background: var(--panel-solid);
+  border: 1px solid var(--overlay-strong);
   border-radius: 12px;
   z-index: 100;
   padding: 20px;
@@ -26,7 +27,6 @@
   }
 
   .message {
-    color: var(--card-text);
     margin-bottom: 12px;
     font-size: 16px;
   }
@@ -41,17 +41,15 @@
       line-height: 32px;
       padding: 0 12px;
       font-weight: 600;
-      color: var(--card-text);
-      background: var(--card-button);
-      border: 1px solid var(--card-border);
+      color: var(--text);
+      background: var(--overlay);
+      border: 1px solid var(--overlay-strong);
       border-radius: 16px;
       cursor: pointer;
       transition: all .2s ease-in-out;
 
       &:hover {
-        color: var(--card-button-text-hover);
-        background: var(--card-button-hover);
-        border-color: var(--card-border-strong);
+        background: var(--overlay-strong);
       }
     }
   }
