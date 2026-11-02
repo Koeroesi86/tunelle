@@ -190,6 +190,17 @@ export const useGaplessAudio = ({ currentSong, upNext, activateNode, onEnded, on
       takeOver(standbyIndex(), standby, shouldPlay);
       return true;
     },
+    /** Empties the element that plays, which closes the connection of a stream that a pause leaves open and buffering */
+    release: () => {
+      const node = activeElement();
+      if (!node) return;
+
+      loaded.current[active.current] = undefined;
+      node.removeAttribute('src');
+      node.load();
+    },
+    /** Whether the element that plays holds a source */
+    holdsSource: () => activeElement()?.hasAttribute('src') ?? false,
     /** Loads a source into the element that plays */
     load: (source: string) => {
       const node = activeElement();
