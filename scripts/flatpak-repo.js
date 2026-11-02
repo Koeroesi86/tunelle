@@ -12,6 +12,11 @@ const siteUrl = 'https://koeroesi86.github.io/tunelle/'
 const repoUrl = `${siteUrl}repo/`
 const appId = 'io.github.koeroesi86.Tunelle'
 const flathubRepoUrl = 'https://dl.flathub.org/repo/flathub.flatpakrepo'
+// what the software centre shows of the .flatpakref before the app is installed (the metainfo of the app is not read from it): the summary and the
+// first paragraph of the description of flatpak/<appId>.metainfo.xml, and the icon of the website
+const comment = 'Lossless audio player'
+const description = 'Tunelle plays your own music library and internet radio, and shows the format of everything it plays: FLAC 16/44.1, FLAC 24/96, MP3 320.'
+const iconUrl = `${siteUrl}icon-512.png`
 // the branch electron-builder gives the bundles
 const branch = 'master'
 
@@ -32,7 +37,9 @@ const repoFile = (publicKey) =>
   [
     '[Flatpak Repo]',
     'Title=Tunelle',
-    'Comment=Lossless audio player',
+    `Comment=${comment}`,
+    `Description=${description}`,
+    `Icon=${iconUrl}`,
     `Url=${repoUrl}`,
     `Homepage=${siteUrl}`,
     `DefaultBranch=${branch}`,
@@ -45,6 +52,9 @@ const refFile = (publicKey) =>
     '[Flatpak Ref]',
     'Title=Tunelle',
     `Name=${appId}`,
+    `Comment=${comment}`,
+    `Description=${description}`,
+    `Icon=${iconUrl}`,
     `Branch=${branch}`,
     `Url=${repoUrl}`,
     'SuggestRemoteName=tunelle',
@@ -106,4 +116,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { findKey, refFile, repoFile }
+module.exports = { comment, description, findKey, refFile, repoFile }

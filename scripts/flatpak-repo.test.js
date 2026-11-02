@@ -1,8 +1,10 @@
-import { readFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { describe, expect, it } from 'vitest'
-import { findKey, refFile, repoFile } from './flatpak-repo'
+import { comment, description, findKey, refFile, repoFile } from './flatpak-repo'
 
 const { build } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+
+const metainfo = readFileSync(new URL(`../flatpak/${build.appId}.metainfo.xml`, import.meta.url), 'utf8')
 
 const listing = (validity, expires = '') =>
   [`sec:${validity}:255:22:ABCDEF0123456789:1700000000:${expires}::u:::scESC:::+:::23::0:`, 'fpr:::::::::0123456789ABCDEF0123456789ABCDEF01234567:', 'uid:u::::1700000000::HASH::Tunelle <t@example.com>::::::::::0:'].join('\n')
@@ -46,5 +48,19 @@ describe('the files of the repository', () => {
     expect(text).toMatch(/^Url=https:\/\/koeroesi86\.github\.io\/tunelle\/repo\/$/m)
     expect(text).toMatch(/^RuntimeRepo=https:\/\/dl\.flathub\.org\/repo\/flathub\.flatpakrepo$/m)
     expect(text).toMatch(/^GPGKey=KEY$/m)
+  })
+
+  it('shows the summary, the description and the icon of the app before it is installed', () => {
+    ;[repoFile('KEY'), refFile('KEY')].forEach((text) => {
+      expect(text).toContain(`Comment=${comment}\n`)
+      expect(text).toContain(`Description=${description}\n`)
+      expect(text).toMatch(/^Icon=https:\/\/koeroesi86\.github\.io\/tunelle\/icon-512\.png$/m)
+    })
+  })
+
+  it('says what the metainfo of the app says', () => {
+    expect(metainfo).toContain(`<summary>${comment}</summary>`)
+    expect(metainfo).toContain(`<p>${description}</p>`)
+    expect(existsSync(new URL('../site/icon-512.png', import.meta.url))).toBe(true)
   })
 })
