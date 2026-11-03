@@ -1,57 +1,27 @@
-import { mkdirSync, writeFileSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join } from 'path';
-import { drawCover, writeFlac } from '../../scripts/screenshot-media';
-import { albums as toneAlbums, writeLibrary as writeToneLibrary } from '../library';
+import { planLibrary, writePlan } from '../../scripts/perf-library';
+import { albums as toneAlbums, writeLibrary as writeToneLibrary, writeTrack } from '../library';
 
-const tracksPerAlbum = 12;
-const albumsPerArtist = 4;
-const genres = ['Rock', 'Pop', 'Electronic', 'Ambient', 'Jazz', 'Classical', 'Folk', 'Metal'];
+// the profile of a real library, in numbers only (scripts/perf-profile.js): the same shape of albums, tags, formats, pictures and folders in every run
+const profile = JSON.parse(readFileSync(join(__dirname, 'library-profile.json'), 'utf8'));
 
-const cover = drawCover(
-  {
-    sky: [
-      [60, 20, 40],
-      [140, 90, 40],
-    ],
-    sun: [230, 200, 120],
-    ground: [
-      [150, 60, 48],
-      [70, 20, 14],
-    ],
-    shape: 'mountains',
-  },
-  64
-);
-
-const pad = (value: number, width = 2) => `${value}`.padStart(width, '0');
-
-/** A library of `tracks` made up, silent tracks of a second (twelve to an album, four albums to an artist) with unique tags and a small cover each, next to the tone albums of the other tests that something audible can be played from */
-export const writeLargeLibrary = (folder: string, tracks: number) => {
+/** The tone albums of the other tests, with ReplayGain tags so the levelling of the player works while they play */
+const writeTones = (folder: string) => {
   writeToneLibrary(folder);
-  const albums = Math.ceil(tracks / tracksPerAlbum);
-  Array.from({ length: albums }).forEach((_, album) => {
-    const artist = `Artist ${pad(Math.floor(album / albumsPerArtist), 4)}`;
-    const directory = join(folder, artist.toLowerCase().replace(/ /g, '-'), `album-${pad(album, 4)}`);
-    mkdirSync(directory, { recursive: true });
-    Array.from({ length: Math.min(tracksPerAlbum, tracks - album * tracksPerAlbum) }).forEach((__, index) =>
-      writeFileSync(
-        join(directory, `${pad(index + 1)}-track.flac`),
-        writeFlac({
-          seconds: 1,
-          frequency: 0,
-          cover,
-          tags: {
-            TITLE: `Track ${pad(album, 4)}-${pad(index + 1)}`,
-            ARTIST: artist,
-            ALBUMARTIST: artist,
-            ALBUM: `Album ${pad(album, 4)}`,
-            GENRE: genres[album % genres.length],
-            TRACKNUMBER: index + 1,
-            DATE: 1980 + (album % 45),
-          },
-        })
-      )
-    );
-  });
+  toneAlbums.forEach((album) =>
+    album.tracks.forEach((_, index) =>
+      writeTrack(join(folder, album.title.toLowerCase().replace(/ /g, '-')), album, index, undefined, {
+        REPLAYGAIN_TRACK_GAIN: '-3.00 dB',
+        REPLAYGAIN_ALBUM_GAIN: '-4.50 dB',
+      })
+    )
+  );
+};
+
+/** A library of `tracks` made up tracks shaped like a real one (see scripts/perf-library.js), next to the tone albums that something audible can be played from; answers the number of tracks in it */
+export const writeLargeLibrary = (folder: string, tracks: number) => {
+  writeTones(folder);
+  writePlan(folder, planLibrary(profile, tracks));
   return tracks + toneAlbums.flatMap((album) => album.tracks).length;
 };

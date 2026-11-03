@@ -99,6 +99,10 @@ test('measures the scan and the scroll of a big library while a track plays', as
       .click();
     await player(page).expectPlaying();
   }
+  // the equalizer and the levelling by ReplayGain (the tone album has the tags) work on the audio while the lists scroll
+  await navigate(page, 'Equalizer');
+  await page.getByRole('button', { name: 'Bass boost' }).click();
+  await expectTone(page, 440);
   await clearProbe(page);
 
   report['scroll Songs'] = await scroll(app, page, 'Songs');
