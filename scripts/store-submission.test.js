@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assertPublished, assertSubmittable, readStatus, readStoreVersion, releaseVersion } from './store-submission'
+import { assertPublished, assertSubmittable, readStatus, readStoreVersion, releaseVersion, withReleaseNotes } from './store-submission'
 
 const submission = (...versions) => `Retrieving Submission\n${JSON.stringify({ Id: '1', ApplicationPackages: versions.map((Version) => ({ FileName: 'Tunelle.appx', Version })) }, undefined, 2)}\n`
 
@@ -89,5 +89,34 @@ describe('assertSubmittable', () => {
 
   it('refuses without a package version', () => {
     expect(() => assertSubmittable('v26.10.15', '26.10.14', [])).toThrow('No package version')
+  })
+})
+
+describe('withReleaseNotes', () => {
+  const listing = (ReleaseNotes) => ({ BaseListing: { Description: 'A player', ReleaseNotes }, Platform: 'Windows10' })
+  const output = (Listings) => `Retrieving Submission\n${JSON.stringify({ Id: '1', Pricing: { PriceId: 'Free' }, Listings }, undefined, 2)}\n`
+
+  it('sets the notes in every listing and keeps the rest of the submission', () => {
+    const result = JSON.parse(withReleaseNotes(output({ 'en-us': listing('First release in the Microsoft Store'), 'hu-hu': listing('') }), 'Bug fixes and improvements.'))
+
+    expect(result.Listings['en-us'].BaseListing).toEqual({ Description: 'A player', ReleaseNotes: 'Bug fixes and improvements.' })
+    expect(result.Listings['hu-hu'].BaseListing.ReleaseNotes).toBe('Bug fixes and improvements.')
+    expect(result.Listings['en-us'].Platform).toBe('Windows10')
+    expect(result.Pricing).toEqual({ PriceId: 'Free' })
+    expect(result.Id).toBe('1')
+  })
+
+  it('reads the submission through colours around it', () => {
+    const result = JSON.parse(withReleaseNotes(`\u001b[38;5;2mPending Submission\u001b[0m\n${output({ 'en-us': listing('') })}`, 'Notes'))
+
+    expect(result.Listings['en-us'].BaseListing.ReleaseNotes).toBe('Notes')
+  })
+
+  it('fails without a listing, instead of sending a submission with no notes', () => {
+    expect(() => withReleaseNotes(output({}), 'Notes')).toThrow('no listing')
+  })
+
+  it('fails without notes, instead of emptying them', () => {
+    expect(() => withReleaseNotes(output({ 'en-us': listing('x') }), '')).toThrow('No release notes')
   })
 })

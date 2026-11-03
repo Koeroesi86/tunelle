@@ -129,6 +129,11 @@ describe('workflows', () => {
   })
 
   it('store.yml makes only a draft unless it is told to commit', () => {
-    expect(read('store.yml')).toMatch(/default: false[\s\S]*'--noCommit'/)
+    const text = read('store.yml')
+
+    expect(text).toMatch(/default: false/)
+    expect(text).toMatch(/msstore publish \$bundle --appId \$env:PRODUCT_ID --noCommit/)
+    expect(text).toMatch(/- name: Submit the draft for certification\n\s+if: inputs\.commit\n[\s\S]*msstore submission publish/)
+    expect(text.indexOf('updateMetadata')).toBeLessThan(text.indexOf('msstore submission publish'))
   })
 })
