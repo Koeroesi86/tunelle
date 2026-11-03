@@ -56,6 +56,8 @@ Tested with Blur my Shell 76 on GNOME 50 (Wayland). Without the extension, GNOME
 | `npm run typecheck`| Type-check the whole project         |
 | `npm run dist`     | Build for current OS                 |
 
+A release goes to the Microsoft Store by hand: the workflow `Store submission` (`store.yml`) takes the tag of a release, checks that its version is greater than the one in the Store, and makes the submission from the two Windows packages of the release (only a draft in Partner Center, until "commit" is ticked).
+
 ### Website
 
 The website is the static page in `site/` (plain HTML, CSS and one small script, no build tooling), published on GitHub Pages by `.github/workflows/pages.yml` when `site/` changes on `master` and after every release. `scripts/build-site.js` writes the latest release into a copy of the page while it is deployed (`{{version}}`, `{{notes}}` and `{{asset:<system>-<arch>}}` in `site/index.html`), so the download links follow the release without an edit. To look at it, run `npm run site` and open <http://localhost:4173/> (`node scripts/serve-site.js <port>` for another port): it serves `site/` with the latest release written in and reads the files on every request, so an edit shows after a reload. The install steps are written here and on the page, so change both. Under Settings, Pages, the source has to be **GitHub Actions**.

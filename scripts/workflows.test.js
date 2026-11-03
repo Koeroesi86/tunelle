@@ -111,4 +111,24 @@ describe('workflows', () => {
 
     expect(text.indexOf('npm run build')).toBeLessThan(text.indexOf('npm run dist'))
   })
+
+  it('store.yml is started by hand with a tag, takes its secrets from the environment through env and checks before it submits', () => {
+    const text = read('store.yml')
+    const secretLines = text.split('\n').filter((line) => /secrets\./.test(line))
+
+    expect(text).toMatch(/on:\n  workflow_dispatch:\n    inputs:\n      tag:/)
+    expect(text).not.toMatch(/\n  (?:push|pull_request|release|schedule):/)
+    expect(text).toMatch(/environment: microsoft-store/)
+    expect(text).toMatch(/concurrency:\n  group: microsoft-store\n  cancel-in-progress: false/)
+    expect(text).toMatch(/permissions:\n  contents: read\n/)
+    expect(secretLines.length).toBeGreaterThan(0)
+    expect(secretLines.filter((line) => !/^\s+[A-Z_]+: \$\{\{ secrets\.MS_STORE_[A-Z_]+ \}\}$/.test(line))).toEqual([])
+    expect(text).not.toMatch(/run:.*\$\{\{/)
+    expect(text.indexOf('store-submission.js status')).toBeLessThan(text.indexOf('store-submission.js check'))
+    expect(text.indexOf('store-submission.js check')).toBeLessThan(text.indexOf('msstore publish'))
+  })
+
+  it('store.yml makes only a draft unless it is told to commit', () => {
+    expect(read('store.yml')).toMatch(/default: false[\s\S]*'--noCommit'/)
+  })
 })

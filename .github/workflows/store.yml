@@ -1,0 +1,120 @@
+name: Store submission
+
+# Sends a release to the Microsoft Store as a new submission, started by hand with its tag: releases come out on Monday and Thursday and certification takes time,
+# so the chosen ones go to the Store. Both packages of the release (x64 and arm64) are put in one bundle, as the Store developer CLI (msstore) takes .msix,
+# .msixbundle and .msixupload and not the .appx of the release; the Store signs the package itself, so the bundle needs no signature. Without "commit" the
+# draft is made and left in Partner Center to be looked at and submitted there. The secrets of the Microsoft Entra application (Manager role in Partner Center)
+# are in the environment microsoft-store, and the Store product ID is its variable MS_STORE_PRODUCT_ID. Certification then runs on the side of Microsoft.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The tag of the release to submit, for example v26.10.14
+        type: string
+        required: true
+      commit:
+        description: Submit it for certification, otherwise only a draft is made in Partner Center
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# the Store keeps one submission in progress per app
+concurrency:
+  group: microsoft-store
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    name: Submit to the Microsoft Store
+    runs-on: windows-2025
+    timeout-minutes: 30
+    environment: microsoft-store
+    env:
+      PRODUCT_ID: ${{ vars.MS_STORE_PRODUCT_ID }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Download the packages of the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'Tunelle-*.appx' --dir packages
+      - name: Install the Microsoft Store developer CLI
+        uses: microsoft/microsoft-store-apppublisher@cc9910a8d59f2eb55cbb83df0a3800cf3b5300e0 # v1.4
+        with:
+          version: v0.4.3
+      - name: Sign in to Partner Center
+        env:
+          TENANT_ID: ${{ secrets.MS_STORE_TENANT_ID }}
+          SELLER_ID: ${{ secrets.MS_STORE_SELLER_ID }}
+          CLIENT_ID: ${{ secrets.MS_STORE_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.MS_STORE_CLIENT_SECRET }}
+        shell: pwsh
+        run: |
+          msstore reconfigure --tenantId $env:TENANT_ID --sellerId $env:SELLER_ID --clientId $env:CLIENT_ID --clientSecret $env:CLIENT_SECRET
+          if ($LASTEXITCODE -ne 0) { throw "msstore reconfigure failed with $LASTEXITCODE" }
+      # a submission in certification (or failed and still there) blocks the next one: stop, and never cancel or delete it from here
+      - name: Check that the last submission is published
+        shell: pwsh
+        run: |
+          msstore submission status $env:PRODUCT_ID | Tee-Object -FilePath status.txt
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission status failed with $LASTEXITCODE" }
+          node scripts/store-submission.js status status.txt
+          if ($LASTEXITCODE -ne 0) { throw 'The last submission is not published' }
+      - name: Check the version
+        shell: pwsh
+        run: |
+          msstore submission get $env:PRODUCT_ID | Tee-Object -FilePath store.json
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission get failed with $LASTEXITCODE" }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $packages = Get-ChildItem packages/*.appx
+          if ($packages.Count -ne 2) { throw "Expected the x64 and the arm64 package, found $($packages.Count): $($packages.Name -join ', ')" }
+          $versions = $packages | ForEach-Object {
+            $archive = [System.IO.Compression.ZipFile]::OpenRead($_.FullName)
+            $reader = [System.IO.StreamReader]::new($archive.GetEntry('AppxManifest.xml').Open())
+            ([xml]$reader.ReadToEnd()).Package.Identity.Version
+            $reader.Dispose()
+            $archive.Dispose()
+          }
+          node scripts/store-submission.js check $env:TAG store.json @versions
+          if ($LASTEXITCODE -ne 0) { throw 'The release can not go to the Store' }
+      - name: Bundle the packages
+        shell: pwsh
+        run: |
+          $version = $env:TAG.TrimStart('v')
+          $makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\makeappx.exe" | Sort-Object FullName | Select-Object -Last 1
+          New-Item -ItemType Directory -Path bundle | Out-Null
+          & $makeappx.FullName bundle /d packages /p "bundle\Tunelle-$version.msixbundle" /bv "$version.0"
+          if ($LASTEXITCODE -ne 0) { throw "makeappx failed with $LASTEXITCODE" }
+      - name: Make the submission
+        env:
+          COMMIT: ${{ inputs.commit }}
+        shell: pwsh
+        run: |
+          $bundle = (Get-ChildItem bundle/*.msixbundle).FullName
+          $arguments = if ($env:COMMIT -eq 'true') { @() } else { @('--noCommit') }
+          msstore publish $bundle --appId $env:PRODUCT_ID @arguments
+          if ($LASTEXITCODE -ne 0) { throw "msstore publish failed with $LASTEXITCODE" }
+      - name: Say what was submitted
+        env:
+          COMMIT: ${{ inputs.commit }}
+        shell: pwsh
+        run: |
+          $state = if ($env:COMMIT -eq 'true') { 'Submitted for certification, which runs on the side of Microsoft.' } else { 'A draft was made and is not submitted: look at it in Partner Center and submit it there.' }
+          $lines = @(
+            "## $env:TAG in the Microsoft Store",
+            '',
+            $state,
+            '',
+            "- Packages: $((Get-ChildItem packages/*.appx).Name -join ', ')",
+            "- Submission: https://partner.microsoft.com/dashboard/products/$env:PRODUCT_ID/overview"
+          )
+          $lines | Add-Content -Path $env:GITHUB_STEP_SUMMARY
