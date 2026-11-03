@@ -27,7 +27,7 @@ describe('profileOf', () => {
     const { parseFile } = await import('music-metadata')
     const folder = mkdtempSync(join(tmpdir(), 'perf-profile-'))
     const plan = planLibrary(profile, 24, 9)
-    writePlan(folder, plan)
+    writePlan(folder, plan, { coverSize: 32 })
     mkdirSync(join(folder, 'no-music'))
     writeFileSync(join(folder, 'no-music', 'notes.txt'), 'text')
 
@@ -63,7 +63,7 @@ describe('tags', () => {
 describe('profileOf with files that cannot be read', () => {
   it('leaves them out of the sample', async () => {
     const folder = mkdtempSync(join(tmpdir(), 'perf-profile-'))
-    writePlan(folder, planLibrary(profile, 6, 2))
+    writePlan(folder, planLibrary(profile, 6, 2), { coverSize: 32 })
 
     const read = await profileOf(folder, 6, () => Promise.reject(new Error('unreadable')))
 

@@ -88,7 +88,7 @@ describe('planLibrary with a profile that has nothing to draw from', () => {
   it('writes the picture and the other file of such an album', () => {
     const folder = mkdtempSync(join(tmpdir(), 'perf-library-'))
     const plan = planLibrary({ ...profile, otherFiles: { png: 1 }, tags: { ...profile.tags, pictureKilobytes: [] } }, 6, 1)
-    writePlan(folder, plan)
+    writePlan(folder, plan, { coverSize: 32 })
 
     expect(readdirSync(join(folder, ...plan[0].folder)).includes('album.png')).toBe(true)
     rmSync(folder, { recursive: true, force: true })
@@ -113,7 +113,7 @@ describe('writePlan', () => {
     const { parseFile } = await import('music-metadata')
     const folder = mkdtempSync(join(tmpdir(), 'perf-library-'))
     const plan = planLibrary(profile, 30, 5)
-    writePlan(folder, plan, { seed: 5 })
+    writePlan(folder, plan, { seed: 5, coverSize: 32 })
 
     const files = plan.flatMap(album => album.tracks.map(track => join(folder, ...album.folder, ...(track.disc ? [`CD${track.disc}`] : []), `${track.file}.${track.format}`)))
     const flac = files.find(file => file.endsWith('.flac'))

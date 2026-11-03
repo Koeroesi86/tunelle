@@ -171,11 +171,18 @@ const coverSpecs = [
   { sky: [[10, 10, 10], [60, 60, 70]], sun: [240, 240, 240], ground: [[30, 30, 30], [5, 5, 5]], shape: 'grid' }
 ]
 
-const coverSize = 600
+const defaultCoverSize = 600
+
+// the pictures are drawn pixel by pixel, which takes seconds on a slow runner: each size is drawn once for all the libraries of a process
+const drawnCovers = new Map()
+const drawCovers = size => {
+  if (!drawnCovers.has(size)) drawnCovers.set(size, coverSpecs.map(spec => drawCover(spec, size)))
+  return drawnCovers.get(size)
+}
 
 /** The covers: a few drawn pictures, each given for every album its own private chunk of random bytes as big as the picture of a real album is, so no two albums share a file (the app keeps a picture once by its hash) and the file is as heavy to read */
-const createCovers = () => {
-  const drawn = coverSpecs.map(spec => drawCover(spec, coverSize))
+const createCovers = size => {
+  const drawn = drawCovers(size)
   return (albumNumber, kilobytes, next) => {
     const picture = drawn[albumNumber % drawn.length]
     const bytes = Buffer.alloc(Math.max(16, Math.round(kilobytes * 1000)))
@@ -189,10 +196,10 @@ const createCovers = () => {
 
 const extraFile = (extension, next) => Buffer.from(Array.from({ length: extension === 'jpg' || extension === 'jpeg' || extension === 'png' ? 60_000 + Math.floor(next() * 140_000) : 400 }, () => Math.floor(next() * 256)))
 
-/** Writes the albums of a plan into the folder: the files, the folders of the discs, the picture of each album and the other files beside the music */
-const writePlan = (folder, plan, { seed = 1 } = {}) => {
+/** Writes the albums of a plan into the folder (the pictures are `coverSize` pixels wide): the files, the folders of the discs, the picture of each album and the other files beside the music */
+const writePlan = (folder, plan, { seed = 1, coverSize = defaultCoverSize } = {}) => {
   const next = random(seed + 1000)
-  const cover = createCovers()
+  const cover = createCovers(coverSize)
 
   plan.forEach((album, albumNumber) => {
     const picture = cover(albumNumber, album.pictureKilobytes || 5, next)
