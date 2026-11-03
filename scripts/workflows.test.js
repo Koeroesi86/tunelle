@@ -112,28 +112,43 @@ describe('workflows', () => {
     expect(text.indexOf('npm run build')).toBeLessThan(text.indexOf('npm run dist'))
   })
 
-  it('store.yml is started by hand with a tag, takes its secrets from the environment through env and checks before it submits', () => {
+  it('store.yml takes its secrets from the environment through env and decides before it downloads and submits', () => {
     const text = read('store.yml')
     const secretLines = text.split('\n').filter((line) => /secrets\./.test(line))
 
-    expect(text).toMatch(/on:\n  workflow_dispatch:\n    inputs:\n      tag:/)
-    expect(text).not.toMatch(/\n  (?:push|pull_request|release|schedule):/)
     expect(text).toMatch(/environment: microsoft-store/)
     expect(text).toMatch(/concurrency:\n  group: microsoft-store\n  cancel-in-progress: false/)
     expect(text).toMatch(/permissions:\n  contents: read\n/)
     expect(secretLines.length).toBeGreaterThan(0)
     expect(secretLines.filter((line) => !/^\s+[A-Z_]+: \$\{\{ secrets\.MS_STORE_[A-Z_]+ \}\}$/.test(line))).toEqual([])
     expect(text).not.toMatch(/run:.*\$\{\{/)
-    expect(text.indexOf('store-submission.js status')).toBeLessThan(text.indexOf('store-submission.js check'))
+    expect(text).not.toMatch(/\n  (?:push|pull_request|release):/)
+    expect(text.indexOf('store-submission.js decide')).toBeLessThan(text.indexOf('gh release download'))
     expect(text.indexOf('store-submission.js check')).toBeLessThan(text.indexOf('msstore publish'))
   })
 
-  it('store.yml makes only a draft unless it is told to commit', () => {
+  it('store.yml runs from release.yml, by hand and weekly on Wednesday', () => {
     const text = read('store.yml')
 
-    expect(text).toMatch(/default: false/)
+    expect(text).toMatch(/on:\n  workflow_call:\n    inputs:\n      tag:[\s\S]*\n  workflow_dispatch:\n    inputs:\n      tag:/)
+    expect(text).toMatch(/schedule:\n    - cron: '\d+ \d+ \* \* 3'/)
+  })
+
+  it('store.yml only takes a tag of a release into the environment of its steps', () => {
+    expect(read('store.yml')).toMatch(/=~ \^v\[0-9\]\{2\}[\s\S]*>> "\$GITHUB_ENV"/)
+  })
+
+  it('store.yml makes only a draft in a manual run unless it is told to commit, and commits in an automatic one', () => {
+    const text = read('store.yml')
+
+    expect(text).toMatch(/workflow_dispatch:[\s\S]*commit:[\s\S]*default: false/)
+    expect(text).toMatch(/COMMIT: \$\{\{ github\.event_name == 'schedule' \|\| inputs\.commit \}\}/)
     expect(text).toMatch(/msstore publish \$bundle --appId \$env:PRODUCT_ID --noCommit/)
-    expect(text).toMatch(/- name: Submit the draft for certification\n\s+if: inputs\.commit\n[\s\S]*msstore submission publish/)
+    expect(text).toMatch(/- name: Submit the draft for certification\n\s+if: steps\.decide\.outputs\.submit == 'true' && env\.COMMIT == 'true'\n[\s\S]*msstore submission publish/)
     expect(text.indexOf('updateMetadata')).toBeLessThan(text.indexOf('msstore submission publish'))
+  })
+
+  it('release.yml submits what it released to the Store, after the release is published', () => {
+    expect(read('release.yml')).toMatch(/\n  store:\n(?:\s+#.*\n)*\s+needs: \[plan, release\]\n\s+uses: \.\/\.github\/workflows\/store\.yml\n\s+with:\n\s+tag: v\$\{\{ needs\.plan\.outputs\.version \}\}\n\s+commit: true\n\s+automatic: true\n/)
   })
 })
