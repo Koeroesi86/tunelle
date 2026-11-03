@@ -13,8 +13,9 @@
   --shadow: 0 24px 60px -20px rgba(23, 26, 33, 0.35);
 }
 
+/* the system decides until the visitor picks one with the button in the top bar (theme.js sets data-theme) */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #0e1016;
     --surface: #181b24;
     --text: #eceef3;
@@ -27,6 +28,25 @@
     --glow: rgba(255, 122, 69, 0.18);
     --shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
   }
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+    --bg: #0e1016;
+    --surface: #181b24;
+    --text: #eceef3;
+    --muted: #9aa2b1;
+    --border: #2a2f3b;
+    --accent: #ff7a45;
+    --accent-2: #ff4f9a;
+    --accent-text: #1a0d06;
+    --code: #232734;
+    --glow: rgba(255, 122, 69, 0.18);
+    --shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
 }
 
 * {
@@ -82,6 +102,21 @@ footer {
 }
 
 .top a:hover {
+  color: var(--text);
+}
+
+.top .theme {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.top .theme:hover {
   color: var(--text);
 }
 
