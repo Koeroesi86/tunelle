@@ -82,9 +82,10 @@ test('measures the scan and the scroll of a big library while a track plays', as
   await navigate(page, 'Albums');
   if (expected) {
     await search(page, 'Pitch Perfect');
-    // what the page shows when the album is not found stays with the traces
-    await player(page)
-      .playAlbum('Pitch Perfect')
+    // the list follows the text after a delay, and the page is not opened again (the filter is gone when it is); what the page shows when the album is not found stays with the traces
+    await expect(page.getByText('1 album', { exact: true }).filter({ visible: true }))
+      .toBeVisible({ timeout: 60_000 })
+      .then(() => page.getByRole('button', { name: 'Play Pitch Perfect' }).click())
       .catch(async (error) => {
         await page.screenshot({ path: join('test-results', 'albums-without-the-tone-album.png') });
         throw error;

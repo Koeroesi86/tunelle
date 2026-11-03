@@ -102,7 +102,9 @@ test('measures the cost of a standing app: the processor while it plays, is paus
   report.visibleIdle = await cpu();
 
   await page.getByRole('searchbox', { name: 'Search the library' }).fill('Pitch Perfect');
-  await player(page).playAlbum('Pitch Perfect');
+  // the page is not opened again: the filter is gone when it is
+  await expect(page.getByText('1 album', { exact: true }).filter({ visible: true })).toBeVisible({ timeout: 60_000 });
+  await page.getByRole('button', { name: 'Play Pitch Perfect' }).click();
   await expectTone(page, 440);
   report.visiblePlaying = await cpu();
 
