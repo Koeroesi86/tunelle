@@ -34,6 +34,29 @@
   color-scheme: light;
 }
 
+/* Microsoft's badge comes in a dark and a light version, the one that stands out from the page is shown */
+.badge-on-dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .badge-on-light {
+    display: none;
+  }
+
+  :root:not([data-theme='light']) .badge-on-dark {
+    display: inline;
+  }
+}
+
+:root[data-theme='dark'] .badge-on-light {
+  display: none;
+}
+
+:root[data-theme='dark'] .badge-on-dark {
+  display: inline;
+}
+
 :root[data-theme='dark'] {
   color-scheme: dark;
     --bg: #0e1016;
