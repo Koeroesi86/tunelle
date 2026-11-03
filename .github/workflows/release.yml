@@ -107,3 +107,15 @@ jobs:
       contents: read
       pages: write
       id-token: write
+
+  # the release goes to the Microsoft Store as a new submission when none is in certification: store.yml skips quietly otherwise, and its weekly run takes the latest
+  # release then. A reviewer of the environment microsoft-store approves the run before it starts, if one is set
+  store:
+    needs: [plan, release]
+    uses: ./.github/workflows/store.yml
+    with:
+      tag: v${{ needs.plan.outputs.version }}
+      commit: true
+      automatic: true
+    permissions:
+      contents: read

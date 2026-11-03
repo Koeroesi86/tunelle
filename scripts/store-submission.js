@@ -1,7 +1,8 @@
-const { readFileSync, writeFileSync } = require('fs')
+const { appendFileSync, readFileSync, writeFileSync } = require('fs')
 const { compareVersions } = require('./version')
 
 // usage: node scripts/store-submission.js notes <file> <result> <notes> [<language>=<notes>]...   writes the submission in <file> to <result> with the release notes of its listings set to <notes>, or to the notes of the language of the listing (hu for hu-hu), for `msstore submission updateMetadata`
+//        node scripts/store-submission.js decide <status file> <submission file> <tag> <automatic>   says whether the release is submitted now (submit=true or false and the reason, also to $GITHUB_OUTPUT)
 //        node scripts/store-submission.js status <file>                            fails unless the last submission in the output of `msstore submission status` is published
 //        node scripts/store-submission.js check <tag> <file> <package version>...  fails when the release can not go to the Store, with the output of `msstore submission get` in <file>
 // store.yml runs both before it submits a release. The Store takes a version only when it is greater than the one of the last submission and its fourth part is 0
@@ -49,6 +50,25 @@ const withReleaseNotes = (output, notes, translations = {}) => {
   return JSON.stringify({ ...submission, Listings: listings }, undefined, 2)
 }
 
+// the states of a submission that is on its way (committed, not published yet): an automatic run waits for it. A draft (PendingCommit) or a failed submission that
+// is still there needs somebody, so it stops every run
+const inProgress = ['CommitStarted', 'PreProcessing', 'Certification', 'PendingPublication', 'Publishing', 'Release']
+
+// automatic runs (after a release, weekly) skip quietly when there is nothing to do yet and stop with an error when somebody has to look; a manual run stops
+// on everything it can not submit
+const decide = (statusOutput, storeOutput, tag, automatic) => {
+  const status = readStatus(statusOutput)
+  if (automatic && inProgress.includes(status)) return { submit: false, reason: `The last submission is ${status}: ${tag} is not submitted now, a later run takes the latest release` }
+
+  assertPublished(statusOutput)
+  const version = tag.match(tagPattern)?.[1]
+  if (!version) throw new Error(`${tag} is not a release tag like v26.10.14`)
+
+  const storeVersion = readStoreVersion(storeOutput)
+  if (automatic && compareVersions(version, storeVersion) <= 0) return { submit: false, reason: `${version} is not greater than ${storeVersion} of the last submission: nothing new to submit` }
+  return { submit: true, reason: `${version} is greater than ${storeVersion} of the last submission` }
+}
+
 const assertSubmittable = (tag, storeVersion, packageVersions) => {
   const version = tag.match(tagPattern)?.[1]
   if (!version) throw new Error(`${tag} is not a release tag like v26.10.14`)
@@ -59,19 +79,27 @@ const assertSubmittable = (tag, storeVersion, packageVersions) => {
   if (wrong.length > 0) throw new Error(`The packages have the version ${wrong.join(', ')}, the Store needs ${version}.0 (the fourth part 0, the same as the tag)`)
 }
 
-if (require.main === module) {
-  const [command, ...args] = process.argv.slice(2)
+const read = (file) => readFileSync(file, 'utf8')
+
+const run = ([command, ...args], env) => {
   if (command === 'notes') {
     const [file, result, notes, ...translations] = args
     const byLanguage = Object.fromEntries(translations.map((translation) => [translation.slice(0, translation.indexOf('=')).toLowerCase(), translation.slice(translation.indexOf('=') + 1)]))
-    writeFileSync(result, withReleaseNotes(readFileSync(file, 'utf8'), notes, byLanguage))
-  } else if (command === 'status') assertPublished(readFileSync(args[0], 'utf8'))
+    writeFileSync(result, withReleaseNotes(read(file), notes, byLanguage))
+  } else if (command === 'decide') {
+    const [statusFile, submissionFile, tag, automatic] = args
+    const { submit, reason } = decide(read(statusFile), read(submissionFile), tag, automatic?.toLowerCase() === 'true')
+    console.log(reason)
+    if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, `submit=${submit}\nreason=${reason}\n`)
+  } else if (command === 'status') assertPublished(read(args[0]))
   else if (command === 'check') {
     const [tag, file, ...packageVersions] = args
-    const storeVersion = readStoreVersion(readFileSync(file, 'utf8'))
+    const storeVersion = readStoreVersion(read(file))
     assertSubmittable(tag, storeVersion, packageVersions)
     console.log(`${tag} is greater than ${storeVersion} of the last submission`)
-  } else throw new Error('usage: store-submission.js status <file> | check <tag> <file> <package version>... | notes <file> <result> <notes> [<language>=<notes>]...')
+  } else throw new Error('usage: store-submission.js status <file> | check <tag> <file> <package version>... | decide <status file> <submission file> <tag> <automatic> | notes <file> <result> <notes> [<language>=<notes>]...')
 }
 
-module.exports = { assertPublished, assertSubmittable, readStoreVersion, readStatus, releaseVersion, withReleaseNotes }
+if (require.main === module) run(process.argv.slice(2), process.env)
+
+module.exports = { assertPublished, assertSubmittable, decide, readStoreVersion, readStatus, releaseVersion, run, withReleaseNotes }

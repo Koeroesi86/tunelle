@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import { assertPublished, assertSubmittable, readStatus, readStoreVersion, releaseVersion, withReleaseNotes } from './store-submission'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { assertPublished, assertSubmittable, decide, readStatus, readStoreVersion, releaseVersion, run, withReleaseNotes } from './store-submission'
 
 const submission = (...versions) => `Retrieving Submission\n${JSON.stringify({ Id: '1', ApplicationPackages: versions.map((Version) => ({ FileName: 'Tunelle.appx', Version })) }, undefined, 2)}\n`
 
@@ -126,5 +129,103 @@ describe('withReleaseNotes', () => {
 
   it('fails without notes, instead of emptying them', () => {
     expect(() => withReleaseNotes(output({ 'en-us': listing('x') }), '')).toThrow('No release notes')
+  })
+})
+
+describe('decide', () => {
+  const status = (value) => `Submission Status = ${value}\n`
+
+  it('submits a greater version after a published submission', () => {
+    expect(decide(status('Published'), submission('26.11.15.0'), 'v26.11.18', true)).toEqual({ submit: true, reason: '26.11.18 is greater than 26.11.15 of the last submission' })
+  })
+
+  it.each(['Certification', 'Publishing', 'PreProcessing'])('waits for a submission that is %s in an automatic run', (value) => {
+    const { submit, reason } = decide(status(value), submission('26.11.18.0'), 'v26.11.19', true)
+
+    expect(submit).toBe(false)
+    expect(reason).toContain(value)
+  })
+
+  it('stops a manual run for a submission in progress', () => {
+    expect(() => decide(status('Certification'), submission('26.11.18.0'), 'v26.11.19', false)).toThrow('Certification')
+  })
+
+  it.each(['PendingCommit', 'CertificationFailed', 'CommitFailed', 'PublishFailed'])('stops an automatic run for a submission that needs somebody: %s', (value) => {
+    expect(() => decide(status(value), submission('26.11.15.0'), 'v26.11.18', true)).toThrow(value)
+  })
+
+  it('skips a release that is not greater than the one in the Store in an automatic run', () => {
+    expect(decide(status('Published'), submission('26.11.18.0'), 'v26.11.18', true).submit).toBe(false)
+    expect(decide(status('Published'), submission('26.11.18.0'), 'v26.11.17', true).submit).toBe(false)
+  })
+
+  it('leaves a version that is not greater to the check of a manual run, which says why', () => {
+    expect(decide(status('Published'), submission('26.11.18.0'), 'v26.11.18', false).submit).toBe(true)
+  })
+
+  it('stops when the state is not known, instead of submitting', () => {
+    expect(() => decide('Error!', submission('26.11.15.0'), 'v26.11.18', true)).toThrow('not known')
+  })
+
+  it('stops on a tag that is not a release', () => {
+    expect(() => decide(status('Published'), submission('26.11.15.0'), 'latest', true)).toThrow('release tag')
+  })
+})
+
+describe('run', () => {
+  const folders = []
+  const write = (name, text) => {
+    const folder = folders.at(-1) ?? folders[folders.push(mkdtempSync(join(tmpdir(), 'store-submission-'))) - 1]
+    writeFileSync(join(folder, name), text)
+    return join(folder, name)
+  }
+
+  afterEach(() => {
+    folders.splice(0).forEach((folder) => rmSync(folder, { recursive: true, force: true }))
+  })
+
+  it('writes the submission with the notes, by language', () => {
+    const file = write('draft.json', `Pending\n${JSON.stringify({ Listings: { 'en-us': { BaseListing: {} }, 'hu-hu': { BaseListing: {} } } })}`)
+    const result = join(folders[0], 'metadata.json')
+
+    run(['notes', file, result, 'Fixes.', 'hu=Javítások.'], {})
+
+    const { Listings } = JSON.parse(readFileSync(result, 'utf8'))
+    expect([Listings['en-us'].BaseListing.ReleaseNotes, Listings['hu-hu'].BaseListing.ReleaseNotes]).toEqual(['Fixes.', 'Javítások.'])
+  })
+
+  it('writes the decision to the output file of the step', () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const status = write('status.txt', 'Submission Status = Certification\n')
+    const submission = write('store.json', JSON.stringify({ ApplicationPackages: [{ Version: '26.11.18.0' }] }))
+    const output = write('output.txt', '')
+
+    run(['decide', status, submission, 'v26.11.19', 'True'], { GITHUB_OUTPUT: output })
+
+    expect(readFileSync(output, 'utf8')).toMatch(/^submit=false\nreason=The last submission is Certification/)
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Certification'))
+  })
+
+  it('decides without an output file, and a manual run is stopped by a submission in progress', () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const status = write('status.txt', 'Submission Status = Certification\n')
+    const submission = write('store.json', JSON.stringify({ ApplicationPackages: [{ Version: '26.11.18.0' }] }))
+
+    expect(() => run(['decide', status, submission, 'v26.11.19', 'false'], {})).toThrow('Certification')
+    expect(() => run(['decide', status, submission, 'v26.11.19', 'true'], {})).not.toThrow()
+  })
+
+  it('stops on an unpublished status and checks a release against the packages', () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const submission = write('store.json', JSON.stringify({ ApplicationPackages: [{ Version: '26.11.15.0' }] }))
+
+    expect(() => run(['status', write('status.txt', 'Submission Status = Certification')], {})).toThrow('not Published')
+    expect(() => run(['status', write('published.txt', 'Submission Status = Published')], {})).not.toThrow()
+    expect(() => run(['check', 'v26.11.18', submission, '26.11.18.0', '26.11.18.0'], {})).not.toThrow()
+    expect(() => run(['check', 'v26.11.18', submission, '26.11.18.1'], {})).toThrow('26.11.18.1')
+  })
+
+  it('says how it is used for another command', () => {
+    expect(() => run(['publish'], {})).toThrow('usage')
   })
 })

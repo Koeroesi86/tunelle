@@ -56,7 +56,7 @@ Tested with Blur my Shell 76 on GNOME 50 (Wayland). Without the extension, GNOME
 | `npm run typecheck`| Type-check the whole project         |
 | `npm run dist`     | Build for current OS                 |
 
-A release goes to the Microsoft Store by hand: the workflow `Store submission` (`store.yml`) takes the tag of a release, checks that its version is greater than the one in the Store, and makes the submission from the two Windows packages of the release (only a draft in Partner Center, until "commit" is ticked; the draft is looked at there but changed only through the workflow: delete it in Partner Center and run again with "commit").
+A release goes to the Microsoft Store by itself: the workflow `Store submission` (`store.yml`) runs after every release and weekly on Wednesday, checks that the latest release is greater than the version in the Store and that no submission is in certification, and submits the two Windows packages of the release (the Store brings the update to the installed apps after its certification). By hand it takes the tag of a release and, without "commit", only makes a draft in Partner Center, which is looked at there but changed only through the workflow: delete it in Partner Center and run again with "commit".
 
 ### Website
 
