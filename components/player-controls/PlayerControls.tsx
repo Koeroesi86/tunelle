@@ -108,6 +108,9 @@ const TransportButtons = ({
 
   return (
     <div className={style.mainControlButtons}>
+      <button className={classNames(style.controlButton, { [style.active]: shuffle })} onClick={toggleShuffle} title={t('player.shuffle')}>
+        <ShuffleIcon size={'12px'} />
+      </button>
       <button className={style.controlButton} onClick={previousSong} title={t('player.previous')}>
         <BackIcon size={'16px'} />
       </button>
@@ -121,9 +124,6 @@ const TransportButtons = ({
       </button>
       <button className={style.controlButton} onClick={nextSong} title={t('player.next')}>
         <ForwardIcon size={'16px'} />
-      </button>
-      <button className={classNames(style.controlButton, { [style.active]: shuffle })} onClick={toggleShuffle} title={t('player.shuffle')}>
-        <ShuffleIcon size={'12px'} />
       </button>
       <button className={classNames(style.controlButton, { [style.active]: repeat })} onClick={toggleRepeat} title={t('player.repeat')}>
         <RepeatIcon size={'12px'} />

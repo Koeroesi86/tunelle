@@ -62,6 +62,13 @@ describe('PlayerControls', () => {
     expect(screen.getByText('00:12:34')).toBeTruthy();
   });
 
+  it('keeps the play button in the middle of the transport buttons, so it sits under the middle of the seek bar', () => {
+    renderControls(0.5);
+
+    const buttons = Array.from(screen.getByRole('button', { name: 'Play' }).parentElement?.children ?? []);
+    expect(buttons.map((button) => button.getAttribute('title'))).toEqual(['Shuffle', 'Previous', 'Play', 'Next', 'Repeat']);
+  });
+
   it('keeps the play button disabled until there is a track', () => {
     renderControls(0.5);
 
