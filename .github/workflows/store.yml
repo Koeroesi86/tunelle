@@ -64,14 +64,15 @@ jobs:
       - name: Check that the last submission is published
         shell: pwsh
         run: |
-          msstore submission status $env:PRODUCT_ID | Tee-Object -FilePath status.txt
+          # 2>&1: msstore writes its progress text to stderr, which a pipe does not take
+          msstore submission status $env:PRODUCT_ID 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath status.txt
           if ($LASTEXITCODE -ne 0) { throw "msstore submission status failed with $LASTEXITCODE" }
           node scripts/store-submission.js status status.txt
           if ($LASTEXITCODE -ne 0) { throw 'The last submission is not published' }
       - name: Check the version
         shell: pwsh
         run: |
-          msstore submission get $env:PRODUCT_ID | Tee-Object -FilePath store.json
+          msstore submission get $env:PRODUCT_ID 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath store.json
           if ($LASTEXITCODE -ne 0) { throw "msstore submission get failed with $LASTEXITCODE" }
 
           Add-Type -AssemblyName System.IO.Compression.FileSystem

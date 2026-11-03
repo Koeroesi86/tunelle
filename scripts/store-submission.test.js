@@ -15,6 +15,10 @@ describe('readStatus', () => {
     expect(readStatus('Retrieving submission status\nSubmission Status = Certification\n')).toBe('Certification')
   })
 
+  it('reads it through the colours msstore adds', () => {
+    expect(readStatus('Retrieving Last Published Submission\nSubmission Status = \u001b[38;5;2mPublished\u001b[0m\n')).toBe('Published')
+  })
+
   it('has none in other output', () => {
     expect(readStatus('Error!')).toBeUndefined()
   })
@@ -37,6 +41,10 @@ describe('assertPublished', () => {
 describe('readStoreVersion', () => {
   it('takes the greatest version of the packages, without the fourth part', () => {
     expect(readStoreVersion(submission('26.10.9.0', '26.10.14.0', '26.10.14.0'))).toBe('26.10.14')
+  })
+
+  it('reads the JSON through colours around it', () => {
+    expect(readStoreVersion(`\u001b[38;5;2mLast Published Submission\u001b[0m\n${submission('26.11.18.0')}`)).toBe('26.11.18')
   })
 
   it('orders the versions as numbers', () => {
