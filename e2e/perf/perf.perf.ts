@@ -1,5 +1,5 @@
 import { expect, type ElectronApplication, type Page } from '@playwright/test';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { test } from '../app';
@@ -7,7 +7,7 @@ import { clearProbe, expectTone, longestGap } from '../audio';
 import { navigate } from '../app';
 import { player } from '../player';
 import { writeLargeLibrary } from './large-library';
-import { percentile, scrollList, startMainLoop, startRenderer, stopMainLoop, stopRenderer } from './measure';
+import { percentile, record, scrollList, startMainLoop, startRenderer, stopMainLoop, stopRenderer } from './measure';
 
 // the measurements of the performance (npm run perf, after npm run build): they say how the app does on a big library and assert nothing but that it works,
 // the numbers go to the output and to test-results/perf.json, as no budget is set before they are known
@@ -77,7 +77,6 @@ test('measures the scan and the scroll of a big library while a track plays', as
   const { app, page } = await start();
   const report: Record<string, unknown> = { tracks: expected ?? 'real library' };
   report.scan = await scan(app, page);
-  console.log(JSON.stringify(report));
 
   // something plays while the lists scroll: a tone from the album of the other tests, or the first album of a real library (whose quiet passages count as gaps)
   await navigate(page, 'Albums');
@@ -99,8 +98,6 @@ test('measures the scan and the scroll of a big library while a track plays', as
   report['scroll Albums'] = await scroll(app, page, 'Albums');
   report.audioLongestGapSeconds = await longestGap(page);
 
-  console.log(JSON.stringify(report, undefined, 2));
-  mkdirSync('test-results', { recursive: true });
-  writeFileSync(join('test-results', 'perf.json'), JSON.stringify(report, undefined, 2));
+  record('scan-and-scroll', report);
   if (expected) expect(report.scan).toMatchObject({ tracksFound: expected });
 });

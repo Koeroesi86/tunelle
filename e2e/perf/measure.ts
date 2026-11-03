@@ -1,4 +1,6 @@
 import type { ElectronApplication, Page } from '@playwright/test';
+import { mkdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
 
 export interface Renderer {
   /** Tasks of the main thread of the page longer than 50 ms (the Long Tasks API) */
@@ -44,22 +46,45 @@ export const stopRenderer = (page: Page): Promise<Renderer> =>
     return { longTasks: recorded.longTasks, frames: recorded.frames.slice(1) };
   });
 
-/** Records the delay of the event loop of the main process (ms): what a blocking scan or a slow handler adds to every other thing the process does */
+interface MainLoop {
+  histogram: ReturnType<typeof import('perf_hooks').monitorEventLoopDelay>;
+  blocks: { atMs: number; lagMs: number }[];
+  timer: NodeJS.Timeout;
+}
+
+/** Records the delay of the event loop of the main process (ms): what a blocking scan or a slow handler adds to every other thing the process does, and when the loop stood still for longer than 100 ms */
 export const startMainLoop = (app: ElectronApplication) =>
   app.evaluate(() => {
     const { monitorEventLoopDelay } = process.getBuiltinModule('perf_hooks');
     const histogram = monitorEventLoopDelay({ resolution: 10 });
     histogram.enable();
-    Reflect.set(process, 'perfLoop', histogram);
+    const began = Date.now();
+    const blocks: MainLoop['blocks'] = [];
+    let last = began;
+    const timer = setInterval(() => {
+      const now = Date.now();
+      if (now - last > 100) blocks.push({ atMs: last - began, lagMs: now - last });
+      last = now;
+    }, 20);
+    const recorded: MainLoop = { histogram, blocks, timer };
+    Reflect.set(process, 'perfLoop', recorded);
   });
 
 export const stopMainLoop = (app: ElectronApplication) =>
   app.evaluate(() => {
-    const histogram: ReturnType<typeof import('perf_hooks').monitorEventLoopDelay> | undefined = Reflect.get(process, 'perfLoop');
-    if (!histogram) throw new Error('startMainLoop was not called');
-    histogram.disable();
+    const recorded: MainLoop | undefined = Reflect.get(process, 'perfLoop');
+    if (!recorded) throw new Error('startMainLoop was not called');
+    recorded.histogram.disable();
+    clearInterval(recorded.timer);
     // the histogram counts in ns and includes the resolution of the timer
-    return { maxMs: histogram.max / 1e6, p99Ms: histogram.percentile(99) / 1e6, meanMs: histogram.mean / 1e6 };
+    const { histogram, blocks } = recorded;
+    return {
+      maxMs: histogram.max / 1e6,
+      p99Ms: histogram.percentile(99) / 1e6,
+      meanMs: histogram.mean / 1e6,
+      blocks: blocks.slice(0, 30),
+      blockCount: blocks.length,
+    };
   });
 
 export const percentile = (values: number[], share: number) =>
@@ -103,3 +128,10 @@ export const scrollList = (page: Page, seconds: number) =>
       }),
     seconds
   );
+
+/** Prints what a measurement found, and keeps it in test-results/perf-<name>.json for the summary of the runs (scripts/perf-summary.js) */
+export const record = (name: string, report: Record<string, unknown>) => {
+  console.log(JSON.stringify({ [name]: report }));
+  mkdirSync('test-results', { recursive: true });
+  writeFileSync(join('test-results', `perf-${name}.json`), JSON.stringify(report, undefined, 2));
+};
