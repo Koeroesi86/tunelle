@@ -30,15 +30,15 @@ const queryOf = (streamTitle: string) => {
 
 const searchUrl = (title: string) => `https://musicbrainz.org/ws/2/recording?${new URLSearchParams({ query: queryOf(title), fmt: 'json', limit: '5' })}`;
 
-const getOk = async (fetcher: Fetcher, url: string, headers?: Record<string, string>) => {
-  const response = await fetcher(url, { signal: AbortSignal.timeout(lookupTimeout), headers });
+const getOk = async (fetcher: Fetcher, url: string, headers?: Record<string, string>, cancel?: AbortSignal) => {
+  const response = await fetcher(url, { signal: AbortSignal.any([AbortSignal.timeout(lookupTimeout), ...(cancel ? [cancel] : [])]), headers });
   if (!response.ok) throw new Error(`${new URL(url).host} answered ${response.status}`);
 
   return response;
 };
 
-export const getImage = async (fetcher: Fetcher, url: string): Promise<RadioArtImage> => {
-  const response = await getOk(fetcher, url);
+export const getImage = async (fetcher: Fetcher, url: string, cancel?: AbortSignal): Promise<RadioArtImage> => {
+  const response = await getOk(fetcher, url, undefined, cancel);
   const type = response.headers.get('content-type') ?? '';
   const data = Buffer.from(await response.arrayBuffer());
   if (!type.startsWith('image/') || data.length === 0 || data.length > maxImageBytes) throw new Error('Not a usable image');
@@ -67,20 +67,30 @@ const coverUrlsOf = (answer: unknown) => {
     .map((path) => `https://coverartarchive.org/${path}/front-500`);
 };
 
-/** The requests to MusicBrainz one after the other, each followed by a pause, so they stay under its limit */
+/** The requests to MusicBrainz one after the other, each gap counted from the start of the request before it, so they stay under its limit */
 const createQueue = (pause: (milliseconds: number) => Promise<unknown>) => {
   let tail: Promise<unknown> = Promise.resolve();
 
   return <T>(task: () => Promise<T>) => {
-    const result = tail.then(task);
-    tail = result.catch(() => undefined).then(() => pause(searchGap));
+    let gap: Promise<unknown> = Promise.resolve();
+    const result = tail.then(() => {
+      gap = pause(searchGap);
+      return task();
+    });
+    tail = result.catch(() => undefined).then(() => gap);
     return result;
   };
 };
 
-/** The first of the images that loads */
-const firstImage = (fetcher: Fetcher, urls: string[]) =>
-  urls.reduce((previous, url) => previous.catch(() => getImage(fetcher, url)), Promise.reject<RadioArtImage>(new Error('The search found no art')));
+/** The best ranked of the images that load: all are requested at once, the ones that lose are cancelled */
+const firstImage = async (fetcher: Fetcher, urls: string[]) => {
+  const cancel = new AbortController();
+  const attempts = urls.map((url) => getImage(fetcher, url, cancel.signal).catch(() => undefined));
+
+  const best = attempts.reduce((previous, attempt) => previous.then((found) => found ?? attempt), Promise.resolve<RadioArtImage | undefined>(undefined));
+
+  return best.then((image) => image ?? Promise.reject(new Error('The search found no art'))).finally(() => cancel.abort());
+};
 
 /**
  * The art of the song a station announces: the image the station names in its `StreamUrl`, else the first match of a music search.

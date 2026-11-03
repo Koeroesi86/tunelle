@@ -100,7 +100,41 @@ describe('radio art', () => {
     expect(await create(fetcher).lookup('Artist - Song')).toBeUndefined();
   });
 
-  it('pauses after a search, so two searches stay under the limit of MusicBrainz, and does not wait before the first', async () => {
+  it('requests the covers at once and takes the best ranked one that loads', async () => {
+    const started: string[] = [];
+    let resolveGroup: (response: Response) => void = () => undefined;
+    const groupCover = new Promise<Response>((resolve) => {
+      resolveGroup = resolve;
+    });
+    const fetcher = vi.fn<Fetcher>(async (url) => {
+      if (new URL(url).host === 'musicbrainz.org') return match([{ id: release, group }]);
+      started.push(url);
+      return url.includes('release-group') ? groupCover : image('image/png');
+    });
+    const art = create(fetcher);
+
+    const lookup = art.lookup('Artist - Song');
+    await vi.waitFor(() => expect(started).toHaveLength(2));
+    resolveGroup(image('image/jpeg'));
+    const key = await lookup;
+
+    expect(art.get(key ?? '')?.type).toBe('image/jpeg');
+  });
+
+  it('cancels the covers that lose', async () => {
+    const signals: AbortSignal[] = [];
+    const fetcher = vi.fn<Fetcher>(async (url, { signal }) => {
+      if (new URL(url).host === 'musicbrainz.org') return match([{ id: release, group }]);
+      signals.push(signal);
+      return url.includes('release-group') ? image() : new Promise<Response>(() => undefined);
+    });
+
+    await create(fetcher).lookup('Artist - Song');
+
+    expect(signals.map(({ aborted }) => aborted)).toEqual([true, true]);
+  });
+
+  it('counts the pause between two searches from the start of the first, and does not wait before it', async () => {
     const order: string[] = [];
     const fetcher = answers({
       'musicbrainz.org': () => {
@@ -116,7 +150,7 @@ describe('radio art', () => {
 
     await Promise.all([art.lookup('A - One'), art.lookup('B - Two')]);
 
-    expect(order).toEqual(['search', 'pause', 'search', 'pause']);
+    expect(order).toEqual(['pause', 'search', 'pause', 'search']);
     expect(wait).toHaveBeenCalledWith(expect.any(Number));
   });
 
