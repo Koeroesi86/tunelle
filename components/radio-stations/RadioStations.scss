@@ -12,7 +12,6 @@
   // the search and the sort on the first row, the filters under them: the same however wide the window is, the filters wrap among themselves
   // one row of chips: the search, the filters and the sort, wrapping when the window is narrow
   .controls {
-    -webkit-app-region: no-drag;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;

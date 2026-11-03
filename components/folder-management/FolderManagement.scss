@@ -22,7 +22,6 @@
     }
 
     .addItems {
-      -webkit-app-region: no-drag;
       display: inline-flex;
       flex: none;
       align-items: center;
@@ -61,7 +60,6 @@
     list-style: none;
 
     .folder {
-      -webkit-app-region: no-drag;
       display: flex;
       align-items: center;
       gap: 10px;
