@@ -82,7 +82,13 @@ test('measures the scan and the scroll of a big library while a track plays', as
   await navigate(page, 'Albums');
   if (expected) {
     await search(page, 'Pitch Perfect');
-    await player(page).playAlbum('Pitch Perfect');
+    // what the page shows when the album is not found stays with the traces
+    await player(page)
+      .playAlbum('Pitch Perfect')
+      .catch(async (error) => {
+        await page.screenshot({ path: join('test-results', 'albums-without-the-tone-album.png') });
+        throw error;
+      });
     await expectTone(page, 440);
     await search(page, '');
   } else {
