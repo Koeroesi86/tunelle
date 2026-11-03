@@ -2,8 +2,9 @@ const { existsSync, readdirSync, readFileSync, statSync } = require('fs')
 const { join } = require('path')
 
 // usage: node scripts/perf-summary.js <folder>
-// the folder has a subfolder for each system (the artifacts of .github/workflows/perf.yml, named perf-<system>) with the perf-<name>.json files that `npm run perf` writes
-// prints a markdown table for each file, a row for each number and a column for each system, so the systems can be compared at a glance; the numbers are measurements, not budgets
+// the folder has a subfolder for each system (the artifacts of .github/workflows/perf.yml): perf-<system> with the perf-<name>.json files that `npm run perf` writes for the pull request,
+// and base-perf-<system> with the same for the base branch, which are run first on the same runner
+// prints a markdown table for each file, a row for each number and a column for each system, with the base and the change in percent next to it when the base was measured; the numbers are measurements, not budgets
 
 const isNumber = value => typeof value === 'number' && Number.isFinite(value)
 
@@ -19,43 +20,74 @@ const flatten = (value, path = []) =>
 
 const round = value => (Math.abs(value) >= 100 ? `${Math.round(value)}` : `${Math.round(value * 100) / 100}`)
 
-/** The tables of the systems: { 'ubuntu-latest': { 'scan-and-scroll': { ...report } } } */
+// a change of a fifth or more is in bold, as the runs of a runner differ by a few percent on their own
+const significant = 20
+
+/** The change from the base in percent: signed, and `new` for a number that the base did not have or had as 0 */
+const change = (value, base) => {
+  if (value === undefined || base === undefined) return ''
+  if (base === 0) return value === 0 ? '0%' : 'new'
+  const percent = Math.round(((value - base) / Math.abs(base)) * 100)
+  const text = `${percent > 0 ? '+' : ''}${percent}%`
+  return Math.abs(percent) >= significant ? `**${text}**` : text
+}
+
+/** The tables of the systems: { 'ubuntu-latest': { pr: { startup: { ...report } }, base: { startup: { ...report } } } }, `base` is missing when it was not measured */
 const toMarkdown = bySystem => {
   const systems = Object.keys(bySystem).sort()
-  const names = [...new Set(systems.flatMap(system => Object.keys(bySystem[system])))].sort()
+  const names = [...new Set(systems.flatMap(system => Object.keys(bySystem[system].pr ?? {})))].sort()
+  const compared = systems.some(system => Object.keys(bySystem[system].base ?? {}).length > 0)
 
   if (names.length === 0) return '### Performance\n\nNo measurements were found.\n'
 
-  return [
-    '### Performance',
-    'Measurements of the built app on each system (`npm run perf`), not budgets. Times are in ms unless the name says otherwise.',
-    ...names.flatMap(name => {
-      const rows = systems.map(system => new Map(flatten(bySystem[system][name])))
-      const keys = [...new Set(rows.flatMap(row => [...row.keys()]))]
-      return [
-        `#### ${name}`,
-        [`| | ${systems.join(' | ')} |`, `|---|${systems.map(() => '---:').join('|')}|`, ...keys.map(key => `| ${key} | ${rows.map(row => (row.has(key) ? round(row.get(key)) : '')).join(' | ')} |`)].join('\n')
-      ]
-    })
-  ].join('\n\n') + '\n'
+  const columns = system => (compared ? [`${system} base`, `${system} PR`, 'change'] : [system])
+  const cells = (system, name, key) => {
+    const value = new Map(flatten(bySystem[system].pr?.[name])).get(key)
+    const base = new Map(flatten(bySystem[system].base?.[name])).get(key)
+    const shown = value === undefined ? '' : round(value)
+    return compared ? [base === undefined ? '' : round(base), shown, change(value, base)] : [shown]
+  }
+
+  return (
+    [
+      '### Performance',
+      compared
+        ? 'Measurements of the built app on each system (`npm run perf`), the base branch and the pull request on the same runner, the base first. They are not budgets, and the runs of a runner differ by a few percent on their own: a change of a fifth or more is in bold. Times are in ms unless the name says otherwise.'
+        : 'Measurements of the built app on each system (`npm run perf`), not budgets. Times are in ms unless the name says otherwise.',
+      ...names.flatMap(name => {
+        const keys = [...new Set(systems.flatMap(system => [...flatten(bySystem[system].pr?.[name])].map(([key]) => key)))]
+        const header = systems.flatMap(columns)
+        return [
+          `#### ${name}`,
+          [
+            `| | ${header.join(' | ')} |`,
+            `|---|${header.map(() => '---:').join('|')}|`,
+            ...keys.map(key => `| ${key} | ${systems.flatMap(system => cells(system, name, key)).join(' | ')} |`)
+          ].join('\n')
+        ]
+      })
+    ].join('\n\n') + '\n'
+  )
 }
 
-/** The system of an artifact folder (`perf-macos-15` is `macos-15`) and its reports */
-const readSystems = folder =>
+const readReports = folder =>
   Object.fromEntries(
     readdirSync(folder)
-      .filter(entry => statSync(join(folder, entry)).isDirectory())
-      .map(entry => [
-        entry.replace(/^perf-/, ''),
-        Object.fromEntries(
-          readdirSync(join(folder, entry))
-            .filter(file => /^perf-.+\.json$/.test(file))
-            .map(file => [file.replace(/^perf-|\.json$/g, ''), JSON.parse(readFileSync(join(folder, entry, file), 'utf8'))])
-        )
-      ])
+      .filter(file => /^perf-.+\.json$/.test(file))
+      .map(file => [file.replace(/^perf-|\.json$/g, ''), JSON.parse(readFileSync(join(folder, file), 'utf8'))])
   )
 
-module.exports = { flatten, toMarkdown, readSystems }
+/** The system and the side of an artifact folder (`perf-macos-15` is the pull request on `macos-15`, `base-perf-macos-15` the base) and its reports */
+const readSystems = folder =>
+  readdirSync(folder)
+    .filter(entry => statSync(join(folder, entry)).isDirectory())
+    .reduce((systems, entry) => {
+      const side = entry.startsWith('base-perf-') ? 'base' : 'pr'
+      const system = entry.replace(/^(base-)?perf-/, '')
+      return { ...systems, [system]: { ...systems[system], [side]: readReports(join(folder, entry)) } }
+    }, {})
+
+module.exports = { flatten, change, toMarkdown, readSystems }
 
 if (require.main === module) {
   const folder = process.argv[2]
