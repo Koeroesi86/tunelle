@@ -1,4 +1,4 @@
-import type { ElectronApplication, Page } from '@playwright/test';
+import { test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -129,9 +129,10 @@ export const scrollList = (page: Page, seconds: number) =>
     seconds
   );
 
-/** Prints what a measurement found, and keeps it in test-results/perf-<name>.json for the summary of the runs (scripts/perf-summary.js) */
+/** Prints what a measurement found, and keeps it in test-results/perf-<name>.json (perf-<name>.<n>.json for the later runs of PERF_REPEAT) for the summary of the runs (scripts/perf-summary.js) */
 export const record = (name: string, report: Record<string, unknown>) => {
   console.log(JSON.stringify({ [name]: report }));
   mkdirSync('test-results', { recursive: true });
-  writeFileSync(join('test-results', `perf-${name}.json`), JSON.stringify(report, undefined, 2));
+  const run = test.info().repeatEachIndex;
+  writeFileSync(join('test-results', `perf-${name}${run > 0 ? `.${run}` : ''}.json`), JSON.stringify(report, undefined, 2));
 };

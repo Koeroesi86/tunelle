@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
-import { change, flatten, readSystems, toMarkdown } from './perf-summary'
+import { change, flatten, median, readSystems, toMarkdown } from './perf-summary'
 
 describe('flatten', () => {
   it('names the numbers by their path and leaves out lists and text', () => {
@@ -65,5 +65,23 @@ describe('readSystems', () => {
 
     expect(readSystems(folder)).toEqual({ 'windows-2025': { pr: { startup: { a: 1 } }, base: { startup: { a: 2 } } } })
     rmSync(folder, { recursive: true })
+  })
+
+  it('takes the median of the runs of a measurement, the later runs being perf-<name>.<n>.json', () => {
+    const folder = mkdtempSync(join(tmpdir(), 'perf-summary-'))
+    mkdirSync(join(folder, 'perf-ubuntu-latest'))
+    writeFileSync(join(folder, 'perf-ubuntu-latest', 'perf-startup.json'), '{"scan":{"seconds":10},"tracks":5}')
+    writeFileSync(join(folder, 'perf-ubuntu-latest', 'perf-startup.1.json'), '{"scan":{"seconds":30},"tracks":5}')
+    writeFileSync(join(folder, 'perf-ubuntu-latest', 'perf-startup.2.json'), '{"scan":{"seconds":12},"tracks":5}')
+
+    expect(readSystems(folder)).toEqual({ 'ubuntu-latest': { pr: { startup: { 'scan.seconds': 12, tracks: 5 } } } })
+    rmSync(folder, { recursive: true })
+  })
+})
+
+describe('median', () => {
+  it('is the middle one, and the mean of the two in the middle of an even number', () => {
+    expect(median([3, 1, 2])).toBe(2)
+    expect(median([4, 1, 2, 3])).toBe(2.5)
   })
 })

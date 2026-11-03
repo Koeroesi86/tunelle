@@ -4,6 +4,7 @@ const { join } = require('path')
 // usage: node scripts/perf-summary.js <folder>
 // the folder has a subfolder for each system (the artifacts of .github/workflows/perf.yml): perf-<system> with the perf-<name>.json files that `npm run perf` writes for the pull request,
 // and base-perf-<system> with the same for the base branch, which are run first on the same runner
+// the runs of PERF_REPEAT (perf-<name>.json, perf-<name>.1.json, ...) count as their median
 // prints a markdown table for each file, a row for each number and a column for each system, with the base and the change in percent next to it when the base was measured; the numbers are measurements, not budgets
 
 const isNumber = value => typeof value === 'number' && Number.isFinite(value)
@@ -70,12 +71,28 @@ const toMarkdown = bySystem => {
   )
 }
 
-const readReports = folder =>
-  Object.fromEntries(
-    readdirSync(folder)
-      .filter(file => /^perf-.+\.json$/.test(file))
-      .map(file => [file.replace(/^perf-|\.json$/g, ''), JSON.parse(readFileSync(join(folder, file), 'utf8'))])
-  )
+const median = values => {
+  const sorted = [...values].sort((a, b) => a - b)
+  const middle = Math.floor(sorted.length / 2)
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
+}
+
+/** The runs of a measurement (PERF_REPEAT) as one report of the numbers by their path, each the median of the runs */
+const medianReport = runs =>
+  runs.length === 1
+    ? runs[0]
+    : Object.fromEntries(
+        [...new Set(runs.flatMap(run => flatten(run).map(([key]) => key)))].map(key => [key, median(runs.map(run => new Map(flatten(run)).get(key)).filter(value => value !== undefined))])
+      )
+
+// perf-<name>.json is the first run, perf-<name>.<n>.json the later ones
+const readReports = folder => {
+  const runs = readdirSync(folder)
+    .map(file => file.match(/^perf-(.+?)(?:\.\d+)?\.json$/))
+    .filter(Boolean)
+    .reduce((byName, [file, name]) => ({ ...byName, [name]: [...(byName[name] ?? []), JSON.parse(readFileSync(join(folder, file), 'utf8'))] }), {})
+  return Object.fromEntries(Object.entries(runs).map(([name, reports]) => [name, medianReport(reports)]))
+}
 
 /** The system and the side of an artifact folder (`perf-macos-15` is the pull request on `macos-15`, `base-perf-macos-15` the base) and its reports */
 const readSystems = folder =>
@@ -87,7 +104,7 @@ const readSystems = folder =>
       return { ...systems, [system]: { ...systems[system], [side]: readReports(join(folder, entry)) } }
     }, {})
 
-module.exports = { flatten, change, toMarkdown, readSystems }
+module.exports = { flatten, change, median, toMarkdown, readSystems }
 
 if (require.main === module) {
   const folder = process.argv[2]
