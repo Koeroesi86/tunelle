@@ -15,6 +15,7 @@
     <meta property="og:image" content="https://koeroesi86.github.io/tunelle/screenshots/album.webp" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="style.css" />
+    <script src="theme.js"></script>
   </head>
   <body>
     <nav class="top">
@@ -22,6 +23,7 @@
       <a href="#features">Features</a>
       <a href="#download">Download</a>
       <a href="https://github.com/Koeroesi86/tunelle">GitHub</a>
+      <button class="theme" id="theme-toggle" type="button" hidden></button>
     </nav>
 
     <header class="hero" id="top">
@@ -208,7 +210,9 @@
         <div class="systems">
           <article data-system="windows">
             <h3>Windows</h3>
-            <p><a class="button" href="{{asset:windows-x64}}">Installer (Intel / AMD)</a></p>
+            <p><a href="https://apps.microsoft.com/detail/9p32skjlncnv" target="_blank" rel="noopener"><img class="badge-on-light" src="microsoft-store-badge.svg" width="161" height="44" alt="Get it from Microsoft"><img class="badge-on-dark" src="microsoft-store-badge-light.svg" width="161" height="44" alt="Get it from Microsoft"></a></p>
+            <p>Or the installer, which updates itself:</p>
+            <p><a href="{{asset:windows-x64}}">Installer (Intel / AMD)</a></p>
             <p><a href="{{asset:windows-arm64}}">Installer (ARM)</a></p>
           </article>
           <article data-system="mac">
