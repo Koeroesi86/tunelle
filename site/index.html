@@ -217,13 +217,14 @@
           </article>
           <article data-system="mac">
             <h3>macOS</h3>
-            <p><a class="button" href="{{asset:mac-arm64}}">Disk image (Apple silicon)</a></p>
+            <p><a class="button" href="{{asset:mac-arm64}}"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Disk image (Apple silicon)</a></p>
             <p><a href="{{asset:mac-x64}}">Disk image (Intel)</a></p>
           </article>
           <article data-system="linux">
             <h3>Linux</h3>
-            <p><a href="#flatpak">Flatpak is recommended</a>, or the AppImage:</p>
-            <p><a class="button" href="{{asset:linux-x64}}">AppImage (Intel / AMD)</a></p>
+            <p><a class="button" href="#flatpak"><svg class="icon" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><g fill="currentColor" transform="matrix(.04764 0 0 .04764 -8.374 -7.77)"><path d="M474.61 255.118V406.3l-130.927 75.59V330.71zM343.683 330.709V179.528l-130.927 75.59Z"/><path d="M218.612 233.262a43.667 43.667 0 0 0-21.856 37.856V390.3a43.667 43.667 0 0 0 21.856 37.857l103.214 59.59a43.667 43.667 0 0 0 43.713 0l103.214-59.59a43.667 43.667 0 0 0 21.856-37.857V271.12a43.667 43.667 0 0 0-21.856-37.857l-103.214-59.59a43.667 43.667 0 0 0-43.713 0zm130.927-31.878 103.214 59.59a11.759 11.759 0 0 1 5.856 10.144V390.3c0 4.166-2.249 8.06-5.856 10.144l-103.214 59.59a11.759 11.759 0 0 1-11.713 0l-103.214-59.59a11.759 11.759 0 0 1-5.856-10.144V271.12c0-4.167 2.249-8.062 5.856-10.144l103.214-59.591a11.759 11.759 0 0 1 11.713 0z"/></g></svg>Install with Flatpak</a></p>
+            <p>Recommended: it updates with your system. Or the AppImage:</p>
+            <p><a href="{{asset:linux-x64}}">AppImage (Intel / AMD)</a></p>
             <p><a href="{{asset:linux-arm64}}">AppImage (ARM)</a></p>
           </article>
         </div>
@@ -231,7 +232,7 @@
         <div class="flatpak" id="flatpak">
           <h3>Linux: install with Flatpak <span class="badge">recommended</span></h3>
           <p>Works on every distribution with Flatpak. The runtime comes from Flathub, the repository of this site is signed, and <code>flatpak update</code> brings every new release.</p>
-          <p><a class="button" href="flatpak+https://koeroesi86.github.io/tunelle/repo/tunelle.flatpakref">Install with Flatpak</a> opens GNOME Software or KDE Discover on the install page of Tunelle (the browser may ask first whether to open it). Nothing happened? Your system does not open these links: <a href="https://koeroesi86.github.io/tunelle/repo/tunelle.flatpakref">download the file</a> and open it, or paste this in a terminal, it adds the repository and installs the app:</p>
+          <p><a class="button" href="flatpak+https://koeroesi86.github.io/tunelle/repo/tunelle.flatpakref"><svg class="icon" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><g fill="currentColor" transform="matrix(.04764 0 0 .04764 -8.374 -7.77)"><path d="M474.61 255.118V406.3l-130.927 75.59V330.71zM343.683 330.709V179.528l-130.927 75.59Z"/><path d="M218.612 233.262a43.667 43.667 0 0 0-21.856 37.856V390.3a43.667 43.667 0 0 0 21.856 37.857l103.214 59.59a43.667 43.667 0 0 0 43.713 0l103.214-59.59a43.667 43.667 0 0 0 21.856-37.857V271.12a43.667 43.667 0 0 0-21.856-37.857l-103.214-59.59a43.667 43.667 0 0 0-43.713 0zm130.927-31.878 103.214 59.59a11.759 11.759 0 0 1 5.856 10.144V390.3c0 4.166-2.249 8.06-5.856 10.144l-103.214 59.59a11.759 11.759 0 0 1-11.713 0l-103.214-59.59a11.759 11.759 0 0 1-5.856-10.144V271.12c0-4.167 2.249-8.062 5.856-10.144l103.214-59.591a11.759 11.759 0 0 1 11.713 0z"/></g></svg>Install with Flatpak</a> opens GNOME Software or KDE Discover on the install page of Tunelle (the browser may ask first whether to open it). Nothing happened? Your system does not open these links: <a href="https://koeroesi86.github.io/tunelle/repo/tunelle.flatpakref">download the file</a> and open it, or paste this in a terminal, it adds the repository and installs the app:</p>
           <div class="command">
             <code id="flatpak-command">flatpak install --user https://koeroesi86.github.io/tunelle/repo/tunelle.flatpakref</code>
             <button type="button" data-copy="flatpak-command" hidden>Copy</button>
