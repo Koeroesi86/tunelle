@@ -10,7 +10,10 @@ const tagPattern = /^v(\d{2}\.(?:[1-9]|1[0-2])\.\d{1,5})$/
 // the first three parts: the Store writes the version of a package with the fourth part, a release has none
 const releaseVersion = (version) => version.split('.').slice(0, 3).join('.')
 
-const readStatus = (output) => output.match(/Submission Status = (\w+)/)?.[1]
+// msstore colours its progress text, also when its output is not a terminal
+const withoutColours = (output) => output.replace(/\u001b\[[0-9;]*m/g, '')
+
+const readStatus = (output) => withoutColours(output).match(/Submission Status = (\w+)/)?.[1]
 
 // a submission that is not published (in certification, or failed and still there) blocks the next one: the Store keeps one per app, and nothing here deletes or cancels it
 const assertPublished = (output) => {
@@ -21,7 +24,8 @@ const assertPublished = (output) => {
 
 // the output of `msstore submission get` is the submission as JSON, with a line or two of the progress display around it
 const readStoreVersion = (output) => {
-  const json = output.slice(output.indexOf('{'), output.lastIndexOf('}') + 1)
+  const text = withoutColours(output)
+  const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)
   const versions = (JSON.parse(json).applicationPackages ?? []).map(({ version }) => version).filter(Boolean)
   if (versions.length === 0) throw new Error('The submission has no package with a version, so the version in the Store is not known')
   return versions.map(releaseVersion).sort(compareVersions).at(-1)
