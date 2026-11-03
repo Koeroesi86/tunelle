@@ -48,6 +48,17 @@ describe('rescanLibrary', () => {
     expect(await storedFolders()).toEqual([{ path: root, lastModified: mtime(root) }]);
   });
 
+  it('does not store a folder again that was removed from the library during the scan', async () => {
+    await addFolder(root, 0);
+    vi.mocked(scanFolders).mockImplementation(async () => {
+      await executeQuery(database, { query: 'DELETE FROM folders WHERE path = ?', variables: [root] });
+    });
+
+    await rescan();
+
+    expect(await storedFolders()).toEqual([]);
+  });
+
   it('skips a folder that did not change', async () => {
     await addFolder(root, mtime(root));
     await rescan();

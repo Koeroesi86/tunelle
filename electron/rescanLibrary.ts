@@ -37,10 +37,14 @@ async function rescanLibrary(sender: WebContents, forced = false) {
     const changed = folders.filter((folder) => (forced ? modified.has(folder.path) : folder.lastModified < (modified.get(folder.path) ?? 0)));
 
     await scanFolders(changed, sender);
+    // a folder that was removed while it was scanned is not stored again
+    const remaining = new Set((await getFolders(database)).map((folder) => folder.path));
     // stored after the scan, with the time seen before it, so a failed or interrupted scan is retried
     await saveFolders(
       database,
-      changed.map((folder) => ({ path: folder.path, lastModified: modified.get(folder.path) ?? folder.lastModified }))
+      changed
+        .filter((folder) => remaining.has(folder.path))
+        .map((folder) => ({ path: folder.path, lastModified: modified.get(folder.path) ?? folder.lastModified }))
     );
     await removeMissingTracks(database, offline);
     sender.send('RESCAN_COMPLETE', {});

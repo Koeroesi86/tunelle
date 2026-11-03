@@ -68,4 +68,17 @@ describe('RescanButton', () => {
 
     expect(send).toHaveBeenCalledWith('OPEN_LIBRARY_PATH', '/music/jazz');
   });
+
+  it('shows the folder that was picked instead of the path of the Flatpak document portal', () => {
+    renderButton({ current: 1, total: 2, scanningFolder: '/run/user/1000/doc/a1b2c3d4/Music/jazz' });
+
+    expect(screen.getByRole('status').textContent).toContain('Music/jazz');
+    expect(screen.getByRole('status').textContent).not.toContain('/run/user');
+  });
+
+  it('scales the bar to the share that is scanned', () => {
+    const { container } = renderButton({ current: 1, total: 4, scanningFolder: '/music' });
+
+    expect(container.querySelector<HTMLElement>('[role="status"] > div:nth-child(2) > div')?.style.transform).toBe('scaleX(0.25)');
+  });
 });

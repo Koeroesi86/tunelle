@@ -1,6 +1,7 @@
 import classNames from 'classnames';
 import { FaSyncAlt } from 'react-icons/fa';
 import { electronAPI } from '../../client/electron-api';
+import { displayFolderPath } from '../../client/folder-name';
 import { useTranslation } from '../../client/i18n';
 import style from './RescanButton.scss';
 
@@ -55,16 +56,16 @@ const RescanButton = ({ current, total, scanningFolder, onRescan }: RescanButton
             {total > 0 && <span className={style.percent}>{Math.floor(fraction * 100)}%</span>}
           </div>
           <div className={style.bar}>
-            <div className={style.barFill} style={{ width: `${fraction * 100}%` }} />
+            <div className={style.barFill} style={{ transform: `scaleX(${fraction})` }} />
           </div>
           {total > 0 && <div className={style.muted}>{t('scan.count', { current: formatNumber(current), total: formatNumber(total) })}</div>}
           <button
             type="button"
             className={style.folder}
-            title={t('scan.open', { folder: scanningFolder })}
+            title={t('scan.open', { folder: displayFolderPath(scanningFolder) })}
             onClick={() => electronAPI.send('OPEN_LIBRARY_PATH', scanningFolder)}
           >
-            {scanningFolder}
+            {displayFolderPath(scanningFolder)}
           </button>
         </div>
       )}
