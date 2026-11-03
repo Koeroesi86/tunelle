@@ -1,7 +1,8 @@
-const { readFileSync } = require('fs')
+const { readFileSync, writeFileSync } = require('fs')
 const { compareVersions } = require('./version')
 
-// usage: node scripts/store-submission.js status <file>                            fails unless the last submission in the output of `msstore submission status` is published
+// usage: node scripts/store-submission.js notes <file> <notes> <result>              writes the submission in <file> with its release notes (in every listing) set to <notes>, for `msstore submission updateMetadata`
+//        node scripts/store-submission.js status <file>                            fails unless the last submission in the output of `msstore submission status` is published
 //        node scripts/store-submission.js check <tag> <file> <package version>...  fails when the release can not go to the Store, with the output of `msstore submission get` in <file>
 // store.yml runs both before it submits a release. The Store takes a version only when it is greater than the one of the last submission and its fourth part is 0
 // (the Store keeps that part for itself, electron-builder adds the 0)
@@ -19,16 +20,33 @@ const readStatus = (output) => withoutColours(output).match(/Submission Status =
 const assertPublished = (output) => {
   const status = readStatus(output)
   if (!status) throw new Error('The output of `msstore submission status` has no "Submission Status", so the state of the last submission is not known')
-  if (status !== 'Published') throw new Error(`The last submission is ${status}, not Published: wait for it, or finish it in Partner Center, before submitting another`)
+  if (status !== 'Published') throw new Error(`The last submission is ${status}, not Published: wait for it, or delete it in Partner Center (a draft of an earlier run without commit too), before submitting another`)
 }
 
+// msstore writes the keys of the submission in Pascal case (ApplicationPackages, Version), the API of the Store in camel case
+const field = (object, name) => Object.entries(object ?? {}).find(([key]) => key.toLowerCase() === name)?.[1]
+
 // the output of `msstore submission get` is the submission as JSON, with a line or two of the progress display around it
-const readStoreVersion = (output) => {
+const parseSubmission = (output) => {
   const text = withoutColours(output)
-  const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)
-  const versions = (JSON.parse(json).applicationPackages ?? []).map(({ version }) => version).filter(Boolean)
+  return JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1))
+}
+
+const readStoreVersion = (output) => {
+  const versions = (field(parseSubmission(output), 'applicationpackages') ?? []).map((applicationPackage) => field(applicationPackage, 'version')).filter(Boolean)
   if (versions.length === 0) throw new Error('The submission has no package with a version, so the version in the Store is not known')
   return versions.map(releaseVersion).sort(compareVersions).at(-1)
+}
+
+// a new submission is a copy of the last published one, with its "What's new" text: the same generic text for every version takes the place of the one of the
+// first submission. `msstore submission updateMetadata` replaces the whole submission, so the rest of it is sent back as it was read
+const withReleaseNotes = (output, notes) => {
+  const submission = parseSubmission(output)
+  if (!notes) throw new Error('No release notes were given')
+  if (Object.keys(submission.Listings ?? {}).length === 0) throw new Error('The submission has no listing, so there is nowhere to put the release notes')
+
+  const listings = Object.fromEntries(Object.entries(submission.Listings).map(([language, listing]) => [language, { ...listing, BaseListing: { ...listing.BaseListing, ReleaseNotes: notes } }]))
+  return JSON.stringify({ ...submission, Listings: listings }, undefined, 2)
 }
 
 const assertSubmittable = (tag, storeVersion, packageVersions) => {
@@ -43,13 +61,16 @@ const assertSubmittable = (tag, storeVersion, packageVersions) => {
 
 if (require.main === module) {
   const [command, ...args] = process.argv.slice(2)
-  if (command === 'status') assertPublished(readFileSync(args[0], 'utf8'))
+  if (command === 'notes') {
+    const [file, notes, result] = args
+    writeFileSync(result, withReleaseNotes(readFileSync(file, 'utf8'), notes))
+  } else if (command === 'status') assertPublished(readFileSync(args[0], 'utf8'))
   else if (command === 'check') {
     const [tag, file, ...packageVersions] = args
     const storeVersion = readStoreVersion(readFileSync(file, 'utf8'))
     assertSubmittable(tag, storeVersion, packageVersions)
     console.log(`${tag} is greater than ${storeVersion} of the last submission`)
-  } else throw new Error('usage: store-submission.js status <file> | check <tag> <file> <package version>...')
+  } else throw new Error('usage: store-submission.js status <file> | check <tag> <file> <package version>... | notes <file> <notes> <result>')
 }
 
-module.exports = { assertPublished, assertSubmittable, readStoreVersion, readStatus, releaseVersion }
+module.exports = { assertPublished, assertSubmittable, readStoreVersion, readStatus, releaseVersion, withReleaseNotes }

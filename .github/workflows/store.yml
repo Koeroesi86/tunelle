@@ -2,9 +2,12 @@ name: Store submission
 
 # Sends a release to the Microsoft Store as a new submission, started by hand with its tag: releases come out on Monday and Thursday and certification takes time,
 # so the chosen ones go to the Store. Both packages of the release (x64 and arm64) are put in one bundle, as the Store developer CLI (msstore) takes .msix,
-# .msixbundle and .msixupload and not the .appx of the release; the Store signs the package itself, so the bundle needs no signature. Without "commit" the
-# draft is made and left in Partner Center to be looked at and submitted there. The secrets of the Microsoft Entra application (Manager role in Partner Center)
-# are in the environment microsoft-store, and the Store product ID is its variable MS_STORE_PRODUCT_ID. Certification then runs on the side of Microsoft.
+# .msixbundle and .msixupload and not the .appx of the release; the Store signs the package itself, so the bundle needs no signature. The submission is made as
+# a draft, its release notes are set to a generic text, and with "commit" it is then submitted. Without "commit" the draft is left to be looked at in Partner
+# Center, not changed there: a submission made through the API is changed only through the API (a change in Partner Center ends its use by the API, and may
+# leave it in an error state), so the draft is deleted in Partner Center and the workflow run again with "commit". The secrets of the Microsoft Entra
+# application (Manager role in Partner Center) are in the environment microsoft-store, and the Store product ID is its variable MS_STORE_PRODUCT_ID.
+# Certification then runs on the side of Microsoft.
 on:
   workflow_dispatch:
     inputs:
@@ -13,7 +16,7 @@ on:
         type: string
         required: true
       commit:
-        description: Submit it for certification, otherwise only a draft is made in Partner Center
+        description: Submit it for certification, otherwise only a draft is made (look at it in Partner Center, do not change it there)
         type: boolean
         default: false
 
@@ -34,6 +37,8 @@ jobs:
     env:
       PRODUCT_ID: ${{ vars.MS_STORE_PRODUCT_ID }}
       TAG: ${{ inputs.tag }}
+      # the same text for every version: the changes are listed on the releases of GitHub
+      RELEASE_NOTES: Bug fixes and improvements. The changes of every version are listed at https://github.com/Koeroesi86/tunelle/releases
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -95,21 +100,35 @@ jobs:
           New-Item -ItemType Directory -Path bundle | Out-Null
           & $makeappx.FullName bundle /d packages /p "bundle\Tunelle-$version.msixbundle" /bv "$version.0"
           if ($LASTEXITCODE -ne 0) { throw "makeappx failed with $LASTEXITCODE" }
-      - name: Make the submission
-        env:
-          COMMIT: ${{ inputs.commit }}
+      # always without commit: the notes are set on the draft before it is submitted
+      - name: Make the draft
         shell: pwsh
         run: |
           $bundle = (Get-ChildItem bundle/*.msixbundle).FullName
-          $arguments = if ($env:COMMIT -eq 'true') { @() } else { @('--noCommit') }
-          msstore publish $bundle --appId $env:PRODUCT_ID @arguments
+          msstore publish $bundle --appId $env:PRODUCT_ID --noCommit
           if ($LASTEXITCODE -ne 0) { throw "msstore publish failed with $LASTEXITCODE" }
+      # the draft is a copy of the last published submission, with its "What's new" text; updateMetadata replaces the whole submission, so the draft is read and sent back with the notes changed
+      - name: Set the release notes of the draft
+        shell: pwsh
+        run: |
+          msstore submission get $env:PRODUCT_ID 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath draft.json
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission get failed with $LASTEXITCODE" }
+          node scripts/store-submission.js notes draft.json $env:RELEASE_NOTES metadata.json
+          if ($LASTEXITCODE -ne 0) { throw 'The release notes could not be put into the draft' }
+          msstore submission updateMetadata $env:PRODUCT_ID metadata.json
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission updateMetadata failed with $LASTEXITCODE" }
+      - name: Submit the draft for certification
+        if: inputs.commit
+        shell: pwsh
+        run: |
+          msstore submission publish $env:PRODUCT_ID
+          if ($LASTEXITCODE -ne 0) { throw "msstore submission publish failed with $LASTEXITCODE" }
       - name: Say what was submitted
         env:
           COMMIT: ${{ inputs.commit }}
         shell: pwsh
         run: |
-          $state = if ($env:COMMIT -eq 'true') { 'Submitted for certification, which runs on the side of Microsoft.' } else { 'A draft was made and is not submitted: look at it in Partner Center and submit it there.' }
+          $state = if ($env:COMMIT -eq 'true') { 'Submitted for certification, which runs on the side of Microsoft.' } else { 'A draft was made and is not submitted. Look at it in Partner Center but do not change it there (a submission made through the API is changed only through the API). To submit: delete the draft in Partner Center and run this workflow again with commit ticked.' }
           $lines = @(
             "## $env:TAG in the Microsoft Store",
             '',
