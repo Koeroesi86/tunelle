@@ -1,10 +1,11 @@
 name: Store certification
 
-# The Windows App Certification Kit (the tests that Partner Center runs on a package) on the x64 or the arm64 package (the arm64 one on an arm64 runner), so a problem shows before the submission, and
-# a run of the installed package that shows it does not look for updates on GitHub. dist.yml calls it with the package it built, so it runs for every
-# pull request and before a release is published; by hand it checks the package of a published release (the latest, or the tag it is given). The package
-# is unsigned, so a copy of it is signed with a certificate made for the run, which the kit needs to install it; the package that is uploaded to the
-# Store is the one of the release.
+# The Windows App Certification Kit (the tests that Partner Center runs on a package) on the x64 package, so a problem shows before the submission, and
+# a run of the installed package that shows it does not look for updates on GitHub; the second one is also done for the arm64 package on an arm64 runner
+# (windows-11-arm), where the kit is not installed (its image has the SDK without it, and nothing says it runs on arm64), so the Store package of that
+# processor is installed and started at least. dist.yml calls it with the package it built, so it runs for every pull request and before a release is
+# published; by hand it checks the package of a published release (the latest, or the tag it is given). The package is unsigned, so a copy of it is signed with
+# a certificate made for the run, which the kit needs to install it; the package that is uploaded to the Store is the one of the release.
 on:
   workflow_call:
     inputs:
@@ -35,7 +36,7 @@ permissions:
 
 jobs:
   wack:
-    name: Windows App Certification Kit (${{ inputs.arch }})
+    name: ${{ inputs.arch == 'arm64' && 'Store package (arm64)' || 'Windows App Certification Kit (x64)' }}
     runs-on: ${{ inputs.arch == 'arm64' && 'windows-11-arm' || 'windows-2025' }}
     timeout-minutes: 60
     steps:
@@ -82,23 +83,18 @@ jobs:
           & $signtool.FullName sign /fd SHA256 /f "$env:RUNNER_TEMP\tunelle.pfx" /p ([System.Net.NetworkCredential]::new('', $password).Password) $package
           if ($LASTEXITCODE -ne 0) { throw "signtool failed with $LASTEXITCODE" }
       - name: Run the Windows App Certification Kit
+        if: inputs.arch != 'arm64'
         shell: pwsh
         run: |
           $kit = "${env:ProgramFiles(x86)}\Windows Kits\10\App Certification Kit\appcert.exe"
-          if (-not (Test-Path $kit)) {
-            Write-Host "PROBE arch: $env:PROCESSOR_ARCHITECTURE"
-            Get-ChildItem 'C:\Program Files*\Windows Kits' -Directory -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "PROBE dir: $($_.FullName)"; Get-ChildItem $_.FullName -Directory -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "PROBE   $($_.FullName)" } }
-            Get-ChildItem 'C:\Program Files*' -Recurse -Filter 'appcert*' -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "PROBE found: $($_.FullName)" }
-            Get-ItemProperty 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match 'Certification|Windows Software Development Kit|Windows SDK' } | ForEach-Object { Write-Host "PROBE installed: $($_.DisplayName) $($_.DisplayVersion)" }
-            Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin' -Directory -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "PROBE bin: $($_.Name): $((Get-ChildItem $_.FullName -Directory | ForEach-Object Name) -join ', ')" }
-            throw "The kit is not on the runner: $kit"
-          }
+          if (-not (Test-Path $kit)) { throw "The kit is not on the runner: $kit" }
           $package = (Get-ChildItem package/*.appx).FullName
           & $kit reset
           & $kit test -appxpackagepath $package -reportoutputpath "$env:RUNNER_TEMP\wack-report.xml"
           Write-Host "appcert exit code: $LASTEXITCODE"
           Copy-Item "$env:RUNNER_TEMP\wack-report.xml" wack-report.xml
       - name: Read the report
+        if: inputs.arch != 'arm64'
         run: node scripts/wack-report.js wack-report.xml
       # the Store brings the updates: the installed package must not look for a release on GitHub, which an app started from the Start menu does
       # unless process.windowsStore is true. GitHub is sent to a listener of this machine, and nothing may connect to it while the package runs
