@@ -304,8 +304,10 @@
   "about.retry": "Try again",
   "about.unavailable.development": "Updates are off in a development run",
   "about.unavailable.disabled": "Updates are turned off",
+  "about.unavailable.am": "Updates come through AM (am -u tunelle)",
   "about.unavailable.flatpak": "Updates come through Flatpak",
   "about.unavailable.managed": "Updates come through the package manager",
+  "about.unavailable.readonly": "This AppImage is in a folder that you can not write to, so it can not replace itself",
   "about.unavailable.store": "Updates come through the Microsoft Store",
   "about.releases": "Open the releases page"
 }

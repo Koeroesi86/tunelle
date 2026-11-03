@@ -1,6 +1,9 @@
 import { EventEmitter } from 'events';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { checkForUpdate, createMockUpdateSource, downloadUpdate, getUpdateUnavailableReason, installUpdate, runUpdate } from './updater';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { checkForUpdate, createMockUpdateSource, downloadUpdate, getUpdateUnavailableReason, inspectAppImage, installUpdate, runUpdate } from './updater';
 import type { UpdateSource } from './updater';
 
 const createSource = (check: UpdateSource['checkForUpdates'], download: UpdateSource['downloadUpdate'] = () => Promise.resolve()) => {
@@ -223,6 +226,23 @@ describe('getUpdateUnavailableReason', () => {
     expect(getUpdateUnavailableReason(isPackaged, platform, env)).toBe(reason);
   });
 
+  it.each([
+    ['AM installed it', { managedByAm: true, writable: true }, 'am'],
+    ['AM installed it for all users', { managedByAm: true, writable: false }, 'am'],
+    ['its folder can not be written to', { managedByAm: false, writable: false }, 'readonly'],
+  ] as const)('names the reason for an AppImage when %s', (_name, appImage, reason) => {
+    expect(getUpdateUnavailableReason(true, 'linux', { APPIMAGE: '/x.AppImage' }, undefined, appImage)).toBe(reason);
+  });
+
+  it('lets an AppImage that nothing manages and that can be replaced update itself', () => {
+    expect(getUpdateUnavailableReason(true, 'linux', { APPIMAGE: '/x.AppImage' }, undefined, { managedByAm: false, writable: true })).toBeUndefined();
+  });
+
+  it('does not take the install of an AppImage into account outside of one', () => {
+    expect(getUpdateUnavailableReason(true, 'linux', {}, undefined, { managedByAm: true, writable: false })).toBe('managed');
+    expect(getUpdateUnavailableReason(true, 'win32', {}, undefined, { managedByAm: true, writable: false })).toBeUndefined();
+  });
+
   it('names the Store for a Store package, which has no say over its updates', () => {
     expect(getUpdateUnavailableReason(true, 'win32', {}, true)).toBe('store');
   });
@@ -238,5 +258,39 @@ describe('getUpdateUnavailableReason', () => {
     ['an AppImage', 'linux', { APPIMAGE: '/x.AppImage' }],
   ] as const)('has no reason on %s', (_name, platform, env) => {
     expect(getUpdateUnavailableReason(true, platform, env)).toBeUndefined();
+  });
+});
+
+describe('inspectAppImage', () => {
+  let folder: string;
+
+  beforeEach(async () => {
+    folder = await mkdtemp(join(tmpdir(), 'tunelle-appimage-'));
+    await writeFile(join(folder, 'tunelle'), '');
+  });
+
+  afterEach(async () => {
+    await chmod(folder, 0o755);
+    await rm(folder, { recursive: true, force: true });
+  });
+
+  it('finds an AppImage that nothing manages, in a folder that can be written to', () => {
+    expect(inspectAppImage(join(folder, 'tunelle'))).toEqual({ managedByAm: false, writable: true });
+  });
+
+  it('finds the updater AM keeps next to the AppImage it installed', async () => {
+    await writeFile(join(folder, 'AM-updater'), '');
+
+    expect(inspectAppImage(join(folder, 'tunelle')).managedByAm).toBe(true);
+  });
+
+  // a folder owned by root is not writable for the user, which a test running as root can not show
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)('finds a folder that can not be written to', async () => {
+    await mkdir(join(folder, 'sub'));
+    await writeFile(join(folder, 'sub/tunelle'), '');
+    await chmod(join(folder, 'sub'), 0o555);
+
+    expect(inspectAppImage(join(folder, 'sub/tunelle')).writable).toBe(false);
+    await chmod(join(folder, 'sub'), 0o755);
   });
 });

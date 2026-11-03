@@ -30,7 +30,11 @@
     "@electron/asar",
     "@doyensec/electronegativity",
     // augmented by types/csstype.d.ts, installed with the React typings
-    "csstype"
+    "csstype",
+    // scripts/dist.js takes the toolset of the AppImage from them to put the update information into its runtime; they are the versions that electron-builder
+    // brings (a version of our own could differ from the one it uses), and the script fails when their layout changes
+    "app-builder-lib",
+    "builder-util"
   ],
   "rules": {
     // errors: dead code stops the build

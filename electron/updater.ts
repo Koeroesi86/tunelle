@@ -1,4 +1,6 @@
 import { EventEmitter } from 'events';
+import { accessSync, constants, existsSync } from 'fs';
+import { dirname, join } from 'path';
 import { getTranslator } from '../locales';
 import type { Translate } from '../locales/translate';
 import type { UpdateUnavailableReason } from '../types/update';
@@ -129,21 +131,46 @@ export function createMockUpdateSource(stepDelay = 250): UpdateSource {
   return source;
 }
 
+export interface AppImageInstall {
+  /** AM (portable-linux-apps) installed it: its `AM-updater` is next to the AppImage, and `am -u` replaces the file and keeps its own record of the version */
+  managedByAm: boolean;
+  /** An update replaces the file, which needs the folder of the AppImage to be writable (AM installs for all users into /opt, owned by root) */
+  writable: boolean;
+}
+
+const canWrite = (path: string) => {
+  try {
+    accessSync(path, constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const inspectAppImage = (appImage: string): AppImageInstall => ({
+  managedByAm: existsSync(join(dirname(appImage), 'AM-updater')),
+  writable: canWrite(dirname(appImage)),
+});
+
 /**
  * electron-updater only works in the packaged app, on Linux only in an AppImage (the Flatpak updates through its store, any other package
- * through its package manager, the Microsoft Store package through the Store), and TUNELLE_NO_UPDATE=1 turns it off, which the smoke tests of the packaged app set
+ * through its package manager, the Microsoft Store package through the Store, an AppImage that AM manages through AM, and one that can not be replaced not at all),
+ * and TUNELLE_NO_UPDATE=1 turns it off, which the smoke tests of the packaged app set
  */
 export const getUpdateUnavailableReason = (
   isPackaged: boolean,
   platform: NodeJS.Platform,
   env: NodeJS.ProcessEnv,
-  windowsStore?: boolean
+  windowsStore?: boolean,
+  appImage?: AppImageInstall
 ): UpdateUnavailableReason | undefined => {
   if (!isPackaged) return 'development';
   if (env.TUNELLE_NO_UPDATE === '1') return 'disabled';
   // the Store update the package itself, and its policy does not let an app update outside of it; an env variable cannot say this, the Store starts the app
   if (windowsStore) return 'store';
-  if (platform !== 'linux' || env.APPIMAGE) return undefined;
+  if (platform !== 'linux') return undefined;
+  if (env.APPIMAGE && appImage?.managedByAm) return 'am';
+  if (env.APPIMAGE) return appImage?.writable === false ? 'readonly' : undefined;
 
   return env.FLATPAK_ID ? 'flatpak' : 'managed';
 };

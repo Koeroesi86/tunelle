@@ -1,6 +1,8 @@
 const { listPackage, extractFile } = require('@electron/asar')
+const { createHash } = require('crypto')
 const { existsSync, readdirSync, readFileSync } = require('fs')
 const { normalize, resolve } = require('path')
+const { readUpdateInformation, updateInformation } = require('./appimage-update-info')
 const { exceedsGlibc, highestGlibc } = require('./glibc')
 const { resourcesFolder, storePackage, updateMetadata } = require('./dist-layout')
 
@@ -72,6 +74,23 @@ if (linuxPackage === 'appimage') {
     .map(file => [file, highestGlibc(readFileSync(file))])
     .filter(([, version]) => exceedsGlibc(version, maxGlibc))
     .forEach(([file, version]) => problems.push(`needs glibc ${version.join('.')}, more than ${maxGlibc.join('.')}: ${file}`))
+}
+
+// the AppImage names its zsync file in its update information (AppImageUpdate and appimageupdatetool, which AM runs, read it), and electron-updater only accepts an update when
+// the hash in the update metadata is the one of the file: the information has to be in the AppImage before it is hashed, and the zsync file (scripts/zsync.js, run by the workflow) next to it
+const checkAppImage = name => {
+  const dist = resolve(__dirname, '..', 'dist')
+  const content = readFileSync(resolve(dist, name))
+
+  if (readUpdateInformation(content) !== updateInformation(process.arch)) problems.push(`${name} does not carry the update information ${updateInformation(process.arch)}`)
+  if (!readFileSync(metadataFile, 'utf8').includes(createHash('sha512').update(content).digest('base64'))) problems.push(`${metadataPath} does not list the hash of ${name}`)
+  if (linuxPackage === 'appimage' && !existsSync(resolve(dist, `${name}.zsync`))) problems.push(`missing: ${name}.zsync`)
+}
+if (process.platform === 'linux' && linuxPackage !== 'flatpak' && existsSync(metadataFile)) {
+  const appImages = readdirSync(resolve(__dirname, '..', 'dist')).filter(name => name.endsWith('.AppImage'))
+
+  if (appImages.length !== 1) problems.push(`expected one AppImage in dist/, found ${appImages.length}`)
+  appImages.forEach(checkAppImage)
 }
 
 problems.slice(0, 50).forEach(problem => console.error(problem))

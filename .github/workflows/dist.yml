@@ -122,6 +122,13 @@ jobs:
         run: node scripts/version.js "$VERSION"
       - run: npm run build
       - run: npm run dist
+      # the update information in the AppImage names it (scripts/appimage-update-info.js); AppImageUpdate and appimageupdatetool, which AM runs, download only what changed with it
+      - name: Make the zsync file of the AppImage
+        if: matrix.package == 'appimage'
+        run: |
+          install() { sudo timeout 10m apt-get install -y -o Acquire::Retries=3 zsync; }
+          install || { sudo timeout 10m apt-get update && install; }
+          node scripts/zsync.js
       - name: Check the contents of the package
         run: npm run check:dist
       # the packaged app has to start: a file missing from the package or a native module that does not load only shows here
