@@ -1,9 +1,0 @@
-.wave {
-  // out of the flow, so the size of the canvas follows its box and not the other way round
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  // only the opacity of the colour counts in a mask: the wave fades out at both ends
-  mask-image: linear-gradient(to right, transparent, var(--text) 8%, var(--text) 92%, transparent);
-}

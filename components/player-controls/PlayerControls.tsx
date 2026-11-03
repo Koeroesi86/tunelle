@@ -20,7 +20,7 @@ import { useAudioListener } from '../../client/hooks/use-audio-listener';
 import { useUpdateEffect } from '../../client/hooks/use-update-effect';
 import { useTranslation } from '../../client/i18n';
 import style from './PlayerControls.scss';
-import LiveWave from '../live-wave';
+import LiveShimmer from '../live-shimmer';
 import AudioFormatBadge from '../audio-format-badge';
 import Time from '../time';
 import CoverFade from '../cover-fade';
@@ -132,7 +132,7 @@ const TransportButtons = ({
   );
 };
 
-/** A station has no position to seek to: the label and the time listened keep the row of the seek bar, the wave takes its place */
+/** A station has no position to seek to: the label and the time listened keep the row of the seek bar, the shimmer takes its place */
 const LiveRow = ({ isPlaying, currentTime }: Pick<PlayerControlsProps, 'isPlaying' | 'currentTime'>) => {
   const { t } = useTranslation();
 
@@ -143,7 +143,7 @@ const LiveRow = ({ isPlaying, currentTime }: Pick<PlayerControlsProps, 'isPlayin
         {t('player.live')}
       </span>
       <div className={style.progress}>
-        <LiveWave isPlaying={isPlaying} />
+        <LiveShimmer isPlaying={isPlaying} />
       </div>
       <span className={classNames(style.time, style.total)}>
         <Time seconds={currentTime} />

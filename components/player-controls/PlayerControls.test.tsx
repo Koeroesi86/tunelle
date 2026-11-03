@@ -4,7 +4,7 @@ import type { Track } from '../../types/library';
 import { toRadioTrack } from '../../client/radio-track';
 import PlayerControls from './PlayerControls';
 
-vi.mock('../live-wave', () => ({ default: () => null }));
+vi.mock('../live-shimmer', () => ({ default: () => null }));
 
 const renderControls = (volume: number, currentSong: Track | null = null, currentTime = 0) => {
   const props = {
