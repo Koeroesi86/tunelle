@@ -68,6 +68,15 @@ describe('workflows', () => {
     expect(text).toMatch(/- os: ubuntu-latest\n\s+platform: linux\n\s+arch: x64\n\s+package: flatpak/)
   })
 
+  it('dist.yml makes the zsync file of the AppImage before the contents of the package are checked', () => {
+    const text = read('dist.yml')
+    const zsync = text.indexOf('node scripts/zsync.js')
+
+    expect(zsync).toBeGreaterThan(text.indexOf('run: npm run dist'))
+    expect(zsync).toBeLessThan(text.indexOf('run: npm run check:dist'))
+    expect(text).toMatch(/if: matrix\.package == 'appimage'\n\s+run: \|\n\s+install\(\).*zsync/)
+  })
+
   it('test.yml keeps the report of the end to end tests', () => {
     const text = read('test.yml')
 

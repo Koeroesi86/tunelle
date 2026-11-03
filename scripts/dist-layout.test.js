@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { linuxBuilds, packagedExecutable, resourcesFolder, storePackage, updateMetadata } from './dist-layout'
+import { buildsAppImage, linuxBuilds, packagedExecutable, resourcesFolder, storePackage, updateMetadata } from './dist-layout'
 
 describe('packagedExecutable', () => {
   it.each([
@@ -61,5 +61,16 @@ describe('linuxBuilds', () => {
   it('builds only the package of the job', () => {
     expect(linuxBuilds('appimage')).toEqual([{ linux: [] }])
     expect(linuxBuilds('flatpak')).toEqual([{ linux: ['flatpak'], config: { publish: null } }])
+  })
+})
+
+describe('buildsAppImage', () => {
+  it.each([
+    ['', true],
+    [undefined, true],
+    ['appimage', true],
+    ['flatpak', false]
+  ])('says whether the job %j builds the AppImage', (linuxPackage, builds) => {
+    expect(buildsAppImage(linuxPackage)).toBe(builds)
   })
 })

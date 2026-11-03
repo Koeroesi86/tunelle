@@ -43,4 +43,7 @@ const linuxBuilds = linuxPackage => [
   ...(linuxPackage === 'appimage' ? [] : [{ linux: ['flatpak'], config: { publish: null } }])
 ]
 
-module.exports = { linuxBuilds, packagedExecutable, resourcesFolder, storePackage, updateMetadata }
+// the AppImage is built by every job of linux but the Flatpak one
+const buildsAppImage = linuxPackage => linuxPackage !== 'flatpak'
+
+module.exports = { buildsAppImage, linuxBuilds, packagedExecutable, resourcesFolder, storePackage, updateMetadata }
