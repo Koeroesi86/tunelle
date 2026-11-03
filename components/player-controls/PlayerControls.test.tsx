@@ -4,7 +4,7 @@ import type { Track } from '../../types/library';
 import { toRadioTrack } from '../../client/radio-track';
 import PlayerControls from './PlayerControls';
 
-vi.mock('../live-wave', () => ({ default: () => null }));
+vi.mock('../live-shimmer', () => ({ default: () => null }));
 
 const renderControls = (volume: number, currentSong: Track | null = null, currentTime = 0) => {
   const props = {
@@ -60,6 +60,13 @@ describe('PlayerControls', () => {
     expect(screen.getByText('Live')).toBeTruthy();
     expect(container.querySelectorAll('input[type="range"]')).toHaveLength(1);
     expect(screen.getByText('00:12:34')).toBeTruthy();
+  });
+
+  it('keeps the play button in the middle of the transport buttons, so it sits under the middle of the seek bar', () => {
+    renderControls(0.5);
+
+    const buttons = Array.from(screen.getByRole('button', { name: 'Play' }).parentElement?.children ?? []);
+    expect(buttons.map((button) => button.getAttribute('title'))).toEqual(['Shuffle', 'Previous', 'Play', 'Next', 'Repeat']);
   });
 
   it('keeps the play button disabled until there is a track', () => {
