@@ -178,4 +178,11 @@ describe('workflows', () => {
     expect(text).toMatch(/- name: Publish the release[\s\S]*draft=false\n\n  # the website/)
     expect(text).toMatch(/\n  site:\n\s+needs: release\n/)
   })
+
+  it('pr-checks.yml runs the perf measurements, which master does not require', () => {
+    const text = read('pr-checks.yml')
+
+    expect(text).toMatch(/\n  perf:\n(?:\s+#.*\n)*\s+uses: \.\/\.github\/workflows\/perf\.yml\n/)
+    expect(text).toMatch(/needs: \[test, audit, dist, security, codeql\]/)
+  })
 })

@@ -1,27 +1,13 @@
 name: Performance
 
 # measures the built app on each system and puts the numbers side by side in the summary of the run (scripts/perf-summary.js)
-# it is not part of pr-checks.yml, so it is not one of the required checks: a slow or noisy runner does not stop a pull request, the numbers are there to be read
+# pr-checks.yml runs it for pull requests but leaves it out of required-checks, so a slow or noisy runner does not stop a pull request: the numbers are there to be read
 on:
-  pull_request:
-    branches: [master]
-    paths:
-      - electron/**
-      - client/**
-      - components/**
-      - migrations/**
-      - e2e/**
-      - scripts/perf-summary.js
-      - package-lock.json
-      - .github/workflows/perf.yml
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   perf:
