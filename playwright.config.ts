@@ -15,6 +15,8 @@ export default defineConfig({
   use: { trace: 'retain-on-failure' },
   projects: [
     { name: 'e2e', testDir: 'e2e', testMatch: '*.spec.ts' },
+    // measurements, not checks: npm run perf
+    { name: 'perf', testDir: 'e2e/perf', testMatch: '*.perf.ts', timeout: 1_200_000 },
     { name: 'screenshots', testDir: 'e2e/screenshots', testMatch: '*.shots.ts' },
   ],
 });
