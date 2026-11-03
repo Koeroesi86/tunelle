@@ -28,7 +28,7 @@ import { getMainTranslator, setPickedLanguage } from './electron/language';
 import { applyThemeMode } from './electron/theme';
 import { getSettings } from './electron/settingsRepository';
 import { autoUpdater } from 'electron-updater';
-import { createMockUpdateSource, getUpdateUnavailableReason, runUpdate } from './electron/updater';
+import { createMockUpdateSource, getUpdateUnavailableReason, inspectAppImage, runUpdate } from './electron/updater';
 import { createUpdateManager } from './electron/updateManager';
 import type { UpdateSource } from './electron/updater';
 
@@ -176,7 +176,15 @@ const serveApp = () =>
   });
 
 // a development run updates from the mock source only when asked to
-const unavailable = isMockUpdate ? undefined : getUpdateUnavailableReason(app.isPackaged, process.platform, process.env, process.windowsStore);
+const unavailable = isMockUpdate
+  ? undefined
+  : getUpdateUnavailableReason(
+      app.isPackaged,
+      process.platform,
+      process.env,
+      process.windowsStore,
+      process.env.APPIMAGE ? inspectAppImage(process.env.APPIMAGE) : undefined
+    );
 
 const getUpdateSource = (): UpdateSource | undefined => {
   if (isMockUpdate) return createMockUpdateSource();

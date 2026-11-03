@@ -1,4 +1,4 @@
-export type UpdateUnavailableReason = 'development' | 'disabled' | 'flatpak' | 'managed' | 'store';
+export type UpdateUnavailableReason = 'am' | 'development' | 'disabled' | 'flatpak' | 'managed' | 'readonly' | 'store';
 
 export type UpdateStatus =
   | { kind: 'idle' }
