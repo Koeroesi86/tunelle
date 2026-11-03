@@ -13,7 +13,7 @@ on:
         type: string
         required: true
       commit:
-        description: Submit it for certification (off: only the draft is made, in Partner Center)
+        description: Submit it for certification, otherwise only a draft is made in Partner Center
         type: boolean
         default: false
 
