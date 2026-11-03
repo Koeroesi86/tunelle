@@ -40,6 +40,10 @@ jobs:
   security:
     uses: ./.github/workflows/security.yml
 
+  # the measurements of the built app on each system, to be read in the summary; not one of the needs of required-checks
+  perf:
+    uses: ./.github/workflows/perf.yml
+
   codeql:
     uses: ./.github/workflows/codeql.yml
     permissions:

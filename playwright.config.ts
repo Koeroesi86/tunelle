@@ -15,6 +15,9 @@ export default defineConfig({
   use: { trace: 'retain-on-failure' },
   projects: [
     { name: 'e2e', testDir: 'e2e', testMatch: '*.spec.ts' },
+    // measurements, not checks: npm run perf
+    // PERF_REPEAT runs each measurement that many times, and the summary takes the median of the runs
+    { name: 'perf', testDir: 'e2e/perf', testMatch: '*.perf.ts', timeout: 1_200_000, repeatEach: Number(process.env.PERF_REPEAT ?? 1) },
     { name: 'screenshots', testDir: 'e2e/screenshots', testMatch: '*.shots.ts' },
   ],
 });

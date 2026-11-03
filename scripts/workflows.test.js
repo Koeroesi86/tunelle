@@ -178,4 +178,20 @@ describe('workflows', () => {
     expect(text).toMatch(/- name: Publish the release[\s\S]*draft=false\n\n  # the website/)
     expect(text).toMatch(/\n  site:\n\s+needs: release\n/)
   })
+
+  it('pr-checks.yml runs the perf measurements, which master does not require', () => {
+    const text = read('pr-checks.yml')
+
+    expect(text).toMatch(/\n  perf:\n(?:\s+#.*\n)*\s+uses: \.\/\.github\/workflows\/perf\.yml\n/)
+    expect(text).toMatch(/needs: \[test, audit, dist, security, codeql\]/)
+  })
+
+  it('perf.yml measures the base branch first with the scenarios of the pull request, and keeps both sets of numbers', () => {
+    const text = read('perf.yml')
+
+    expect(text).toMatch(/ref: \$\{\{ github\.event\.pull_request\.base\.sha \}\}\n\s+path: base/)
+    expect(text.indexOf('Measure the base branch')).toBeLessThan(text.indexOf('- name: Measure\n'))
+    expect(text).toMatch(/PERF_APP_OUT: \$\{\{ github\.workspace \}\}\/base\/out/)
+    expect(text).toMatch(/name: base-perf-\$\{\{ matrix\.os \}\}/)
+  })
 })

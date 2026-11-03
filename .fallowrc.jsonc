@@ -16,7 +16,8 @@
     // run by Playwright (npm run test:e2e), the helpers they import are reached from there
     "playwright.config.ts",
     "e2e/**/*.spec.ts",
-    "e2e/**/*.shots.ts"
+    "e2e/**/*.shots.ts",
+    "e2e/**/*.perf.ts"
   ],
   "ignoreDependencies": [
     // webpack loaders, referenced by name in config/webpack.config.base.js

@@ -145,7 +145,7 @@ export const ui = (english: string) => {
   return target[counted]?.replace('{count}', english.match(/\d+/)?.[0] ?? '') ?? english;
 };
 
-/** Starts the built app (npm run build first) on a profile, and answers when its window shows the page */
+/** Starts the built app (npm run build first, PERF_APP_OUT=<folder> for the build of another checkout, which the perf runs compare with) on a profile, and answers when its window shows the page */
 export const launchApp = async ({ home, radioDirectory, initScripts, offline = false }: LaunchOptions): Promise<Session> => {
   const { ELECTRON_RUN_AS_NODE, ...inherited } = process.env;
   // Windows keeps its profile folders (chromium needs them, and the app data folder does not follow the variables there)
@@ -154,7 +154,7 @@ export const launchApp = async ({ home, radioDirectory, initScripts, offline = f
 
   const app = await electron.launch({
     args: [
-      join(root, 'out/index.js'),
+      join(process.env.PERF_APP_OUT ?? join(root, 'out'), 'index.js'),
       // the audio runs with its clock and its graph, to a sink that plays nothing: the tests measure what the app sends to it
       '--disable-audio-output',
       '--autoplay-policy=no-user-gesture-required',
@@ -192,9 +192,9 @@ export const launchApp = async ({ home, radioDirectory, initScripts, offline = f
 export { expect };
 
 /** Adds a folder to the library the way the folder dialog does, and waits for the scan to have its tracks */
-export const addFolder = async (page: Page, folder: string, tracks: number) => {
+export const addFolder = async (page: Page, folder: string, tracks: number, timeout?: number) => {
   await page.evaluate((path) => window.electronAPI.send('ADD_FOLDERS_TO_LIBRARY', [{ path, lastModified: 0 }]), folder);
-  await expect.poll(() => libraryTracks(page), { message: `${tracks} tracks in the library` }).toHaveLength(tracks);
+  await expect.poll(() => libraryTracks(page), { message: `${tracks} tracks in the library`, timeout }).toHaveLength(tracks);
 };
 
 export const libraryTracks = (page: Page): Promise<{ path: string; title?: string }[]> =>
