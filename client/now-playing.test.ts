@@ -25,8 +25,12 @@ describe('now playing', () => {
     expect(cover).toBe('tunelle://app/radio-art/abcd');
   });
 
-  it('shows the station without art while it is looked up', () => {
-    expect(toNowPlaying(station, 'Artist - Song', null).cover).toBeUndefined();
+  it('shows the logo of the station while no art is found for the song', () => {
+    expect(toNowPlaying(station, 'Artist - Song', null).cover).toBe('tunelle://app/radio-logo/abc');
+  });
+
+  it('shows the station without a cover when the stream sends no title', () => {
+    expect(toNowPlaying(station, null, null).cover).toBeUndefined();
   });
 
   it('shows the station as it is when the stream sends no title', () => {

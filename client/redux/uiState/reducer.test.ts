@@ -521,12 +521,17 @@ describe('uiState reducer', () => {
       expect(run({ type: 'PLAY_TRACK', payload: { track: track('/music/a.flac') } }, titled)).toMatchObject({ streamTitle: null, streamArt: null });
     });
 
-    it('drops the art of the previous song when the title changes', () => {
+    it('keeps the art of the previous song until the art of the next one arrives', () => {
       const titled = { ...playing, streamTitle: 'Artist - Song', streamArt: 'abcd' };
-      expect(run({ type: 'RADIO_STREAM_TITLE', payload: { uuid: 'abc', title: 'Artist - Next' } }, titled)).toMatchObject({
-        streamTitle: 'Artist - Next',
-        streamArt: null,
-      });
+      const next = run({ type: 'RADIO_STREAM_TITLE', payload: { uuid: 'abc', title: 'Artist - Next' } }, titled);
+
+      expect(next).toMatchObject({ streamTitle: 'Artist - Next', streamArt: 'abcd' });
+      expect(run({ type: 'RADIO_STREAM_ART', payload: { uuid: 'abc', title: 'Artist - Next', art: 'efgh' } }, next).streamArt).toBe('efgh');
+    });
+
+    it('clears the art when none is found for the new song, which shows the logo of the station', () => {
+      const titled = { ...playing, streamTitle: 'Artist - Next', streamArt: 'abcd' };
+      expect(run({ type: 'RADIO_STREAM_ART', payload: { uuid: 'abc', title: 'Artist - Next' } }, titled).streamArt).toBeNull();
     });
 
     it('keeps the art when the station repeats the title', () => {

@@ -51,7 +51,7 @@ function addListeners(store: Store) {
     store.dispatch({ type: 'RADIO_OPTIONS_LOADED', payload })
   );
   electronAPI.on<{ uuid: string; title: string }>('RADIO_STREAM_TITLE', (payload) => store.dispatch({ type: 'RADIO_STREAM_TITLE', payload }));
-  electronAPI.on<{ uuid: string; title: string; art: string }>('RADIO_STREAM_ART', (payload) => store.dispatch({ type: 'RADIO_STREAM_ART', payload }));
+  electronAPI.on<{ uuid: string; title: string; art?: string }>('RADIO_STREAM_ART', (payload) => store.dispatch({ type: 'RADIO_STREAM_ART', payload }));
   // a favourite of a source this version does not know is left out
   electronAPI.on<{ favourites: unknown[] }>('FAVOURITES', ({ favourites }) =>
     store.dispatch({ type: 'FAVOURITES_LOADED', payload: { favourites: favourites.filter(isFavourite) } })
