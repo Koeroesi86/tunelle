@@ -23,17 +23,19 @@ document.querySelectorAll('[data-copy]').forEach((copy) => {
   // the processor is only known from the high entropy hints (Chromium); macOS reports Intel for every Mac, so it starts with Apple silicon
   const hints = await navigator.userAgentData?.getHighEntropyValues?.(['architecture']).catch(() => undefined)
   const arm = hints ? hints.architecture === 'arm' : system === 'mac'
-  const links = card.querySelectorAll('a')
+  const links = card.querySelectorAll('a:not([href^="#"])')
   const [preferred, other] = arm ? [links[1], links[0]] : [links[0], links[1]]
 
   card.classList.add('detected')
   button.href = preferred.href
   button.textContent = `Download for ${card.querySelector('h3').textContent}`
+
+  // Linux has the Flatpak as the first choice: its button stays in the card and the big button leads to it instead of the AppImage
+  if (system === 'linux') {
+    button.href = '#flatpak'
+    button.textContent = 'Install for Linux'
+    return
+  }
   preferred.classList.add('button')
   other.classList.remove('button')
-
-  // Linux has the Flatpak as the first choice: the big button leads to it instead of the AppImage
-  if (system !== 'linux') return
-  button.href = '#flatpak'
-  button.textContent = 'Install for Linux'
 })()

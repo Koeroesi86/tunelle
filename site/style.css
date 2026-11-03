@@ -281,7 +281,9 @@ h3 {
 }
 
 .button {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 20px;
   border-radius: 10px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
@@ -289,6 +291,15 @@ h3 {
   font-weight: 600;
   text-decoration: none;
   transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.button .icon {
+  flex: none;
+}
+
+/* download.js takes the button look off the disk image that is not the first choice, so the icon is hidden there */
+a:not(.button) > .icon {
+  display: none;
 }
 
 .button:hover {
