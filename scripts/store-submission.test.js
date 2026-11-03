@@ -106,6 +106,14 @@ describe('withReleaseNotes', () => {
     expect(result.Id).toBe('1')
   })
 
+  it('sets the notes of the language of a listing, whatever its region, and the others to the notes given', () => {
+    const result = JSON.parse(withReleaseNotes(output({ 'en-us': listing('x'), 'hu-hu': listing('y'), 'de-de': listing('z') }), 'Fixes.', { hu: 'Javítások.' }))
+
+    expect(result.Listings['hu-hu'].BaseListing.ReleaseNotes).toBe('Javítások.')
+    expect(result.Listings['en-us'].BaseListing.ReleaseNotes).toBe('Fixes.')
+    expect(result.Listings['de-de'].BaseListing.ReleaseNotes).toBe('Fixes.')
+  })
+
   it('reads the submission through colours around it', () => {
     const result = JSON.parse(withReleaseNotes(`\u001b[38;5;2mPending Submission\u001b[0m\n${output({ 'en-us': listing('') })}`, 'Notes'))
 

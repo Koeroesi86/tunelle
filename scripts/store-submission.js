@@ -1,7 +1,7 @@
 const { readFileSync, writeFileSync } = require('fs')
 const { compareVersions } = require('./version')
 
-// usage: node scripts/store-submission.js notes <file> <notes> <result>              writes the submission in <file> with its release notes (in every listing) set to <notes>, for `msstore submission updateMetadata`
+// usage: node scripts/store-submission.js notes <file> <result> <notes> [<language>=<notes>]...   writes the submission in <file> to <result> with the release notes of its listings set to <notes>, or to the notes of the language of the listing (hu for hu-hu), for `msstore submission updateMetadata`
 //        node scripts/store-submission.js status <file>                            fails unless the last submission in the output of `msstore submission status` is published
 //        node scripts/store-submission.js check <tag> <file> <package version>...  fails when the release can not go to the Store, with the output of `msstore submission get` in <file>
 // store.yml runs both before it submits a release. The Store takes a version only when it is greater than the one of the last submission and its fourth part is 0
@@ -38,14 +38,14 @@ const readStoreVersion = (output) => {
   return versions.map(releaseVersion).sort(compareVersions).at(-1)
 }
 
-// a new submission is a copy of the last published one, with its "What's new" text: the same generic text for every version takes the place of the one of the
-// first submission. `msstore submission updateMetadata` replaces the whole submission, so the rest of it is sent back as it was read
-const withReleaseNotes = (output, notes) => {
+// a new submission is a copy of the last published one, with its "What's new" text: the same generic text for every version (in the language of each listing)
+// takes the place of the one of the first submission. `msstore submission updateMetadata` replaces the whole submission, so the rest of it is sent back as it was read
+const withReleaseNotes = (output, notes, translations = {}) => {
   const submission = parseSubmission(output)
   if (!notes) throw new Error('No release notes were given')
   if (Object.keys(submission.Listings ?? {}).length === 0) throw new Error('The submission has no listing, so there is nowhere to put the release notes')
 
-  const listings = Object.fromEntries(Object.entries(submission.Listings).map(([language, listing]) => [language, { ...listing, BaseListing: { ...listing.BaseListing, ReleaseNotes: notes } }]))
+  const listings = Object.fromEntries(Object.entries(submission.Listings).map(([language, listing]) => [language, { ...listing, BaseListing: { ...listing.BaseListing, ReleaseNotes: translations[language.split('-')[0].toLowerCase()] ?? notes } }]))
   return JSON.stringify({ ...submission, Listings: listings }, undefined, 2)
 }
 
@@ -62,15 +62,16 @@ const assertSubmittable = (tag, storeVersion, packageVersions) => {
 if (require.main === module) {
   const [command, ...args] = process.argv.slice(2)
   if (command === 'notes') {
-    const [file, notes, result] = args
-    writeFileSync(result, withReleaseNotes(readFileSync(file, 'utf8'), notes))
+    const [file, result, notes, ...translations] = args
+    const byLanguage = Object.fromEntries(translations.map((translation) => [translation.slice(0, translation.indexOf('=')).toLowerCase(), translation.slice(translation.indexOf('=') + 1)]))
+    writeFileSync(result, withReleaseNotes(readFileSync(file, 'utf8'), notes, byLanguage))
   } else if (command === 'status') assertPublished(readFileSync(args[0], 'utf8'))
   else if (command === 'check') {
     const [tag, file, ...packageVersions] = args
     const storeVersion = readStoreVersion(readFileSync(file, 'utf8'))
     assertSubmittable(tag, storeVersion, packageVersions)
     console.log(`${tag} is greater than ${storeVersion} of the last submission`)
-  } else throw new Error('usage: store-submission.js status <file> | check <tag> <file> <package version>... | notes <file> <notes> <result>')
+  } else throw new Error('usage: store-submission.js status <file> | check <tag> <file> <package version>... | notes <file> <result> <notes> [<language>=<notes>]...')
 }
 
 module.exports = { assertPublished, assertSubmittable, readStoreVersion, readStatus, releaseVersion, withReleaseNotes }
