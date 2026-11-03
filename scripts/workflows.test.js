@@ -90,6 +90,23 @@ describe('workflows', () => {
     expect(text).toMatch(/needs: dist\n\s+uses: \.\/\.github\/workflows\/wack\.yml\n\s+with:\n\s+artifact: dist-win32-x64/)
   })
 
+  it('dist.yml also installs and starts the arm64 Store package on an arm64 runner, which has no certification kit', () => {
+    const job = read('dist.yml').split('\n  certification-arm64:\n')[1].split('\n\n')[0]
+
+    expect(job).toContain('needs: dist')
+    expect(job).toContain('uses: ./.github/workflows/wack.yml')
+    expect(job).toContain('artifact: dist-win32-arm64')
+    expect(job).toContain('arch: arm64')
+  })
+
+  it('wack.yml runs the kit only for the x64 package and the arm64 package on windows-11-arm', () => {
+    const text = read('wack.yml')
+
+    expect(text).toMatch(/runs-on: \$\{\{ inputs\.arch == 'arm64' && 'windows-11-arm' \|\| 'windows-2025' \}\}/)
+    expect(text).toMatch(/- name: Run the Windows App Certification Kit\n\s+if: inputs\.arch != 'arm64'/)
+    expect(text).toMatch(/- name: Install the package and watch for requests to GitHub\n\s+shell: pwsh/)
+  })
+
   it('pages.yml signs the Flatpak repository with a secret and release.yml hands the secrets on', () => {
     expect(read('pages.yml')).toMatch(/FLATPAK_GPG_PRIVATE_KEY: \$\{\{ secrets\.FLATPAK_GPG_PRIVATE_KEY \}\}/)
     expect(read('release.yml')).toMatch(/uses: \.\/\.github\/workflows\/pages\.yml\n(?:\s+#.*\n)?\s+secrets: inherit/)
