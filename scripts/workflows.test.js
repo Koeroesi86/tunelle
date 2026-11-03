@@ -194,4 +194,8 @@ describe('workflows', () => {
     expect(text).toMatch(/PERF_APP_OUT: \$\{\{ github\.workspace \}\}\/base\/out/)
     expect(text).toMatch(/name: base-perf-\$\{\{ matrix\.os \}\}/)
   })
+
+  it('perf.yml runs every measurement three times, the base branch and the pull request alike, for the median of the summary', () => {
+    expect(read('perf.yml').match(/PERF_REPEAT: 3\n/g)).toHaveLength(2)
+  })
 })

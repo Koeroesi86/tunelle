@@ -13,8 +13,8 @@ jobs:
   perf:
     name: Perf (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # the base branch is built and measured too: Windows scans slowly
-    timeout-minutes: 90
+    # the base branch is built and measured too, three times each: Windows scans slowly
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
@@ -48,6 +48,8 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           PERF_TRACKS: 3000
+          # a run of a runner differs by tens of percent on its own: the summary takes the median of three
+          PERF_REPEAT: 3
           PERF_APP_OUT: ${{ github.workspace }}/base/out
         run: npm run perf
       # the next run empties test-results
@@ -59,6 +61,8 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           PERF_TRACKS: 3000
+          # a run of a runner differs by tens of percent on its own: the summary takes the median of three
+          PERF_REPEAT: 3
         run: npm run perf
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
