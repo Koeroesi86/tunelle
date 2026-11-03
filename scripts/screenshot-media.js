@@ -88,8 +88,18 @@ const metadataBlock = (type, body, last) => Buffer.concat([Buffer.from([(last ? 
 
 const lengthPrefixed = (text, order) => Buffer.concat([uint32(Buffer.byteLength(text), order), Buffer.from(text)])
 
-/** A stereo 16 bit 44.1 kHz FLAC that lasts the given seconds, silent or a sine of the frequency (Hz), with the tags (an object of Vorbis comments) and the PNG as its front cover */
-const writeFlac = ({ seconds, tags, cover, frequency }) => {
+// the blocks of a track depend on their number and the tone only, so tracks of the same length and pitch share them: a library of thousands of tracks makes each once
+const framesOf = new Map()
+const framesFor = (total, frequency) => {
+  const key = `${total}/${frequency}`
+  if (!framesOf.has(key)) {
+    framesOf.set(key, Array.from({ length: Math.ceil(total / blockSize) }, (_, number) => silentFrame(number, Math.min(blockSize, total - number * blockSize), frequency)))
+  }
+  return framesOf.get(key)
+}
+
+/** A stereo 16 bit 44.1 kHz FLAC that lasts the given seconds, silent or a sine of the frequency (Hz), with the tags (an object of Vorbis comments) and the PNG as its front cover, and a block of padding of the given bytes before the cover (the room an editor leaves for tags) */
+const writeFlac = ({ seconds, tags, cover, frequency, padding = 0 }) => {
   const total = seconds * sampleRate
   const streamInfo = Buffer.alloc(34)
   streamInfo.writeUInt16BE(blockSize, 0)
@@ -109,9 +119,15 @@ const writeFlac = ({ seconds, tags, cover, frequency }) => {
     uint32(cover.length),
     cover
   ])
-  const frames = Array.from({ length: Math.ceil(total / blockSize) }, (_, number) => silentFrame(number, Math.min(blockSize, total - number * blockSize), frequency))
 
-  return Buffer.concat([Buffer.from('fLaC'), metadataBlock(0, streamInfo), metadataBlock(4, vorbis), metadataBlock(6, picture, true), ...frames])
+  return Buffer.concat([
+    Buffer.from('fLaC'),
+    metadataBlock(0, streamInfo),
+    metadataBlock(4, vorbis),
+    ...(padding > 0 ? [metadataBlock(1, Buffer.alloc(padding))] : []),
+    metadataBlock(6, picture, true),
+    ...framesFor(total, frequency)
+  ])
 }
 
 module.exports = { drawCover, writeFlac }
