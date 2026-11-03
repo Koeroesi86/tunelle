@@ -51,7 +51,8 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: perf-${{ matrix.os }}
-          path: test-results/perf-*.json
+          # the numbers, and the traces of a measurement that failed
+          path: test-results
           if-no-files-found: ignore
 
   summary:
