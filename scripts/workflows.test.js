@@ -91,7 +91,12 @@ describe('workflows', () => {
   })
 
   it('dist.yml also installs and starts the arm64 Store package on an arm64 runner, which has no certification kit', () => {
-    expect(read('dist.yml')).toMatch(/certification-arm64:\n(?:\s+.*\n)*?\s+needs: dist\n\s+uses: \.\/\.github\/workflows\/wack\.yml\n\s+with:\n\s+artifact: dist-win32-arm64\n\s+arch: arm64\n/)
+    const job = read('dist.yml').split('\n  certification-arm64:\n')[1].split('\n\n')[0]
+
+    expect(job).toContain('needs: dist')
+    expect(job).toContain('uses: ./.github/workflows/wack.yml')
+    expect(job).toContain('artifact: dist-win32-arm64')
+    expect(job).toContain('arch: arm64')
   })
 
   it('wack.yml runs the kit only for the x64 package and the arm64 package on windows-11-arm', () => {
