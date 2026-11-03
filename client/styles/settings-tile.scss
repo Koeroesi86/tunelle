@@ -32,7 +32,6 @@
 
 // a round button on the tile
 @mixin tile-button {
-  -webkit-app-region: no-drag;
   height: 28px;
   padding: 0 14px;
   font: inherit;
