@@ -13,6 +13,8 @@ import { record } from './measure';
 
 const tracks = Number(process.env.PERF_TRACKS ?? 2000);
 const idleSeconds = 5;
+// a slow runner scans thousands of files for minutes
+const scanTimeout = 300_000;
 
 const generated = mkdtempSync(join(tmpdir(), 'tunelle-perf-startup-'));
 const expected = writeLargeLibrary(generated, tracks);
@@ -46,7 +48,7 @@ test('measures the start of the app on an empty library and on a big one', async
   const emptyPage = await pageStart(empty.page);
   report.emptyLibrary = { toPageMs: emptyMs, ...emptyPage, longTasks: emptyPage.longTasks.length, longestTaskMs: Math.max(0, ...emptyPage.longTasks) };
 
-  await addFolder(empty.page, generated, expected);
+  await addFolder(empty.page, generated, expected, scanTimeout);
   await quit(empty.app);
 
   const warmStarted = Date.now();
@@ -70,7 +72,7 @@ test('measures the start of the app on an empty library and on a big one', async
 
 test('measures the cost of a standing app: the processor while it plays, is paused and is hidden, and the covers it loads', async ({ start }) => {
   const { app, page } = await start();
-  await addFolder(page, generated, expected);
+  await addFolder(page, generated, expected, scanTimeout);
 
   // the share of a processor that the processes of the app used since the last call, in percent
   const cpu = async () => {

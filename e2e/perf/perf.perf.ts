@@ -27,7 +27,7 @@ const search = (page: Page, text: string) => page.getByRole('searchbox', { name:
 
 const libraryLength = (page: Page) => page.evaluate(() => fetch('tunelle://app/library').then((response) => response.json())).then((library) => library.length);
 
-/** Adds the folder, and answers when the number of tracks has stopped to grow */
+/** Adds the folder, and answers when the library has the tracks of a generated one, or when the number of tracks of a real one has stopped to grow */
 const scan = async (app: ElectronApplication, page: Page) => {
   await startMainLoop(app);
   await startRenderer(page);
@@ -38,7 +38,7 @@ const scan = async (app: ElectronApplication, page: Page) => {
     .poll(
       async () => {
         const now = await libraryLength(page);
-        const settled = now === count && now > 0;
+        const settled = expected ? now === expected : now === count && now > 0;
         count = now;
         return settled;
       },

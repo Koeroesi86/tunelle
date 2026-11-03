@@ -192,9 +192,9 @@ export const launchApp = async ({ home, radioDirectory, initScripts, offline = f
 export { expect };
 
 /** Adds a folder to the library the way the folder dialog does, and waits for the scan to have its tracks */
-export const addFolder = async (page: Page, folder: string, tracks: number) => {
+export const addFolder = async (page: Page, folder: string, tracks: number, timeout?: number) => {
   await page.evaluate((path) => window.electronAPI.send('ADD_FOLDERS_TO_LIBRARY', [{ path, lastModified: 0 }]), folder);
-  await expect.poll(() => libraryTracks(page), { message: `${tracks} tracks in the library` }).toHaveLength(tracks);
+  await expect.poll(() => libraryTracks(page), { message: `${tracks} tracks in the library`, timeout }).toHaveLength(tracks);
 };
 
 export const libraryTracks = (page: Page): Promise<{ path: string; title?: string }[]> =>
