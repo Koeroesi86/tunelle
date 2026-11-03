@@ -22,11 +22,14 @@ const assertPublished = (output) => {
   if (status !== 'Published') throw new Error(`The last submission is ${status}, not Published: wait for it, or finish it in Partner Center, before submitting another`)
 }
 
+// msstore writes the keys of the submission in Pascal case (ApplicationPackages, Version), the API of the Store in camel case
+const field = (object, name) => Object.entries(object ?? {}).find(([key]) => key.toLowerCase() === name)?.[1]
+
 // the output of `msstore submission get` is the submission as JSON, with a line or two of the progress display around it
 const readStoreVersion = (output) => {
   const text = withoutColours(output)
   const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)
-  const versions = (JSON.parse(json).applicationPackages ?? []).map(({ version }) => version).filter(Boolean)
+  const versions = (field(JSON.parse(json), 'applicationpackages') ?? []).map((applicationPackage) => field(applicationPackage, 'version')).filter(Boolean)
   if (versions.length === 0) throw new Error('The submission has no package with a version, so the version in the Store is not known')
   return versions.map(releaseVersion).sort(compareVersions).at(-1)
 }

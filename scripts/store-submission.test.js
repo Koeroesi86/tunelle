@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assertPublished, assertSubmittable, readStatus, readStoreVersion, releaseVersion } from './store-submission'
 
-const submission = (...versions) => `Retrieving Submission\n${JSON.stringify({ id: '1', applicationPackages: versions.map((version) => ({ version })) }, undefined, 2)}\n`
+const submission = (...versions) => `Retrieving Submission\n${JSON.stringify({ Id: '1', ApplicationPackages: versions.map((Version) => ({ FileName: 'Tunelle.appx', Version })) }, undefined, 2)}\n`
 
 describe('releaseVersion', () => {
   it('keeps the first three parts', () => {
@@ -41,6 +41,10 @@ describe('assertPublished', () => {
 describe('readStoreVersion', () => {
   it('takes the greatest version of the packages, without the fourth part', () => {
     expect(readStoreVersion(submission('26.10.9.0', '26.10.14.0', '26.10.14.0'))).toBe('26.10.14')
+  })
+
+  it('reads the keys in camel case too', () => {
+    expect(readStoreVersion(JSON.stringify({ applicationPackages: [{ version: '26.11.15.0' }] }))).toBe('26.11.15')
   })
 
   it('reads the JSON through colours around it', () => {
