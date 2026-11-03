@@ -1,6 +1,6 @@
 name: Store certification
 
-# The Windows App Certification Kit (the tests that Partner Center runs on a package) on the x64 package, so a problem shows before the submission, and
+# The Windows App Certification Kit (the tests that Partner Center runs on a package) on the x64 or the arm64 package (the arm64 one on an arm64 runner), so a problem shows before the submission, and
 # a run of the installed package that shows it does not look for updates on GitHub. dist.yml calls it with the package it built, so it runs for every
 # pull request and before a release is published; by hand it checks the package of a published release (the latest, or the tag it is given). The package
 # is unsigned, so a copy of it is signed with a certificate made for the run, which the kit needs to install it; the package that is uploaded to the
@@ -15,20 +15,28 @@ on:
       tag:
         type: string
         default: ''
+      arch:
+        type: string
+        default: x64
   workflow_dispatch:
     inputs:
       tag:
         description: The tag of the release to check, empty for the latest
         type: string
         default: ''
+      arch:
+        description: The package to check
+        type: choice
+        options: [x64, arm64]
+        default: x64
 
 permissions:
   contents: read
 
 jobs:
   wack:
-    name: Windows App Certification Kit (x64)
-    runs-on: windows-2025
+    name: Windows App Certification Kit (${{ inputs.arch }})
+    runs-on: ${{ inputs.arch == 'arm64' && 'windows-11-arm' || 'windows-2025' }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -48,8 +56,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
+          ARCH: ${{ inputs.arch }}
         shell: bash
-        run: gh release download ${TAG:+"$TAG"} --repo "$GITHUB_REPOSITORY" --pattern 'Tunelle-*-x64.appx' --dir package
+        run: gh release download ${TAG:+"$TAG"} --repo "$GITHUB_REPOSITORY" --pattern "Tunelle-*-${ARCH}.appx" --dir package
       # Windows installs a package only when it is signed with a certificate it trusts, and the publisher of the certificate has to be the one of the manifest
       - name: Sign a copy of the package with a certificate of this run
         shell: pwsh
@@ -101,6 +110,6 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: wack-report
+          name: wack-report-${{ inputs.arch }}
           path: wack-report.xml
           if-no-files-found: ignore
