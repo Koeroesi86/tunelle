@@ -151,4 +151,14 @@ describe('workflows', () => {
   it('release.yml submits what it released to the Store, after the release is published', () => {
     expect(read('release.yml')).toMatch(/\n  store:\n(?:\s+#.*\n)*\s+needs: \[plan, release\]\n\s+uses: \.\/\.github\/workflows\/store\.yml\n\s+with:\n\s+tag: v\$\{\{ needs\.plan\.outputs\.version \}\}\n\s+commit: true\n\s+automatic: true\n/)
   })
+
+  it('release.yml uploads to a draft, checks its files and publishes it last, before the website and the Store', () => {
+    const text = read('release.yml')
+
+    expect(text).toMatch(/uses: softprops\/action-gh-release@[\s\S]*?\n\s+draft: true\n/)
+    expect(text.indexOf('draft: true')).toBeLessThan(text.indexOf('Check that the draft has every file'))
+    expect(text.indexOf('Check that the draft has every file')).toBeLessThan(text.indexOf('- name: Publish the release'))
+    expect(text).toMatch(/- name: Publish the release[\s\S]*draft=false\n\n  # the website/)
+    expect(text).toMatch(/\n  site:\n\s+needs: release\n/)
+  })
 })
