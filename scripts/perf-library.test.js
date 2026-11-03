@@ -75,6 +75,26 @@ describe('planLibrary', () => {
   })
 })
 
+describe('planLibrary with a profile that has nothing to draw from', () => {
+  it('falls back to an album of ten tracks of 200 seconds, and writes the picture of a few kilobytes', () => {
+    const empty = { ...profile, albumFoldersPerArtist: [], tracksPerAlbumFolder: [], otherFiles: { png: 1 }, tags: { ...profile.tags, durationSeconds: [], pictureKilobytes: [] } }
+    const plan = planLibrary(empty, 20, 1)
+
+    expect(plan.map(({ tracks }) => tracks.length)).toEqual([10, 10])
+    expect(tracksOf(plan).every(({ seconds }) => seconds === 200)).toBe(true)
+    expect(plan[0]).toMatchObject({ pictureKilobytes: 0, extras: ['png'] })
+  })
+
+  it('writes the picture and the other file of such an album', () => {
+    const folder = mkdtempSync(join(tmpdir(), 'perf-library-'))
+    const plan = planLibrary({ ...profile, otherFiles: { png: 1 }, tags: { ...profile.tags, pictureKilobytes: [] } }, 6, 1)
+    writePlan(folder, plan)
+
+    expect(readdirSync(join(folder, ...plan[0].folder)).includes('album.png')).toBe(true)
+    rmSync(folder, { recursive: true, force: true })
+  })
+})
+
 describe('writeMp3', () => {
   it('is a file that the app reads: the tags, the picture and the length of its frames', async () => {
     const { parseBuffer } = await import('music-metadata')

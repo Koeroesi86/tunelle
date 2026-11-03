@@ -106,6 +106,13 @@ const tags = sample => ({
   nonAscii: share(sample, ({ title, artist, album }) => [title, artist, album].some(nonAscii))
 })
 
+/** The profile of the library in a folder, from `size` of its files read with the parseFile of music-metadata */
+const profileOf = async (folder, size, parseFile) => {
+  const folders = walk(folder)
+  const paths = folders.flatMap(({ path, files }) => files.filter(file => audio.has(extname(file).toLowerCase())).map(file => join(path, file)))
+  return { tracks: paths.length, ...shape(folders), tags: tags(await readSample(sampleOf(paths, size, random(1)), parseFile)) }
+}
+
 const main = async () => {
   const [folder, output = 'library-profile.json', size = '500'] = process.argv.slice(2)
   if (!folder) {
@@ -114,13 +121,11 @@ const main = async () => {
   }
 
   const { parseFile } = await import('music-metadata')
-  const folders = walk(folder)
-  const paths = folders.flatMap(({ path, files }) => files.filter(file => audio.has(extname(file).toLowerCase())).map(file => join(path, file)))
-  const profile = { tracks: paths.length, ...shape(folders), tags: tags(await readSample(sampleOf(paths, Number(size), random(1)), parseFile)) }
+  const profile = await profileOf(folder, Number(size), parseFile)
   writeFileSync(output, `${JSON.stringify(profile)}\n`)
-  console.log(`${paths.length} tracks, ${profile.tags.sampled} of them read, written to ${output}`)
+  console.log(`${profile.tracks} tracks, ${profile.tags.sampled} of them read, written to ${output}`)
 }
 
 if (require.main === module) main()
 
-module.exports = { shape, tags }
+module.exports = { profileOf, shape, tags }
