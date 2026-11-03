@@ -176,13 +176,13 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
     case 'RADIO_STREAM_TITLE': {
       const { uuid, title } = action.payload;
       const isCurrent = state.currentSong && radioUuidOf(state.currentSong.path) === uuid;
-      // a station can repeat its title, which keeps the art it has
-      return isCurrent && title !== state.streamTitle ? { ...state, streamTitle: title, streamArt: null } : state;
+      // the art stays until the art of the new song arrives (or the answer that there is none), so the cover is never empty in between
+      return isCurrent && title !== state.streamTitle ? { ...state, streamTitle: title } : state;
     }
     case 'RADIO_STREAM_ART': {
       const { uuid, title, art } = action.payload;
-      // the art of a song the station has moved on from is dropped
-      return state.currentSong && radioUuidOf(state.currentSong.path) === uuid && title === state.streamTitle ? { ...state, streamArt: art } : state;
+      // the art of a song the station has moved on from is dropped, and no art found shows the logo of the station
+      return state.currentSong && radioUuidOf(state.currentSong.path) === uuid && title === state.streamTitle ? { ...state, streamArt: art ?? null } : state;
     }
     case 'SCANNING_FOLDER':
       return { ...state, scanningFolder: action.payload.folder };

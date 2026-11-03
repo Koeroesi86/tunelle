@@ -156,7 +156,7 @@ export type AppAction =
   | PayloadAction<'REMOVE_FAVOURITE', { key: FavouriteKey }>
   | PayloadAction<'PLAY_RADIO_STATION', { station: RadioStation }>
   | PayloadAction<'RADIO_STREAM_TITLE', { uuid: string; title: string }>
-  | PayloadAction<'RADIO_STREAM_ART', { uuid: string; title: string; art: string }>
+  | PayloadAction<'RADIO_STREAM_ART', { uuid: string; title: string; art?: string }>
   | PayloadAction<'FOLDERS_ADDED_TO_LIBRARY', { folders: Folder[] }>
   | PayloadAction<'STORE_FOLDERS', { folders: Folder[] }>
   | PayloadAction<'OFFLINE_FOLDERS', { folders: string[] }>

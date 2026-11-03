@@ -100,6 +100,40 @@ describe('radio art', () => {
     expect(await create(fetcher).lookup('Artist - Song')).toBeUndefined();
   });
 
+  it('searches again without the brackets, the featured artist and the edit of the title', async () => {
+    const fetcher = answers({
+      'musicbrainz.org': (url) =>
+        new URL(url).searchParams.get('query') === 'recording:"Song" AND artist:"Artist"' ? match() : Response.json({ recordings: [] }),
+      'coverartarchive.org': () => image(),
+    });
+
+    expect(await create(fetcher).lookup('Artist feat. Guest - Song (Live) - Radio Edit')).toBeDefined();
+    expect(fetcher.mock.calls.filter(([url]) => url.includes('musicbrainz')).map(([url]) => new URL(url).searchParams.get('query'))).toEqual([
+      'recording:"Song (Live) - Radio Edit" AND artist:"Artist feat. Guest"',
+      'recording:"Song" AND artist:"Artist"',
+    ]);
+  });
+
+  it('searches by the words when the exact search finds nothing', async () => {
+    const fetcher = answers({
+      'musicbrainz.org': (url) => (new URL(url).searchParams.get('query')?.includes('recording:(') ? match() : Response.json({ recordings: [] })),
+      'coverartarchive.org': () => image(),
+    });
+
+    expect(await create(fetcher).lookup("Artist - Don't Stop")).toBeDefined();
+    expect(fetcher.mock.calls.map(([url]) => new URL(url).searchParams.get('query'))).toContain('recording:(Don AND t AND Stop) AND artist:(Artist)');
+  });
+
+  it('searches the other way round for a station that sends the title first', async () => {
+    const fetcher = answers({
+      'musicbrainz.org': (url) =>
+        new URL(url).searchParams.get('query') === 'recording:"Song" AND artist:"Artist"' ? match() : Response.json({ recordings: [] }),
+      'coverartarchive.org': () => image(),
+    });
+
+    expect(await create(fetcher).lookup('Song - Artist')).toBeDefined();
+  });
+
   it('requests the covers at once and takes the best ranked one that loads', async () => {
     const started: string[] = [];
     let resolveGroup: (response: Response) => void = () => undefined;
@@ -159,9 +193,10 @@ describe('radio art', () => {
     const art = create(fetcher);
 
     await art.lookup('Nothing');
+    const asked = fetcher.mock.calls.length;
     await art.lookup('Nothing');
 
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(asked);
   });
 
   it('drops the oldest titles past the limit', async () => {

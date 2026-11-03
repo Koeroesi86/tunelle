@@ -169,7 +169,7 @@ const serveApp = () =>
         windows.main?.webContents.send('RADIO_STREAM_TITLE', { uuid, title });
         radioArt
           .lookup(title, streamUrl)
-          .then((art) => art && windows.main?.webContents.send('RADIO_STREAM_ART', { uuid, title, art }))
+          .then((art) => windows.main?.webContents.send('RADIO_STREAM_ART', { uuid, title, art }))
           .catch((error) => console.error(error));
       },
     },

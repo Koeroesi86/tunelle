@@ -22,13 +22,51 @@ const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 
 const phrase = (text: string) => `"${text.replace(/[\\"]/g, (character) => `\\${character}`)}"`;
 
-/** The query of a stream title, which is usually `Artist - Title` (as the page splits it), else all of it is the title of the recording */
-const queryOf = (streamTitle: string) => {
+const splitTitle = (streamTitle: string) => {
   const match = streamTitle.trim().match(/^(.+?) - (.+)$/);
-  return match ? `recording:${phrase(match[2].trim())} AND artist:${phrase(match[1].trim())}` : `recording:${phrase(streamTitle.trim())}`;
+  return match ? { artist: match[1].trim(), title: match[2].trim() } : { title: streamTitle.trim() };
 };
 
-const searchUrl = (title: string) => `https://musicbrainz.org/ws/2/recording?${new URLSearchParams({ query: queryOf(title), fmt: 'json', limit: '5' })}`;
+/** Without what stations add to a name: a bracketed part, `feat. …` and a ` - Radio Edit` tail */
+const cleaned = (text: string) =>
+  text
+    .replace(/\s*[([].*?[)\]]/g, '')
+    .replace(/\s+(feat\.?|ft\.?|featuring)\s.*$/i, '')
+    .replace(/\s+-\s+.*$/, '')
+    .trim();
+
+/** The words of a text as a query that matches them in any order, without the characters of the query syntax */
+const words = (text: string) =>
+  `(${text
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' AND ')})`;
+
+const exact = (artist: string | undefined, title: string) =>
+  artist ? `recording:${phrase(title)} AND artist:${phrase(artist)}` : `recording:${phrase(title)}`;
+
+const loose = (artist: string | undefined, title: string) => (artist ? `recording:${words(title)} AND artist:${words(artist)}` : `recording:${words(title)}`);
+
+/**
+ * The queries for a stream title, which is usually `Artist - Title` (as the page splits it), else all of it is the title of the recording.
+ * The exact one comes first, then the one without what stations add, the one that matches words, and the one for a station that sends `Title - Artist`.
+ */
+const queriesOf = (streamTitle: string) => {
+  const { artist, title } = splitTitle(streamTitle);
+  const cleanArtist = artist && cleaned(artist);
+  const cleanTitle = cleaned(title) || title;
+
+  return [
+    ...new Set([
+      exact(artist, title),
+      exact(cleanArtist, cleanTitle),
+      loose(cleanArtist, cleanTitle),
+      ...(artist ? [exact(cleanTitle, cleanArtist || artist), loose(cleanTitle, cleanArtist || artist)] : []),
+    ]),
+  ];
+};
+
+const searchUrl = (query: string) => `https://musicbrainz.org/ws/2/recording?${new URLSearchParams({ query, fmt: 'json', limit: '5' })}`;
 
 const getOk = async (fetcher: Fetcher, url: string, headers?: Record<string, string>, cancel?: AbortSignal) => {
   const response = await fetcher(url, { signal: AbortSignal.any([AbortSignal.timeout(lookupTimeout), ...(cancel ? [cancel] : [])]), headers });
@@ -93,7 +131,7 @@ const firstImage = async (fetcher: Fetcher, urls: string[]) => {
 };
 
 /**
- * The art of the song a station announces: the image the station names in its `StreamUrl`, else the first match of a music search.
+ * The art of the song a station announces: the image the station names in its `StreamUrl`, else the first match of a music search, which is tried with looser queries when the exact one finds none.
  * The answer of a title is kept (also when there is none), so a title is looked up once; the oldest titles are dropped past a limit.
  */
 export const createRadioArt = (userAgent: string, fetcher: Fetcher = fetch, pause: (milliseconds: number) => Promise<unknown> = wait) => {
@@ -101,11 +139,15 @@ export const createRadioArt = (userAgent: string, fetcher: Fetcher = fetch, paus
   const lookups = new Map<string, Promise<string | undefined>>();
   const images = new Map<string, RadioArtImage>();
 
-  const fromSearch = async (title: string) => {
-    const answer: unknown = await queue(async () => (await getOk(fetcher, searchUrl(title), { 'User-Agent': userAgent })).json());
+  const fromQuery = async (query: string) => {
+    const answer: unknown = await queue(async () => (await getOk(fetcher, searchUrl(query), { 'User-Agent': userAgent })).json());
 
     return firstImage(fetcher, coverUrlsOf(answer));
   };
+
+  /** The queries one after the other until one finds a cover */
+  const fromSearch = (title: string) =>
+    queriesOf(title).reduce((previous, query) => previous.catch(() => fromQuery(query)), Promise.reject<RadioArtImage>(new Error('No query')));
 
   const keyOf = (title: string) => createHash('sha1').update(title).digest('hex').slice(0, 16);
 
