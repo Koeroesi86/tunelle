@@ -3,7 +3,8 @@ name: Store submission
 # Sends a release to the Microsoft Store as a new submission, started by hand with its tag: releases come out on Monday and Thursday and certification takes time,
 # so the chosen ones go to the Store. Both packages of the release (x64 and arm64) are put in one bundle, as the Store developer CLI (msstore) takes .msix,
 # .msixbundle and .msixupload and not the .appx of the release; the Store signs the package itself, so the bundle needs no signature. Without "commit" the
-# draft is made and left in Partner Center to be looked at and submitted there. The secrets of the Microsoft Entra application (Manager role in Partner Center)
+# draft is made and left in Partner Center to be looked at there, not changed: a submission made through the API is changed only through the API (a change
+# in Partner Center ends its use by the API, and may leave it in an error state), so the draft is deleted in Partner Center and the workflow run again with "commit". The secrets of the Microsoft Entra application (Manager role in Partner Center)
 # are in the environment microsoft-store, and the Store product ID is its variable MS_STORE_PRODUCT_ID. Certification then runs on the side of Microsoft.
 on:
   workflow_dispatch:
@@ -13,7 +14,7 @@ on:
         type: string
         required: true
       commit:
-        description: Submit it for certification, otherwise only a draft is made in Partner Center
+        description: Submit it for certification, otherwise only a draft is made (look at it in Partner Center, do not change it there)
         type: boolean
         default: false
 
@@ -109,7 +110,7 @@ jobs:
           COMMIT: ${{ inputs.commit }}
         shell: pwsh
         run: |
-          $state = if ($env:COMMIT -eq 'true') { 'Submitted for certification, which runs on the side of Microsoft.' } else { 'A draft was made and is not submitted: look at it in Partner Center and submit it there.' }
+          $state = if ($env:COMMIT -eq 'true') { 'Submitted for certification, which runs on the side of Microsoft.' } else { 'A draft was made and is not submitted. Look at it in Partner Center but do not change it there (a submission made through the API is changed only through the API). To submit: delete the draft in Partner Center and run this workflow again with commit ticked.' }
           $lines = @(
             "## $env:TAG in the Microsoft Store",
             '',

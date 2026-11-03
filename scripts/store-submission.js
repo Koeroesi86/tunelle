@@ -19,7 +19,7 @@ const readStatus = (output) => withoutColours(output).match(/Submission Status =
 const assertPublished = (output) => {
   const status = readStatus(output)
   if (!status) throw new Error('The output of `msstore submission status` has no "Submission Status", so the state of the last submission is not known')
-  if (status !== 'Published') throw new Error(`The last submission is ${status}, not Published: wait for it, or finish it in Partner Center, before submitting another`)
+  if (status !== 'Published') throw new Error(`The last submission is ${status}, not Published: wait for it, or delete it in Partner Center (a draft of an earlier run without commit too), before submitting another`)
 }
 
 // msstore writes the keys of the submission in Pascal case (ApplicationPackages, Version), the API of the Store in camel case
