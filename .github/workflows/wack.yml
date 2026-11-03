@@ -111,7 +111,7 @@ jobs:
           # a package that did not start would pass the check for the wrong reason
           if (-not (Get-Process -Name Tunelle -ErrorAction SilentlyContinue)) { throw 'The package is not running' }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
+        if: always() && inputs.arch != 'arm64'
         with:
           name: wack-report-${{ inputs.arch }}
           path: wack-report.xml

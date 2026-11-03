@@ -177,3 +177,14 @@ jobs:
       artifact: dist-win32-x64
     permissions:
       contents: read
+
+  # the kit is not on the arm64 runner: the Store package of that processor is installed and started, and must not look for updates on GitHub; a failure stops a release as well
+  certification-arm64:
+    name: Store certification (arm64)
+    needs: dist
+    uses: ./.github/workflows/wack.yml
+    with:
+      artifact: dist-win32-arm64
+      arch: arm64
+    permissions:
+      contents: read
