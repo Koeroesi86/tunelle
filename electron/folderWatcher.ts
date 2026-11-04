@@ -34,19 +34,13 @@ export const readDirectoryTimes = async (folder: string): Promise<DirectoryTimes
   return times;
 };
 
-/** How long the folder takes to answer, in milliseconds; a folder that does not answer in time takes as long as the wait */
-export const measureResponse = async (folder: string) => {
-  const start = performance.now();
-  await withTimeout(fs.promises.stat(folder), undefined);
-  return performance.now() - start;
-};
-
 const minInterval = 30_000;
 const maxInterval = 15 * 60_000;
-const intervalPerResponseMs = 2000;
+/** A look takes about one hundredth of the time */
+const waitPerLookMs = 100;
 
-/** How long to wait before the next look at a folder, from how long it took to answer: a folder on the disk of the computer is looked at every half minute, one on a network or a removable drive less often, the slower the rarer, as a look at a tree of folders over such a drive takes time of its own and loads the drive */
-export const pollInterval = (responseMs: number) => Math.min(maxInterval, Math.max(minInterval, Math.round(responseMs * intervalPerResponseMs)));
+/** How long to wait before the next look at a folder, from how long the last looks took (the whole tree of folders, a folder that does not answer takes the time it was waited for): a look takes about one hundredth of the time, so a small library on the disk of the computer is looked at every half minute, a big tree or a network or removable drive less often, never rarer than every 15 minutes */
+export const pollInterval = (lookMs: number) => Math.min(maxInterval, Math.max(minInterval, Math.round(lookMs * waitPerLookMs)));
 
 /** What differs between two looks: the folders with another time or that are new are scanned for their own files, a folder that is gone is looked at with what was below it */
 const differences = (before: DirectoryTimes, after: DirectoryTimes): Change[] => [
@@ -56,10 +50,8 @@ const differences = (before: DirectoryTimes, after: DirectoryTimes): Change[] =>
 
 interface Options {
   readTimes?: (folder: string) => Promise<DirectoryTimes>;
-  /** How long a folder takes to answer, in milliseconds */
-  measure?: (folder: string) => Promise<number>;
-  /** How long to wait before the next look at a folder, from how long it took to answer */
-  interval?: (responseMs: number) => number;
+  /** How long to wait before the next look at a folder, from how long the last looks took, in milliseconds */
+  interval?: (lookMs: number) => number;
   /** The least time between two looks at all the folders, as the window asks every time it gets the focus */
   checkGap?: number;
 }
@@ -67,13 +59,15 @@ interface Options {
 interface Tracked {
   /** The modification times at the last look */
   baseline?: DirectoryTimes;
+  /** How long the last two looks took: the longer one counts, so one look that was quick by luck does not shorten the wait */
+  lookMs: number[];
   timer?: NodeJS.Timeout;
   looking?: boolean;
 }
 
-/** Tells what changed in the folders by looking at the modification times of the folders in them, which change when a file in one is added, removed or renamed. It does not use a watch of the system: on Linux one over a big tree or a network drive blocks the app while it is made, and a network drive gives no events anyway. A folder is looked at again after a wait that follows how slowly it answers, and when the window asks */
+/** Tells what changed in the folders by looking at the modification times of the folders in them, which change when a file in one is added, removed or renamed. It does not use a watch of the system: on Linux one over a big tree or a network drive blocks the app while it is made, and a network drive gives no events anyway. A folder is looked at again after a wait that follows how long a look takes, and when the window asks */
 export const createFolderWatcher = (onChange: (changes: Change[]) => void, options: Options = {}) => {
-  const { readTimes = readDirectoryTimes, measure = measureResponse, interval = pollInterval, checkGap = 30_000 } = options;
+  const { readTimes = readDirectoryTimes, interval = pollInterval, checkGap = 30_000 } = options;
   const tracked = new Map<string, Tracked>();
   let queue = Promise.resolve();
   let lastCheck = 0;
@@ -84,10 +78,19 @@ export const createFolderWatcher = (onChange: (changes: Change[]) => void, optio
     tracked.delete(folder);
   };
 
-  /** Wait for the next look, as long as the folder asks for with its last answer */
-  const schedule = async (folder: string, entry: Tracked) => {
-    const wait = interval(await measure(folder));
+  /** Read the folders, and keep how long it took */
+  const timedRead = async (folder: string, entry: Tracked) => {
+    const start = performance.now();
+    const times = await readTimes(folder);
+    entry.lookMs = [...entry.lookMs.slice(-1), performance.now() - start];
+    return times;
+  };
+
+  /** Wait for the next look, as long as the last looks ask for */
+  const schedule = (folder: string, entry: Tracked) => {
     if (closed || tracked.get(folder) !== entry) return;
+
+    const wait = interval(Math.max(...entry.lookMs));
 
     clearTimeout(entry.timer);
     entry.timer = setTimeout(() => void look(folder, entry), wait);
@@ -95,7 +98,7 @@ export const createFolderWatcher = (onChange: (changes: Change[]) => void, optio
 
   /** A folder that does not answer keeps what was seen of it */
   const compare = async (folder: string, entry: Tracked) => {
-    const times = await readTimes(folder);
+    const times = await timedRead(folder, entry);
     if (times.size === 0) return;
 
     const { baseline } = entry;
@@ -112,17 +115,18 @@ export const createFolderWatcher = (onChange: (changes: Change[]) => void, optio
     await compare(folder, entry).finally(() => {
       entry.looking = false;
     });
-    await schedule(folder, entry);
+    schedule(folder, entry);
   };
 
   const track = async (folder: string) => {
-    const baseline = await readTimes(folder);
+    const entry: Tracked = { lookMs: [] };
+    const baseline = await timedRead(folder, entry);
     // a folder that does not answer is tried again with the next update
     if (closed || baseline.size === 0) return;
 
-    const entry: Tracked = { baseline };
+    entry.baseline = baseline;
     tracked.set(folder, entry);
-    await schedule(folder, entry);
+    schedule(folder, entry);
   };
 
   const apply = async (folders: string[]) => {

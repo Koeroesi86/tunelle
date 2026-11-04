@@ -2,27 +2,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { createFolderWatcher, measureResponse, pollInterval, readDirectoryTimes } from './folderWatcher';
+import { createFolderWatcher, pollInterval, readDirectoryTimes } from './folderWatcher';
 
 describe('pollInterval', () => {
   it.each([
     [0.2, 30_000],
-    [10, 30_000],
-    [50, 100_000],
-    [200, 400_000],
-    [5000, 15 * 60_000],
-  ])('waits for a folder that answers in %s ms %s ms', (responseMs, expected) => {
-    expect(pollInterval(responseMs)).toBe(expected);
-  });
-});
-
-describe('measureResponse', () => {
-  it('takes the time a folder needs to answer', async () => {
-    expect(await measureResponse(os.tmpdir())).toBeGreaterThanOrEqual(0);
-  });
-
-  it('takes a folder that is not there as answered', async () => {
-    expect(await measureResponse(path.join(os.tmpdir(), 'tunelle-not-there'))).toBeGreaterThanOrEqual(0);
+    [100, 30_000],
+    [1000, 100_000],
+    [4000, 400_000],
+    [20_000, 15 * 60_000],
+  ])('waits after a look that took %s ms for %s ms', (lookMs, expected) => {
+    expect(pollInterval(lookMs)).toBe(expected);
   });
 });
 
@@ -34,19 +24,17 @@ describe('createFolderWatcher', () => {
   });
 
   /** The folders and what is below them: a number of folders each, with the modification time of the last look */
-  const setup = (
-    directories: Record<string, number> = { '/music': 3, '/radio': 2 },
-    options: { checkGap?: number; responseMs?: Record<string, number> } = {}
-  ) => {
+  const setup = (directories: Record<string, number> = { '/music': 3, '/radio': 2 }, options: { checkGap?: number; lookMs?: Record<string, number> } = {}) => {
     const modified = new Map<string, number>();
-    const readTimes = vi.fn(
-      async (folder: string) => new Map(Array.from({ length: directories[folder] ?? 0 }, (_, index) => [`${folder}/${index}`, modified.get(folder) ?? 1]))
-    );
-    const measure = vi.fn(async (folder: string) => options.responseMs?.[folder] ?? 1);
-    const interval = vi.fn((responseMs: number) => responseMs * 1000);
+    // a look takes the time of the folder on the fake clock
+    const readTimes = vi.fn(async (folder: string) => {
+      vi.advanceTimersByTime(options.lookMs?.[folder] ?? 1);
+      return new Map(Array.from({ length: directories[folder] ?? 0 }, (_, index) => [`${folder}/${index}`, modified.get(folder) ?? 1]));
+    });
+    const interval = vi.fn((lookMs: number) => lookMs * 1000);
     const onChange = vi.fn();
-    const folderWatcher = createFolderWatcher(onChange, { readTimes, measure, interval, checkGap: options.checkGap ?? 0 });
-    return { folderWatcher, modified, readTimes, measure, interval, onChange };
+    const folderWatcher = createFolderWatcher(onChange, { readTimes, interval, checkGap: options.checkGap ?? 0 });
+    return { folderWatcher, modified, readTimes, interval, onChange, options };
   };
 
   /** The folders of the fake look of a folder, all with another time */
@@ -77,12 +65,14 @@ describe('createFolderWatcher', () => {
     folderWatcher.close();
   });
 
-  it('waits for each folder as long as its own answer asks for', async () => {
-    const { folderWatcher, readTimes } = setup({ '/music': 1, '/nas': 1 }, { responseMs: { '/music': 1, '/nas': 4 } });
+  it('waits for each folder as long as its own look asks for', async () => {
+    const { folderWatcher, readTimes } = setup({ '/music': 1, '/nas': 1 }, { lookMs: { '/music': 1, '/nas': 4 } });
+    // one after the other: looks at the same time count the time of each other
+    await folderWatcher.update(['/music']);
     await folderWatcher.update(['/music', '/nas']);
     readTimes.mockClear();
 
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(1500);
     expect(readTimes.mock.calls.map(([folder]) => folder)).toEqual(['/music']);
 
     await vi.advanceTimersByTimeAsync(3000);
@@ -92,11 +82,11 @@ describe('createFolderWatcher', () => {
     folderWatcher.close();
   });
 
-  it('measures the answer again at every look, so a drive that slows down is looked at less often', async () => {
-    const { folderWatcher, measure, readTimes } = setup({ '/nas': 1 });
+  it('times every look, so a tree that gets slower is looked at less often', async () => {
+    const { folderWatcher, options, readTimes } = setup({ '/nas': 1 }, { lookMs: { '/nas': 1 } });
     await folderWatcher.update(['/nas']);
-    measure.mockResolvedValue(5);
-    await vi.advanceTimersByTimeAsync(1000);
+    Object.assign(options.lookMs ?? {}, { '/nas': 5 });
+    await vi.advanceTimersByTimeAsync(1100);
     readTimes.mockClear();
 
     await vi.advanceTimersByTimeAsync(4000);
@@ -104,6 +94,16 @@ describe('createFolderWatcher', () => {
 
     await vi.advanceTimersByTimeAsync(1000);
     expect(readTimes).toHaveBeenCalledOnce();
+    folderWatcher.close();
+  });
+
+  it('goes by the longer of the last two looks, so one quick look does not shorten the wait', async () => {
+    const { folderWatcher, options, interval } = setup({ '/nas': 1 }, { lookMs: { '/nas': 5 } });
+    await folderWatcher.update(['/nas']);
+    Object.assign(options.lookMs ?? {}, { '/nas': 1 });
+    await vi.advanceTimersByTimeAsync(5100);
+
+    expect(interval).toHaveBeenLastCalledWith(5);
     folderWatcher.close();
   });
 
@@ -139,7 +139,7 @@ describe('createFolderWatcher', () => {
         ])
     );
     const onChange = vi.fn();
-    const watching = createFolderWatcher(onChange, { readTimes, measure: async () => 1, interval: () => 1000, checkGap: 0 });
+    const watching = createFolderWatcher(onChange, { readTimes, interval: () => 1000, checkGap: 0 });
     await watching.update(['/music']);
 
     await vi.advanceTimersByTimeAsync(1000);
@@ -152,7 +152,7 @@ describe('createFolderWatcher', () => {
   });
 
   it('does not look again within the gap that was set', async () => {
-    const { folderWatcher, readTimes } = setup({ '/music': 3 }, { checkGap: 30_000, responseMs: { '/music': 10_000 } });
+    const { folderWatcher, readTimes } = setup({ '/music': 3 }, { checkGap: 30_000, lookMs: { '/music': 1000 } });
     await folderWatcher.update(['/music']);
     readTimes.mockClear();
 
@@ -221,13 +221,13 @@ describe('createFolderWatcher', () => {
   });
 
   it('stops looking on close, also for a look that was waiting for its answer', async () => {
-    const { folderWatcher, readTimes, measure } = setup();
-    let answer: (ms: number) => void = () => undefined;
-    measure.mockImplementation(() => new Promise((resolve) => (answer = resolve)));
+    const { folderWatcher, readTimes } = setup();
+    let answer: (times: Map<string, number>) => void = () => undefined;
+    readTimes.mockImplementation(() => new Promise((resolve) => (answer = resolve)));
     const updated = folderWatcher.update(['/music']);
     await vi.advanceTimersByTimeAsync(0);
     folderWatcher.close();
-    answer(1);
+    answer(new Map([['/music/0', 1]]));
     await updated;
     readTimes.mockClear();
     await vi.advanceTimersByTimeAsync(5000);
