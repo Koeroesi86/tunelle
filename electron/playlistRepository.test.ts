@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addEntries, createPlaylist, deletePlaylist, getPlaylists, movedTo, moveEntry, movePlaylist, removeEntry, renamePlaylist } from './playlistRepository';
 import { createTestDatabase } from './test-database';
 
@@ -17,14 +17,19 @@ describe('movedTo', () => {
 });
 
 describe('playlistRepository', () => {
+  beforeEach(() => vi.useFakeTimers({ toFake: ['Date'] }));
+  afterEach(() => vi.useRealTimers());
+
   it('has no playlists before one is created', async () => {
     expect(await getPlaylists(await createTestDatabase())).toEqual([]);
   });
 
   it('lists the playlists in the order they were created in, with their tracks in the order they were added in', async () => {
     const database = await createTestDatabase();
-    const first = await createPlaylist(database, 'Road', 1);
-    const second = await createPlaylist(database, 'Night', 2);
+    vi.setSystemTime(1);
+    const first = await createPlaylist(database, 'Road');
+    vi.setSystemTime(2);
+    const second = await createPlaylist(database, 'Night');
 
     await addEntries(database, first, [track('b'), track('a')]);
     await addEntries(database, second, [track('c')]);

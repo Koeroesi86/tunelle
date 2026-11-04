@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUpdateManager } from './updateManager';
 import type { UpdateSource } from './updater';
 import type { UpdateState } from '../types/update';
@@ -16,13 +16,20 @@ const setup = (check: UpdateSource['checkForUpdates'], download: (source: Update
     quitAndInstall: vi.fn(),
   });
   const published: UpdateState[] = [];
-  const manager = createUpdateManager({ source, info, publish: (state) => published.push(state), now: () => 1000, ...options });
+  const manager = createUpdateManager({ source, info, publish: (state) => published.push(state), ...options });
 
   return { source, manager, kinds: () => published.map(({ status }) => status.kind) };
 };
 
 describe('createUpdateManager', () => {
-  afterEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(1000);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
 
   it('starts idle with the versions of the app', () => {
     expect(setup(notFound).manager.getState()).toEqual({ ...info, automatic: true, status: { kind: 'idle' } });

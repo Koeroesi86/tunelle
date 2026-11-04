@@ -1,12 +1,9 @@
 import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { setTimeout as wait } from 'timers/promises';
 import type { Database } from 'sqlite3';
 import executeQuery from './executeQuery';
 import { toSortKey } from './sortKey';
-
-type Fetcher = (url: string, init: { signal: AbortSignal }) => Promise<Response>;
 
 export interface ArtistName {
   /** The name as the library compares it */
@@ -20,6 +17,10 @@ interface PhotoImage {
 }
 
 const lookupTimeout = 5000;
+// how long to wait between two lookups, Deezer limits the requests
+const lookupGap = 250;
+
+const wait = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 const maxImageBytes = 2_000_000;
 // a name without a match is looked up again after this long, the artist may have a photo by then
 const retryAfter = 1000 * 60 * 60 * 24 * 30;
@@ -27,8 +28,8 @@ const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': '
 
 const searchUrl = (name: string) => `https://api.deezer.com/search/artist?${new URLSearchParams({ q: name, limit: '10' })}`;
 
-const getOk = async (fetcher: Fetcher, url: string) => {
-  const response = await fetcher(url, { signal: AbortSignal.timeout(lookupTimeout) });
+const getOk = async (url: string) => {
+  const response = await fetch(url, { signal: AbortSignal.timeout(lookupTimeout) });
   if (!response.ok) throw new Error(`${new URL(url).host} answered ${response.status}`);
 
   return response;
@@ -48,8 +49,8 @@ const candidatesOf = (answer: unknown) => {
 // an artist without a photo has the URL of a photo without a name in it
 const hasPhoto = (url: string) => URL.canParse(url) && new URL(url).protocol === 'https:' && !new URL(url).pathname.includes('/artist//');
 
-const getImage = async (fetcher: Fetcher, url: string): Promise<PhotoImage> => {
-  const response = await getOk(fetcher, url);
+const getImage = async (url: string): Promise<PhotoImage> => {
+  const response = await getOk(url);
   const extension = extensions[(response.headers.get('content-type') ?? '').split(';')[0].trim()];
   const data = Buffer.from(await response.arrayBuffer());
   if (!extension || data.length === 0 || data.length > maxImageBytes) throw new Error('Not a usable image');
@@ -61,13 +62,11 @@ const getImage = async (fetcher: Fetcher, url: string): Promise<PhotoImage> => {
  * The photo Deezer has of an artist, undefined when it has none: only an artist with the same name (without case, accents and the space around it)
  * counts, the first search result is not taken for it. A search or a download that fails throws, which is no answer about the artist
  */
-export const findArtistPhoto = async (fetcher: Fetcher, name: string) => {
+export const findArtistPhoto = async (name: string) => {
   const key = toSortKey(name);
-  const match = candidatesOf(await (await getOk(fetcher, searchUrl(name))).json()).find(
-    (candidate) => toSortKey(candidate.name) === key && hasPhoto(candidate.picture)
-  );
+  const match = candidatesOf(await (await getOk(searchUrl(name))).json()).find((candidate) => toSortKey(candidate.name) === key && hasPhoto(candidate.picture));
 
-  return match && getImage(fetcher, match.picture);
+  return match && getImage(match.picture);
 };
 
 /** Write the photo of a name into the album art folder, next to the covers; the file name follows from the name */
@@ -107,10 +106,6 @@ interface QueueOptions {
   getFolder: () => string;
   /** Tells that photos were stored, the lists that show them can fetch their covers again */
   onFound: () => void;
-  fetcher?: Fetcher;
-  /** How long to wait between two lookups, Deezer limits the requests */
-  gap?: number;
-  now?: () => number;
 }
 
 /** how many photos are found before the lists are told, so they do not fetch again for every one */
@@ -120,14 +115,14 @@ const reportEvery = 10;
  * Looks up the photos of the artists it is asked for, one at a time. A name is looked up once: the answer is kept in the library,
  * also when there is no photo (for a month). A lookup that fails stops the run and keeps nothing, the names are asked for again when they are shown
  */
-export const createArtistPhotoQueue = ({ database, getFolder, onFound, fetcher = fetch, gap = 250, now = Date.now }: QueueOptions) => {
+export const createArtistPhotoQueue = ({ database, getFolder, onFound }: QueueOptions) => {
   const queued = new Set<string>();
   const pending: ArtistName[] = [];
   let running: Promise<void> | undefined;
 
   const lookup = async ({ key, name }: ArtistName) => {
-    const image = await findArtistPhoto(fetcher, name);
-    await saveRecord(database, key, image ? await storePhoto(getFolder(), key, image) : null, now());
+    const image = await findArtistPhoto(name);
+    await saveRecord(database, key, image ? await storePhoto(getFolder(), key, image) : null, Date.now());
     return image !== undefined;
   };
 
@@ -146,7 +141,7 @@ export const createArtistPhotoQueue = ({ database, getFolder, onFound, fetcher =
       let artist = pending.shift();
       while (artist) {
         await lookupNext(artist);
-        await wait(gap);
+        await wait(lookupGap);
         artist = pending.shift();
       }
     };
@@ -177,7 +172,7 @@ export const createArtistPhotoQueue = ({ database, getFolder, onFound, fetcher =
       );
       const due = fresh.filter(({ key }) => {
         const record = records.get(key);
-        return !record || (!record.picture && record.checkedAt < now() - retryAfter);
+        return !record || (!record.picture && record.checkedAt < Date.now() - retryAfter);
       });
       fresh.filter((artist) => !due.includes(artist)).forEach(({ key }) => queued.delete(key));
 

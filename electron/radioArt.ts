@@ -1,12 +1,9 @@
 import { createHash } from 'crypto';
-import { setTimeout as wait } from 'timers/promises';
 
 export interface RadioArtImage {
   type: string;
   data: Buffer;
 }
-
-export type Fetcher = (url: string, init: { signal: AbortSignal; headers?: Record<string, string> }) => Promise<Response>;
 
 const lookupTimeout = 5000;
 const maxImageBytes = 2_000_000;
@@ -68,15 +65,15 @@ const queriesOf = (streamTitle: string) => {
 
 const searchUrl = (query: string) => `https://musicbrainz.org/ws/2/recording?${new URLSearchParams({ query, fmt: 'json', limit: '5' })}`;
 
-const getOk = async (fetcher: Fetcher, url: string, headers?: Record<string, string>, cancel?: AbortSignal) => {
-  const response = await fetcher(url, { signal: AbortSignal.any([AbortSignal.timeout(lookupTimeout), ...(cancel ? [cancel] : [])]), headers });
+const getOk = async (url: string, headers?: Record<string, string>, cancel?: AbortSignal) => {
+  const response = await fetch(url, { signal: AbortSignal.any([AbortSignal.timeout(lookupTimeout), ...(cancel ? [cancel] : [])]), headers });
   if (!response.ok) throw new Error(`${new URL(url).host} answered ${response.status}`);
 
   return response;
 };
 
-export const getImage = async (fetcher: Fetcher, url: string, cancel?: AbortSignal): Promise<RadioArtImage> => {
-  const response = await getOk(fetcher, url, undefined, cancel);
+export const getImage = async (url: string, cancel?: AbortSignal): Promise<RadioArtImage> => {
+  const response = await getOk(url, undefined, cancel);
   const type = response.headers.get('content-type') ?? '';
   const data = Buffer.from(await response.arrayBuffer());
   if (!type.startsWith('image/') || data.length === 0 || data.length > maxImageBytes) throw new Error('Not a usable image');
@@ -106,13 +103,15 @@ const coverUrlsOf = (answer: unknown) => {
 };
 
 /** The requests to MusicBrainz one after the other, each gap counted from the start of the request before it, so they stay under its limit */
-const createQueue = (pause: (milliseconds: number) => Promise<unknown>) => {
+const wait = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+
+const createQueue = () => {
   let tail: Promise<unknown> = Promise.resolve();
 
   return <T>(task: () => Promise<T>) => {
     let gap: Promise<unknown> = Promise.resolve();
     const result = tail.then(() => {
-      gap = pause(searchGap);
+      gap = wait(searchGap);
       return task();
     });
     tail = result.catch(() => undefined).then(() => gap);
@@ -121,9 +120,9 @@ const createQueue = (pause: (milliseconds: number) => Promise<unknown>) => {
 };
 
 /** The best ranked of the images that load: all are requested at once, the ones that lose are cancelled */
-const firstImage = async (fetcher: Fetcher, urls: string[]) => {
+const firstImage = async (urls: string[]) => {
   const cancel = new AbortController();
-  const attempts = urls.map((url) => getImage(fetcher, url, cancel.signal).catch(() => undefined));
+  const attempts = urls.map((url) => getImage(url, cancel.signal).catch(() => undefined));
 
   const best = attempts.reduce((previous, attempt) => previous.then((found) => found ?? attempt), Promise.resolve<RadioArtImage | undefined>(undefined));
 
@@ -134,15 +133,15 @@ const firstImage = async (fetcher: Fetcher, urls: string[]) => {
  * The art of the song a station announces: the image the station names in its `StreamUrl`, else the first match of a music search, which is tried with looser queries when the exact one finds none.
  * The answer of a title is kept (also when there is none), so a title is looked up once; the oldest titles are dropped past a limit.
  */
-export const createRadioArt = (userAgent: string, fetcher: Fetcher = fetch, pause: (milliseconds: number) => Promise<unknown> = wait) => {
-  const queue = createQueue(pause);
+export const createRadioArt = (userAgent: string) => {
+  const queue = createQueue();
   const lookups = new Map<string, Promise<string | undefined>>();
   const images = new Map<string, RadioArtImage>();
 
   const fromQuery = async (query: string) => {
-    const answer: unknown = await queue(async () => (await getOk(fetcher, searchUrl(query), { 'User-Agent': userAgent })).json());
+    const answer: unknown = await queue(async () => (await getOk(searchUrl(query), { 'User-Agent': userAgent })).json());
 
-    return firstImage(fetcher, coverUrlsOf(answer));
+    return firstImage(coverUrlsOf(answer));
   };
 
   /** The queries one after the other until one finds a cover */
@@ -152,7 +151,7 @@ export const createRadioArt = (userAgent: string, fetcher: Fetcher = fetch, paus
   const keyOf = (title: string) => createHash('sha1').update(title).digest('hex').slice(0, 16);
 
   const find = async (title: string, streamUrl: string | undefined) => {
-    const image = await (isHttpUrl(streamUrl) ? getImage(fetcher, streamUrl) : Promise.reject(new Error('No stream url')))
+    const image = await (isHttpUrl(streamUrl) ? getImage(streamUrl) : Promise.reject(new Error('No stream url')))
       .catch(() => fromSearch(title))
       .catch(() => undefined);
     if (image) images.set(keyOf(title), image);

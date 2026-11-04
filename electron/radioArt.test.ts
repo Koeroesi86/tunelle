@@ -1,8 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRadioArt } from './radioArt';
-import type { Fetcher } from './radioArt';
 
-type Pause = (milliseconds: number) => Promise<unknown>;
+type Fetcher = (url: string, init: { signal: AbortSignal; headers?: Record<string, string> }) => Promise<Response>;
 
 const userAgent = 'Tunelle/26.11.1 ( https://example.test/tunelle )';
 const release = '11111111-1111-4111-8111-111111111111';
@@ -17,9 +16,28 @@ const match = (releases: { id: string; group?: string }[] = [{ id: release, grou
 const answers = (routes: Record<string, (url: string) => Response>) =>
   vi.fn<Fetcher>(async (url) => (routes[new URL(url).host] ?? (() => new Response(null, { status: 404 })))(url));
 
-const create = (fetcher: Fetcher, wait: Pause = async () => undefined) => createRadioArt(userAgent, fetcher, wait);
+/** Lets the fake clock pass the pause between two searches, so a lookup that makes several does not wait for them */
+const settle = async <T>(promise: Promise<T>) => {
+  let done = false;
+  const run = promise.finally(() => (done = true));
+  while (!done) await vi.advanceTimersByTimeAsync(1100);
+  return run;
+};
+
+/** The art of a station with the fetch of the app replaced by the fetcher */
+const create = (fetcher: Fetcher) => {
+  vi.stubGlobal('fetch', fetcher);
+  const art = createRadioArt(userAgent);
+  return { ...art, lookup: (title: string, streamUrl?: string) => settle(art.lookup(title, streamUrl)) };
+};
 
 describe('radio art', () => {
+  beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout'] }));
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
   it('finds the cover of a title with a search and serves it by its key', async () => {
     const fetcher = answers({ 'musicbrainz.org': () => match(), 'coverartarchive.org': () => image() });
     const art = create(fetcher);
@@ -169,23 +187,21 @@ describe('radio art', () => {
   });
 
   it('counts the pause between two searches from the start of the first, and does not wait before it', async () => {
-    const order: string[] = [];
-    const fetcher = answers({
-      'musicbrainz.org': () => {
-        order.push('search');
-        return match();
-      },
-      'coverartarchive.org': () => image(),
-    });
-    const wait = vi.fn<Pause>(async () => {
-      order.push('pause');
-    });
-    const art = create(fetcher, wait);
+    const fetcher = answers({ 'musicbrainz.org': () => match(), 'coverartarchive.org': () => image() });
+    vi.stubGlobal('fetch', fetcher);
+    const art = createRadioArt(userAgent);
+    const searches = () => fetcher.mock.calls.filter(([url]) => new URL(url).host === 'musicbrainz.org').length;
 
-    await Promise.all([art.lookup('A - One'), art.lookup('B - Two')]);
+    const lookups = Promise.all([art.lookup('A - One'), art.lookup('B - Two')]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(searches()).toBe(1);
 
-    expect(order).toEqual(['pause', 'search', 'pause', 'search']);
-    expect(wait).toHaveBeenCalledWith(expect.any(Number));
+    await vi.advanceTimersByTimeAsync(1099);
+    expect(searches()).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(searches()).toBe(2);
+    await lookups;
   });
 
   it('looks a title up once, also when there was no art', async () => {

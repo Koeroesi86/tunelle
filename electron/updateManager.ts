@@ -12,7 +12,6 @@ interface UpdateManagerOptions {
   automatic?: boolean;
   /** Keeps the choice for the next start */
   saveAutomatic?: (automatic: boolean) => Promise<unknown>;
-  now?: () => number;
   checkTimeout?: number;
   downloadStallTimeout?: number;
 }
@@ -36,7 +35,6 @@ export const createUpdateManager = ({
   publish,
   automatic: initialAutomatic = true,
   saveAutomatic = () => Promise.resolve(),
-  now = Date.now,
   checkTimeout,
   downloadStallTimeout,
 }: UpdateManagerOptions): UpdateManager => {
@@ -57,7 +55,7 @@ export const createUpdateManager = ({
     setStatus({ kind: 'checking' });
     const version = await checkForUpdate(updateSource, checkTimeout);
 
-    if (!version) return setStatus({ kind: 'upToDate', checkedAt: now() });
+    if (!version) return setStatus({ kind: 'upToDate', checkedAt: Date.now() });
 
     setStatus({ kind: 'downloading', version, percent: 0 });
     await downloadUpdate(updateSource, (percent) => setStatus({ kind: 'downloading', version, percent }), downloadStallTimeout);

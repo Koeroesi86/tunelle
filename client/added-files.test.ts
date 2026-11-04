@@ -1,9 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import toAddedFiles from './added-files';
 
 const fileOf = (name: string, webkitRelativePath: string, lastModified = 1) => Object.assign(new File([''], name, { lastModified }), { webkitRelativePath });
 
 describe('toAddedFiles', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(9);
+  });
+  afterEach(() => vi.useRealTimers());
+
   it('keeps a dropped folder as it is', () => {
     const folder = fileOf('Music', '', 5);
 
@@ -17,12 +23,12 @@ describe('toAddedFiles', () => {
       [files[1], '/home/me/Music/Album/b.flac'],
     ]);
 
-    expect(toAddedFiles(files, (file) => paths.get(file) ?? '', 9)).toEqual([{ name: 'Music', path: '/home/me/Music', lastModified: 9 }]);
+    expect(toAddedFiles(files, (file) => paths.get(file) ?? '')).toEqual([{ name: 'Music', path: '/home/me/Music', lastModified: 9 }]);
   });
 
   it('works with Windows separators', () => {
     const file = fileOf('a.flac', 'Music/a.flac');
 
-    expect(toAddedFiles([file], () => 'C:\\Users\\me\\Music\\a.flac', 9)).toEqual([{ name: 'Music', path: 'C:\\Users\\me\\Music', lastModified: 9 }]);
+    expect(toAddedFiles([file], () => 'C:\\Users\\me\\Music\\a.flac')).toEqual([{ name: 'Music', path: 'C:\\Users\\me\\Music', lastModified: 9 }]);
   });
 });
