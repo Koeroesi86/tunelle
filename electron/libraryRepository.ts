@@ -298,6 +298,9 @@ const albumSourceColumns = columnList([
   'genre_key',
 ]);
 
+// what counting the albums reads: the path for the folder, the album title and the keys of the filters
+const albumCountColumns = columnList(['path', 'album', 'title_key', 'artist_key', 'album_key', 'album_artist_key', 'genre_key']);
+
 const toGroupFilter = (group: AlbumGroup | undefined) => ({
   where: group ? `WHERE ${groupColumns[group.kind].key} = ?` : '',
   variables: group ? [group.key] : [],
@@ -332,7 +335,7 @@ export const getAlbumPage = (
     }),
     countTotal(
       database,
-      `SELECT COUNT(*) AS total FROM (SELECT 1 FROM (SELECT ${albumSourceColumns}, ${folderOf} AS folder FROM library ${where}) ${groupFilter.where} GROUP BY folder, COALESCE(album, '') ${having})`,
+      `SELECT COUNT(*) AS total FROM (SELECT 1 FROM (SELECT ${albumCountColumns}, ${folderOf} AS folder FROM library ${where}) ${groupFilter.where} GROUP BY folder, COALESCE(album, '') ${having})`,
       variables
     ),
   ]).then(([albums, total]) => ({
