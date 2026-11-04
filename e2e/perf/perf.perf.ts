@@ -7,7 +7,7 @@ import { clearProbe, expectTone, longestGap } from '../audio';
 import { navigate } from '../app';
 import { player } from '../player';
 import { writeLargeLibrary } from './large-library';
-import { percentile, record, scrollList, startMainLoop, startRenderer, stopMainLoop, stopRenderer } from './measure';
+import { memory, percentile, record, scrollList, startMainLoop, startRenderer, stopMainLoop, stopRenderer } from './measure';
 
 // the measurements of the performance (npm run perf, after npm run build): they say how the app does on a big library and assert nothing but that it works,
 // the numbers go to the output and to test-results/perf.json, as no budget is set before they are known
@@ -105,8 +105,17 @@ test('measures the scan and the scroll of a big library while a track plays', as
   await expectTone(page, 440);
   await clearProbe(page);
 
+  const before = await memory(app, page);
   report['scroll Songs'] = await scroll(app, page, 'Songs');
   report['scroll Albums'] = await scroll(app, page, 'Albums');
+  // what the lists left behind after a garbage collection: a growth that does not go away with the next scroll is a leak
+  const after = await memory(app, page);
+  report.memory = {
+    before,
+    after,
+    growthMb: Math.round((after.totalMb - before.totalMb) * 10) / 10,
+    rendererHeapGrowthMb: Math.round((after.rendererHeapMb - before.rendererHeapMb) * 10) / 10,
+  };
   report.audioLongestGapSeconds = await longestGap(page);
 
   record('scan-and-scroll', report);

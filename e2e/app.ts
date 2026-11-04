@@ -8,10 +8,13 @@ import { installActiveAudio } from './active-audio';
 import { installAudioProbe } from './audio-probe';
 import { albums, writeLibrary } from './library';
 import { installNoNotifications } from './no-notifications';
+import { readStartTimes, type StartTimes } from './start-times';
 
 export interface Session {
   app: ElectronApplication;
   page: Page;
+  /** When the first load of the page painted, from the spawn of the app: only with `measureStart` */
+  startTimes?: StartTimes;
 }
 
 interface Directory {
@@ -22,8 +25,8 @@ interface Directory {
 interface Fixtures {
   /** A folder of the generated albums, outside of the profile of the app */
   music: string;
-  /** Starts the app on the profile of the test: a second start finds what the first one left */
-  start: () => Promise<Session>;
+  /** Starts the app on the profile of the test: a second start finds what the first one left; `measureStart` reads the paint times of the first load, before the page is reloaded for the init scripts */
+  start: (options?: { measureStart?: boolean }) => Promise<Session>;
   /** The app started on a profile whose library holds the albums of `music` */
   session: Session;
   /** The fake station directory the app is pointed to; the first station plays silence and announces a song */
@@ -98,8 +101,8 @@ export const test = base.extend<Fixtures>({
     const home = mkdtempSync(join(tmpdir(), 'tunelle-e2e-'));
     const running: ElectronApplication[] = [];
 
-    await use(async () => {
-      const session = await launchApp({ home, radioDirectory: directory.origin, initScripts: [installActiveAudio, installAudioProbe] });
+    await use(async ({ measureStart } = {}) => {
+      const session = await launchApp({ home, radioDirectory: directory.origin, initScripts: [installActiveAudio, installAudioProbe], measureStart });
       running.push(session.app);
       return session;
     });
@@ -124,6 +127,8 @@ interface LaunchOptions {
   initScripts: (() => void)[];
   /** Every name but localhost fails to resolve, as on a machine without a network: the station directory and the update server are out of reach */
   offline?: boolean;
+  /** Reads the paint times of the first load of the page into `startTimes` (it costs about a tenth of a second) */
+  measureStart?: boolean;
 }
 
 /** The language of the app in the run: English, or another file of locales/ with SCREENSHOTS_LANG=hu (the pictures of the Store listing) */
@@ -146,12 +151,13 @@ export const ui = (english: string) => {
 };
 
 /** Starts the built app (npm run build first, PERF_APP_OUT=<folder> for the build of another checkout, which the perf runs compare with) on a profile, and answers when its window shows the page */
-export const launchApp = async ({ home, radioDirectory, initScripts, offline = false }: LaunchOptions): Promise<Session> => {
+export const launchApp = async ({ home, radioDirectory, initScripts, offline = false, measureStart = false }: LaunchOptions): Promise<Session> => {
   const { ELECTRON_RUN_AS_NODE, ...inherited } = process.env;
   // Windows keeps its profile folders (chromium needs them, and the app data folder does not follow the variables there)
   const profile: Record<string, string> =
     process.platform === 'win32' ? {} : { HOME: home, XDG_CONFIG_HOME: home, LANG: `${locale}.UTF-8`, LC_ALL: `${locale}.UTF-8` };
 
+  const spawnedAt = Date.now();
   const app = await electron.launch({
     args: [
       join(process.env.PERF_APP_OUT ?? join(root, 'out'), 'index.js'),
@@ -178,6 +184,8 @@ export const launchApp = async ({ home, radioDirectory, initScripts, offline = f
   });
   await Promise.all([installNoNotifications, ...initScripts].map((script) => app.context().addInitScript(script)));
   const page = await findPage(app);
+  // before the reload below, which starts the page again
+  const startTimes = measureStart ? await readStartTimes(page, spawnedAt) : undefined;
   // a window of the same size on every system, or the layout of a small display moves the controls out of reach
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().forEach((window) => window.setContentSize(1360, 850)));
   // the init scripts run on the next load; the first one may have been before them
@@ -186,7 +194,7 @@ export const launchApp = async ({ home, radioDirectory, initScripts, offline = f
   // the tests measure the page through them: without them a check would pass on defaults
   const installed = await page.evaluate(() => Boolean(window.activeAudio) && Boolean(window.audioProbe));
   if (!installed) throw new Error('The init scripts (window.activeAudio, window.audioProbe) did not run on the page, even after a reload');
-  return { app, page };
+  return { app, page, startTimes };
 };
 
 export { expect };

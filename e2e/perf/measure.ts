@@ -87,6 +87,31 @@ export const stopMainLoop = (app: ElectronApplication) =>
     };
   });
 
+const megabytes = (bytes: number) => Math.round((bytes / 1e6) * 10) / 10;
+
+/** The memory of the app in MB: the working set of its processes (by kind), the JS heap of the page after a garbage collection, and the heap and the resident set of the main process */
+export const memory = async (app: ElectronApplication, page: Page) => {
+  const session = await page.context().newCDPSession(page);
+  const heap = await session
+    .send('HeapProfiler.collectGarbage')
+    .then(() => session.send('Runtime.getHeapUsage'))
+    .finally(() => session.detach());
+  const processes = await app.evaluate(({ app: electron }) =>
+    electron.getAppMetrics().map(({ type, memory: used }) => ({ type, kilobytes: used.workingSetSize }))
+  );
+  const main = await app.evaluate(() => process.memoryUsage());
+  return {
+    totalMb: megabytes(processes.reduce((sum, { kilobytes }) => sum + kilobytes * 1000, 0)),
+    byProcessMb: processes.reduce<Record<string, number>>(
+      (sums, { type, kilobytes }) => ({ ...sums, [type]: megabytes((sums[type] ?? 0) * 1e6 + kilobytes * 1000) }),
+      {}
+    ),
+    rendererHeapMb: megabytes(heap.usedSize),
+    mainHeapMb: megabytes(main.heapUsed),
+    mainResidentMb: megabytes(main.rss),
+  };
+};
+
 export const percentile = (values: number[], share: number) =>
   [...values].sort((a, b) => a - b)[Math.min(values.length - 1, Math.floor(values.length * share))] ?? 0;
 
