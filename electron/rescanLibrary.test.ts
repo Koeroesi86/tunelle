@@ -110,7 +110,7 @@ describe('rescanLibrary', () => {
     await addTrack(database, track(path.join(gone, 'a.flac')));
     await rescan(true);
 
-    expect((await getLibrary(database)).map((item) => item.path)).toEqual([path.join(gone, 'a.flac')]);
+    expect((await getLibrary(database, { sort: undefined, folders: [] }, ['path'])).map((item) => item.path)).toEqual([path.join(gone, 'a.flac')]);
     expect(scanFolders).toHaveBeenCalledWith([], sender);
     expect(sender.send).toHaveBeenCalledWith('OFFLINE_FOLDERS', { folders: [gone] });
   });
@@ -120,7 +120,7 @@ describe('rescanLibrary', () => {
     await addTrack(database, track(path.join(root, 'a.flac')));
     await rescan();
 
-    expect(await getLibrary(database)).toHaveLength(1);
+    expect(await getLibrary(database, { sort: undefined, folders: [] }, ['path'])).toHaveLength(1);
   });
 
   it('still removes the track that is missing from a folder that can be read', async () => {
@@ -132,6 +132,6 @@ describe('rescanLibrary', () => {
     await addTrack(database, track(stored('deleted.flac')));
     await rescan();
 
-    expect((await getLibrary(database)).map((item) => item.path)).toEqual([stored('kept.flac')]);
+    expect((await getLibrary(database, { sort: undefined, folders: [] }, ['path'])).map((item) => item.path)).toEqual([stored('kept.flac')]);
   });
 });

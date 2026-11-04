@@ -32,7 +32,7 @@ describe('rescanChanges', () => {
     duration: null,
   });
   const addFolder = (folder: string) => executeQuery(database, { query: 'INSERT INTO folders (path, lastModified) VALUES (?, ?)', variables: [folder, 0] });
-  const paths = async () => (await getLibrary(database)).map((item) => item.path).sort();
+  const paths = async () => (await getLibrary(database, { sort: undefined, folders: [] }, ['path'])).map((item) => item.path).sort();
   const write = (...segments: string[]) => {
     fs.mkdirSync(path.dirname(path.join(root, ...segments)), { recursive: true });
     fs.writeFileSync(path.join(root, ...segments), '');

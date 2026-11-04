@@ -17,7 +17,7 @@ const readNames = (directory: string) =>
   );
 
 /** The tracks whose file is gone. A directory is read once for all its tracks, not a call for each track. A track in a directory that does not answer or cannot be read is kept: only a file that is reported missing is removed */
-export const findMissingTracks = async (tracks: Track[]) => {
+export const findMissingTracks = async <T extends Pick<Track, 'path'>>(tracks: T[]) => {
   // the scan stores the paths with forward slashes
   // the directory of a file at the root of a drive is the drive, which is the working directory of it for Windows until it ends with a slash
   const byDirectory = tracks.reduce((groups, track) => {
@@ -25,7 +25,7 @@ export const findMissingTracks = async (tracks: Track[]) => {
     const group = groups.get(directory) ?? [];
     group.push(track);
     return groups.set(directory, group);
-  }, new Map<string, Track[]>());
+  }, new Map<string, T[]>());
   const entries = [...byDirectory];
   const names = await mapInChunks(entries, directoriesInFlight, ([directory]) => readNames(directory));
 

@@ -5,6 +5,7 @@ import {
   deleteFolders,
   deleteTracks,
   findTrackPath,
+  folderColumns,
   getFolders,
   getAlbumPage,
   getAlbumTracks,
@@ -38,7 +39,7 @@ describe('libraryRepository', () => {
     ]);
     await saveFolders(database, [{ path: '/music/b', lastModified: 2 }]);
 
-    expect(await getFolders(database)).toEqual([
+    expect(await getFolders(database, folderColumns)).toEqual([
       { path: '/music/a', lastModified: 1 },
       { path: '/music/b', lastModified: 2 },
     ]);
@@ -63,8 +64,8 @@ describe('libraryRepository', () => {
     await deleteFolders(database, [{ path: '/music/a' }]);
     await deleteTracks(database, [{ path: '/music/a/one.flac' }]);
 
-    expect(await getFolders(database)).toEqual([]);
-    expect((await getLibrary(database)).map((stored) => stored.path)).toEqual(['/music/a/two.flac']);
+    expect(await getFolders(database, folderColumns)).toEqual([]);
+    expect((await getLibrary(database, { sort: undefined, folders: [] }, ['path'])).map((stored) => stored.path)).toEqual(['/music/a/two.flac']);
   });
 
   it('finds a track path only for a track of the library', async () => {
@@ -129,8 +130,8 @@ describe('libraryRepository', () => {
         ['', 1],
         ['Win', 2],
       ]);
-      expect((await getAlbumTracks(database, 'C:\\m', 'Win')).map((item) => item.path)).toEqual(['C:\\m\\1.flac', 'C:\\m\\2.flac']);
-      expect(await getAlbumTracks(database, '/m', '')).toHaveLength(1);
+      expect((await getAlbumTracks(database, 'C:\\m', 'Win', ['path'])).map((item) => item.path)).toEqual(['C:\\m\\1.flac', 'C:\\m\\2.flac']);
+      expect(await getAlbumTracks(database, '/m', '', ['path'])).toHaveLength(1);
     });
 
     it('finds the tracks of an album by its folder and title', async () => {
@@ -144,8 +145,8 @@ describe('libraryRepository', () => {
         ].map((item) => addTrack(database, item))
       );
 
-      expect((await getAlbumTracks(database, '/m/x', 'Same')).map((item) => item.path)).toEqual(['/m/x/1.flac', '/m/x/2.flac']);
-      expect(await getAlbumTracks(database, '/m/x', 'None')).toEqual([]);
+      expect((await getAlbumTracks(database, '/m/x', 'Same', ['path'])).map((item) => item.path)).toEqual(['/m/x/1.flac', '/m/x/2.flac']);
+      expect(await getAlbumTracks(database, '/m/x', 'None', ['path'])).toEqual([]);
     });
   });
   describe('sorting and the folder filter', () => {
@@ -218,13 +219,13 @@ describe('libraryRepository', () => {
       expect(await sortedPaths(injected('title; DROP TABLE library', 'asc'))).toEqual(['/m/a', '/m/b']);
       expect(await sortedPaths(injected('title', 'asc; DROP TABLE library'))).toEqual(['/m/a', '/m/b']);
       expect(await sortedPaths(injected('toString', 'asc'))).toEqual(['/m/a', '/m/b']);
-      expect(await getLibrary(database)).toHaveLength(2);
+      expect(await getLibrary(database, { sort: undefined, folders: [] }, ['path'])).toHaveLength(2);
     });
 
     it('sorts the whole library the same way as the pages', async () => {
       await save([withValues('/m/1', { title: 'b' }), withValues('/m/2', { title: 'a' })]);
 
-      expect((await getLibrary(database, trackSort('title'))).map((item) => item.path)).toEqual(['/m/2', '/m/1']);
+      expect((await getLibrary(database, trackSort('title'), ['path'])).map((item) => item.path)).toEqual(['/m/2', '/m/1']);
     });
 
     it('sorts the albums by the title, the first track artist and year, the track count and the duration', async () => {
@@ -287,10 +288,9 @@ describe('libraryRepository', () => {
       });
 
       it('limits the whole library the same way as the pages, and works together with the folders and the sort', async () => {
-        expect((await getLibrary(database, { sort: { field: 'title', direction: 'desc' }, folders: [], search: 'adele' })).map((item) => item.path)).toEqual([
-          '/m/b/1.flac',
-          '/m/b/2.flac',
-        ]);
+        expect(
+          (await getLibrary(database, { sort: { field: 'title', direction: 'desc' }, folders: [], search: 'adele' }, ['path'])).map((item) => item.path)
+        ).toEqual(['/m/b/1.flac', '/m/b/2.flac']);
         expect((await getTrackPage(database, 0, 10, { sort: undefined, folders: ['/m/a'], search: 'a' })).total).toBe(2);
         expect((await getTrackPage(database, 0, 10, { sort: undefined, folders: ['/m/b'], search: 'beyonce' })).total).toBe(0);
       });
@@ -353,7 +353,7 @@ describe('libraryRepository', () => {
         expect(page.total).toBe(3);
         expect(page.items.map((item) => item.title)).toEqual(['Two', 'One', 'One']);
         expect((await getTrackPage(database, 0, 10, { sort: { field: 'title', direction: 'asc' }, folders: [folderA] })).total).toBe(2);
-        expect((await getLibrary(database, { sort: undefined, folders: [folderB] })).map((item) => path.basename(item.path))).toEqual(['3.flac']);
+        expect((await getLibrary(database, { sort: undefined, folders: [folderB] }, ['path'])).map((item) => path.basename(item.path))).toEqual(['3.flac']);
       });
 
       it('groups the albums of both separators when it filters', async () => {

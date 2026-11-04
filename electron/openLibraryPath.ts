@@ -11,7 +11,7 @@ const isInside = (folder: string, target: string) => {
 async function openLibraryPath(database: Database, target: unknown, open: (target: string) => Promise<string>) {
   if (typeof target !== 'string' || !path.isAbsolute(target)) return;
 
-  const folders = await getFolders(database);
+  const folders = await getFolders(database, ['path']);
   if (folders.some((folder) => isInside(folder.path, target))) await open(target);
 }
 

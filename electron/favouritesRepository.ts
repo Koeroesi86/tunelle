@@ -11,9 +11,10 @@ const toStored = ({ added_at, snapshot, ...key }: FavouriteRow): StoredFavourite
 
 /** The favourites of every source, the newest first */
 export const getFavourites = (database: Database) =>
-  executeQuery<FavouriteRow>(database, { query: `SELECT * FROM favourites ORDER BY added_at DESC, rowid DESC`, variables: [] }).then((rows) =>
-    rows.map(toStored)
-  );
+  executeQuery<FavouriteRow>(database, {
+    query: `SELECT source, kind, id, snapshot, added_at FROM favourites ORDER BY added_at DESC, rowid DESC`,
+    variables: [],
+  }).then((rows) => rows.map(toStored));
 
 /** Adding a favourite again keeps the first one, with its date */
 export const addFavourite = (database: Database, { source, kind, id }: FavouriteKey, snapshot: unknown) =>

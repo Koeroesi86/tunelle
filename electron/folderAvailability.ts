@@ -44,12 +44,12 @@ const hasEntries = async (folderPath: string) => {
 };
 
 /** A folder that cannot be read is offline; so is an empty one that has tracks in the library, like the mount point of a drive that is not mounted */
-const isOffline = async (database: Database, { path: folderPath }: Folder) => {
+const isOffline = async (database: Database, { path: folderPath }: Pick<Folder, 'path'>) => {
   const entries = await withTimeout(hasEntries(folderPath), undefined);
   return entries === undefined || (!entries && (await hasTracksInside(database, folderPath)));
 };
 
-export const findOfflineFolders = async (database: Database, folders: Folder[]) => {
+export const findOfflineFolders = async (database: Database, folders: Pick<Folder, 'path'>[]) => {
   const offline = await Promise.all(folders.map((folder) => isOffline(database, folder)));
   return folders.filter((_folder, index) => offline[index]).map((folder) => folder.path);
 };
@@ -57,8 +57,8 @@ export const findOfflineFolders = async (database: Database, folders: Folder[]) 
 let known: string[] = [];
 
 /** Look at the library folders, tell the window which are offline, and return the ones that were offline the last time and are not now */
-export const reportOfflineFolders = async (database: Database, sender: WebContents, folders?: Folder[]) => {
-  const offline = await findOfflineFolders(database, folders ?? (await getFolders(database)));
+export const reportOfflineFolders = async (database: Database, sender: WebContents, folders?: Pick<Folder, 'path'>[]) => {
+  const offline = await findOfflineFolders(database, folders ?? (await getFolders(database, ['path'])));
   const recovered = known.filter((folderPath) => !offline.includes(folderPath));
   known = offline;
   sender.send('OFFLINE_FOLDERS', { folders: offline });

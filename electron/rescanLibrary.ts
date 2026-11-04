@@ -2,7 +2,7 @@ import fs from 'fs';
 import type { WebContents } from 'electron';
 import type { Database } from 'sqlite3';
 import type { Folder } from '../types/library';
-import { deleteTracks, getFolders, getLibrary, saveFolders } from './libraryRepository';
+import { deleteTracks, folderColumns, getFolders, getLibrary, saveFolders } from './libraryRepository';
 import { isInsideFolder, reportOfflineFolders, withTimeout } from './folderAvailability';
 import scanFolders from './scanFolders';
 import { quitSignal } from './scanCancellation';
@@ -15,7 +15,9 @@ const readModifiedTimes = async (folders: Folder[]) => {
 
 /** The tracks below an offline folder are kept, its files cannot be told from missing ones */
 const removeMissingTracks = async (database: Database, offline: string[]) => {
-  const tracks = (await getLibrary(database)).filter((track) => !offline.some((folderPath) => isInsideFolder(folderPath, track.path)));
+  const tracks = (await getLibrary(database, { sort: undefined, folders: [] }, ['path'])).filter(
+    (track) => !offline.some((folderPath) => isInsideFolder(folderPath, track.path))
+  );
   const missing = await findMissingTracks(tracks);
 
   missing.forEach((track) => console.log(`Removing non existent ${track.path}`));
@@ -30,7 +32,7 @@ async function rescanLibrary(sender: WebContents, forced = false) {
   console.log(`Scanning library ${forced ? 'completely' : 'wisely'}...`);
 
   try {
-    const all = await getFolders(database);
+    const all = await getFolders(database, folderColumns);
     const { offline } = await reportOfflineFolders(database, sender, all);
     const folders = all.filter((folder) => !offline.includes(folder.path));
     const modified = await readModifiedTimes(folders);
@@ -38,7 +40,7 @@ async function rescanLibrary(sender: WebContents, forced = false) {
 
     await scanFolders(changed, sender);
     // a folder that was removed while it was scanned is not stored again
-    const remaining = new Set((await getFolders(database)).map((folder) => folder.path));
+    const remaining = new Set((await getFolders(database, ['path'])).map((folder) => folder.path));
     // stored after the scan, with the time seen before it, so a failed or interrupted scan is retried
     await saveFolders(
       database,

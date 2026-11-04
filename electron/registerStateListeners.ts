@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { ListenerContext } from './listenerContext';
-import { getFolders } from './libraryRepository';
+import { folderColumns, getFolders } from './libraryRepository';
 import { getSettings, saveSettings } from './settingsRepository';
 import { setPickedLanguage } from './language';
 import { applyThemeMode } from './theme';
@@ -13,7 +13,7 @@ const sendIfAlive = (sender: WebContents, channel: string, payload: unknown) => 
 };
 
 const sendState = async ({ database }: ListenerContext, sender: WebContents) => {
-  sendIfAlive(sender, 'STORE_FOLDERS', { folders: await getFolders(database) });
+  sendIfAlive(sender, 'STORE_FOLDERS', { folders: await getFolders(database, folderColumns) });
 
   const settings = await getSettings(database);
   if (settings) sendIfAlive(sender, 'RESTORE_SETTINGS', { settings });

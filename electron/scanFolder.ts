@@ -6,7 +6,7 @@ import type { WebContents } from 'electron';
 import type { Track } from '../types/library';
 import { addTracks, readBatchSize } from './addTracks';
 import { createTrackReader } from './trackReader';
-import { getTracksInside } from './libraryRepository';
+import { getTracksInside, trackColumns } from './libraryRepository';
 import isSupported from './isSupported';
 import { quitSignal, trackScan } from './scanCancellation';
 
@@ -86,7 +86,7 @@ const scanFiles = async (folderPath: string, sender: WebContents, deep: boolean,
 
   const files = (await findFiles(folderPath, deep)).sort();
   signal.throwIfAborted();
-  const library = await getTracksInside(database, folderPath);
+  const library = await getTracksInside(database, folderPath, trackColumns);
   const existingTracks = new Map(library.map((track) => [track.path, track]));
   const report = createProgressReporter(sender, folderPath, files.length);
   const reader = createTrackReader();
