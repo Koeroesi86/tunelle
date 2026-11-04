@@ -31,12 +31,22 @@
     background-size: cover;
     border-radius: 10px;
     // the shadow has the main colour of the cover (--tile-shadow, from the colour picked once by the main process), a dark one when there is none
-    box-shadow: inset 0 0 0 1px var(--art-edge), 0 10px 22px -8px var(--tile-shadow, var(--shadow-soft));
+    box-shadow: inset 0 0 0 1px var(--art-edge), inset 0 1px 0 var(--art-rim), 0 1px 3px var(--shadow-soft), 0 14px 26px -10px var(--tile-shadow, var(--shadow-soft));
     transition: box-shadow .2s ease-in-out;
   }
 
+  // a light from the top left across the cover, so the edge is not a flat line
+  .cover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--art-sheen) 0%, transparent 38%);
+    pointer-events: none;
+  }
+
   &:hover .cover {
-    box-shadow: inset 0 0 0 1px var(--art-edge), 0 12px 26px -8px var(--tile-shadow-hover, var(--shadow));
+    box-shadow: inset 0 0 0 1px var(--art-edge), inset 0 1px 0 var(--art-rim), 0 1px 3px var(--shadow-soft), 0 18px 32px -10px var(--tile-shadow-hover, var(--shadow));
   }
 
   // the buttons are on the corners of the cover while the pointer is over it, the favourite one stays when it is set
