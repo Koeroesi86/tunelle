@@ -29,6 +29,20 @@ describe('coverAccent', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('takes the colour the main process stored, without reading the pixels', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(new Blob(['png']), { headers: { 'X-Cover-Accent': '#2878dc' } })));
+    stubCanvas(pixels(...repeat(10, [220, 40, 40])));
+
+    await expect(coverAccent('tunelle://app/albumart/blue-optimized.png')).resolves.toBe('#2878dc');
+  });
+
+  it('has no colour for a cover the main process stored none for', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(new Blob(['png']), { headers: { 'X-Cover-Accent': '' } })));
+    stubCanvas(pixels(...repeat(10, [220, 40, 40])));
+
+    await expect(coverAccent('tunelle://app/albumart/grey-optimized.png')).resolves.toBeUndefined();
+  });
+
   it('has no colour for a cover that cannot be read', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 404 })));
 

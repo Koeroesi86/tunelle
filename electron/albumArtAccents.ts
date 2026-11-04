@@ -57,3 +57,13 @@ export const getAlbumArtAccents = async (database: Database, pictures: (string |
   });
   return new Map(rows.map((row) => [row.picture, row.accent]));
 };
+
+/** The colour stored for the picture an optimized cover was made from (`name-hash-optimized.png` of `name-hash.jpg`): empty when the picture has none, undefined when it is not looked at yet */
+export const getCoverAccent = async (database: Database, optimized: string) => {
+  const name = optimized.replace(/-optimized\.[^.]*$/, '').replace(/[!%_]/g, '!$&');
+  const [row] = await executeQuery<{ accent: string }>(database, {
+    query: `SELECT accent FROM album_art WHERE picture LIKE ? ESCAPE '!' LIMIT 1`,
+    variables: [`${name}.%`],
+  });
+  return row?.accent;
+};
