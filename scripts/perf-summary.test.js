@@ -34,7 +34,7 @@ describe('toMarkdown', () => {
   it('has a row for each number and a column for each system, empty where a system lacks one', () => {
     const text = toMarkdown({ 'macos-15': { pr: { startup: { toPageMs: 7.123 } } }, 'ubuntu-latest': { pr: { startup: { toPageMs: 650, extra: 1 } } } })
 
-    expect(text).toContain('#### startup')
+    expect(text).toContain('<summary><b>startup</b>, 2 numbers</summary>')
     expect(text).toContain('| | macos-15 | ubuntu-latest |')
     expect(text).toContain('| toPageMs | 7.12 | 650 |')
     expect(text).toContain('| extra |  | 1 |')
@@ -47,6 +47,45 @@ describe('toMarkdown', () => {
     expect(text).toContain('| toPageMs | 100 | 150 | **+50%** |')
     expect(text).toContain('| added |  | 2 |  |')
     expect(text).not.toContain('gone')
+  })
+
+  it('puts the numbers that changed by a fifth or more on top, with the unit and which way is worse, and the tables in collapsed blocks', () => {
+    const text = toMarkdown({
+      'ubuntu-latest': {
+        base: { scan: { maxFrameMs: 30, scrollSeconds: 10, steadyMs: 100 }, startup: { toPageMs: 600 } },
+        pr: { scan: { maxFrameMs: 50, scrollSeconds: 6, steadyMs: 105 }, startup: { toPageMs: 590 } }
+      }
+    })
+    const [top] = text.split('<details>')
+
+    expect(top).toContain('**2 of 4 numbers changed by a fifth or more**')
+    expect(top).toContain('| 🔴 scan.maxFrameMs | 30 → 50 ms (**+67%**) |')
+    expect(top).toContain('| 🟢 scan.scrollSeconds | 10 → 6 s (**-40%**) |')
+    expect(top).not.toContain('steadyMs')
+    expect(top).not.toContain('toPageMs')
+    expect(text).toContain('<summary><b>scan</b>, 3 numbers, 2 changed</summary>')
+    expect(text).toContain('<summary><b>startup</b>, 1 numbers, 0 changed</summary>')
+    expect(text).toContain('| steadyMs | 100 | 105 | +5% |')
+    expect(text.match(/<details>/g)).toHaveLength(2)
+    expect(text.match(/<\/details>/g)).toHaveLength(2)
+  })
+
+  it('marks a number that is worse on one system and better on another', () => {
+    const text = toMarkdown({
+      a: { base: { m: { xMs: 100 } }, pr: { m: { xMs: 150 } } },
+      b: { base: { m: { xMs: 100 } }, pr: { m: { xMs: 50 } } }
+    })
+
+    expect(text).toContain('| ⚠️ m.xMs | 100 → 150 ms (**+50%**) | 100 → 50 ms (**-50%**) |')
+  })
+
+  it('says so when nothing changed by a fifth, and has no summary without a base', () => {
+    const same = toMarkdown({ a: { base: { m: { xMs: 100 } }, pr: { m: { xMs: 105 } } } })
+    const alone = toMarkdown({ a: { pr: { m: { xMs: 105 } } } })
+
+    expect(same).toContain('**No number of 1 changed by a fifth or more.**')
+    expect(alone).not.toContain('changed by a fifth')
+    expect(alone).toContain('<summary><b>m</b>, 1 numbers</summary>')
   })
 
   it('says so when there is nothing', () => {
