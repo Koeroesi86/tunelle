@@ -150,6 +150,25 @@ describe('scanFolder', () => {
       expect(await storedPaths()).toEqual(['0.mp3', '1.mp3', '2.mp3', '3.mp3', '4.mp3']);
     });
 
+    it('tells the window about the stored tracks while the scan goes on, at most every two seconds', async () => {
+      vi.stubEnv('TUNELLE_SCAN_BATCH_SIZE', '2');
+      vi.useFakeTimers({ toFake: ['Date'] });
+      writeFiles(5);
+      const updates = () => send.mock.calls.filter(([channel]) => channel === 'LIBRARY_UPDATED').length;
+
+      await scanFolder(root, sender);
+      // three batches within the second: one message
+      expect(updates()).toBe(1);
+
+      send.mockClear();
+      // files the first scan did not read, as a rescan skips the ones it did
+      Array.from({ length: 5 }, (_, index) => fs.writeFileSync(path.join(root, `later-${index}.mp3`), 'not audio'));
+      send.mockImplementation((channel) => channel === 'SCANNING_FILE' && vi.advanceTimersByTime(2500));
+      await scanFolder(root, sender);
+      expect(updates()).toBe(3);
+      vi.useRealTimers();
+    });
+
     it('does not give a removed folder the tracks of its last batch back', async () => {
       vi.stubEnv('TUNELLE_SCAN_BATCH_SIZE', '100');
       writeFiles(3);

@@ -55,9 +55,13 @@ const createProgressReporter = (sender: WebContents, folderPath: string, totalCo
   };
 };
 
+/** The least time between two messages that tell the window to show the tracks stored so far */
+const updateInterval = 2000;
+
 /** Collects the tracks to store and writes them a batch at a time; a batch that cannot be written is stored track by track, so one bad track does not take the others with it */
-const createBatchWriter = (database: Database, size: number, signal: AbortSignal) => {
+const createBatchWriter = (database: Database, sender: WebContents, size: number, signal: AbortSignal) => {
   let batch: Track[] = [];
+  let updatedAt = 0;
 
   const flush = async () => {
     // a folder removed while its files were read must not get the tracks back
@@ -71,6 +75,11 @@ const createBatchWriter = (database: Database, size: number, signal: AbortSignal
         Promise.resolve()
       );
     });
+
+    // the lists on the screen show what is stored while the scan goes on, not only at its end
+    if (Date.now() - updatedAt < updateInterval) return;
+    updatedAt = Date.now();
+    sender.send('LIBRARY_UPDATED', {});
   };
 
   return {
@@ -92,7 +101,7 @@ const scanFiles = async (folderPath: string, sender: WebContents, deep: boolean,
   const existingTracks = new Map(library.map((track) => [track.path, track]));
   const report = createProgressReporter(sender, folderPath, files.length);
   const reader = createTrackReader();
-  const writer = createBatchWriter(database, readBatchSize(), signal);
+  const writer = createBatchWriter(database, sender, readBatchSize(), signal);
 
   // the stat is taken before the read: a file that changes meanwhile differs from it at the next scan, and is read again
   const scanChangedFile = async (fileName: string) => {

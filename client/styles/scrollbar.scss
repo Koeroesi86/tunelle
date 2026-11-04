@@ -1,8 +1,8 @@
-// thin scrollbars: no track, a rounded thumb that lights up under the pointer; the dialogs include it too, as they sit outside the page root
+// slim scrollbars: no track, a rounded thumb that lights up and grows under the pointer; a thumb is never shorter than 48px, as the one of a list of thousands of rows is a few pixels otherwise; the dialogs include it too, as they sit outside the page root
 @mixin thin-scrollbar {
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 14px;
+    height: 14px;
   }
 
   ::-webkit-scrollbar-track,
@@ -11,14 +11,17 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    border: 2px solid transparent;
-    border-radius: 5px;
+    min-width: 48px;
+    min-height: 48px;
+    border: 3px solid transparent;
+    border-radius: 7px;
     background: var(--scrollbar-thumb);
     background-clip: content-box;
     transition: background-color .1s ease-in-out;
   }
 
   ::-webkit-scrollbar-thumb:hover {
+    border-width: 2px;
     background: var(--scrollbar-thumb-hover);
     background-clip: content-box;
   }
