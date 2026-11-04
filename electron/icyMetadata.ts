@@ -3,6 +3,18 @@ import type { TransformCallback } from 'stream';
 
 const metadataBlock = 16;
 
+const utf8 = new TextDecoder('utf-8', { fatal: true });
+const windows1252 = new TextDecoder('windows-1252');
+
+/** Stations send UTF-8 or, mostly older ones, Windows-1252: the text is UTF-8 when it is valid UTF-8, else Windows-1252 */
+const decodeMetadata = (bytes: Buffer) => {
+  try {
+    return utf8.decode(bytes);
+  } catch {
+    return windows1252.decode(bytes);
+  }
+};
+
 /** The title of the metadata block of a stream, undefined when it carries none */
 export const parseStreamTitle = (metadata: string) => metadata.match(/StreamTitle='(.*?)';/)?.[1]?.trim() || undefined;
 
@@ -63,7 +75,7 @@ export class IcyMetadataStripper extends Transform {
   }
 
   private finishMetadata() {
-    const metadata = Buffer.concat(this.metadata).toString('utf8');
+    const metadata = decodeMetadata(Buffer.concat(this.metadata));
     const title = parseStreamTitle(metadata);
     if (title) this.onTitle(title, parseStreamUrl(metadata));
 
