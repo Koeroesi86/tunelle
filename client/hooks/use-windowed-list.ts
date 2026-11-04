@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { attachSmoothWheel } from '../smooth-wheel';
 
 interface WindowParams {
   scrollTop: number;
@@ -70,9 +69,7 @@ export const useWindowedList = ({ itemCount, rowHeight: heightOf, itemWidth, gap
     measure();
     element.addEventListener('scroll', schedule, { passive: true });
     observer?.observe(element);
-    const detachWheel = attachSmoothWheel(element);
     return () => {
-      detachWheel();
       cancelAnimationFrame(frame);
       element.removeEventListener('scroll', schedule);
       observer?.disconnect();
