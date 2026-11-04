@@ -6,7 +6,7 @@ import type { WebContents } from 'electron';
 import type { Track } from '../types/library';
 import { addTracks, readBatchSize } from './addTracks';
 import { createTrackReader } from './trackReader';
-import { getTracksInside, trackColumns } from './libraryRepository';
+import { getTracksInside } from './libraryRepository';
 import isSupported from './isSupported';
 import normalizePath from './normalizePath';
 import { quitSignal, trackScan } from './scanCancellation';
@@ -16,7 +16,7 @@ const fileReadTimeout = 2000;
 /** What tells that a file is the one that was read: its modification time (whole milliseconds) and its exact size */
 const statOf = (fileName: string) => fs.promises.stat(fileName).then(({ mtimeMs, size }) => ({ fileModified: Math.floor(mtimeMs), fileSize: size }));
 
-const isUnchanged = (track: Track | undefined, { fileModified, fileSize }: { fileModified: number; fileSize: number }) =>
+const isUnchanged = (track: Pick<Track, 'fileModified' | 'fileSize'> | undefined, { fileModified, fileSize }: { fileModified: number; fileSize: number }) =>
   track?.fileModified === fileModified && track.fileSize === fileSize;
 
 // an entry that is a symbolic link is neither a directory nor a file here
@@ -88,7 +88,7 @@ const scanFiles = async (folderPath: string, sender: WebContents, deep: boolean,
 
   const files = (await findFiles(folderPath, deep)).sort();
   signal.throwIfAborted();
-  const library = await getTracksInside(database, folderPath, trackColumns);
+  const library = await getTracksInside(database, folderPath, ['path', 'fileModified', 'fileSize']);
   const existingTracks = new Map(library.map((track) => [track.path, track]));
   const report = createProgressReporter(sender, folderPath, files.length);
   const reader = createTrackReader();
