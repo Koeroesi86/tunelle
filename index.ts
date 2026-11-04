@@ -83,6 +83,9 @@ if (!isDev && !process.env.TUNELLE_APP_DATA && !app.commandLine.hasSwitch('user-
 
 app.setName(appName);
 
+// the scrollbar, the arrow and page keys and the wheel of the lists glide to their place; Chromium leaves this off on some systems (Linux with a plain mouse wheel)
+app.commandLine.appendSwitch('enable-smooth-scrolling');
+
 global._appDataPath = getAppDataPath(app.getPath('appData'), packageInfo.name, isDev, process.env.TUNELLE_APP_DATA);
 const appDataPath = global._appDataPath;
 
