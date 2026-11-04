@@ -1,3 +1,5 @@
+@use '../../client/styles/enter' as *;
+
 .trackViewItem {
   display: flex;
   flex-grow: 0;
@@ -6,6 +8,8 @@
   will-change: background-color;
 
   &:not(.header) {
+    @include enters(4px);
+
     // the rows of a long list are windowed, so their height is fixed
     height: 28px;
     line-height: 28px;
