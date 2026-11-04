@@ -20,12 +20,21 @@ export interface Probe {
 declare global {
   interface Window {
     audioProbe?: Probe;
+    /** Makes the probe listen or not: a worklet that is pulled wakes the page about fifty times a second, which a measurement of the idle processor must not include */
+    listenWithProbe?: (listening: boolean) => void;
   }
 }
 
 export const installAudioProbe = () => {
   const probe: Probe = { sampleRate: 0, windows: [] };
   window.audioProbe = probe;
+  let listening = true;
+  const connected = new Set<{ node: AudioWorkletNode; context: AudioContext }>();
+  window.listenWithProbe = (on) => {
+    listening = on;
+    // the worklet is only pulled when it leads to the destination
+    connected.forEach(({ node, context }) => Reflect.apply(on ? originalConnect : originalDisconnect, node, [context.destination]));
+  };
 
   const processorSource = `
     registerProcessor('probe', class extends AudioWorkletProcessor {
@@ -80,7 +89,8 @@ export const installAudioProbe = () => {
         node.port.onmessage = ({ data }) => probe.windows.push(data);
         // the worklet is only pulled when it leads to the destination; it makes no sound itself
         Reflect.apply(originalConnect, bus, [node]);
-        Reflect.apply(originalConnect, node, [context.destination]);
+        connected.add({ node, context });
+        if (listening) Reflect.apply(originalConnect, node, [context.destination]);
       });
     }
     return bus;

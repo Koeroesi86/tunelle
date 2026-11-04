@@ -93,6 +93,10 @@ test('measures the cost of a standing app: the processor while it plays, is paus
     };
   };
 
+  // the probe of the audio wakes the page about fifty times a second, so it listens only while a tone is checked
+  const listenWithProbe = (listening: boolean) => page.evaluate((on) => window.listenWithProbe?.(on), listening);
+  await listenWithProbe(false);
+
   const report: Record<string, unknown> = { tracks: expected };
   await navigate(page, 'Albums');
   report.coversOfAlbums = await page.evaluate(() => {
@@ -114,7 +118,9 @@ test('measures the cost of a standing app: the processor while it plays, is paus
   // the page is not opened again: the filter is gone when it is
   await expect(page.getByText('1 album', { exact: true }).filter({ visible: true })).toBeVisible({ timeout: 60_000 });
   await page.getByRole('button', { name: 'Play Pitch Perfect' }).click();
+  await listenWithProbe(true);
   await expectTone(page, 440);
+  await listenWithProbe(false);
   report.visiblePlaying = await cpu();
   report.memoryVisiblePlaying = await memory(app, page);
 
