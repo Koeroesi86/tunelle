@@ -18,6 +18,7 @@ import { createRadioBrowser } from './electron/radioBrowser';
 import { createRadioArt } from './electron/radioArt';
 import { createRadioLogos } from './electron/radioLogos';
 import { getAppUserModelId, setsAppUserModelId } from './electron/appUserModelId';
+import { getFlatpakDesktopName } from './electron/flatpakDesktopName';
 import { holdSingleInstance } from './electron/singleInstance';
 import { registerDevDesktopEntry, removeDevDesktopEntry } from './electron/devDesktopEntry';
 import closeDatabase from './electron/closeDatabase';
@@ -106,6 +107,12 @@ function setAppId() {
   if (setsAppUserModelId(process.platform, process.windowsStore)) {
     app.setAppUserModelId(global._appId);
     console.log('Registered app ID', global._appId);
+  }
+
+  const desktopName = getFlatpakDesktopName(process.env.FLATPAK_ID);
+
+  if (desktopName) {
+    app.setDesktopName(desktopName);
   }
 
   if (isWin && isDev) {
