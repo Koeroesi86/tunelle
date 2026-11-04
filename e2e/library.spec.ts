@@ -1,3 +1,4 @@
+import { statSync, utimesSync } from 'fs';
 import { rename, rm } from 'fs/promises';
 import { join } from 'path';
 import { addFolder, expect, libraryTracks, navigate, quit, test } from './app';
@@ -45,6 +46,46 @@ test('picks up a file that was added to the folder with a rescan', async ({ sess
   await page.getByRole('button', { name: 'Rescan' }).click();
 
   await expect.poll(async () => (await libraryTracks(page)).length).toBe(5);
+});
+
+test('rescans a file whose size changed, and skips one whose size and modification time are the same', async ({ session: { page }, music }) => {
+  const album = join(music, 'pitch-perfect');
+  const skipped = join(album, '1-concert-a.flac');
+  const modified = statSync(skipped).mtimeMs;
+  // a tag of the same length keeps the size; the time is the one of the file at the first scan, to the millisecond
+  writeTrack(album, albums[0], 0, undefined, { TITLE: 'Concert Z' });
+  utimesSync(skipped, (Math.floor(modified) + 0.5) / 1000, (Math.floor(modified) + 0.5) / 1000);
+  writeTrack(album, albums[0], 1, undefined, { TITLE: 'Octave Down!' });
+
+  await navigate(page, 'Albums');
+  await page.getByRole('button', { name: 'Rescan' }).click();
+
+  const titles = async () => (await libraryTracks(page)).map((track) => track.title);
+  await expect.poll(titles).toContain('Octave Down!');
+  // the files are read in order and stored together, so the skipped one is decided by now
+  expect(await titles()).toEqual(expect.arrayContaining(['Concert A', 'Deep Bass', 'Hold It']));
+  expect(await titles()).not.toContain('Concert Z');
+  expect(await titles()).toHaveLength(4);
+});
+
+test('rescans a file whose modification time changed, also with the same size', async ({ session: { page }, music }) => {
+  const file = join(music, 'pitch-perfect', '1-concert-a.flac');
+  writeTrack(join(music, 'pitch-perfect'), albums[0], 0, undefined, { TITLE: 'Concert Z' });
+  const later = new Date(statSync(file).mtimeMs + 60_000);
+  utimesSync(file, later, later);
+
+  await navigate(page, 'Albums');
+  await page.getByRole('button', { name: 'Rescan' }).click();
+
+  await expect.poll(async () => (await libraryTracks(page)).map((track) => track.title)).toContain('Concert Z');
+  expect(await libraryTracks(page)).toHaveLength(4);
+});
+
+test('picks up a file that was added to a folder of the library that already has files, without a rescan', async ({ session: { page }, music }) => {
+  writeTrack(join(music, 'pitch-perfect'), { ...albums[0], tracks: [...albums[0].tracks, { title: 'Fourth Tone', frequency: 660 }] }, 3);
+
+  await expect.poll(async () => (await libraryTracks(page)).map((track) => track.title), { timeout: 60_000 }).toContain('Fourth Tone');
+  expect(await libraryTracks(page)).toHaveLength(5);
 });
 
 test('picks up files that were added to and removed from a folder without a rescan', async ({ session: { page }, music }) => {

@@ -51,6 +51,8 @@ describe('scanFolder audio format', () => {
     parsed.mockResolvedValue(meta({}) as never);
     await scanFolder(root, sender);
     expect(await stored()).toEqual([{ codec: null, bitDepth: null, sampleRate: null, bitrate: null, vbr: null, lossless: null }]);
+    // a row of an older app has not kept the file stat, so its file is read again
+    await executeQuery(database, { query: 'UPDATE library SET fileModified = NULL, fileSize = NULL', variables: [] });
 
     parsed.mockResolvedValue(meta({ codec: 'FLAC', lossless: true, bitsPerSample: 16, sampleRate: 44100 }) as never);
     await scanFolder(root, sender);

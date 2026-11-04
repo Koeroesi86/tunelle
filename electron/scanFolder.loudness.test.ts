@@ -57,6 +57,8 @@ describe('scanFolder loudness', () => {
   it('fills in a row that was stored before the tags were read', async () => {
     parsed.mockResolvedValue(meta() as never);
     await scanFolder(root, sender);
+    // a row of an older app has not kept the file stat, so its file is read again
+    await executeQuery(database, { query: 'UPDATE library SET fileModified = NULL, fileSize = NULL', variables: [] });
     parsed.mockResolvedValue(meta({ replaygain_track_gain: { dB: -3, ratio: 0.7 } }) as never);
 
     await scanFolder(root, sender);

@@ -3,7 +3,7 @@ import type { Track } from '../types/library';
 import executeQuery from './executeQuery';
 import { toSortKeys } from './sortKey';
 
-const columns = `path, artist, album, title, year, track, disk, genre, picture, duration, title_key, artist_key, album_key, album_artist_key, genre_key, albumArtist, codec, bitDepth, sampleRate, bitrate, vbr, lossless, trackGain, albumGain, trackPeak, albumPeak`;
+const columns = `path, artist, album, title, year, track, disk, genre, picture, duration, title_key, artist_key, album_key, album_artist_key, genre_key, albumArtist, codec, bitDepth, sampleRate, bitrate, vbr, lossless, trackGain, albumGain, trackPeak, albumPeak, fileModified, fileSize`;
 const updates = columns
   .split(', ')
   .filter((column) => column !== 'path')
@@ -46,6 +46,8 @@ const toValues = (track: Track) => [
   track.albumGain ?? null,
   track.trackPeak ?? null,
   track.albumPeak ?? null,
+  track.fileModified ?? null,
+  track.fileSize ?? null,
 ];
 
 /** Store the tracks with one statement, so the database syncs to the disk once for all of them instead of once for each, which is what a scan of a big library waits on, most on Windows; it is all or none */
