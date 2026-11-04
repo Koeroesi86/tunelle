@@ -244,6 +244,18 @@ describe('connection middleware', () => {
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThan(failed));
   });
 
+  it('marks the cached pages stale when tracks are stored during a scan, and leaves the favourites for the end of it', async () => {
+    const { store, send, listen } = await setup(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ items: [], total: 0 }) }));
+    store.dispatch({ type: 'LOAD_LIBRARY_PAGE', payload: { kind: 'tracks', page: 0 } });
+    await vi.waitFor(() => expect(store.getState().library.tracks.total).toBe(0));
+    send.mockClear();
+
+    listen('LIBRARY_UPDATED', {});
+
+    expect(store.getState().library.tracks.stale).toEqual([0]);
+    expect(send).not.toHaveBeenCalledWith('FAVOURITES_LOAD');
+  });
+
   describe('the sort and the folders of the library', () => {
     const emptyPage = () => Promise.resolve({ ok: true, json: () => Promise.resolve({ items: [], total: 0 }) });
     const requested = (fetchMock: ReturnType<typeof vi.fn>) => fetchMock.mock.calls.map(([url]) => String(url));

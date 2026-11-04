@@ -117,6 +117,7 @@ export type AppAction =
   | EmptyAction<'RESCAN_LIBRARY'>
   | EmptyAction<'RESCAN_COMPLETE'>
   | EmptyAction<'TRACKS_ADDED_TO_LIBRARY'>
+  | EmptyAction<'LIBRARY_UPDATED'>
   | EmptyAction<'TRACK_ENDED'>
   | EmptyAction<'NEXT_SONG'>
   | EmptyAction<'PREVIOUS_SONG'>
