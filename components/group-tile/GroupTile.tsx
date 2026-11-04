@@ -1,5 +1,6 @@
 import type { GroupSummary } from '../../types/library';
 import { getCoverUrl } from '../../client/cover-url';
+import { tileAccent } from '../../client/tile-accent';
 import { useTranslation } from '../../client/i18n';
 import style from './GroupTile.scss';
 
@@ -18,8 +19,7 @@ const GroupTile = ({ group, unknownName, open }: GroupTileProps) => {
 
   return (
     <button type="button" className={style.groupTile} onClick={() => open(group)}>
-      <span className={style.frame}>
-        {image && <span className={style.glow} style={{ backgroundImage: image }} aria-hidden="true" />}
+      <span className={style.frame} ref={tileAccent(group.accent)}>
         <span className={style.cover} style={image ? { backgroundImage: image } : undefined} />
       </span>
       <span className={style.name} title={name}>

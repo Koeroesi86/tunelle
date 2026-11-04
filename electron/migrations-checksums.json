@@ -10,5 +10,6 @@
   "009-add-browse-columns.sql": "0e3081c845c95fc86378f414704f8147c58d042c538285edc721bc2445cebb0b",
   "010-create-artist-photos-table.sql": "bacde5c834bff84e426a28f9b89058f707e31751ce950f9e6d76438d70b29a4a",
   "011-add-loudness.sql": "554a069d1623e31baa9f5d606a7232f4d5abe9d3a2d56f9b332c2ffcc0d90cbd",
-  "012-add-file-stat.sql": "4b0ad4a7d41fedc12846a2d91ea310004cd1e2cb3986a0ef1686b06a2c949331"
+  "012-add-file-stat.sql": "4b0ad4a7d41fedc12846a2d91ea310004cd1e2cb3986a0ef1686b06a2c949331",
+  "013-create-album-art-table.sql": "ab689caffb83c927d728aa3abba54390e5bf440f2ae7ccc0e6322cb23e2f7da1"
 }

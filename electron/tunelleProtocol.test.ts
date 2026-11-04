@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import type { Database } from 'sqlite3';
 import sharp from 'sharp';
+import executeQuery from './executeQuery';
 import { createTestDatabase } from './test-database';
 
 // net.fetch of a file slices it for a range, and answers 200 without a Content-Range or a Content-Length
@@ -190,6 +191,19 @@ describe('tunelle protocol', () => {
       fs.mkdirSync(path.join(folder, 'albumart'), { recursive: true });
 
       expect((await get('/albumart/nothing-optimized.png')).status).toBe(404);
+    });
+
+    it('sends the stored colour of a cover with it, and none while it is not picked', async () => {
+      const albumArt = path.join(folder, 'albumart');
+      fs.mkdirSync(albumArt, { recursive: true });
+      await sharp({ create: { width: 300, height: 300, channels: 3, background: 'red' } })
+        .png()
+        .toFile(path.join(albumArt, 'tinted-abc.png'));
+
+      expect((await get('/albumart/tinted-abc-optimized.png')).headers.get('X-Cover-Accent')).toBeNull();
+
+      await executeQuery(database, { query: 'INSERT INTO album_art (picture, accent) VALUES (?, ?)', variables: ['tinted-abc.png', '#dc2828'] });
+      expect((await get('/albumart/tinted-abc-optimized.png')).headers.get('X-Cover-Accent')).toBe('#dc2828');
     });
 
     it('answers concurrent requests for an optimized album art with the complete image', async () => {

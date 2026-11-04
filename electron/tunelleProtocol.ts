@@ -2,6 +2,7 @@ import path from 'path';
 import { protocol } from 'electron';
 import type { Database } from 'sqlite3';
 import { resolveAlbumArt } from './albumArt';
+import { getCoverAccent } from './albumArtAccents';
 import { findTrackPath } from './libraryRepository';
 import { libraryRoutes } from './libraryRoutes';
 import { serveRadio } from './radioProtocol';
@@ -61,7 +62,10 @@ const route = async (request: Request, { getDatabase, radio, appRoot }: TunelleD
   }
   if (kind === 'albumart') {
     const albumArt = await resolveAlbumArt(path.basename(key));
-    return albumArt ? serveFile(albumArt, request, { 'Cache-Control': 'Public' }) : notFound();
+    const database = getDatabase();
+    // the colour of the cover goes with it, so the page does not read the pixels again; the header is left out while it is not picked
+    const accent = database ? await getCoverAccent(database, path.basename(key)) : undefined;
+    return albumArt ? serveFile(albumArt, request, { 'Cache-Control': 'Public', ...(accent === undefined ? {} : { 'X-Cover-Accent': accent }) }) : notFound();
   }
 
   const file = pageFile(appRoot, pathname);

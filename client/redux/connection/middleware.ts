@@ -29,6 +29,7 @@ function addListeners(store: Store) {
   electronAPI.on<{ folders: Folder[] }>('FOLDERS_ADDED_TO_LIBRARY', (payload) => store.dispatch({ type: 'FOLDERS_ADDED_TO_LIBRARY', payload }));
   electronAPI.on<EmptyPayload>('FOLDER_REMOVED_FROM_LIBRARY', (payload) => store.dispatch({ type: 'FOLDER_REMOVED_FROM_LIBRARY', payload }));
   electronAPI.on<EmptyPayload>('ARTIST_PHOTOS_READY', (payload) => store.dispatch({ type: 'ARTIST_PHOTOS_READY', payload }));
+  electronAPI.on<EmptyPayload>('LIBRARY_UPDATED', (payload) => store.dispatch({ type: 'LIBRARY_UPDATED', payload }));
   electronAPI.on<EmptyPayload>('TRACKS_ADDED_TO_LIBRARY', (payload) => store.dispatch({ type: 'TRACKS_ADDED_TO_LIBRARY', payload }));
   electronAPI.on<{ maximized: boolean }>('MAXIMIZED_APP', (payload) => store.dispatch({ type: 'MAXIMIZED_APP', payload }));
   electronAPI.on<{ playlist: PlaylistItem[]; url: string }>('CLICKED_URL', (payload) => store.dispatch({ type: 'CLICKED_URL', payload }));
@@ -242,6 +243,11 @@ const handleActions = actionMiddleware((store) => [
   }),
   onAction('SET_WATCH_FOLDERS', ({ payload }) => saveSettings({ ...store.getState().uiState, watchFolders: payload.enabled })),
   onAction('LOAD_LIBRARY_PAGE', ({ payload }) => void loadPage(store, payload.kind, payload.page)),
+  // tracks stored while a scan runs: the list on the screen shows them, the favourites and the rest wait for the end of the scan
+  onAction('LIBRARY_UPDATED', () => {
+    generation += 1;
+    store.dispatch({ type: 'INVALIDATE_LIBRARY' });
+  }),
   // the cached pages are fetched again when they are shown, not all at once
   ...(['RESCAN_COMPLETE', 'TRACKS_ADDED_TO_LIBRARY', 'FOLDER_REMOVED_FROM_LIBRARY'] as const).map((type) =>
     onAction(type, () => {

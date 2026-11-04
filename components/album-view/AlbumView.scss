@@ -78,7 +78,8 @@
 
     .window {
       box-sizing: border-box;
-      overflow: hidden;
+      overflow: clip;
+      overflow-clip-margin: 40px;
     }
 
     // the columns and the height come from the list (AlbumView.tsx): as many covers as fit, wider than the least width
@@ -86,7 +87,8 @@
       display: grid;
       column-gap: 18px;
       align-items: start;
-      overflow: hidden;
+      overflow: clip;
+      overflow-clip-margin: 40px;
     }
 
     // the cover of an album that is not loaded yet

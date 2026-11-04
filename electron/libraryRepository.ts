@@ -16,6 +16,7 @@ import type {
 import executeQuery from './executeQuery';
 import executeQueries from './executeQueries';
 import { toSortKey } from './sortKey';
+import { getAlbumArtAccents } from './albumArtAccents';
 
 // ! is the escape character of the LIKE below, so % and _ in a folder name match themselves
 const escapeLike = (value: string) => value.replace(/[!%_]/g, '!$&');
@@ -270,10 +271,21 @@ export const getGroupPage = (
       variables: [...variables, limit, offset],
     }),
     countTotal(database, `${scoped} SELECT COUNT(*) AS total FROM (SELECT 1 ${source} GROUP BY ${key})`, variables),
-  ]).then(([items, total]) => ({
-    items: items.map(({ covers: joined, ...group }) => ({ ...group, covers: joined ? joined.split(coverSeparator) : [] })),
-    total,
-  }));
+  ]).then(async ([items, total]) => {
+    const accents = await getAlbumArtAccents(
+      database,
+      items.map((group) => group.cover)
+    );
+
+    return {
+      items: items.map(({ covers: joined, ...group }) => ({
+        ...group,
+        accent: group.cover ? accents.get(group.cover) : undefined,
+        covers: joined ? joined.split(coverSeparator) : [],
+      })),
+      total,
+    };
+  });
 };
 
 /** The condition that limits the tracks to the ones of a group, none when the albums are not of a group */
@@ -338,10 +350,22 @@ export const getAlbumPage = (
       `SELECT COUNT(*) AS total FROM (SELECT 1 FROM (SELECT ${albumCountColumns}, ${folderOf} AS folder FROM library ${where}) ${groupFilter.where} GROUP BY folder, COALESCE(album, '') ${having})`,
       variables
     ),
-  ]).then(([albums, total]) => ({
-    items: albums.map(({ firstPath, ...album }) => ({ ...album, path: path.dirname(firstPath), id: `${path.dirname(firstPath)} - ${album.title}` })),
-    total,
-  }));
+  ]).then(async ([albums, total]) => {
+    const accents = await getAlbumArtAccents(
+      database,
+      albums.map((album) => album.cover)
+    );
+
+    return {
+      items: albums.map(({ firstPath, ...album }) => ({
+        ...album,
+        accent: album.cover ? accents.get(album.cover) : undefined,
+        path: path.dirname(firstPath),
+        id: `${path.dirname(firstPath)} - ${album.title}`,
+      })),
+      total,
+    };
+  });
 };
 
 /** The tracks of an album, folder is the directory of the album */

@@ -1,63 +1,9 @@
-import { toHex } from './theme';
-
-/** Pixels the picker looks at: dark, light and grey ones say nothing about the colour of a cover */
-const minLightness = 0.2;
-const maxLightness = 0.85;
-const minSaturation = 0.3;
-
-/** Size of the downscaled cover the colour is picked from */
-const sampleSize = 32;
-
-/** Steps per channel when similar colours are counted together */
-const levels = 8;
-
-interface Bucket {
-  weight: number;
-  sums: number[];
-}
-
-const hslOf = (red: number, green: number, blue: number) => {
-  const [r, g, b] = [red, green, blue].map((channel) => channel / 255);
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const lightness = (max + min) / 2;
-  const saturation = max === min ? 0 : (max - min) / (1 - Math.abs(2 * lightness - 1));
-
-  return { lightness, saturation };
-};
-
-/** The most prominent saturated colour of RGBA pixels as `#rrggbb`, undefined when there is none (a grey cover) */
-export const pickAccent = (pixels: ArrayLike<number>): string | undefined => {
-  const buckets = new Map<number, Bucket>();
-
-  Array.from({ length: Math.floor(pixels.length / 4) }, (_, index) => index * 4)
-    .filter((start) => pixels[start + 3] >= 128)
-    .forEach((start) => {
-      const channels = [pixels[start], pixels[start + 1], pixels[start + 2]];
-      const { lightness, saturation } = hslOf(channels[0], channels[1], channels[2]);
-      if (lightness < minLightness || lightness > maxLightness || saturation < minSaturation) return;
-
-      const key = channels.reduce((total, channel) => total * levels + Math.floor((channel * levels) / 256), 0);
-      const bucket = buckets.get(key) ?? { weight: 0, sums: [0, 0, 0] };
-
-      // a more saturated pixel counts more, so a vivid detail can win over a dull background
-      bucket.weight += saturation;
-      bucket.sums = bucket.sums.map((sum, channel) => sum + channels[channel] * saturation);
-      buckets.set(key, bucket);
-    });
-
-  const best = Array.from(buckets.values()).sort((first, second) => second.weight - first.weight)[0];
-
-  return best && toHex(best.sums.map((sum) => sum / best.weight));
-};
+import { pickAccent, sampleSize } from './pick-accent';
 
 const accents = new Map<string, Promise<string | undefined>>();
 
-const readPixels = async (url: string) => {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`The cover answered ${response.status}`);
-
-  const bitmap = await createImageBitmap(await response.blob(), { resizeWidth: sampleSize, resizeHeight: sampleSize });
+const readPixels = async (image: Blob) => {
+  const bitmap = await createImageBitmap(image, { resizeWidth: sampleSize, resizeHeight: sampleSize });
   const context = new OffscreenCanvas(sampleSize, sampleSize).getContext('2d');
   if (!context) throw new Error('No canvas to read the cover with');
 
@@ -66,14 +12,21 @@ const readPixels = async (url: string) => {
   return context.getImageData(0, 0, sampleSize, sampleSize).data;
 };
 
+/** The colour the main process stored for a cover of the library comes with it; a cover without one (not picked yet, or not of the library) is read here */
+const readAccent = async (url: string) => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`The cover answered ${response.status}`);
+
+  const stored = response.headers.get('X-Cover-Accent');
+  return stored === null ? pickAccent(await readPixels(await response.blob())) : stored || undefined;
+};
+
 /** The accent of the cover at the URL, picked once per cover; undefined when the cover is missing, unreadable or grey */
 export const coverAccent = (url: string): Promise<string | undefined> => {
   const known = accents.get(url);
   if (known) return known;
 
-  const picked = readPixels(url)
-    .then(pickAccent)
-    .catch(() => undefined);
+  const picked = readAccent(url).catch(() => undefined);
   accents.set(url, picked);
   return picked;
 };

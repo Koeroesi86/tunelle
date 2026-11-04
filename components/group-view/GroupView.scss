@@ -38,7 +38,8 @@
 
   .window {
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: clip;
+    overflow-clip-margin: 40px;
   }
 
   // the columns and the height come from the list (GroupView.tsx): as many tiles as fit, wider than the least width
@@ -46,7 +47,8 @@
     display: grid;
     column-gap: 18px;
     align-items: start;
-    overflow: hidden;
+    overflow: clip;
+    overflow-clip-margin: 40px;
   }
 
   // the cards of the genres are closer together than the photos
