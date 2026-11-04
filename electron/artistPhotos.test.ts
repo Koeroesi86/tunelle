@@ -85,11 +85,8 @@ describe('createArtistPhotoQueue', () => {
       enqueue: async (artists: { key: string; name: string }[]) => {
         let done = false;
         const run = queue.enqueue(artists).finally(() => (done = true));
-        while (!done) {
-          // only a pause that waits is passed, the clock moves with it
-          if (vi.getTimerCount() > 0) await vi.advanceTimersByTimeAsync(250);
-          await new Promise((resolve) => setImmediate(resolve));
-        }
+        // with fake timers, waitFor moves the clock by the interval at every check
+        await vi.waitFor(() => expect(done).toBe(true), { interval: 250, timeout: 10_000 });
         await run;
       },
     };

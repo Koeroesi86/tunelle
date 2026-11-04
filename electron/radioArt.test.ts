@@ -20,7 +20,7 @@ const answers = (routes: Record<string, (url: string) => Response>) =>
 const settle = async <T>(promise: Promise<T>) => {
   let done = false;
   const run = promise.finally(() => (done = true));
-  while (!done) await vi.advanceTimersByTimeAsync(1100);
+  await vi.waitFor(() => expect(done).toBe(true), { interval: 1100, timeout: 30_000 });
   return run;
 };
 
