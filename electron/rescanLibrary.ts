@@ -5,6 +5,7 @@ import type { Folder } from '../types/library';
 import { deleteTracks, folderColumns, getFolders, getLibrary, saveFolders } from './libraryRepository';
 import { isInsideFolder, reportOfflineFolders, withTimeout } from './folderAvailability';
 import scanFolders from './scanFolders';
+import { storeAlbumArtAccents } from './albumArtAccents';
 import { quitSignal } from './scanCancellation';
 import { findMissingTracks } from './missingTracks';
 
@@ -49,6 +50,8 @@ async function rescanLibrary(sender: WebContents, forced = false) {
         .map((folder) => ({ path: folder.path, lastModified: modified.get(folder.path) ?? folder.lastModified }))
     );
     await removeMissingTracks(database, offline);
+    // the pictures of a library from before the colours were kept
+    await storeAlbumArtAccents(database).catch((error) => console.error('Picking the colours of the album art failed', error));
     sender.send('RESCAN_COMPLETE', {});
   } catch (e) {
     (quitSignal.aborted ? console.log : console.error)(quitSignal.aborted ? 'Scan stopped, the app is quitting' : e);

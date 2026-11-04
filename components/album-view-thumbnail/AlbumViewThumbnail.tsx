@@ -5,6 +5,7 @@ import { isOffline } from '../../client/offline-folders';
 import { useTranslation } from '../../client/i18n';
 import style from './AlbumViewThumbnail.scss';
 import { getCoverUrl } from '../../client/cover-url';
+import { tileAccent } from '../../client/tile-accent';
 import { albumFormatLabel } from '../../client/audio-format-label';
 import { formatLength } from '../../client/utils/format-length';
 import { albumFavourite } from '../../client/favourites';
@@ -38,9 +39,7 @@ const AlbumViewThumbnail = ({ album, offlineFolders, selectAlbum, playAlbum }: A
       onDoubleClick={() => playAlbum(album)}
       onTouchEnd={() => playAlbum(album)}
     >
-      <div className={style.frame}>
-        {/* a blurred copy of the cover under it: the shadow has the colours of the cover */}
-        {cover && <div className={style.glow} style={cover} aria-hidden />}
+      <div className={style.frame} ref={tileAccent(album.accent)}>
         <div title={album.title} className={style.cover} style={cover}>
           <FavouriteButton item={albumFavourite(album)} className={style.favourite} />
           <AddToPlaylist source={album} className={style.playlist} />

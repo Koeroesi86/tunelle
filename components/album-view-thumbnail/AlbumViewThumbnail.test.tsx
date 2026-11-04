@@ -88,4 +88,16 @@ describe('AlbumViewThumbnail', () => {
 
     expect((container.firstElementChild as HTMLElement).title).toMatch(/cannot be reached/);
   });
+
+  it('gives the shadow the colour of the cover when it has one', () => {
+    const { container, rerender } = render(
+      <AlbumViewThumbnail album={{ ...album, accent: '#2878dc' }} offlineFolders={[]} selectAlbum={vi.fn()} playAlbum={vi.fn()} />
+    );
+    const frame = () => container.querySelector<HTMLElement>('.frame, [class*="frame"]');
+
+    expect(frame()?.style.getPropertyValue('--tile-shadow')).toBe('#2878dc8c');
+
+    rerender(<AlbumViewThumbnail album={album} offlineFolders={[]} selectAlbum={vi.fn()} playAlbum={vi.fn()} />);
+    expect(frame()?.style.getPropertyValue('--tile-shadow')).toBe('');
+  });
 });

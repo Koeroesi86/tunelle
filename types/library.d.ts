@@ -43,6 +43,8 @@ export interface Album {
   cover: string | null;
   duration: number | null;
   year: string | number;
+  /** The main colour of the cover as `#rrggbb`, none when it has not been picked yet or the cover is grey */
+  accent?: string;
   tracks: Track[];
 }
 
@@ -60,6 +62,8 @@ export interface GroupSummary {
   albumCount: number;
   trackCount: number;
   cover: string | null;
+  /** The main colour of the cover as `#rrggbb`, none for a photo, when it has not been picked yet or when the cover is grey */
+  accent?: string;
   /** Up to three covers of its albums, for the genres only (they have no photo) */
   covers: string[];
 }

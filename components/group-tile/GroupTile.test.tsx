@@ -20,13 +20,23 @@ describe('GroupTile', () => {
     expect(screen.getByText('Unknown artist')).toBeTruthy();
   });
 
-  it('shows the photo of a group as the picture and as the glow behind it', () => {
+  it('shows the photo of a group as the picture', () => {
     const { container } = render(<GroupTile group={{ ...group, cover: '/albumart/adam.jpg' }} unknownName="Unknown artist" open={vi.fn()} />);
 
-    expect(container.querySelectorAll('[style*="adam-optimized.png"]')).toHaveLength(2);
+    expect(container.querySelectorAll('[style*="adam-optimized.png"]')).toHaveLength(1);
   });
 
-  it('shows the placeholder, without a glow, for a group with no picture', () => {
+  it('gives the shadow the colour of the cover when it has one', () => {
+    const { container, rerender } = render(<GroupTile group={{ ...group, accent: '#dc2828' }} unknownName="Unknown artist" open={vi.fn()} />);
+    const frame = () => container.querySelector<HTMLElement>('button > span');
+
+    expect(frame()?.style.getPropertyValue('--tile-shadow')).toBe('#dc28288c');
+
+    rerender(<GroupTile group={group} unknownName="Unknown artist" open={vi.fn()} />);
+    expect(frame()?.style.getPropertyValue('--tile-shadow')).toBe('');
+  });
+
+  it('shows the placeholder for a group with no picture', () => {
     const { container } = render(<GroupTile group={group} unknownName="Unknown artist" open={vi.fn()} />);
 
     expect(container.querySelectorAll('[style*="background-image"]')).toHaveLength(0);
