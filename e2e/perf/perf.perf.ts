@@ -54,6 +54,20 @@ const scan = async (app: ElectronApplication, page: Page) => {
   };
 };
 
+/** The Rescan button on a library that was scanned just now: the files are the same, so what it costs is the check for a change in each, and the time is until the app says the rescan is complete */
+const rescan = async (app: ElectronApplication, page: Page) => {
+  await startMainLoop(app);
+  const began = Date.now();
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        window.electronAPI.on('RESCAN_COMPLETE', () => resolve());
+        window.electronAPI.send('RESCAN_LIBRARY', { forced: true });
+      })
+  );
+  return { seconds: (Date.now() - began) / 1000, mainLoop: await stopMainLoop(app) };
+};
+
 const scroll = async (app: ElectronApplication, page: Page, label: string) => {
   await navigate(page, label);
   await startMainLoop(app);
@@ -77,6 +91,7 @@ test('measures the scan and the scroll of a big library while a track plays', as
   const { app, page } = await start();
   const report: Record<string, unknown> = { tracks: expected ?? 'real library' };
   report.scan = await scan(app, page);
+  report.rescan = await rescan(app, page);
 
   // something plays while the lists scroll: a tone from the album of the other tests, or the first album of a real library (whose quiet passages count as gaps)
   await navigate(page, 'Albums');

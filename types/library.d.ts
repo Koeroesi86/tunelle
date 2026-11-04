@@ -30,6 +30,9 @@ export interface Track extends Partial<AudioFormat>, Partial<Loudness> {
   duration: number | null;
   /** The artist the album is listed under, a row from before it was read has none */
   albumArtist?: string | null;
+  /** The modification time (ms) and the size (bytes) of the file when its tags were read, a row from before they were kept has none */
+  fileModified?: number | null;
+  fileSize?: number | null;
 }
 
 export interface Album {

@@ -8,14 +8,16 @@ import { addTracks, readBatchSize } from './addTracks';
 import { createTrackReader } from './trackReader';
 import { getTracksInside, trackColumns } from './libraryRepository';
 import isSupported from './isSupported';
+import normalizePath from './normalizePath';
 import { quitSignal, trackScan } from './scanCancellation';
 
 const fileReadTimeout = 2000;
 
-const isEqual = (a: Track, b: Track) => {
-  const other = new Map(Object.entries(b));
-  return Object.entries(a).every(([key, value]) => `${value}` === `${other.get(key)}`);
-};
+/** What tells that a file is the one that was read: its modification time (whole milliseconds) and its exact size */
+const statOf = (fileName: string) => fs.promises.stat(fileName).then(({ mtimeMs, size }) => ({ fileModified: Math.floor(mtimeMs), fileSize: size }));
+
+const isUnchanged = (track: Track | undefined, { fileModified, fileSize }: { fileModified: number; fileSize: number }) =>
+  track?.fileModified === fileModified && track.fileSize === fileSize;
 
 // an entry that is a symbolic link is neither a directory nor a file here
 const findEntryFiles = async (directory: string, entry: fs.Dirent, deep: boolean): Promise<string[]> => {
@@ -92,20 +94,23 @@ const scanFiles = async (folderPath: string, sender: WebContents, deep: boolean,
   const reader = createTrackReader();
   const writer = createBatchWriter(database, readBatchSize(), signal);
 
+  // the stat is taken before the read: a file that changes meanwhile differs from it at the next scan, and is read again
+  const scanChangedFile = async (fileName: string) => {
+    const stat = await statOf(fileName);
+    if (isUnchanged(existingTracks.get(normalizePath(fileName)), stat)) return;
+
+    const meta = await reader.read(fileName, global._appDataPath, fileReadTimeout);
+    // a folder removed while the file was read must not get the track back
+    signal.throwIfAborted();
+    await writer.add({ ...meta, ...stat });
+  };
+
   const scanFile = async (fileName: string, progress: number) => {
     signal.throwIfAborted();
     report(fileName, progress);
 
     // the abort is for the loop, which stops at the next file; a failed file is logged and skipped, and one that takes too long is not stored
-    await reader
-      .read(fileName, global._appDataPath, fileReadTimeout)
-      .then(async (meta) => {
-        // a folder removed while the file was read must not get the track back
-        signal.throwIfAborted();
-        const existingTrack = existingTracks.get(meta.path);
-        if (!existingTrack || !isEqual(existingTrack, meta)) await writer.add(meta);
-      })
-      .catch((error) => !signal.aborted && console.error(fileName, error));
+    await scanChangedFile(fileName).catch((error) => !signal.aborted && console.error(fileName, error));
     // yields to the event loop between files, so the server and the window stay responsive during a scan
     await yieldToEventLoop();
   };

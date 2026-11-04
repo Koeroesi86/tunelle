@@ -7,8 +7,7 @@ import slugify from 'slugify';
 import type { Track } from '../types/library';
 import readAudioFormat from './readAudioFormat';
 import readLoudness from './readLoudness';
-
-const normalizePath = (filePath?: string) => (filePath || '').replace(/\\/g, '/');
+import normalizePath from './normalizePath';
 
 const hasCode = (error: unknown, code: string) => error instanceof Error && 'code' in error && error.code === code;
 
