@@ -7,7 +7,7 @@ const utf8 = new TextDecoder('utf-8', { fatal: true });
 const windows1252 = new TextDecoder('windows-1252');
 
 /** Stations send UTF-8 or, mostly older ones, Windows-1252: the text is UTF-8 when it is valid UTF-8, else Windows-1252 */
-export const decodeMetadata = (bytes: Buffer) => {
+const decodeMetadata = (bytes: Buffer) => {
   try {
     return utf8.decode(bytes);
   } catch {
