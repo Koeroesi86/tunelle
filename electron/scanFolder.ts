@@ -5,13 +5,15 @@ import type { Database } from 'sqlite3';
 import type { WebContents } from 'electron';
 import type { Track } from '../types/library';
 import { addTracks, readBatchSize } from './addTracks';
-import { createTrackReader } from './trackReader';
+import { createTrackReader, ReadTimeoutError } from './trackReader';
 import { getTracksInside } from './libraryRepository';
 import isSupported from './isSupported';
 import normalizePath from './normalizePath';
 import { quitSignal, trackScan } from './scanCancellation';
 
 const fileReadTimeout = 2000;
+/** A file that did not answer in time is asked for again after the others, with time for a drive that has to spin up or a network that was busy */
+const retryReadTimeout = 30_000;
 
 /** What tells that a file is the one that was read: its modification time (whole milliseconds) and its exact size */
 const statOf = (fileName: string) => fs.promises.stat(fileName).then(({ mtimeMs, size }) => ({ fileModified: Math.floor(mtimeMs), fileSize: size }));
@@ -95,35 +97,59 @@ const scanFiles = async (folderPath: string, sender: WebContents, deep: boolean,
   const writer = createBatchWriter(database, readBatchSize(), signal);
 
   // the stat is taken before the read: a file that changes meanwhile differs from it at the next scan, and is read again
-  const scanChangedFile = async (fileName: string) => {
+  const scanChangedFile = async (fileName: string, timeout: number) => {
     const stat = await statOf(fileName);
     if (isUnchanged(existingTracks.get(normalizePath(fileName)), stat)) return;
 
-    const meta = await reader.read(fileName, global._appDataPath, fileReadTimeout);
+    const meta = await reader.read(fileName, global._appDataPath, timeout);
     // a folder removed while the file was read must not get the track back
     signal.throwIfAborted();
     await writer.add({ ...meta, ...stat });
   };
+
+  const timedOut: string[] = [];
 
   const scanFile = async (fileName: string, progress: number) => {
     signal.throwIfAborted();
     report(fileName, progress);
 
     // the abort is for the loop, which stops at the next file; a failed file is logged and skipped, and one that takes too long is not stored
-    await scanChangedFile(fileName).catch((error) => !signal.aborted && console.error(fileName, error));
+    await scanChangedFile(fileName, fileReadTimeout).catch((error) => {
+      if (signal.aborted) return;
+      console.error(fileName, error);
+      if (error instanceof ReadTimeoutError) timedOut.push(fileName);
+    });
     // yields to the event loop between files, so the server and the window stay responsive during a scan
     await yieldToEventLoop();
   };
 
-  const scanAll = async () => {
-    for (const [progress, fileName] of files.entries()) await scanFile(fileName, progress);
-    await writer.flush();
+  /** Asks again, one at a time, for the files that did not answer; the first that does not answer either ends it, as the drive is probably gone, and returns how many files stay unread */
+  const retryTimedOut = async (files: string[]): Promise<number> => {
+    const [fileName, ...rest] = files;
+    if (!fileName) return 0;
+
+    signal.throwIfAborted();
+    const timedOutAgain = await scanChangedFile(fileName, retryReadTimeout).then(
+      () => false,
+      (error) => {
+        if (!signal.aborted) console.error(fileName, error);
+        return error instanceof ReadTimeoutError;
+      }
+    );
+    return timedOutAgain ? files.length : retryTimedOut(rest);
   };
 
-  await scanAll().finally(reader.close);
+  const scanAll = async () => {
+    for (const [progress, fileName] of files.entries()) await scanFile(fileName, progress);
+    const unread = await retryTimedOut(timedOut);
+    await writer.flush();
+    return unread;
+  };
+
+  return scanAll().finally(reader.close);
 };
 
-/** Scan a defined folder for tracks, and the folders below it unless it is not deep; an aborted signal ends the scan with its error, so the caller does not take the folder for scanned, but a folder that is removed from the library ends it without one */
+/** Scan a defined folder for tracks, and the folders below it unless it is not deep; an aborted signal ends the scan with its error, so the caller does not take the folder for scanned, but a folder that is removed from the library ends it without one. Answers how many files did not answer in time, even when asked again: the folder is not completely scanned then */
 const scanFolder = async (folderPath: string, sender: WebContents, deep = true, parent: AbortSignal = quitSignal) => {
   if (!global._database) throw new Error('Database is not connected');
   const { signal, wasRemoved, release } = trackScan(folderPath, parent);
@@ -131,9 +157,10 @@ const scanFolder = async (folderPath: string, sender: WebContents, deep = true, 
   // shown while the folders are listed, which takes a while on a big drive
   sender.send('SCANNING_FOLDER', { folder: folderPath });
 
-  await scanFiles(folderPath, sender, deep, signal)
+  return scanFiles(folderPath, sender, deep, signal)
     .catch((error) => {
       if (!wasRemoved()) throw error;
+      return 0;
     })
     .finally(release);
 };

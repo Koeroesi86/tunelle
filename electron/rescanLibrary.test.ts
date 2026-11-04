@@ -29,7 +29,7 @@ describe('rescanLibrary', () => {
   };
 
   beforeEach(async () => {
-    vi.mocked(scanFolders).mockReset().mockResolvedValue(undefined);
+    vi.mocked(scanFolders).mockReset().mockResolvedValue([]);
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-rescan-'));
     database = await createTestDatabase();
     global._database = database;
@@ -48,10 +48,20 @@ describe('rescanLibrary', () => {
     expect(await storedFolders()).toEqual([{ path: root, lastModified: mtime(root) }]);
   });
 
+  it('keeps the old time of a folder that has files which did not answer, so the next scan looks at it again', async () => {
+    await addFolder(root, 0);
+    vi.mocked(scanFolders).mockResolvedValue([{ path: root }]);
+
+    await rescan();
+
+    expect(await storedFolders()).toEqual([{ path: root, lastModified: 0 }]);
+  });
+
   it('does not store a folder again that was removed from the library during the scan', async () => {
     await addFolder(root, 0);
     vi.mocked(scanFolders).mockImplementation(async () => {
       await executeQuery(database, { query: 'DELETE FROM folders WHERE path = ?', variables: [root] });
+      return [];
     });
 
     await rescan();

@@ -10,7 +10,12 @@ export type TrackReader = {
   close: () => void;
 };
 
-const timeoutError = (fileName: string) => new Error(`File access timeout ${fileName}`);
+/** The file was not read in the time given: a drive that stalls, or sleeps, may read it when asked again */
+export class ReadTimeoutError extends Error {
+  constructor(fileName: string) {
+    super(`File access timeout ${fileName}`);
+  }
+}
 
 /** Reads the files in a utility process, which keeps the parsing and the picture writes off the loop of the main process that serves the window and the player; it starts with the first file and ends with `close` */
 export const createTrackReader = (): TrackReader => {
@@ -54,7 +59,7 @@ export const createTrackReader = (): TrackReader => {
           current.pending.delete(id);
           // the process may be stuck on a drive that does not answer, so it is replaced
           if (worker === current) stop();
-          reject(timeoutError(fileName));
+          reject(new ReadTimeoutError(fileName));
         }, timeout);
         current.pending.set(id, {
           resolve: (track) => (clearTimeout(timer), resolve(track)),
