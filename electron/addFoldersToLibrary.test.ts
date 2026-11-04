@@ -26,7 +26,7 @@ describe('addFoldersToLibrary', () => {
 
   beforeEach(async () => {
     send.mockReset();
-    vi.mocked(scanFolders).mockReset().mockResolvedValue(undefined);
+    vi.mocked(scanFolders).mockReset().mockResolvedValue([]);
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-add-'));
     database = await createTestDatabase();
   });
@@ -42,6 +42,17 @@ describe('addFoldersToLibrary', () => {
     expect(await stored()).toEqual([folder('music')]);
     expect(scanFolders).toHaveBeenCalledWith([{ path: folder('music'), lastModified: 5 }], sender);
     expect(send.mock.calls.map(([channel]) => channel)).toEqual(['STORE_FOLDERS', 'FOLDERS_ADDED_TO_LIBRARY', 'TRACKS_ADDED_TO_LIBRARY']);
+  });
+
+  it('stores time zero for a folder that has files which did not answer, so the next scan looks at it again', async () => {
+    make('music');
+    vi.mocked(scanFolders).mockResolvedValue([{ path: folder('music') }]);
+
+    await addFoldersToLibrary(database, [{ path: folder('music'), lastModified: 5 }], sender);
+
+    expect(await executeQuery(database, { query: 'SELECT path, lastModified FROM folders', variables: [] })).toEqual([
+      { path: folder('music'), lastModified: 0 },
+    ]);
   });
 
   it('ignores files, missing paths and malformed items', async () => {

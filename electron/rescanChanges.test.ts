@@ -39,7 +39,7 @@ describe('rescanChanges', () => {
   };
 
   beforeEach(async () => {
-    vi.mocked(scanFolder).mockReset().mockResolvedValue(undefined);
+    vi.mocked(scanFolder).mockReset().mockResolvedValue(0);
     vi.mocked(sender.send).mockReset();
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-changes-'));
     database = await createTestDatabase();

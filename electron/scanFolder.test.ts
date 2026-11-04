@@ -95,7 +95,7 @@ describe('scanFolder', () => {
     ['a.mp3', 'b.mp3', 'c.mp3'].forEach((name) => fs.writeFileSync(path.join(root, name), 'not audio'));
     send.mockImplementation((channel) => channel === 'SCANNING_FILE' && cancelScansInside(root));
 
-    await expect(scanFolder(root, sender)).resolves.toBeUndefined();
+    await expect(scanFolder(root, sender)).resolves.toBe(0);
 
     expect(scanningFiles()).toHaveLength(1);
   });
