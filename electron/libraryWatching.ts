@@ -31,7 +31,7 @@ export const refreshLibraryWatching = async (offline?: string[]) => {
   const current = watching;
   if (!current) return;
 
-  const stored = await getFolders(current.database);
+  const stored = await getFolders(current.database, ['path']);
   const folders = stored.map((folder) => folder.path);
   const unreadable = offline ?? (await findOfflineFolders(current.database, stored));
   // the window can close while the folders are looked at

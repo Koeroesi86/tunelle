@@ -18,7 +18,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 const hasTracks = async ({ snapshot }: Keyed, { database }: AvailabilityContext) =>
   isRecord(snapshot) && typeof snapshot.path === 'string' && typeof snapshot.title === 'string'
-    ? (await getAlbumTracks(database, snapshot.path, snapshot.title)).length > 0
+    ? (await getAlbumTracks(database, snapshot.path, snapshot.title, ['path'])).length > 0
     : false;
 
 const missingTracks: MissingFinder = async (favourites, { database }) =>

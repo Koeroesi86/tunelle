@@ -1,5 +1,5 @@
 import type { Database } from 'sqlite3';
-import { getAlbumPage, getAlbumTracks, getGroupPage, getLibrary, getTrackPage } from './libraryRepository';
+import { getAlbumPage, getAlbumTracks, getGroupPage, getLibrary, getTrackPage, trackColumns } from './libraryRepository';
 import { parseAlbumSort, parseFolders, parseGroupKind, parseGroupSort, parseSearch, parseTrackSort } from '../types/library-query';
 import type { AlbumGroup, LibraryQuery } from '../types/library-query';
 
@@ -50,7 +50,7 @@ const fromLibrary =
 export const libraryRoutes: Record<string, ReturnType<typeof fromLibrary>> = {
   '/library': fromLibrary((database, params) => {
     const query = toLibraryQuery(params, parseTrackSort);
-    return query && getLibrary(database, query);
+    return query && getLibrary(database, query, trackColumns);
   }),
   '/library/tracks': fromLibrary((database, params) => {
     const { offset, limit } = toWindow(params);
@@ -72,6 +72,6 @@ export const libraryRoutes: Record<string, ReturnType<typeof fromLibrary>> = {
   '/library/album': fromLibrary((database, params) => {
     const folder = params.get('path');
     const title = params.get('title');
-    return folder !== null && title !== null ? getAlbumTracks(database, folder, title) : undefined;
+    return folder !== null && title !== null ? getAlbumTracks(database, folder, title, trackColumns) : undefined;
   }),
 };

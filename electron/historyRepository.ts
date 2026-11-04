@@ -14,9 +14,10 @@ const toStored = ({ played_at, snapshot, ...key }: HistoryRow): StoredHistoryIte
 
 /** What was played, of every source, the last played first */
 export const getHistory = (database: Database) =>
-  executeQuery<HistoryRow>(database, { query: `SELECT * FROM history ORDER BY played_at DESC, rowid DESC LIMIT ?`, variables: [historyLimit] }).then((rows) =>
-    rows.map(toStored)
-  );
+  executeQuery<HistoryRow>(database, {
+    query: `SELECT source, kind, id, snapshot, played_at FROM history ORDER BY played_at DESC, rowid DESC LIMIT ?`,
+    variables: [historyLimit],
+  }).then((rows) => rows.map(toStored));
 
 /** Playing an item again moves it to the top, with its snapshot as it is now */
 export const recordPlayed = async (database: Database, { source, kind, id }: FavouriteKey, snapshot: unknown) => {

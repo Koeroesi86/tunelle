@@ -16,7 +16,7 @@ const isDirectory = (folderPath: string) =>
   );
 
 const tracksAt = (database: Database) => async (change: Change) => {
-  const tracks = await getTracksInside(database, change.path);
+  const tracks = await getTracksInside(database, change.path, ['path']);
   return change.deep ? tracks : tracks.filter((track) => isDirectlyInside(change.path, track.path));
 };
 
@@ -26,7 +26,7 @@ async function rescanChanges(sender: WebContents, changes: Change[]) {
   if (!database) return;
 
   try {
-    const { offline } = await reportOfflineFolders(database, sender, await getFolders(database));
+    const { offline } = await reportOfflineFolders(database, sender, await getFolders(database, ['path']));
     const places = withoutCovered(changes).filter(
       (change) => !offline.some((folderPath) => change.path === folderPath || isInsideFolder(folderPath, change.path))
     );
@@ -40,7 +40,7 @@ async function rescanChanges(sender: WebContents, changes: Change[]) {
       Promise.resolve()
     );
 
-    const tracks = new Map<string, Track>((await Promise.all(places.map(tracksAt(database)))).flat().map((track) => [track.path, track]));
+    const tracks = new Map<string, Pick<Track, 'path'>>((await Promise.all(places.map(tracksAt(database)))).flat().map((track) => [track.path, track]));
     const missing = await findMissingTracks([...tracks.values()]);
     missing.forEach((track) => console.log(`Removing non existent ${track.path}`));
     await deleteTracks(database, missing);
