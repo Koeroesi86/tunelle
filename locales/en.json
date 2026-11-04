@@ -81,7 +81,7 @@
   "radioSources.title": "Radio and covers",
   "radioSources.text": "Stations come from radio-browser.info, a directory that anyone can add stations to; Tunelle does not run, check or endorse them. The stream and the logo of a station are loaded from the servers of the station. When a station gives no cover for the song it announces, the title of the song is sent to MusicBrainz to find one, and the Cover Art Archive serves it. Tunelle is not affiliated with radio-browser.info, Deezer or MusicBrainz. More: koeroesi86.github.io/tunelle/privacy.html",
   "watchFolders.title": "Watch library folders",
-  "watchFolders.on": "Songs that are added to, changed in or removed from your library folders are picked up a moment later, without a rescan. The folders are also looked at every few minutes and when you come back to the window, which covers network and removable drives and big libraries. A drive that is back is scanned.",
+  "watchFolders.on": "Songs that are added to, changed in or removed from your library folders are picked up without a rescan. The folders are looked at every 10 seconds, and less often the longer a look takes, as on a big library or a network or removable drive, and when you come back to the window. A drive that is back is scanned.",
   "watchFolders.off": "The library folders are not watched or looked at while the app runs. Use Rescan to pick up changes; they are also looked for when the app starts and when a drive is back.",
   "launcher.title": "Application menu",
   "launcher.hint": "Shows Tunelle in the application menu of the desktop.",

@@ -7,7 +7,7 @@ describe('WatchFolders', () => {
     const setEnabled = vi.fn();
     render(<WatchFolders enabled setEnabled={setEnabled} />);
 
-    expect(screen.getByText(/picked up a moment later, without a rescan/)).toBeTruthy();
+    expect(screen.getByText(/are picked up without a rescan/)).toBeTruthy();
     fireEvent.click(screen.getByRole('switch', { name: 'Watch library folders' }));
     expect(setEnabled).toHaveBeenCalledExactlyOnceWith(false);
   });

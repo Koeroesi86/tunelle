@@ -2,12 +2,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { EventEmitter } from 'events';
-import { createFolderWatcher, readDirectoryTimes } from './folderWatcher';
+import { createFolderWatcher, pollInterval, readDirectoryTimes } from './folderWatcher';
 
-class FakeWatcher extends EventEmitter {
-  close = vi.fn();
-}
+describe('pollInterval', () => {
+  it.each([
+    [0.2, 10_000],
+    [100, 10_000],
+    [500, 50_000],
+    [1000, 100_000],
+    [4000, 400_000],
+    [20_000, 15 * 60_000],
+  ])('waits after a look that took %s ms for %s ms', (lookMs, expected) => {
+    expect(pollInterval(lookMs)).toBe(expected);
+  });
+});
 
 describe('createFolderWatcher', () => {
   beforeEach(() => vi.useFakeTimers());
@@ -17,83 +25,23 @@ describe('createFolderWatcher', () => {
   });
 
   /** The folders and what is below them: a number of folders each, with the modification time of the last look */
-  const setup = (
-    directories: Record<string, number> = { '/music': 3, '/radio': 2 },
-    options: { budget?: number; checkGap?: number; checkInterval?: number } = {}
-  ) => {
-    const watchers = new Map<string, FakeWatcher>();
-    const listeners = new Map<string, (event: string, filename: string | null) => void>();
+  const setup = (directories: Record<string, number> = { '/music': 3, '/radio': 2 }, options: { checkGap?: number; lookMs?: Record<string, number> } = {}) => {
     const modified = new Map<string, number>();
-    const watch = vi.fn((folder: string, _options: unknown, listener: (event: string, filename: string | null) => void) => {
-      const watcher = new FakeWatcher();
-      watchers.set(folder, watcher);
-      listeners.set(folder, listener);
-      return watcher;
-    }) as unknown as typeof fs.watch;
-    const readTimes = vi.fn(
-      async (folder: string) => new Map(Array.from({ length: directories[folder] ?? 0 }, (_, index) => [`${folder}/${index}`, modified.get(folder) ?? 1]))
-    );
+    // a look takes the time of the folder on the fake clock
+    const readTimes = vi.fn(async (folder: string) => {
+      vi.advanceTimersByTime(options.lookMs?.[folder] ?? 1);
+      return new Map(Array.from({ length: directories[folder] ?? 0 }, (_, index) => [`${folder}/${index}`, modified.get(folder) ?? 1]));
+    });
+    const interval = vi.fn((lookMs: number) => lookMs * 1000);
     const onChange = vi.fn();
-    const folderWatcher = createFolderWatcher(onChange, { watch, readTimes, checkInterval: 1000, checkGap: 0, ...options });
-    return { folderWatcher, watch, watchers, listeners, modified, readTimes, onChange };
+    const folderWatcher = createFolderWatcher(onChange, { readTimes, interval, checkGap: options.checkGap ?? 0 });
+    return { folderWatcher, modified, readTimes, interval, onChange, options };
   };
 
   /** The folders of the fake look of a folder, all with another time */
   const folders = (folder: string, count: number) => Array.from({ length: count }, (_, index) => ({ path: `${folder}/${index}`, deep: false }));
 
-  it('watches the folders recursively, and reports the path that changed', async () => {
-    const { folderWatcher, watch, listeners, onChange } = setup();
-    await folderWatcher.update(['/music', '/radio']);
-
-    listeners.get('/radio')?.('rename', 'rock/new.flac');
-
-    expect(watch).toHaveBeenCalledWith('/music', { recursive: true }, expect.any(Function));
-    await vi.waitFor(() => expect(onChange).toHaveBeenCalledOnce());
-    // the path is not there, so what was below it and the folder it was in are looked at
-    expect(onChange).toHaveBeenCalledWith([
-      { path: path.join('/radio', 'rock', 'new.flac'), deep: true },
-      { path: path.join('/radio', 'rock'), deep: false },
-    ]);
-    folderWatcher.close();
-  });
-
-  it('takes the whole folder as changed when the watch gives no name', async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-watch-name-'));
-    const { folderWatcher, listeners, onChange } = setup({ [root]: 1 });
-    await folderWatcher.update([root]);
-
-    listeners.get(root)?.('change', null);
-
-    await vi.waitFor(() => expect(onChange).toHaveBeenCalledExactlyOnceWith([{ path: root, deep: true }]));
-    folderWatcher.close();
-    fs.rmSync(root, { recursive: true, force: true });
-  });
-
-  it('opens what is new and closes what is gone, and leaves the rest alone', async () => {
-    const { folderWatcher, watch, watchers } = setup({ '/music': 1, '/radio': 1, '/usb': 1 });
-    await folderWatcher.update(['/music', '/radio']);
-    await folderWatcher.update(['/radio', '/usb']);
-
-    expect(watchers.get('/music')?.close).toHaveBeenCalled();
-    expect(watchers.get('/radio')?.close).not.toHaveBeenCalled();
-    expect(watch).toHaveBeenCalledTimes(3);
-    folderWatcher.close();
-  });
-
-  it('does not watch what does not fit the budget, and looks at it instead', async () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const { folderWatcher, watch, modified, onChange } = setup({ '/music': 3, '/radio': 4 }, { budget: 5 });
-    await folderWatcher.update(['/music', '/radio']);
-
-    expect(watch).toHaveBeenCalledExactlyOnceWith('/music', { recursive: true }, expect.any(Function));
-
-    modified.set('/radio', 2);
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(onChange).toHaveBeenCalledExactlyOnceWith(folders('/radio', 4));
-    folderWatcher.close();
-  });
-
-  it('reports a folder whose folders changed at a look, and only once', async () => {
+  it('reports the folders that changed between two looks, and only once', async () => {
     const { folderWatcher, modified, onChange } = setup();
     await folderWatcher.update(['/music']);
 
@@ -103,25 +51,76 @@ describe('createFolderWatcher', () => {
     modified.set('/music', 2);
     await vi.advanceTimersByTimeAsync(1000);
     await vi.advanceTimersByTimeAsync(1000);
+
     expect(onChange).toHaveBeenCalledExactlyOnceWith(folders('/music', 3));
     folderWatcher.close();
   });
 
-  it('does not report at the look what the watch has reported', async () => {
-    const { folderWatcher, listeners, modified, onChange } = setup();
-    await folderWatcher.update(['/music']);
+  it('does not use a watch of the system', async () => {
+    const watch = vi.spyOn(fs, 'watch');
+    const { folderWatcher } = setup();
 
-    modified.set('/music', 2);
-    listeners.get('/music')?.('change', 'rock/one.flac');
-    await vi.waitFor(() => expect(onChange).toHaveBeenCalledOnce());
+    await folderWatcher.update(['/music', '/radio']);
+
+    expect(watch).not.toHaveBeenCalled();
+    folderWatcher.close();
+  });
+
+  it('waits for each folder as long as its own look asks for', async () => {
+    const { folderWatcher, readTimes } = setup({ '/music': 1, '/nas': 1 }, { lookMs: { '/music': 1, '/nas': 4 } });
+    // one after the other: looks at the same time count the time of each other
+    await folderWatcher.update(['/music']);
+    await folderWatcher.update(['/music', '/nas']);
+    readTimes.mockClear();
+
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(readTimes.mock.calls.map(([folder]) => folder)).toEqual(['/music']);
+
+    await vi.advanceTimersByTimeAsync(3000);
+    const looked = readTimes.mock.calls.map(([folder]) => folder);
+    expect(looked.filter((folder) => folder === '/music')).toHaveLength(4);
+    expect(looked.filter((folder) => folder === '/nas')).toHaveLength(1);
+    folderWatcher.close();
+  });
+
+  it('times every look, so a tree that gets slower is looked at less often', async () => {
+    const { folderWatcher, options, readTimes } = setup({ '/nas': 1 }, { lookMs: { '/nas': 1 } });
+    await folderWatcher.update(['/nas']);
+    Object.assign(options.lookMs ?? {}, { '/nas': 5 });
+    await vi.advanceTimersByTimeAsync(1100);
+    readTimes.mockClear();
+
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(readTimes).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(readTimes).toHaveBeenCalledOnce();
+    folderWatcher.close();
+  });
+
+  it('goes by the longer of the last two looks, so one quick look does not shorten the wait', async () => {
+    const { folderWatcher, options, interval } = setup({ '/nas': 1 }, { lookMs: { '/nas': 5 } });
+    await folderWatcher.update(['/nas']);
+    Object.assign(options.lookMs ?? {}, { '/nas': 1 });
+    await vi.advanceTimersByTimeAsync(5100);
+
+    expect(interval).toHaveBeenLastCalledWith(5);
+    folderWatcher.close();
+  });
+
+  it('keeps what it watches and starts what is new, and stops what is gone', async () => {
+    const { folderWatcher, readTimes } = setup({ '/music': 1, '/radio': 1, '/usb': 1 });
+    await folderWatcher.update(['/music', '/radio']);
+    await folderWatcher.update(['/radio', '/usb']);
+    readTimes.mockClear();
+
     await vi.advanceTimersByTimeAsync(1000);
 
-    expect(onChange).toHaveBeenCalledOnce();
+    expect(readTimes.mock.calls.map(([folder]) => folder).sort()).toEqual(['/radio', '/usb']);
     folderWatcher.close();
   });
 
   it('reports a folder that is gone as deep, and one that is new for its own files', async () => {
-    const { folderWatcher, onChange } = setup();
     const times = [
       new Map([
         ['/music/a', 1],
@@ -140,14 +139,8 @@ describe('createFolderWatcher', () => {
           ['/music/c', 1],
         ])
     );
-    const watching = createFolderWatcher(onChange, {
-      watch: vi.fn(() => new FakeWatcher()) as unknown as typeof fs.watch,
-      readTimes,
-      checkInterval: 1000,
-      checkGap: 0,
-      budget: 0,
-    });
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const onChange = vi.fn();
+    const watching = createFolderWatcher(onChange, { readTimes, interval: () => 1000, checkGap: 0 });
     await watching.update(['/music']);
 
     await vi.advanceTimersByTimeAsync(1000);
@@ -157,11 +150,10 @@ describe('createFolderWatcher', () => {
       { path: '/music/b', deep: true },
     ]);
     watching.close();
-    folderWatcher.close();
   });
 
   it('does not look again within the gap that was set', async () => {
-    const { folderWatcher, readTimes } = setup({ '/music': 3 }, { checkGap: 30_000, checkInterval: 600_000 });
+    const { folderWatcher, readTimes } = setup({ '/music': 3 }, { checkGap: 30_000, lookMs: { '/music': 1000 } });
     await folderWatcher.update(['/music']);
     readTimes.mockClear();
 
@@ -174,54 +166,73 @@ describe('createFolderWatcher', () => {
     folderWatcher.close();
   });
 
-  it('goes on looking at a folder whose watch reported an error', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const { folderWatcher, watchers, modified, onChange } = setup();
+  it('looks when asked, and then waits as long as the answer asks for from there', async () => {
+    const { folderWatcher, modified, readTimes, onChange } = setup({ '/music': 1 });
     await folderWatcher.update(['/music']);
-
-    watchers.get('/music')?.emit('error', new Error('ENOSPC'));
-    expect(watchers.get('/music')?.close).toHaveBeenCalled();
-
+    await vi.advanceTimersByTimeAsync(500);
     modified.set('/music', 2);
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(onChange).toHaveBeenCalledExactlyOnceWith(folders('/music', 3));
+    readTimes.mockClear();
+
+    await folderWatcher.check();
+    expect(onChange).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(readTimes).toHaveBeenCalledTimes(1);
     folderWatcher.close();
   });
 
-  it('looks at a folder that cannot be watched, and does not throw', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const watch = vi.fn(() => {
-      throw new Error('ENOSPC');
-    }) as unknown as typeof fs.watch;
-    const modified = new Map([['/music', 1]]);
-    const readTimes = vi.fn(async (folder: string) => new Map([[`${folder}/0`, modified.get(folder) ?? 1]]));
-    const onChange = vi.fn();
-    const folderWatcher = createFolderWatcher(onChange, { watch, readTimes, checkInterval: 1000, checkGap: 0 });
-
+  it('does not start a look while the last one goes on', async () => {
+    const { folderWatcher, readTimes } = setup({ '/music': 1 });
     await folderWatcher.update(['/music']);
-    modified.set('/music', 2);
+    let finish: () => void = () => undefined;
+    readTimes.mockImplementationOnce(() => new Promise((resolve) => (finish = () => resolve(new Map([['/music/0', 1]])))));
+    readTimes.mockClear();
+
+    const first = folderWatcher.check();
+    await folderWatcher.check();
+    finish();
+    await first;
+
+    expect(readTimes).toHaveBeenCalledTimes(1);
+    folderWatcher.close();
+  });
+
+  it('goes on after a look at a folder that did not answer, without reporting it', async () => {
+    const { folderWatcher, readTimes, onChange } = setup({ '/music': 1 });
+    await folderWatcher.update(['/music']);
+    readTimes.mockResolvedValueOnce(new Map());
+
+    await vi.advanceTimersByTimeAsync(1000);
     await vi.advanceTimersByTimeAsync(1000);
 
-    expect(onChange).toHaveBeenCalledExactlyOnceWith([{ path: '/music/0', deep: false }]);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(readTimes).toHaveBeenCalledTimes(3);
     folderWatcher.close();
   });
 
   it('tries a folder that did not answer again with the next update', async () => {
-    const { folderWatcher, watch } = setup({ '/music': 0 });
+    const { folderWatcher, readTimes } = setup({ '/music': 0 });
     await folderWatcher.update(['/music']);
+    await vi.advanceTimersByTimeAsync(5000);
 
-    expect(watch).not.toHaveBeenCalled();
+    expect(readTimes).toHaveBeenCalledOnce();
+    await folderWatcher.update(['/music']);
+    expect(readTimes).toHaveBeenCalledTimes(2);
     folderWatcher.close();
   });
 
-  it('closes every watch and stops looking', async () => {
-    const { folderWatcher, watchers, readTimes } = setup();
-    await folderWatcher.update(['/music', '/radio']);
+  it('stops looking on close, also for a look that was waiting for its answer', async () => {
+    const { folderWatcher, readTimes } = setup();
+    let answer: (times: Map<string, number>) => void = () => undefined;
+    readTimes.mockImplementation(() => new Promise((resolve) => (answer = resolve)));
+    const updated = folderWatcher.update(['/music']);
+    await vi.advanceTimersByTimeAsync(0);
     folderWatcher.close();
+    answer(new Map([['/music/0', 1]]));
+    await updated;
     readTimes.mockClear();
     await vi.advanceTimersByTimeAsync(5000);
 
-    expect([...watchers.values()].map((watcher) => watcher.close.mock.calls.length)).toEqual([1, 1]);
     expect(readTimes).not.toHaveBeenCalled();
   });
 
@@ -267,10 +278,10 @@ describe('with the file system', () => {
 
   it('sees a file that is added below the folder', async () => {
     const onChange = vi.fn();
-    const folderWatcher = createFolderWatcher(onChange);
+    const folderWatcher = createFolderWatcher(onChange, { interval: () => 20, checkGap: 0 });
     await folderWatcher.update([root]);
 
-    // the watch needs a moment to be in place on some systems, so the file is written until it is seen
+    // a file is written until a look sees it
     await vi.waitFor(() => {
       fs.writeFileSync(path.join(root, 'artist', 'album', `${Date.now()}.flac`), '');
       expect(onChange).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ path: expect.stringContaining(root) })]));
