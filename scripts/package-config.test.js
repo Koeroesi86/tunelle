@@ -12,10 +12,11 @@ describe('packaging targets', () => {
 })
 
 // electron-builder gives x64 10.0.14316.0 (a preview build that MSIX does not run on) and arm64 10.0.16299.0 (Windows 10 1709, the first
-// that installs MSIX): one version for both, so the Store lists the same systems for each package
+// that installs MSIX): one version for both, so the Store lists the same systems for each package. The Store refuses an msix, msixbundle or
+// msixupload (the bundle of store.yml) that targets 10.0.17134.0 or lower, so it is Windows 10 1809, the first above that
 describe('Store package', () => {
-  it('names the same lowest Windows version for every architecture, one that installs MSIX', () => {
-    expect(build.appx.minVersion).toBe('10.0.16299.0')
+  it('names the same lowest Windows version for every architecture, one the Store takes for an msixbundle', () => {
+    expect(build.appx.minVersion).toBe('10.0.17763.0')
   })
 })
 
