@@ -1,7 +1,7 @@
 const { appendFileSync, readFileSync, writeFileSync } = require('fs')
 const { compareVersions } = require('./version')
 
-// usage: node scripts/store-submission.js notes <file> <result> <notes> [<language>=<notes>]...   writes the submission in <file> to <result> with the release notes of its listings set to <notes>, or to the notes of the language of the listing (hu for hu-hu), for `msstore submission updateMetadata`
+// usage: node scripts/store-submission.js notes <file> <result> <notes> [<language>=<notes>]...   writes the submission in <file> to <result> with the release notes of its listings set to <notes> and the packages of the earlier submission marked for deletion (all but the one pending upload), or to the notes of the language of the listing (hu for hu-hu), for `msstore submission updateMetadata`
 //        node scripts/store-submission.js decide <status file> <submission file> <tag> <automatic>   says whether the release is submitted now (submit=true or false and the reason, also to $GITHUB_OUTPUT)
 //        node scripts/store-submission.js status <file>                            fails unless the last submission in the output of `msstore submission status` is published
 //        node scripts/store-submission.js check <tag> <file> <package version>...  fails when the release can not go to the Store, with the output of `msstore submission get` in <file>
@@ -47,7 +47,9 @@ const withReleaseNotes = (output, notes, translations = {}) => {
   if (Object.keys(submission.Listings ?? {}).length === 0) throw new Error('The submission has no listing, so there is nowhere to put the release notes')
 
   const listings = Object.fromEntries(Object.entries(submission.Listings).map(([language, listing]) => [language, { ...listing, BaseListing: { ...listing.BaseListing, ReleaseNotes: translations[language.split('-')[0].toLowerCase()] ?? notes } }]))
-  return JSON.stringify({ ...submission, Listings: listings }, undefined, 2)
+  // the packages of the last published submission are still in the copy, next to the new bundle: two packages for each architecture make the Store refuse the bundle, so every package that is not the one just uploaded is deleted with the update
+  const packages = field(submission, 'applicationpackages')?.map((applicationPackage) => (field(applicationPackage, 'filestatus') === 'PendingUpload' ? applicationPackage : { ...applicationPackage, FileStatus: 'PendingDelete' }))
+  return JSON.stringify({ ...submission, Listings: listings, ...(packages && { ApplicationPackages: packages }) }, undefined, 2)
 }
 
 // the states of a submission that is on its way (committed, not published yet): an automatic run waits for it. A draft (PendingCommit) or a failed submission that

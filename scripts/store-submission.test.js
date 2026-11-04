@@ -123,6 +123,22 @@ describe('withReleaseNotes', () => {
     expect(result.Listings['en-us'].BaseListing.ReleaseNotes).toBe('Notes')
   })
 
+  it('marks the packages of the earlier submission for deletion and keeps the one pending upload', () => {
+    const packages = [
+      { FileName: 'Tunelle-26.11.15-x64.appx', FileStatus: 'Uploaded', Version: '26.11.15.0' },
+      { FileName: 'Tunelle-26.11.15-arm64.appx', FileStatus: 'Uploaded', Version: '26.11.15.0' },
+      { FileName: 'Tunelle-26.11.18.msixbundle', FileStatus: 'PendingUpload', Version: null }
+    ]
+    const result = JSON.parse(withReleaseNotes(`${JSON.stringify({ ApplicationPackages: packages, Listings: { 'en-us': listing('') } })}`, 'Notes'))
+
+    expect(result.ApplicationPackages.map(({ FileName, FileStatus }) => [FileName, FileStatus])).toEqual([
+      ['Tunelle-26.11.15-x64.appx', 'PendingDelete'],
+      ['Tunelle-26.11.15-arm64.appx', 'PendingDelete'],
+      ['Tunelle-26.11.18.msixbundle', 'PendingUpload']
+    ])
+    expect(result.ApplicationPackages[0].Version).toBe('26.11.15.0')
+  })
+
   it('fails without a listing, instead of sending a submission with no notes', () => {
     expect(() => withReleaseNotes(output({}), 'Notes')).toThrow('no listing')
   })
