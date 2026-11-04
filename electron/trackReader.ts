@@ -2,7 +2,6 @@ import path from 'path';
 import { utilityProcess } from 'electron';
 import type { UtilityProcess } from 'electron';
 import type { Track } from '../types/library';
-import { readTrackFile } from './readTrackFile';
 import type { ReadReply } from './trackReaderWorker';
 
 export type TrackReader = {
@@ -13,15 +12,8 @@ export type TrackReader = {
 
 const timeoutError = (fileName: string) => new Error(`File access timeout ${fileName}`);
 
-/** Reads in the main process, where there is no utility process to start (the tests) */
-const createInProcessReader = (): TrackReader => ({
-  read: (fileName, appDataPath, timeout) =>
-    Promise.race([readTrackFile(fileName, appDataPath), new Promise<never>((_, reject) => setTimeout(() => reject(timeoutError(fileName)), timeout).unref())]),
-  close: () => undefined,
-});
-
 /** Reads the files in a utility process, which keeps the parsing and the picture writes off the loop of the main process that serves the window and the player; it starts with the first file and ends with `close` */
-const createProcessReader = (): TrackReader => {
+export const createTrackReader = (): TrackReader => {
   type Worker = { process: UtilityProcess; pending: Map<number, { resolve: (track: Track) => void; reject: (error: Error) => void }> };
   let worker: Worker | undefined;
   let counter = 0;
@@ -73,6 +65,3 @@ const createProcessReader = (): TrackReader => {
     close: stop,
   };
 };
-
-/** A reader in a utility process when Electron has them, otherwise one in this process */
-export const createTrackReader = (): TrackReader => (utilityProcess ? createProcessReader() : createInProcessReader());
