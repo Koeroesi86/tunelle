@@ -53,7 +53,7 @@ const toMarkdown = bySystem => {
     [
       '### Performance',
       compared
-        ? 'Measurements of the built app on each system (`npm run perf`), the base branch and the pull request on the same runner, the base first. They are not budgets, and the runs of a runner differ by a few percent on their own: a change of a fifth or more is in bold. Times are in ms unless the name says otherwise.'
+        ? 'Measurements of the built app on each system (`npm run perf`), the base branch and the pull request on the same runner, the base first. They are not budgets, and the runs of a runner differ by a few percent on their own: a change of a fifth or more is in bold. A measurement that was run more than once (PERF_REPEAT) shows the median of its runs. Times are in ms unless the name says otherwise.'
         : 'Measurements of the built app on each system (`npm run perf`), not budgets. Times are in ms unless the name says otherwise.',
       ...names.flatMap(name => {
         const keys = [...new Set(systems.flatMap(system => [...flatten(bySystem[system].pr?.[name])].map(([key]) => key)))]
