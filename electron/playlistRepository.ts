@@ -39,10 +39,10 @@ export const getPlaylists = async (database: Database): Promise<StoredPlaylist[]
 };
 
 /** The new playlist goes last, its id is returned */
-export const createPlaylist = (database: Database, name: string, createdAt = Date.now()) =>
+export const createPlaylist = (database: Database, name: string) =>
   executeQuery<{ id: number }>(database, {
     query: `INSERT INTO playlists (name, position, created_at) SELECT ?, COALESCE(MAX(position) + 1, 0), ? FROM playlists RETURNING id`,
-    variables: [name, createdAt],
+    variables: [name, Date.now()],
   }).then(([{ id }]) => id);
 
 export const renamePlaylist = (database: Database, id: number, name: string) =>

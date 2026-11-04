@@ -19,11 +19,11 @@ export const getHistory = (database: Database) =>
   );
 
 /** Playing an item again moves it to the top, with its snapshot as it is now */
-export const recordPlayed = async (database: Database, { source, kind, id }: FavouriteKey, snapshot: unknown, playedAt = Date.now()) => {
+export const recordPlayed = async (database: Database, { source, kind, id }: FavouriteKey, snapshot: unknown) => {
   await executeQuery(database, {
     query: `INSERT INTO history (source, kind, id, snapshot, played_at) VALUES (?, ?, ?, ?, ?)
       ON CONFLICT (source, kind, id) DO UPDATE SET snapshot = excluded.snapshot, played_at = excluded.played_at`,
-    variables: [source, kind, id, JSON.stringify(snapshot), playedAt],
+    variables: [source, kind, id, JSON.stringify(snapshot), Date.now()],
   });
   await executeQuery(database, {
     query: `DELETE FROM history WHERE rowid NOT IN (SELECT rowid FROM history ORDER BY played_at DESC, rowid DESC LIMIT ?)`,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearHistory, getHistory, historyLimit, recordPlayed } from './historyRepository';
 import { createTestDatabase } from './test-database';
 
@@ -6,6 +6,9 @@ const track = { source: 'local', kind: 'track', id: '/music/a.flac' };
 const station = { source: 'radio', kind: 'station', id: 'abc-1' };
 
 describe('historyRepository', () => {
+  beforeEach(() => vi.useFakeTimers({ toFake: ['Date'] }));
+  afterEach(() => vi.useRealTimers());
+
   it('has no history before something is played', async () => {
     expect(await getHistory(await createTestDatabase())).toEqual([]);
   });
@@ -13,8 +16,10 @@ describe('historyRepository', () => {
   it('lists what was played of every source with its snapshot, the last played first', async () => {
     const database = await createTestDatabase();
 
-    await recordPlayed(database, track, { title: 'A' }, 1);
-    await recordPlayed(database, station, { name: 'Jazz FM' }, 2);
+    vi.setSystemTime(1);
+    await recordPlayed(database, track, { title: 'A' });
+    vi.setSystemTime(2);
+    await recordPlayed(database, station, { name: 'Jazz FM' });
 
     expect(await getHistory(database)).toEqual([
       { ...station, snapshot: { name: 'Jazz FM' }, playedAt: 2 },
@@ -25,9 +30,12 @@ describe('historyRepository', () => {
   it('moves an item that is played again to the top, once, with its new snapshot', async () => {
     const database = await createTestDatabase();
 
-    await recordPlayed(database, track, { title: 'Old' }, 1);
-    await recordPlayed(database, station, {}, 2);
-    await recordPlayed(database, track, { title: 'New' }, 3);
+    vi.setSystemTime(1);
+    await recordPlayed(database, track, { title: 'Old' });
+    vi.setSystemTime(2);
+    await recordPlayed(database, station, {});
+    vi.setSystemTime(3);
+    await recordPlayed(database, track, { title: 'New' });
 
     expect(await getHistory(database)).toEqual([
       { ...track, snapshot: { title: 'New' }, playedAt: 3 },
@@ -38,9 +46,12 @@ describe('historyRepository', () => {
   it('keeps the same id of different sources and kinds apart', async () => {
     const database = await createTestDatabase();
 
-    await recordPlayed(database, track, {}, 1);
-    await recordPlayed(database, { ...track, kind: 'album' }, {}, 2);
-    await recordPlayed(database, { ...track, source: 'drive:usb' }, {}, 3);
+    vi.setSystemTime(1);
+    await recordPlayed(database, track, {});
+    vi.setSystemTime(2);
+    await recordPlayed(database, { ...track, kind: 'album' }, {});
+    vi.setSystemTime(3);
+    await recordPlayed(database, { ...track, source: 'drive:usb' }, {});
 
     expect(await getHistory(database)).toHaveLength(3);
   });
@@ -48,8 +59,12 @@ describe('historyRepository', () => {
   it('keeps the latest items and drops the oldest ones over the limit', async () => {
     const database = await createTestDatabase();
 
-    await Promise.all(Array.from({ length: historyLimit + 1 }, (_, index) => recordPlayed(database, { ...track, id: `/${index}.flac` }, {}, index)));
-    await recordPlayed(database, { ...track, id: '/last.flac' }, {}, historyLimit + 1);
+    const play = (id: string, time: number) => {
+      vi.setSystemTime(time);
+      return recordPlayed(database, { ...track, id }, {});
+    };
+    for (let index = 0; index <= historyLimit; index++) await play(`/${index}.flac`, index);
+    await play('/last.flac', historyLimit + 1);
 
     const history = await getHistory(database);
     expect(history).toHaveLength(historyLimit);
@@ -59,8 +74,10 @@ describe('historyRepository', () => {
 
   it('clears the history of every source and ignores an empty one', async () => {
     const database = await createTestDatabase();
-    await recordPlayed(database, track, {}, 1);
-    await recordPlayed(database, station, {}, 2);
+    vi.setSystemTime(1);
+    await recordPlayed(database, track, {});
+    vi.setSystemTime(2);
+    await recordPlayed(database, station, {});
 
     await clearHistory(database);
     await clearHistory(database);

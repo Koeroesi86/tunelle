@@ -16,10 +16,10 @@ export const getFavourites = (database: Database) =>
   );
 
 /** Adding a favourite again keeps the first one, with its date */
-export const addFavourite = (database: Database, { source, kind, id }: FavouriteKey, snapshot: unknown, addedAt = Date.now()) =>
+export const addFavourite = (database: Database, { source, kind, id }: FavouriteKey, snapshot: unknown) =>
   executeQuery(database, {
     query: `INSERT OR IGNORE INTO favourites (source, kind, id, snapshot, added_at) VALUES (?, ?, ?, ?, ?)`,
-    variables: [source, kind, id, JSON.stringify(snapshot), addedAt],
+    variables: [source, kind, id, JSON.stringify(snapshot), Date.now()],
   });
 
 export const removeFavourite = (database: Database, { source, kind, id }: FavouriteKey) =>

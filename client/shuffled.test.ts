@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { shuffled } from './shuffled';
 
 describe('shuffled', () => {
+  afterEach(() => vi.restoreAllMocks());
+
   it('keeps every item once and leaves the list as it was', () => {
     const items = [1, 2, 3, 4, 5, 6];
 
@@ -10,8 +12,11 @@ describe('shuffled', () => {
   });
 
   it('puts the items in the order the random numbers give', () => {
-    expect(shuffled(['a', 'b', 'c'], () => 0)).toEqual(['b', 'c', 'a']);
-    expect(shuffled(['a', 'b', 'c'], () => 0.99)).toEqual(['a', 'b', 'c']);
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+    expect(shuffled(['a', 'b', 'c'])).toEqual(['b', 'c', 'a']);
+
+    random.mockReturnValue(0.99);
+    expect(shuffled(['a', 'b', 'c'])).toEqual(['a', 'b', 'c']);
   });
 
   it('copes with no items and with one', () => {
