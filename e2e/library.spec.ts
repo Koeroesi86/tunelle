@@ -48,14 +48,16 @@ test('picks up a file that was added to the folder with a rescan', async ({ sess
 });
 
 test('picks up files that were added to and removed from a folder without a rescan', async ({ session: { page }, music }) => {
+  // the folders are looked at every 30 seconds at the least, so each change waits for the next look
+  test.setTimeout(150_000);
   const album = { ...albums[1], title: 'Fresh Start', tracks: [{ title: 'New Note', frequency: 330 }] };
   writeTrack(join(music, 'fresh-start', 'disc-1'), album, 0);
 
-  await expect.poll(async () => (await libraryTracks(page)).length, { timeout: 20_000 }).toBe(5);
+  await expect.poll(async () => (await libraryTracks(page)).length, { timeout: 60_000 }).toBe(5);
 
   await rm(join(music, 'fresh-start'), { recursive: true });
 
-  await expect.poll(async () => (await libraryTracks(page)).length, { timeout: 20_000 }).toBe(4);
+  await expect.poll(async () => (await libraryTracks(page)).length, { timeout: 60_000 }).toBe(4);
 });
 
 test('removes a folder from the library and leaves its files', async ({ session: { page }, music }) => {
