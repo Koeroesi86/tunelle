@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { withTimeout } from './folderAvailability';
 import { mapInChunks } from './inChunks';
-import { toChanges } from './libraryChange';
 import type { Change } from './libraryChange';
 
 type DirectoryTimes = Map<string, number>;
@@ -35,18 +34,19 @@ export const readDirectoryTimes = async (folder: string): Promise<DirectoryTimes
   return times;
 };
 
-const maxUserWatches = 8192;
-
-/** On Linux every folder below a watched one takes a watch of the user, which the editor and the file manager share, so a quarter of them is the most the library takes; the other systems watch a tree natively */
-const watchBudget = () => {
-  if (process.platform !== 'linux') return Infinity;
-
-  try {
-    return Math.floor(Number(fs.readFileSync('/proc/sys/fs/inotify/max_user_watches', 'utf8')) / 4) || maxUserWatches / 4;
-  } catch {
-    return maxUserWatches / 4;
-  }
+/** How long the folder takes to answer, in milliseconds; a folder that does not answer in time takes as long as the wait */
+export const measureResponse = async (folder: string) => {
+  const start = performance.now();
+  await withTimeout(fs.promises.stat(folder), undefined);
+  return performance.now() - start;
 };
+
+const minInterval = 30_000;
+const maxInterval = 15 * 60_000;
+const intervalPerResponseMs = 2000;
+
+/** How long to wait before the next look at a folder, from how long it took to answer: a folder on the disk of the computer is looked at every half minute, one on a network or a removable drive less often, the slower the rarer, as a look at a tree of folders over such a drive takes time of its own and loads the drive */
+export const pollInterval = (responseMs: number) => Math.min(maxInterval, Math.max(minInterval, Math.round(responseMs * intervalPerResponseMs)));
 
 /** What differs between two looks: the folders with another time or that are new are scanned for their own files, a folder that is gone is looked at with what was below it */
 const differences = (before: DirectoryTimes, after: DirectoryTimes): Change[] => [
@@ -55,85 +55,46 @@ const differences = (before: DirectoryTimes, after: DirectoryTimes): Change[] =>
 ];
 
 interface Options {
-  watch?: typeof fs.watch;
   readTimes?: (folder: string) => Promise<DirectoryTimes>;
-  /** The most folders, with the folders below them, that get a watch */
-  budget?: number;
-  /** How often the folders are looked at, as the watch does not report a network drive and does not cover what is over the budget */
-  checkInterval?: number;
-  /** The least time between two looks, as the window asks every time it gets the focus */
+  /** How long a folder takes to answer, in milliseconds */
+  measure?: (folder: string) => Promise<number>;
+  /** How long to wait before the next look at a folder, from how long it took to answer */
+  interval?: (responseMs: number) => number;
+  /** The least time between two looks at all the folders, as the window asks every time it gets the focus */
   checkGap?: number;
 }
 
 interface Tracked {
-  directories: number;
-  watcher?: fs.FSWatcher;
-  /** The modification times at the last look, none after the watcher saw a change: that change is scanned already */
+  /** The modification times at the last look */
   baseline?: DirectoryTimes;
+  timer?: NodeJS.Timeout;
+  looking?: boolean;
 }
 
-/** Tells what changed in the folders: a watch of the system where there is budget for one, and a look at the modification times of their folders every few minutes and when asked, which also covers a drive that gives no events */
+/** Tells what changed in the folders by looking at the modification times of the folders in them, which change when a file in one is added, removed or renamed. It does not use a watch of the system: on Linux one over a big tree or a network drive blocks the app while it is made, and a network drive gives no events anyway. A folder is looked at again after a wait that follows how slowly it answers, and when the window asks */
 export const createFolderWatcher = (onChange: (changes: Change[]) => void, options: Options = {}) => {
-  const { watch = fs.watch, readTimes = readDirectoryTimes, budget = watchBudget(), checkInterval = 5 * 60_000, checkGap = 30_000 } = options;
+  const { readTimes = readDirectoryTimes, measure = measureResponse, interval = pollInterval, checkGap = 30_000 } = options;
   const tracked = new Map<string, Tracked>();
   let queue = Promise.resolve();
-  let timer: NodeJS.Timeout | undefined;
   let lastCheck = 0;
   let closed = false;
 
-  const watchedDirectories = () => [...tracked.values()].filter((entry) => entry.watcher).reduce((sum, entry) => sum + entry.directories, 0);
-
   const untrack = (folder: string) => {
-    tracked.get(folder)?.watcher?.close();
+    clearTimeout(tracked.get(folder)?.timer);
     tracked.delete(folder);
   };
 
-  // an event only says that something changed below the folder, the scan finds out what
-  const open = (folder: string, entry: Tracked) => {
-    try {
-      const watcher = watch(folder, { recursive: true }, (_event, filename) => {
-        entry.baseline = undefined;
-        // without a name, the whole folder changed as far as is known
-        toChanges(filename ? path.join(folder, filename.toString()) : folder).then(onChange, (e) => console.error(e));
-      });
-      // an unplugged drive, or the limit of watches of Linux, ends the watch of the folder, not the app: the looks go on
-      watcher.on('error', (e) => {
-        console.error(`Stopped watching ${folder}`, e);
-        watcher.close();
-        entry.watcher = undefined;
-      });
-      return watcher;
-    } catch (e) {
-      console.error(`Cannot watch ${folder}`, e);
-      return undefined;
-    }
+  /** Wait for the next look, as long as the folder asks for with its last answer */
+  const schedule = async (folder: string, entry: Tracked) => {
+    const wait = interval(await measure(folder));
+    if (closed || tracked.get(folder) !== entry) return;
+
+    clearTimeout(entry.timer);
+    entry.timer = setTimeout(() => void look(folder, entry), wait);
   };
 
-  const track = async (folder: string) => {
-    const times = await readTimes(folder);
-    // a folder that does not answer is tried again with the next update
-    if (closed || times.size === 0) return;
-
-    const entry: Tracked = { directories: times.size, baseline: times };
-    const fits = watchedDirectories() + entry.directories <= budget;
-    if (!fits) console.warn(`Not watching ${folder}, it has ${entry.directories} folders: it is looked at every few minutes`);
-    entry.watcher = fits ? open(folder, entry) : undefined;
-    tracked.set(folder, entry);
-  };
-
-  const apply = async (folders: string[]) => {
-    [...tracked.keys()].filter((folder) => !folders.includes(folder)).forEach(untrack);
-    await Promise.all(folders.filter((folder) => !tracked.has(folder)).map(track));
-    if (closed || tracked.size === 0) {
-      clearInterval(timer);
-      timer = undefined;
-      return;
-    }
-
-    timer ??= setInterval(() => void check(), checkInterval);
-  };
-
-  const look = async (folder: string, entry: Tracked) => {
+  /** A folder that does not answer keeps what was seen of it */
+  const compare = async (folder: string, entry: Tracked) => {
     const times = await readTimes(folder);
     if (times.size === 0) return;
 
@@ -141,6 +102,32 @@ export const createFolderWatcher = (onChange: (changes: Change[]) => void, optio
     entry.baseline = times;
     const changes = baseline ? differences(baseline, times) : [];
     if (changes.length > 0) onChange(changes);
+  };
+
+  const look = async (folder: string, entry: Tracked) => {
+    // the wait ended while the last look goes on
+    if (entry.looking) return;
+
+    entry.looking = true;
+    await compare(folder, entry).finally(() => {
+      entry.looking = false;
+    });
+    await schedule(folder, entry);
+  };
+
+  const track = async (folder: string) => {
+    const baseline = await readTimes(folder);
+    // a folder that does not answer is tried again with the next update
+    if (closed || baseline.size === 0) return;
+
+    const entry: Tracked = { baseline };
+    tracked.set(folder, entry);
+    await schedule(folder, entry);
+  };
+
+  const apply = async (folders: string[]) => {
+    [...tracked.keys()].filter((folder) => !folders.includes(folder)).forEach(untrack);
+    await Promise.all(folders.filter((folder) => !tracked.has(folder)).map(track));
   };
 
   /** Look at the folders now, unless it was done a moment ago */
@@ -152,7 +139,7 @@ export const createFolderWatcher = (onChange: (changes: Change[]) => void, optio
   };
 
   return {
-    /** Keep exactly these folders: a watch and a look for each, or a look alone for a folder over the budget or that cannot be watched */
+    /** Keep exactly these folders: a look at each now and then */
     update: (folders: string[]) => {
       queue = queue.then(() => apply(folders)).catch((e) => console.error(e));
       return queue;
@@ -160,7 +147,6 @@ export const createFolderWatcher = (onChange: (changes: Change[]) => void, optio
     check,
     close: () => {
       closed = true;
-      clearInterval(timer);
       [...tracked.keys()].forEach(untrack);
     },
   };
