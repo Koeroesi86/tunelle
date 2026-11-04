@@ -31,6 +31,16 @@ describe('addTracks', () => {
     database.close(() => undefined);
   });
 
+  it('updates a stored track in place and keeps a column the scan does not write', async () => {
+    await executeQuery(database, { query: 'ALTER TABLE library ADD COLUMN playCount INTEGER NOT NULL DEFAULT 0', variables: [] });
+    await addTracks(database, [trackAt(1)]);
+    await executeQuery(database, { query: 'UPDATE library SET playCount = 7', variables: [] });
+
+    await addTracks(database, [{ ...trackAt(1), title: 'Renamed' }]);
+
+    expect(await executeQuery(database, { query: 'SELECT title, playCount FROM library', variables: [] })).toEqual([{ title: 'Renamed', playCount: 7 }]);
+  });
+
   it('stores a full statement of tracks at once', async () => {
     await addTracks(
       database,

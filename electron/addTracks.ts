@@ -4,6 +4,11 @@ import executeQuery from './executeQuery';
 import { toSortKeys } from './sortKey';
 
 const columns = `path, artist, album, title, year, track, disk, genre, picture, duration, title_key, artist_key, album_key, album_artist_key, genre_key, albumArtist, codec, bitDepth, sampleRate, bitrate, vbr, lossless, trackGain, albumGain, trackPeak, albumPeak`;
+const updates = columns
+  .split(', ')
+  .filter((column) => column !== 'path')
+  .map((column) => `${column} = excluded.${column}`)
+  .join(', ');
 const columnCount = columns.split(',').length;
 const row = `(${Array.from({ length: columnCount }, () => '?').join(', ')})`;
 
@@ -47,7 +52,7 @@ const toValues = (track: Track) => [
 export const addTracks = async (database: Database, tracks: Track[]) => {
   if (tracks.length === 0) return;
   await executeQuery(database, {
-    query: `INSERT OR REPLACE INTO library (${columns}) VALUES ${tracks.map(() => row).join(', ')}`,
+    query: `INSERT INTO library (${columns}) VALUES ${tracks.map(() => row).join(', ')} ON CONFLICT(path) DO UPDATE SET ${updates}`,
     variables: tracks.flatMap(toValues),
   });
 };
