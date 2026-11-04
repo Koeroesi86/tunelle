@@ -13,5 +13,5 @@
     "resolveJsonModule": true
   },
   "include": ["electron", "locales", "index.ts", "types"],
-  "exclude": ["electron/**/*.test.ts", "electron/test-database.ts", "locales/**/*.test.ts"]
+  "exclude": ["electron/**/*.test.ts", "electron/test-database.ts", "electron/test-utility-process.ts", "locales/**/*.test.ts"]
 }

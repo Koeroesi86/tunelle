@@ -8,4 +8,7 @@ export const getSettings = (database: Database): Promise<unknown> =>
   );
 
 export const saveSettings = (database: Database, settings: unknown) =>
-  executeQuery(database, { query: `INSERT OR REPLACE INTO settings (id, settings) VALUES (?, ?)`, variables: [1, JSON.stringify(settings)] });
+  executeQuery(database, {
+    query: `INSERT INTO settings (id, settings) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET settings = excluded.settings`,
+    variables: [1, JSON.stringify(settings)],
+  });

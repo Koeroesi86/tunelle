@@ -96,7 +96,10 @@ const getRecords = (database: Database, keys: string[]) =>
       });
 
 const saveRecord = (database: Database, key: string, picture: string | null, checkedAt: number) =>
-  executeQuery(database, { query: `INSERT OR REPLACE INTO artist_photos (key, picture, checkedAt) VALUES (?, ?, ?)`, variables: [key, picture, checkedAt] });
+  executeQuery(database, {
+    query: `INSERT INTO artist_photos (key, picture, checkedAt) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET picture = excluded.picture, checkedAt = excluded.checkedAt`,
+    variables: [key, picture, checkedAt],
+  });
 
 interface QueueOptions {
   database: Database;

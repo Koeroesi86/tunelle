@@ -32,7 +32,10 @@ export const getFoldersInside = (database: Database, folderPath: string) =>
 export const saveFolders = (database: Database, folders: Folder[]) =>
   executeQueries(
     database,
-    folders.map((folder) => ({ query: `INSERT OR REPLACE INTO folders (path, lastModified) VALUES (?, ?)`, variables: [folder.path, folder.lastModified] }))
+    folders.map((folder) => ({
+      query: `INSERT INTO folders (path, lastModified) VALUES (?, ?) ON CONFLICT(path) DO UPDATE SET lastModified = excluded.lastModified`,
+      variables: [folder.path, folder.lastModified],
+    }))
   );
 
 export const deleteFolders = (database: Database, folders: Pick<Folder, 'path'>[]) =>
