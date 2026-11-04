@@ -1,7 +1,4 @@
-@use '../../client/styles/enter' as *;
-
 .albumViewThumbnail {
-  @include enters(10px);
   position: relative;
   container-type: inline-size;
   min-width: 0;

@@ -1,7 +1,4 @@
-@use '../../client/styles/enter' as *;
-
 .groupTile {
-  @include enters(10px);
   display: block;
   box-sizing: border-box;
   min-width: 0;
