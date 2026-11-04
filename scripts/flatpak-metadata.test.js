@@ -73,6 +73,6 @@ describe('the metainfo of the Flatpak', () => {
   })
 
   it('has a release', () => {
-    expect(metainfo).toMatch(/<release version="\d+\.\d+\.\d+" date="\d{4}-\d{2}-\d{2}"\/>/)
+    expect(metainfo).toMatch(/<release version="\d+\.\d+\.\d+" date="\d{4}-\d{2}-\d{2}"/)
   })
 })

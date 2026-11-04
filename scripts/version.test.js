@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { assertNewer, compareVersions, createVersion, stampVersion, versionPattern } from './version'
+import { assertNewer, compareVersions, createVersion, stampMetainfo, stampVersion, versionPattern } from './version'
 
 describe('createVersion', () => {
   it.each([
@@ -100,5 +100,36 @@ describe('command line', () => {
 
   it('refuses to print a version without a run number', () => {
     expect(() => run([], {})).toThrow('GITHUB_RUN_NUMBER is not set')
+  })
+})
+
+describe('stampMetainfo', () => {
+  it('replaces the release entry with the version, the date, the notes in both languages and the link to the release', () => {
+    const folder = mkdtempSync(join(tmpdir(), 'tunelle-metainfo-'))
+    const path = join(folder, 'metainfo.xml')
+    writeFileSync(path, '<releases>\n    <release version="26.10.9" date="2026-10-29"/>\n  </releases>\n')
+
+    stampMetainfo(path, '26.11.19', new Date('2026-11-04T06:00:00Z'), 'Koeroesi86/tunelle')
+    const stamped = readFileSync(path, 'utf8')
+    rmSync(folder, { recursive: true })
+
+    expect(stamped).toContain('<release version="26.11.19" date="2026-11-04">')
+    expect(stamped).toContain('<p>Bug fixes and improvements.</p>')
+    expect(stamped).toContain('<p xml:lang="hu">Hibajavítások és fejlesztések.</p>')
+    expect(stamped).toContain('<url type="details">https://github.com/Koeroesi86/tunelle/releases/tag/v26.11.19</url>')
+    expect(stamped).not.toContain('26.10.9')
+  })
+
+  it('replaces an entry that already has a description the same way', () => {
+    const folder = mkdtempSync(join(tmpdir(), 'tunelle-metainfo-'))
+    const path = join(folder, 'metainfo.xml')
+    writeFileSync(path, '<releases>\n    <release version="1.0.0" date="2026-01-01"><description><p>old</p></description></release>\n  </releases>\n')
+
+    stampMetainfo(path, '26.11.19', new Date('2026-11-04T06:00:00Z'), 'Koeroesi86/tunelle')
+    const stamped = readFileSync(path, 'utf8')
+    rmSync(folder, { recursive: true })
+
+    expect(stamped).not.toContain('old')
+    expect(stamped.match(/<release /g)).toHaveLength(1)
   })
 })
