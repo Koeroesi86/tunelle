@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { IcyMetadataStripper, parseStreamTitle, parseStreamUrl } from './icyMetadata';
 
-const metadataBlock = (text: string) => {
+const metadataBlock = (text: string | Buffer) => {
   const body = Buffer.from(text);
   const padded = Buffer.alloc(Math.ceil(body.length / 16) * 16);
   body.copy(padded);
@@ -56,6 +56,17 @@ describe('IcyMetadataStripper', () => {
     const stream = Buffer.concat([Buffer.from('aa'), metadataBlock("StreamTitle='One';"), Buffer.from('bb'), metadataBlock("StreamTitle='Two';")]);
 
     expect((await strip(2, [stream])).titles).toEqual(['One', 'Two']);
+  });
+
+  it('reads a title in UTF-8', async () => {
+    const { titles } = await strip(4, [Buffer.from('aaaa'), metadataBlock("StreamTitle='Beyoncé – We’re';")]);
+    expect(titles).toEqual(['Beyoncé – We’re']);
+  });
+
+  it('reads a title in Windows-1252 when it is not valid UTF-8', async () => {
+    const title = Buffer.concat([Buffer.from("StreamTitle='We"), Buffer.from([0x92]), Buffer.from("re Going';")]);
+    const { titles } = await strip(4, [Buffer.from('aaaa'), metadataBlock(title)]);
+    expect(titles).toEqual(['We’re Going']);
   });
 
   it('does not report an empty block', async () => {
