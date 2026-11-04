@@ -12,6 +12,8 @@ type Listener = (event: IpcMainEvent, payload?: unknown) => void;
 
 const listeners = new Map<string, Listener>();
 let home: string;
+// the launcher work the listeners start on their own (the sync at the start), which the test has to wait for before it removes the folder
+const background: Promise<unknown>[] = [];
 
 vi.mock('electron', () => ({
   app: { getPath: (name: string) => join(home, name) },
@@ -24,7 +26,11 @@ vi.mock('./appImageLauncher', async (importOriginal) => {
   return {
     ...original,
     enableLauncher: (appImage: string, options: LauncherOptions) => original.enableLauncher(appImage, { ...options, iconsPath: join(home, 'icons') }),
-    syncLauncher: (appImage: string | undefined, options: LauncherOptions) => original.syncLauncher(appImage, { ...options, iconsPath: join(home, 'icons') }),
+    syncLauncher: (appImage: string | undefined, options: LauncherOptions) => {
+      const done = original.syncLauncher(appImage, { ...options, iconsPath: join(home, 'icons') });
+      background.push(done);
+      return done;
+    },
   };
 });
 
@@ -48,6 +54,7 @@ describe('registerLauncherListeners', () => {
 
   afterEach(async () => {
     vi.unstubAllEnvs();
+    await Promise.allSettled(background.splice(0));
     await rm(home, { recursive: true, force: true });
   });
 
