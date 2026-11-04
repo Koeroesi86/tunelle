@@ -6,8 +6,9 @@ import { createFolderWatcher, pollInterval, readDirectoryTimes } from './folderW
 
 describe('pollInterval', () => {
   it.each([
-    [0.2, 30_000],
-    [100, 30_000],
+    [0.2, 10_000],
+    [100, 10_000],
+    [500, 50_000],
     [1000, 100_000],
     [4000, 400_000],
     [20_000, 15 * 60_000],

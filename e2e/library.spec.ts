@@ -48,7 +48,7 @@ test('picks up a file that was added to the folder with a rescan', async ({ sess
 });
 
 test('picks up files that were added to and removed from a folder without a rescan', async ({ session: { page }, music }) => {
-  // the folders are looked at every 30 seconds at the least, so each change waits for the next look
+  // the folders are looked at every 10 seconds at the least, so each change waits for the next look
   test.setTimeout(150_000);
   const album = { ...albums[1], title: 'Fresh Start', tracks: [{ title: 'New Note', frequency: 330 }] };
   writeTrack(join(music, 'fresh-start', 'disc-1'), album, 0);

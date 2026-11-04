@@ -34,12 +34,12 @@ export const readDirectoryTimes = async (folder: string): Promise<DirectoryTimes
   return times;
 };
 
-const minInterval = 30_000;
+const minInterval = 10_000;
 const maxInterval = 15 * 60_000;
 /** A look takes about one hundredth of the time */
 const waitPerLookMs = 100;
 
-/** How long to wait before the next look at a folder, from how long the last looks took (the whole tree of folders, a folder that does not answer takes the time it was waited for): a look takes about one hundredth of the time, so a small library on the disk of the computer is looked at every half minute, a big tree or a network or removable drive less often, never rarer than every 15 minutes */
+/** How long to wait before the next look at a folder, from how long the last looks took (the whole tree of folders, a folder that does not answer takes the time it was waited for): a look takes about one hundredth of the time, so a small library on the disk of the computer is looked at every 10 seconds, a big tree or a network or removable drive less often, never rarer than every 15 minutes */
 export const pollInterval = (lookMs: number) => Math.min(maxInterval, Math.max(minInterval, Math.round(lookMs * waitPerLookMs)));
 
 /** What differs between two looks: the folders with another time or that are new are scanned for their own files, a folder that is gone is looked at with what was below it */
