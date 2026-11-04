@@ -7,6 +7,7 @@ import type { Database } from 'sqlite3';
 import scanFolder from './scanFolder';
 import { createTestDatabase } from './test-database';
 import { cancelScansInside } from './scanCancellation';
+import { getTracksInside } from './libraryRepository';
 
 describe('scanFolder', () => {
   let database: Database;
@@ -130,5 +131,52 @@ describe('scanFolder', () => {
     await scanFolder(root, sender);
 
     expect(most).toBe(1);
+  });
+
+  describe('storing in batches', () => {
+    const storedPaths = () => getTracksInside(database, root).then((tracks) => tracks.map((track) => path.basename(track.path)).sort());
+    const writeFiles = (count: number) => Array.from({ length: count }, (_, index) => fs.writeFileSync(path.join(root, `${index}.mp3`), 'not audio'));
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('stores every track, the ones left after the last full batch too', async () => {
+      vi.stubEnv('TUNELLE_SCAN_BATCH_SIZE', '2');
+      writeFiles(5);
+
+      await scanFolder(root, sender);
+
+      expect(await storedPaths()).toEqual(['0.mp3', '1.mp3', '2.mp3', '3.mp3', '4.mp3']);
+    });
+
+    it('does not give a removed folder the tracks of its last batch back', async () => {
+      vi.stubEnv('TUNELLE_SCAN_BATCH_SIZE', '100');
+      writeFiles(3);
+      send.mockImplementation((channel) => channel === 'SCANNING_FILE' && cancelScansInside(root));
+
+      await scanFolder(root, sender);
+
+      expect(await storedPaths()).toEqual([]);
+    });
+
+    it('stores the tracks one by one when a batch cannot be stored, and logs it', async () => {
+      vi.stubEnv('TUNELLE_SCAN_BATCH_SIZE', '2');
+      writeFiles(2);
+      const all = database.all.bind(database);
+      let failed = false;
+      // the first insert is the batch of both
+      vi.spyOn(database, 'all').mockImplementation((query: string, variables: unknown, callback: (error: Error | null, rows: unknown[]) => void) => {
+        if (failed || !query.startsWith('INSERT')) return all(query, variables, callback);
+        failed = true;
+        callback(new Error('disk full'), []);
+        return database;
+      });
+
+      await scanFolder(root, sender);
+
+      expect(await storedPaths()).toEqual(['0.mp3', '1.mp3']);
+      expect(console.error).toHaveBeenCalledWith('Storing a batch of tracks failed, storing them one by one', 'disk full');
+    });
   });
 });
