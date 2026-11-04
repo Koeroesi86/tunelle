@@ -13,6 +13,7 @@ import { memory, record } from './measure';
 
 const tracks = Number(process.env.PERF_TRACKS ?? 2000);
 const idleSeconds = 5;
+const afterSilenceSeconds = 15;
 // a slow runner scans thousands of files for minutes
 const scanTimeout = 300_000;
 
@@ -93,6 +94,10 @@ test('measures the cost of a standing app: the processor while it plays, is paus
     };
   };
 
+  // the probe of the audio wakes the page about fifty times a second, so it listens only while a tone is checked
+  const listenWithProbe = (listening: boolean) => page.evaluate((on) => window.listenWithProbe?.(on), listening);
+  await listenWithProbe(false);
+
   const report: Record<string, unknown> = { tracks: expected };
   await navigate(page, 'Albums');
   report.coversOfAlbums = await page.evaluate(() => {
@@ -114,7 +119,9 @@ test('measures the cost of a standing app: the processor while it plays, is paus
   // the page is not opened again: the filter is gone when it is
   await expect(page.getByText('1 album', { exact: true }).filter({ visible: true })).toBeVisible({ timeout: 60_000 });
   await page.getByRole('button', { name: 'Play Pitch Perfect' }).click();
+  await listenWithProbe(true);
   await expectTone(page, 440);
+  await listenWithProbe(false);
   report.visiblePlaying = await cpu();
   report.memoryVisiblePlaying = await memory(app, page);
 
@@ -132,6 +139,8 @@ test('measures the cost of a standing app: the processor while it plays, is paus
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().forEach((window) => window.show()));
   await player(page).pause();
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().forEach((window) => window.hide()));
+  // Chromium keeps rendering the silent audio graph for about ten seconds after the last sound (the page woke 380 times a second, then 48), and that tail is not what a paused app costs
+  await page.waitForTimeout(afterSilenceSeconds * 1000);
   report.hiddenPaused = await cpu();
   report.memoryHiddenPaused = await memory(app, page);
 
