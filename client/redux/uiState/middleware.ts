@@ -1,9 +1,9 @@
 import type { Track } from '@shared/types/library';
-import { toRadioTrack } from '../../utils/radio-track';
+import { toRadioTrack } from '../../domain/radio-track';
 import { actionMiddleware, onAction } from '../on-action';
 import type { Store } from '../on-action';
 import type { UiState } from '../types';
-import { resolveUpNext } from '../../utils/up-next';
+import { resolveUpNext } from '../../domain/up-next';
 
 const currentIndexOf = ({ nowPlaying, currentSong }: UiState) => nowPlaying.findIndex((track) => track.path === currentSong?.path);
 

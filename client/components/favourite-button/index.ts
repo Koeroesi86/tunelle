@@ -3,7 +3,7 @@ import type { Dispatch } from 'redux';
 import type { FavouriteKey, NewFavourite } from '@shared/types/favourites';
 import type { RootState } from '../../redux/reducers';
 import type { AppAction } from '../../redux/types';
-import { isFavourited } from '../../utils/favourites';
+import { isFavourited } from '../../domain/favourites';
 import FavouriteButton from './FavouriteButton';
 
 const mapState = (state: RootState, { item }: { item: NewFavourite }) => ({

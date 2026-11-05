@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import classNames from 'classnames';
 import { MdPlaylistAdd as AddIcon } from 'react-icons/md';
 import type { Playlist } from '@shared/types/playlists';
-import type { PlaylistSource } from '../../utils/playlists';
+import type { PlaylistSource } from '../../domain/playlists';
 import { useTranslation } from '../../i18n';
 import style from './AddToPlaylist.scss';
 import NameField from '../name-field';

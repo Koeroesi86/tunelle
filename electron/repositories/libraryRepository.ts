@@ -16,7 +16,7 @@ import type {
 import executeQuery from '../database/executeQuery';
 import executeQueries from '../database/executeQueries';
 import { toSortKey } from '../database/sortKey';
-import { getAlbumArtAccents } from '../library/albumArtAccents';
+import { getAlbumArtAccents } from '../library/art/albumArtAccents';
 
 // ! is the escape character of the LIKE below, so % and _ in a folder name match themselves
 const escapeLike = (value: string) => value.replace(/[!%_]/g, '!$&');

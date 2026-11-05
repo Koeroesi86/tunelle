@@ -11,7 +11,7 @@ import { copyOldLibrary, copyOldUserData, getAppName } from './electron/utils/us
 import createWindow from './electron/windows/createWindow';
 import getLoadingWindow from './electron/windows/getLoadingWindow';
 import createDatabase from './electron/database/createDatabase';
-import { libraryErrorMessage } from './electron/library/libraryErrorMessage';
+import { libraryErrorMessage } from './electron/utils/libraryErrorMessage';
 import setupListeners from './electron/listeners/setupListeners';
 import { tunelleOrigin, handleTunelleProtocol, registerTunelleScheme } from './electron/protocols/tunelleProtocol';
 import { createRadioBrowser } from './electron/services/radioBrowser';
@@ -21,7 +21,7 @@ import { getAppUserModelId, setsAppUserModelId } from './electron/appUserModelId
 import { holdSingleInstance } from './electron/windows/singleInstance';
 import { registerDevDesktopEntry, removeDevDesktopEntry } from './electron/services/devDesktopEntry';
 import closeDatabase from './electron/database/closeDatabase';
-import { cancelScans } from './electron/library/scanCancellation';
+import { cancelScans } from './electron/library/scan/scanCancellation';
 import closeSplash from './electron/windows/closeSplash';
 import releaseWindows from './electron/windows/releaseWindows';
 import { getMainTranslator, setPickedLanguage } from './electron/language';

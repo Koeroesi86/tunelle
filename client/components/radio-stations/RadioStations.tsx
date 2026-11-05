@@ -8,7 +8,7 @@ import type { RadioState } from '../../redux/radio/reducer';
 import { useTranslation } from '../../i18n';
 import { useDelayedValue } from '../../hooks/use-delayed-value';
 import { useUpdateEffect } from '../../hooks/use-update-effect';
-import { stationFavourite } from '../../utils/favourites';
+import { stationFavourite } from '../../domain/favourites';
 import type { Translator } from '@shared/locales/translate';
 import FavouriteButton from '../favourite-button';
 import StationLogo from '../station-logo';

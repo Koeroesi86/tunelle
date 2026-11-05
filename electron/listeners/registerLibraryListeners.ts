@@ -1,12 +1,12 @@
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import type { OpenDialogOptions } from 'electron';
 import type { ListenerContext } from './listenerContext';
-import addFoldersToLibrary from '../library/addFoldersToLibrary';
-import removeFolderFromLibrary from '../library/removeFolderFromLibrary';
-import rescanLibrary from '../library/rescanLibrary';
-import openLibraryPath from '../library/openLibraryPath';
-import checkFolders from '../library/checkFolders';
-import pickFolders from '../library/pickFolders';
+import addFoldersToLibrary from '../library/scan/addFoldersToLibrary';
+import removeFolderFromLibrary from '../library/scan/removeFolderFromLibrary';
+import rescanLibrary from '../library/scan/rescanLibrary';
+import openLibraryPath from '../utils/openLibraryPath';
+import checkFolders from '../library/scan/checkFolders';
+import pickFolders from '../utils/pickFolders';
 import { getMainTranslator } from '../language';
 
 const isForced = (payload: unknown) => typeof payload === 'object' && payload !== null && 'forced' in payload && payload.forced === true;

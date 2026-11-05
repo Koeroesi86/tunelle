@@ -5,8 +5,8 @@ import type { Favourite, HistoryItem } from '@shared/types/favourites';
 import type { Playlist } from '@shared/types/playlists';
 import type { Track } from '@shared/types/library';
 import type { RadioStation } from '@shared/types/radio';
-import { stationFavourite, trackFavourite } from '../../utils/favourites';
-import { toRadioTrack } from '../../utils/radio-track';
+import { stationFavourite, trackFavourite } from '../../domain/favourites';
+import { toRadioTrack } from '../../domain/radio-track';
 import HomeView from './HomeView';
 
 vi.mock('../favourite-button', () => ({ default: () => null }));

@@ -7,7 +7,7 @@ import { useTranslation } from '../../i18n';
 import { useLastDefined } from '../../hooks/use-last-defined';
 import { getCoverUrl } from '../../utils/cover-url';
 import { getImageTint } from '../../utils/cover-tint';
-import { albumFavourite } from '../../utils/favourites';
+import { albumFavourite } from '../../domain/favourites';
 import style from './AlbumDetails.scss';
 import FavouriteButton from '../favourite-button';
 import AddToPlaylist from '../add-to-playlist';

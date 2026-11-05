@@ -4,7 +4,7 @@ import type { Track } from '@shared/types/library';
 import type { TrackSort } from '@shared/types/library-query';
 import type { RootState } from '../../redux/reducers';
 import type { AppAction } from '../../redux/types';
-import { selectSearch } from '../../utils/library-query';
+import { selectSearch } from '../../domain/library-query';
 import TrackView from './TrackView';
 
 const mapState = (state: RootState) => ({

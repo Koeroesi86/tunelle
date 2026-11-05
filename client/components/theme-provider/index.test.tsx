@@ -4,7 +4,7 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import reducers from '../../redux/reducers';
 import type { AppAction } from '../../redux/types';
-import { toRadioTrack } from '../../utils/radio-track';
+import { toRadioTrack } from '../../domain/radio-track';
 import type { Track } from '@shared/types/library';
 import ThemeProvider from './index';
 

@@ -16,7 +16,7 @@ vi.mock('electron', () => ({
 
 const watching = vi.hoisted(() => ({ startLibraryWatching: vi.fn(async () => undefined), applyWatchSetting: vi.fn(async () => undefined) }));
 
-vi.mock('../library/libraryWatching', () => watching);
+vi.mock('../library/watch/libraryWatching', () => watching);
 
 vi.mock('../repositories/libraryRepository', () => ({ folderColumns: ['path', 'lastModified'], getFolders: async () => ['/music'] }));
 

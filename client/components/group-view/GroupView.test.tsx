@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { ComponentProps, ReactNode } from 'react';
 import type { GroupSummary, Track } from '@shared/types/library';
 import { createPageCache, storePage } from '../../redux/library/pages';
-import { fetchGroupTracks } from '../../utils/group-tracks';
+import { fetchGroupTracks } from '../../domain/group-tracks';
 import GroupView from './GroupView';
 
 vi.mock('../group-tile', () => ({
@@ -16,7 +16,7 @@ vi.mock('../genre-card', () => ({
     <button onClick={() => open(group)}>{`card ${group.name || unknownName}`}</button>
   ),
 }));
-vi.mock('../../utils/group-tracks', () => ({ fetchGroupTracks: vi.fn() }));
+vi.mock('../../domain/group-tracks', () => ({ fetchGroupTracks: vi.fn() }));
 vi.mock('../album-sort', () => ({ default: () => <div>album sort</div> }));
 vi.mock('../group-albums', () => ({ default: ({ toolbar }: { toolbar: ReactNode }) => <div>{toolbar}group albums</div> }));
 

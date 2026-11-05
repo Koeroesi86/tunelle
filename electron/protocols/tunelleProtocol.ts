@@ -1,8 +1,8 @@
 import path from 'path';
 import { protocol } from 'electron';
 import type { Database } from 'sqlite3';
-import { resolveAlbumArt } from '../library/albumArt';
-import { getCoverAccent } from '../library/albumArtAccents';
+import { resolveAlbumArt } from '../library/art/albumArt';
+import { getCoverAccent } from '../library/art/albumArtAccents';
 import { findTrackPath } from '../repositories/libraryRepository';
 import { libraryRoutes } from './libraryRoutes';
 import { serveRadio } from './radioProtocol';

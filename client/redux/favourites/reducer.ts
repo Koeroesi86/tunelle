@@ -1,6 +1,6 @@
 import type { Reducer } from 'redux';
 import type { Favourite } from '@shared/types/favourites';
-import { isSameFavourite } from '../../utils/favourites';
+import { isSameFavourite } from '../../domain/favourites';
 import { isAppAction } from '../types';
 
 /** The newest first; a mark shows at once and the main process answers with the stored list */

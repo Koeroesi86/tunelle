@@ -13,7 +13,7 @@ import type { PageCache } from '../../redux/library/pages';
 import style from './AlbumView.scss';
 import AlbumViewThumbnail from '../album-view-thumbnail';
 import CoverSizeSlider from '../cover-size-slider';
-import { selectedFolders } from '../../utils/library-query';
+import { selectedFolders } from '../../domain/library-query';
 
 /** The gap between two covers in px, the covers grow to fill the width; matching .row in AlbumView.scss */
 const columnGap = 18;

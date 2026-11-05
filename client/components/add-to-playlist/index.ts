@@ -2,8 +2,8 @@ import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
 import type { RootState } from '../../redux/reducers';
 import type { AppAction } from '../../redux/types';
-import { getSourceTracks } from '../../utils/playlists';
-import type { PlaylistSource } from '../../utils/playlists';
+import { getSourceTracks } from '../../domain/playlists';
+import type { PlaylistSource } from '../../domain/playlists';
 import AddToPlaylist from './AddToPlaylist';
 
 const mapState = (state: RootState) => ({

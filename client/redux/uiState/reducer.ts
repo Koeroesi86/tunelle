@@ -5,7 +5,7 @@ import { knownFolders, parseFolders, restoreAlbumSort, restoreGroupSort, restore
 import { parseRadioQuery } from '@shared/types/radio-query';
 import { isAppAction } from '../types';
 import type { OnlineView, UiState } from '../types';
-import { radioUuidOf } from '../../utils/radio-track';
+import { radioUuidOf } from '../../domain/radio-track';
 import { defaultTheme, parseAccent, restoreTheme } from '../../theme';
 import { defaultNormalization, restoreNormalization } from '../../audio/loudness';
 import { restoreOutputDevice } from '../../audio/output-device';

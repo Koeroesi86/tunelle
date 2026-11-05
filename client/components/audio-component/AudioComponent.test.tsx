@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import type { Track } from '@shared/types/library';
-import { toRadioTrack } from '../../utils/radio-track';
+import { toRadioTrack } from '../../domain/radio-track';
 import type { NormalizationMode } from '../../audio/loudness';
 import AudioComponent from './AudioComponent';
 

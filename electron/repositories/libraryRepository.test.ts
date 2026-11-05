@@ -14,7 +14,7 @@ import {
   getTrackPage,
   saveFolders,
 } from './libraryRepository';
-import addTrack from '../library/addTrack';
+import addTrack from '../library/scan/addTrack';
 import executeQuery from '../database/executeQuery';
 import { createTestDatabase } from '../test-database';
 import type { Track } from '@shared/types/library';

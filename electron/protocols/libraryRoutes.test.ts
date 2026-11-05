@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'sqlite3';
-import addTrack from '../library/addTrack';
+import addTrack from '../library/scan/addTrack';
 import { libraryRoutes } from './libraryRoutes';
 import { createTestDatabase } from '../test-database';
 import type { Track } from '@shared/types/library';

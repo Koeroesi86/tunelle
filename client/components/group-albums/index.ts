@@ -3,7 +3,7 @@ import type { Dispatch } from 'redux';
 import type { Album, Track } from '@shared/types/library';
 import type { RootState } from '../../redux/reducers';
 import type { AppAction } from '../../redux/types';
-import { selectSearch } from '../../utils/library-query';
+import { selectSearch } from '../../domain/library-query';
 import AlbumView from '../album-view/AlbumView';
 
 /** The albums of the open artist, album artist or genre: the list of the albums, fetched for the group */

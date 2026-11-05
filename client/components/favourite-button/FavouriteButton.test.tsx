@@ -4,7 +4,7 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import type { RadioStation } from '@shared/types/radio';
 import reducers from '../../redux/reducers';
-import { stationFavourite } from '../../utils/favourites';
+import { stationFavourite } from '../../domain/favourites';
 import FavouriteButton from './FavouriteButton';
 import ConnectedFavouriteButton from './index';
 

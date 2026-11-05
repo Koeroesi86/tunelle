@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import { FaCaretDown, FaCaretUp } from 'react-icons/fa';
 import type { Track } from '@shared/types/library';
 import type { TrackSort, TrackSortField } from '@shared/types/library-query';
-import { trackFavourite } from '../../utils/favourites';
+import { trackFavourite } from '../../domain/favourites';
 import { useTranslation } from '../../i18n';
 import style from './TrackViewItem.scss';
 import Time from '../time';

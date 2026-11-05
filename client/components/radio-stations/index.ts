@@ -3,7 +3,7 @@ import type { Dispatch } from 'redux';
 import type { RadioQuery, RadioStation } from '@shared/types/radio';
 import type { RootState } from '../../redux/reducers';
 import type { AppAction } from '../../redux/types';
-import { radioUuidOf } from '../../utils/radio-track';
+import { radioUuidOf } from '../../domain/radio-track';
 import RadioStations from './RadioStations';
 
 const mapState = (state: RootState) => ({

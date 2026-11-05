@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { Favourite } from '@shared/types/favourites';
 import type { Track } from '@shared/types/library';
 import type { RadioStation } from '@shared/types/radio';
-import { albumFavourite, stationFavourite, trackFavourite } from '../../utils/favourites';
+import { albumFavourite, stationFavourite, trackFavourite } from '../../domain/favourites';
 import type { FavouritesOrder, FavouritesSource } from '../../redux/types';
 import FavouritesView from './FavouritesView';
 
