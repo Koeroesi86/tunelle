@@ -2,10 +2,8 @@ const { existsSync, readdirSync, readFileSync, statSync } = require('fs')
 const { join } = require('path')
 
 // usage: node scripts/perf-summary.js <folder>
-// the folder has a subfolder for each system (the artifacts of .github/workflows/perf.yml): perf-<system> with the perf-<name>.json files that `npm run perf` writes for the pull request,
-// and base-perf-<system> with the same for the base branch, which are run first on the same runner
-// the runs of PERF_REPEAT (perf-<name>.json, perf-<name>.1.json, ...) count as their median
-// prints the numbers that changed by a fifth or more on top (when the base was measured), then a collapsed markdown table for each file, a row for each number and a column for each system, with the base and the change in percent next to it when the base was measured; the numbers are measurements, not budgets
+// prints the numbers of the perf artifacts of a pull request, the ones that changed by a fifth or more on top
+// See docs/performance-summary.md
 
 const isNumber = value => typeof value === 'number' && Number.isFinite(value)
 

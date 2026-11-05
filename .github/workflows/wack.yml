@@ -1,11 +1,7 @@
 name: Store certification
 
-# The Windows App Certification Kit (the tests that Partner Center runs on a package) on the x64 package, so a problem shows before the submission, and
-# a run of the installed package that shows it does not look for updates on GitHub; the second one is also done for the arm64 package on an arm64 runner
-# (windows-11-arm), where the kit is not installed (its image has the SDK without it, and nothing says it runs on arm64), so the Store package of that
-# processor is installed and started at least. dist.yml calls it with the package it built, so it runs for every pull request and before a release is
-# published; by hand it checks the package of a published release (the latest, or the tag it is given). The package is unsigned, so a copy of it is signed with
-# a certificate made for the run, which the kit needs to install it; the package that is uploaded to the Store is the one of the release.
+# The Windows App Certification Kit on the x64 package, and a run of the installed arm64 package
+# See docs/microsoft-store.md
 on:
   workflow_call:
     inputs:

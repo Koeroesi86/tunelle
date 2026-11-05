@@ -1,12 +1,9 @@
 const { appendFileSync, readFileSync, writeFileSync } = require('fs')
 const { compareVersions } = require('./version')
 
-// usage: node scripts/store-submission.js notes <file> <result> <notes> [<language>=<notes>]...   writes the submission in <file> to <result> with the release notes of its listings set to <notes> and the packages of the earlier submission marked for deletion (all but the one pending upload), or to the notes of the language of the listing (hu for hu-hu), for `msstore submission updateMetadata`
-//        node scripts/store-submission.js decide <status file> <submission file> <tag> <automatic>   says whether the release is submitted now (submit=true or false and the reason, also to $GITHUB_OUTPUT)
-//        node scripts/store-submission.js status <file>                            fails unless the last submission in the output of `msstore submission status` is published
-//        node scripts/store-submission.js check <tag> <file> <package version>...  fails when the release can not go to the Store, with the output of `msstore submission get` in <file>
-// store.yml runs both before it submits a release. The Store takes a version only when it is greater than the one of the last submission and its fourth part is 0
-// (the Store keeps that part for itself, electron-builder adds the 0)
+// usage: node scripts/store-submission.js notes <file> <result> <notes> [<language>=<notes>]...
+//        node scripts/store-submission.js decide <status file> <submission file> <tag> <automatic>
+//        node scripts/store-submission.js status <file> | check <tag> <file> <package version>...   (see docs/microsoft-store.md)
 const tagPattern = /^v(\d{2}\.(?:[1-9]|1[0-2])\.\d{1,5})$/
 
 // the first three parts: the Store writes the version of a package with the fourth part, a release has none

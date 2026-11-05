@@ -319,10 +319,8 @@ const toGroupFilter = (group: AlbumGroup | undefined) => ({
 });
 
 /**
- * A page of the albums, a folder and an album title make one album. The default order is the first track of the album;
- * a sort by the artist or the year takes the value of that first track, and the albums that are equal keep the default order.
- * Limited to the albums of the tracks below the folders when there are any, to the albums with a track of the group when there is one, and to the albums
- * that have a track matching the search (the album keeps all its tracks in its count and its duration), with the number of albums
+ * A page of the albums, a folder and an album title make one album, with the number of albums
+ * See docs/library-queries.md
  */
 export const getAlbumPage = (
   database: Database,

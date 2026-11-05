@@ -4,10 +4,8 @@ const { tmpdir } = require('os')
 const { join } = require('path')
 
 // usage: node scripts/flatpak-repo.js <bundles folder> <repo folder>
-// builds the Flatpak repository (OSTree, static files) from the *.flatpak bundles of a release and signs the commits and the summary with the key in
-// FLATPAK_GPG_PRIVATE_KEY (armored, no passphrase); without a usable key it fails, an unsigned repository is never written. The repository only
-// holds the bundles it was given, so it is built again from the latest release instead of being carried from one release to the next, and the
-// .flatpakrepo and .flatpakref next to it are what `flatpak remote-add` and `flatpak install` read. The runtime comes from Flathub (RuntimeRepo)
+// builds the signed Flatpak repository from the *.flatpak bundles of a release
+// See docs/flatpak-repository.md
 const siteUrl = 'https://koeroesi86.github.io/tunelle/'
 const repoUrl = `${siteUrl}repo/`
 const appId = 'io.github.koeroesi86.Tunelle'

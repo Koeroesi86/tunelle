@@ -1,16 +1,7 @@
 name: Store submission
 
-# Sends a release to the Microsoft Store as a new submission. release.yml calls it after every release it publishes, and it runs weekly (Wednesday) for the latest
-# release, in case a release was skipped because a submission was still in certification: an automatic run commits, skips quietly when there is nothing to do yet
-# (a submission in certification, a release that is not greater than the version in the Store) and fails when somebody has to look (a draft, or a failed submission
-# that is still there). By hand it takes the tag of a release, stops on everything it can not submit, and without "commit" only makes the draft. The environment
-# microsoft-store can ask a reviewer to approve every run before it starts.
-# Both packages of the release (x64 and arm64) are put in one bundle, as the Store developer CLI (msstore) takes .msix, .msixbundle and .msixupload and not the
-# .appx of the release; the Store signs the package itself, so the bundle needs no signature. The submission is made as a draft, its release notes are set to a
-# generic text, and with "commit" it is then submitted. A draft is left to be looked at in Partner Center, not changed there: a submission made through the API is
-# changed only through the API (a change in Partner Center ends its use by the API, and may leave it in an error state), so the draft is deleted in Partner Center
-# and the workflow run again with "commit". The secrets of the Microsoft Entra application (Manager role in Partner Center) are in the environment
-# microsoft-store, and the Store product ID is its variable MS_STORE_PRODUCT_ID. Certification then runs on the side of Microsoft.
+# Sends a release to the Microsoft Store as a new submission, after every release, weekly and by hand
+# See docs/microsoft-store.md
 on:
   workflow_call:
     inputs:
