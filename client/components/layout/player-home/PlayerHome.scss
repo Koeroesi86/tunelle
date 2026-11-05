@@ -63,7 +63,7 @@ html, body {
   --title-bar-height: 40px;
   --player-bar-height: 88px;
 
-  // the panels let the blur through only when there is one (see windowBackdrop.ts)
+  // the panels let the blur through only when there is one (see window-backdrop.ts)
   --panel-background: var(--panel-solid);
 
   &.blurred {

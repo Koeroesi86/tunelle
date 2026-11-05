@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import LoadingSplash from './LoadingSplash';
 
-// the main process fills these elements by id while it checks for updates (see splashPreload.ts), the ids are the contract
+// the main process fills these elements by id while it checks for updates (see splash-preload.ts), the ids are the contract
 describe('LoadingSplash', () => {
   const html = renderToStaticMarkup(<LoadingSplash locals={{ title: 'Tunelle' }} />);
   const page = new DOMParser().parseFromString(html, 'text/html');

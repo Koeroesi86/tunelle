@@ -1,6 +1,6 @@
 # Library queries
 
-## The albums page (`getAlbumPage` in `electron/repositories/libraryRepository.ts`)
+## The albums page (`getAlbumPage` in `electron/repositories/library-repository.ts`)
 
 A folder and an album title make one album. The default order is the first track of the album; a sort by the artist or the year takes the value of that first track, and the albums that are equal keep the default order.
 

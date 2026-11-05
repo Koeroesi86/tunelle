@@ -5,7 +5,7 @@ export interface ElectronApi {
   send: (channel: string, payload?: unknown) => void;
   on: <T = unknown>(channel: string, listener: (payload: T) => void) => void;
   getPathForFile: (file: File) => string;
-  /** Something blurs behind the translucent parts of the window (see windowBackdrop.ts) */
+  /** Something blurs behind the translucent parts of the window (see window-backdrop.ts) */
   blurred: boolean;
 }
 

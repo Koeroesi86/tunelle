@@ -3,7 +3,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { parseFile } from 'music-metadata';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createRadioBrowser } from '../../electron/services/radioBrowser';
+import { createRadioBrowser } from '../../electron/services/radio-browser';
 import { albums, startDirectory, stations, writeLibrary } from './screenshot-fixtures';
 
 describe('writeLibrary', () => {

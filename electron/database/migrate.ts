@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { Database } from 'sqlite3';
-import executeQuery from './executeQuery';
+import executeQuery from './execute-query';
 
 const migrationName = /^(\d+)-.+\.sql$/;
 

@@ -5,7 +5,7 @@
     "scripts/**/*",
     "index.ts",
     "electron/preload.ts",
-    "electron/splashPreload.ts",
+    "electron/splash-preload.ts",
     "client/app.tsx",
     // webpack entry that renders the loading splash html
     "client/htmlGenerator.tsx",

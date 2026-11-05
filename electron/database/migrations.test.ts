@@ -5,7 +5,7 @@ import path from 'path';
 import sqlite3 from 'sqlite3';
 import type { Database } from 'sqlite3';
 import { migrate } from './migrate';
-import executeQuery from './executeQuery';
+import executeQuery from './execute-query';
 import { createTestDatabase } from '../test-database';
 
 const migrationsPath = path.resolve(__dirname, '../../migrations');

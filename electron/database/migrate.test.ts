@@ -3,7 +3,7 @@ import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import sqlite3 from 'sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import executeQuery from './executeQuery';
+import executeQuery from './execute-query';
 import { migrate, NewerLibraryError } from './migrate';
 
 const openDatabase = () =>
