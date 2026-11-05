@@ -1,5 +1,5 @@
 import type { Database } from 'sqlite3';
-import { getAlbumPage, getAlbumTracks, getGroupPage, getLibrary, getTrackPage, trackColumns } from '../repositories/library-repository';
+import { findTrackFormat, getAlbumPage, getAlbumTracks, getGroupPage, getLibrary, getTrackPage, trackColumns } from '../repositories/library-repository';
 import { parseAlbumSort, parseFolders, parseGroupKind, parseGroupSort, parseSearch, parseTrackSort } from '@shared/types/library-query';
 import type { AlbumGroup, LibraryQuery } from '@shared/types/library-query';
 import { clamp } from '@shared/utils/clamp';
@@ -43,7 +43,7 @@ const fromLibrary =
     if (!result) return Promise.resolve(new Response(undefined, { status: 400 }));
 
     return result.then(
-      (body) => Response.json(body),
+      (body) => (body === undefined ? new Response(undefined, { status: 404 }) : Response.json(body)),
       () => new Response(undefined, { status: 500 })
     );
   };
@@ -52,6 +52,11 @@ export const libraryRoutes: Record<string, ReturnType<typeof fromLibrary>> = {
   '/library': fromLibrary((database, params) => {
     const query = toLibraryQuery(params, parseTrackSort);
     return query && getLibrary(database, query, trackColumns);
+  }),
+  // the format and the loudness of one track, which the lists do not carry
+  '/library/track': fromLibrary((database, params) => {
+    const trackPath = params.get('path');
+    return trackPath === null ? undefined : findTrackFormat(database, trackPath);
   }),
   '/library/tracks': fromLibrary((database, params) => {
     const { offset, limit } = toWindow(params);

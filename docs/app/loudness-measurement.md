@@ -17,13 +17,13 @@ The player levels tracks with the ReplayGain tags of a file (`trackGain`, `album
 
 A row counts only while its `fileModified` and `fileSize` equal the ones of the track in `library`, the test the scan uses to skip an unchanged file. A changed file makes its row stale and it is ignored. Rows are deleted with their tracks (`deleteTracks`, `deleteTracksInside`).
 
-## What a query returns
+## Where the player gets it
 
-The queries that list tracks (`getLibrary`, `getTrackPage`, `getAlbumTracks`, `getTracksInside`) and `findTrackFormat` return, for each of the four loudness columns, the tag first and the measured value for what the tags lack: `COALESCE(library.x, (SELECT x FROM track_loudness ...))` (`effectiveLoudness` in `electron/repositories/library-repository.ts`). The player takes the gain as it takes the tags (`normalizationGain` in `client/audio/loudness.ts`).
+The lists of the library (`/library`, `/library/tracks`, `/library/album`) do not carry the loudness: it would be a lookup for each row of thousands. The player reads it for the track that plays and the one that loads next, from `GET tunelle://app/library/track?path=` (`findTrackFormat` in `electron/repositories/library-repository.ts`, `useTrackLoudness` in `client/hooks/use-track-loudness.ts`), which answers with the format and the four loudness values, or 404 for a track the library does not have. A track plays as it is until the answer comes, and keeps the values it was given (a playlist or favourite snapshot) when there is none.
 
-- It is a lookup by primary key for each row returned, not a join, as the queries name the columns of `library` without a table. `getTrackPage` cuts the page first, so the lookups are for the rows of the page: on 50 000 tracks a page at offset 40 000 took 41 ms before and 40 ms with measured rows.
-- `getLibrary` with the four columns returns every track, so it does four lookups for each of them: 86 ms before, 96 ms with an empty `track_loudness` and 147 ms when two thirds of the tracks have a measured row.
-- The JSON is not in these lists: `findLoudnessAnalysis` reads it for one track.
+For each of the four values the answer is the tag first and the measured value for what the tags lack: `COALESCE(library.x, (SELECT x FROM track_loudness ...))` (`effectiveLoudness`). A query that names the loudness columns itself (`getLibrary(database, query, ['path', 'trackGain'])`) gets the same, a lookup by primary key for each row it returns.
+
+The JSON is not in these answers: `findLoudnessAnalysis` reads it for one track.
 
 ## The measurement (`client/loudness/`)
 

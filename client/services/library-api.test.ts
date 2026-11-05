@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AlbumSummary, Track } from '@shared/types/library';
-import { fetchAlbum, fetchAlbumPage, fetchGroupPage, fetchLibrary, fetchTrackPage } from './library-api';
+import { fetchAlbum, fetchAlbumPage, fetchGroupPage, fetchLibrary, fetchTrackFormat, fetchTrackPage } from './library-api';
 
 const track = (path: string, picture: string | null = null): Track => ({
   path,
@@ -126,5 +126,17 @@ describe('library api', () => {
     respond({}, false);
 
     await expect(fetchTrackPage(0, unsorted)).rejects.toThrow('500');
+  });
+
+  it('fetches the format and the loudness of a track by its path, and has none when the library answers with an error or not at all', async () => {
+    respond({ codec: 'FLAC', trackGain: -6 });
+    expect(await fetchTrackFormat('/m/a b.flac')).toEqual({ codec: 'FLAC', trackGain: -6 });
+    expect(fetch).toHaveBeenCalledWith('tunelle://app/library/track?path=%2Fm%2Fa%20b.flac');
+
+    respond({}, false);
+    expect(await fetchTrackFormat('/m/a.flac')).toBeUndefined();
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    expect(await fetchTrackFormat('/m/a.flac')).toBeUndefined();
   });
 });

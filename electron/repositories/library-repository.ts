@@ -21,7 +21,7 @@ import { getAlbumArtAccents } from '../library/art/album-art-accents';
 // ! is the escape character of the LIKE below, so % and _ in a folder name match themselves
 const escapeLike = (value: string) => value.replace(/[!%_]/g, '!$&');
 
-/** Every column of a track, for the ones that need them all */
+/** The columns of a track that a list shows. The loudness is not among them: a lookup for each of thousands of rows is cost for nothing, the player asks for the one track (`findTrackFormat`) */
 export const trackColumns = [
   'path',
   'artist',
@@ -40,10 +40,6 @@ export const trackColumns = [
   'bitrate',
   'vbr',
   'lossless',
-  'trackGain',
-  'albumGain',
-  'trackPeak',
-  'albumPeak',
 ] as const satisfies readonly (keyof Track)[];
 
 const loudnessColumns = ['trackGain', 'albumGain', 'trackPeak', 'albumPeak'];
@@ -84,7 +80,7 @@ export const deleteFolders = (database: Database, folders: Pick<Folder, 'path'>[
   );
 
 /** Remove the tracks below a folder from the library, the files stay on disk */
-/** The format and the loudness the library holds of a track, undefined for a track it does not have */
+/** The format and the loudness of a track as the player takes them (the tags first, else what was measured), undefined for a track the library does not have */
 export const findTrackFormat = (database: Database, trackPath: string) =>
   executeQuery<AudioFormat & Loudness>(database, {
     query: `SELECT codec, bitDepth, sampleRate, bitrate, vbr, lossless, ${columnList(loudnessColumns)} FROM library WHERE path = ?`,
@@ -218,8 +214,7 @@ export const getTrackPage = (database: Database, offset: number, limit: number, 
 
   return Promise.all([
     executeQuery<Track>(database, {
-      // the page is cut first, so what was measured is looked up for the tracks of the page and not for the ones before it
-      query: `SELECT ${columnList(trackColumns)} FROM (SELECT * FROM library ${filter.where} ORDER BY ${toOrderBy(trackOrders, query.sort, 'path')} LIMIT ? OFFSET ?) AS library ORDER BY ${toOrderBy(trackOrders, query.sort, 'path')}`,
+      query: `SELECT ${columnList(trackColumns)} FROM library ${filter.where} ORDER BY ${toOrderBy(trackOrders, query.sort, 'path')} LIMIT ? OFFSET ?`,
       variables: [...filter.variables, limit, offset],
     }),
     countTotal(database, `SELECT COUNT(*) AS total FROM library ${filter.where}`, filter.variables),
