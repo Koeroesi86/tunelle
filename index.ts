@@ -21,6 +21,7 @@ import { getAppUserModelId, setsAppUserModelId } from './electron/app-user-model
 import { holdSingleInstance } from './electron/windows/single-instance';
 import { registerDevDesktopEntry, removeDevDesktopEntry } from './electron/services/dev-desktop-entry';
 import closeDatabase from './electron/database/close-database';
+import { sendIfAlive } from './electron/utils/send-if-alive';
 import { cancelScans } from './electron/library/scan/scan-cancellation';
 import { backgroundQueue } from './electron/library/tasks/background-queue';
 import { registerLoudness } from './electron/library/loudness/loudness-source';
@@ -251,12 +252,11 @@ app
   })
   .then((d) => {
     initWindow();
-    setupListeners(d, windows, radio, updates);
-    backgroundQueue.start();
-
     // the hidden window of the measurement is a window too: the app does not quit while it is open
-    const loudness = registerLoudness(d, loudnessLocation);
+    const loudness = registerLoudness(d, loudnessLocation, (status) => windows.main && sendIfAlive(windows.main.webContents, 'LOUDNESS_STATUS', status));
     windows.main?.on('closed', loudness.stop);
+    setupListeners(d, windows, radio, updates, loudness);
+    backgroundQueue.start();
 
     // the native sqlite3 addon aborts the process when it is torn down with the database open, so it is closed before the app exits
     let databaseClosed = false;

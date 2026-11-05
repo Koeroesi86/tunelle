@@ -36,10 +36,10 @@ ITU-R BS.1770 / EBU R128 at 48 kHz, the rate `decodeAudioData` resamples to:
 
 ## Measuring in the background
 
-`registerLoudness` (`electron/library/loudness/loudness-source.ts`) puts the measurement on the [background queue](task-queue.md) as a source of tasks: one track a task, in the order of the paths, until every track has a valid row, then it rests for a minute before it looks for new ones (and for the ones that did not answer).
+`registerLoudness` (`electron/library/loudness/loudness-source.ts`) puts the measurement on the [background queue](task-queue.md) as a source of tasks: one track a task, in the order of the paths, until every track has a valid row, then it rests for a minute before it looks for new ones (and for the ones that did not answer). A scan that ends during the rest ends it, as the scan may have added tracks.
 
 - **What is measured:** a track with no row, a row of another file than the library has now, or a row of an older `analysisVersion` (`findTracksToMeasure`). A failed row is not tried again until the file changes or the version rises. Every track is analysed; the gain and the peak are stored only for a track whose tags lack them (`computeGain`), so the tags always win.
-- **When it runs** (all must hold, asked before each track): no scan is running and none has run for 30 s (`TUNELLE_LOUDNESS_IDLE_SECONDS`, see [building.md](../development/building.md)), nothing plays (the player reports it with `PLAYBACK_STATE`), the computer is not on battery, and the setting `measureLoudness` is not `false` (on by default; the settings screen follows in a later change). A scan that starts waits for the file in progress, which takes a few seconds, not for the whole queue.
+- **When it runs** (all must hold, asked before each track): no scan is running and none has run for 30 s (`TUNELLE_LOUDNESS_IDLE_SECONDS`, see [building.md](../development/building.md)), nothing plays (the player reports it with `PLAYBACK_STATE`), the computer is not on battery, and the setting `measureLoudness` is not `false` (on by default, the switch is in the settings). A scan that starts waits for the file in progress, which takes a few seconds, not for the whole queue.
 - **Folders that are away:** the tracks of a library folder that cannot be read are left for a later pass (`findOfflineFolders`).
 - **The decoder** is a hidden window (`loudness-window.ts`) that loads `loudness.html` (`client/loudness/page.ts`, built by webpack like the main page) with a small preload. It fetches the track from `tunelle://app/track`, decodes it with `decodeAudioData` and measures it, so every format the player plays works and nothing native is packaged. It runs at a low priority (`os.setPriority`), one file at a time, and is made again after 50 files to give back the memory of the decoded sound. A window that crashes, or does not answer in five minutes, is closed.
 - **Results:** `measured`, or `failed` with `undecodable` (the browser cannot decode it), `silent` (no block above the gate), `crashed` (the window died) or `too-large`: a file longer than 45 minutes (`maxSeconds`) is not decoded as a whole, as the decoded sound of 60 minutes of stereo took 2.9 GB of the window. A file that cannot be fetched (a drive that went away) or that does not answer is not stored and is tried again after the rest.
@@ -53,6 +53,13 @@ ITU-R BS.1770 / EBU R128 at 48 kHz, the rate `decodeAudioData` resamples to:
 - The gain is stored on the row of each track (`albumGain`, `albumPeak`) with the number of tracks it was pooled from (`albumTracks`, migration `015`). `findAlbumsToPool` finds the albums whose tracks do not all have the number of tracks the album has now (new, a track added or taken away, a file measured again), and the ones that have a pooled gain and lost a track's analysis, which lose the gain. An album with no block above the gate is marked as pooled without a gain.
 - The queue task runs when a track is measured (at most every 5 s), at the end of each pass over the library and when the app starts, as a scan can have changed the library while it was closed; it waits while a scan runs. The tags win here too: a track with album tags keeps them, the others take the pooled gain.
 
+## In the settings
+
+The tile "Measure loudness" (`client/components/settings/measure-loudness/`) has the switch (`measureLoudness`, saved with the other settings and read by the main process before each track), the progress and "Clear measured values".
+
+- The progress is `LoudnessProgress` (`shared/types/loudness.d.ts`): the tracks, those with a measurement of the file as it is, and those that could not be measured (`getLoudnessProgress`). The tile asks for it (`LOUDNESS_STATUS_LOAD`) when it opens and when the switch changes, and the main process sends it (`LOUDNESS_STATUS`) at most every 2 s while it measures, at the end of a pass and after a clear.
+- "Clear measured values" (`LOUDNESS_CLEAR`) deletes every row of `track_loudness`, including the pooled album gains, and starts the measurement again from the first track (`restart`); with the switch off the tracks stay unmeasured and play at their tag gains.
+
 ## Not built yet
 
-The settings screen and the progress, the route for the JSON, and the decoding of long files in pieces follow in the pull requests listed in #173.
+The route for the JSON and the histogram on the now playing view, and the decoding of long files in pieces follow in the pull requests listed in #173.

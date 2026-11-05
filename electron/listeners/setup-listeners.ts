@@ -33,8 +33,8 @@ const registrars: ((context: ListenerContext) => void)[] = [
   registerMediaPermission,
 ];
 
-function setupListeners(database: Database, windows: AppWindows, radio: RadioBrowser, updates: UpdateManager) {
-  registrars.forEach((register) => register({ database, windows, radio, updates }));
+function setupListeners(database: Database, windows: AppWindows, radio: RadioBrowser, updates: UpdateManager, loudness: ListenerContext['loudness']) {
+  registrars.forEach((register) => register({ database, windows, radio, updates, loudness }));
 }
 
 export default setupListeners;

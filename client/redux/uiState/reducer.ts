@@ -56,6 +56,8 @@ const initialState: UiState = {
   groupSort: undefined,
   artistPhotos: true,
   watchFolders: true,
+  measureLoudness: true,
+  loudnessStatus: undefined,
   openGroup: undefined,
   groupFilter: '',
   libraryFolders: [],
@@ -121,6 +123,12 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, artistPhotos: action.payload.enabled };
     case 'SET_WATCH_FOLDERS':
       return { ...state, watchFolders: action.payload.enabled };
+    case 'SET_MEASURE_LOUDNESS':
+      return { ...state, measureLoudness: action.payload.enabled };
+    case 'LOUDNESS_STATUS':
+      return { ...state, loudnessStatus: action.payload };
+    case 'CLEAR_MEASURED_LOUDNESS':
+      return { ...state, loudnessStatus: state.loudnessStatus ? { ...state.loudnessStatus, measured: 0, failed: 0 } : undefined };
     case 'SET_GROUP_SORT':
       return { ...state, groupSort: action.payload.sort };
     case 'SET_GROUP_FILTER':
@@ -297,6 +305,8 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
         ...('artistPhotos' in settings && { artistPhotos: settings.artistPhotos !== false }),
         // only a saved off turns the watching off
         ...('watchFolders' in settings && { watchFolders: settings.watchFolders !== false }),
+        // only a saved off turns the measurement off
+        ...('measureLoudness' in settings && { measureLoudness: settings.measureLoudness !== false }),
         ...('groupSort' in settings && { groupSort: restoreGroupSort(settings.groupSort) }),
         ...('libraryFolders' in settings && { libraryFolders: parseFolders(settings.libraryFolders) }),
         // a saved filter or sort that is not valid is dropped

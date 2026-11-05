@@ -399,6 +399,27 @@ describe('uiState reducer', () => {
       expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { outputDevice: 'dac' as never } } }, picked).outputDevice).toBeUndefined();
     });
 
+    it('measures the loudness unless it is turned off, and keeps what was saved', () => {
+      const off = run({ type: 'SET_MEASURE_LOUDNESS', payload: { enabled: false } });
+
+      expect(initial.measureLoudness).toBe(true);
+      expect(off.measureLoudness).toBe(false);
+      expect(run({ type: 'SET_MEASURE_LOUDNESS', payload: { enabled: true } }, off).measureLoudness).toBe(true);
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { measureLoudness: false } } }).measureLoudness).toBe(false);
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { measureLoudness: 'x' as never } } }, off).measureLoudness).toBe(true);
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { volume: 0.1 } } }, off).measureLoudness).toBe(false);
+    });
+
+    it('keeps how far the measurement is, which is not saved, and shows nothing measured after the values are cleared', () => {
+      const status = { total: 10, measured: 4, failed: 1 };
+      const told = run({ type: 'LOUDNESS_STATUS', payload: status });
+
+      expect(initial.loudnessStatus).toBeUndefined();
+      expect(told.loudnessStatus).toEqual(status);
+      expect(run({ type: 'CLEAR_MEASURED_LOUDNESS', payload: {} }, told).loudnessStatus).toEqual({ total: 10, measured: 0, failed: 0 });
+      expect(run({ type: 'CLEAR_MEASURED_LOUDNESS', payload: {} }).loudnessStatus).toBeUndefined();
+    });
+
     it('watches the library folders unless it is turned off, and keeps what was saved', () => {
       const off = run({ type: 'SET_WATCH_FOLDERS', payload: { enabled: false } });
 
