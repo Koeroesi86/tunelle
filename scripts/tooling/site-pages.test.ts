@@ -76,7 +76,7 @@ describe('renderPages', () => {
       [...html.matchAll(/(?:src|href)="((?:\.\.\/)?(?:[\w-]+\/)?[\w-]+\.(?:css|js|svg|webp|png))"/g)].map(([, file]) => [path, file])
     );
 
-    expect(files.filter(([, file]) => !existsSync(join(site, file.replace('../', '')))).map(([path, file]) => `${path} ${file}`)).toEqual([]);
+    expect(files.filter(([, file]) => !existsSync(join(site, file.replace(/^\.\.\//, '')))).map(([path, file]) => `${path} ${file}`)).toEqual([]);
   });
 });
 
