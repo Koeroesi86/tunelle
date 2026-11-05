@@ -1,5 +1,5 @@
 import { existsSync } from 'fs';
-import { join, resolve } from 'path';
+import { join, posix, resolve } from 'path';
 import { describe, expect, it } from 'vitest';
 import { defaultLanguage, loadLanguages, loadTemplates, pagePath, relativeLink, renderPage, renderPages } from './site-pages';
 
@@ -61,7 +61,7 @@ describe('renderPages', () => {
 
     expect(links).toHaveLength(1);
     links.forEach(([, href]) => {
-      const target = join(folder, href.endsWith('/') || href === '' ? `${href}index.html` : href);
+      const target = posix.join(folder, href.endsWith('/') || href === '' ? `${href}index.html` : href);
       expect(pages.map(([other]) => other)).toContain(target);
     });
   });
