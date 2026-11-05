@@ -10,7 +10,7 @@
     // webpack entry that renders the loading splash html
     "client/htmlGenerator.tsx",
     // vitest alias for the stylesheets
-    "test-utils-style-stub.ts",
+    "client/test/test-utils-style-stub.ts",
     // the website, loaded by site/index.html
     "site/**",
     // run by Playwright (npm run test:e2e), the helpers they import are reached from there

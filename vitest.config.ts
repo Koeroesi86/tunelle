@@ -6,7 +6,7 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: /^@shared\//, replacement: `${path.resolve(__dirname, 'shared')}/` },
-      { find: /^.+\.scss$/, replacement: path.resolve(__dirname, 'test-utils-style-stub.ts') },
+      { find: /^.+\.scss$/, replacement: path.resolve(__dirname, 'client/test/test-utils-style-stub.ts') },
     ],
   },
   test: {
@@ -16,7 +16,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['electron/**/*.ts', 'shared/**/*.ts', 'client/**/*.{ts,tsx}', 'scripts/**/*.{js,ts}', 'index.ts'],
-      exclude: ['**/*.test.{ts,tsx}', 'electron/test-database.ts', 'electron/test-utility-process.ts'],
+      exclude: ['**/*.test.{ts,tsx}', 'client/test/**', 'electron/test-database.ts', 'electron/test-utility-process.ts'],
       // just below the current coverage, so it can not drop; raise them as tests are added
       thresholds: { statements: 77, branches: 81, functions: 75, lines: 79 },
       reporter: ['text-summary', 'json-summary', 'lcov'],
@@ -36,7 +36,7 @@ export default defineConfig({
         test: {
           name: 'frontend',
           environment: 'jsdom',
-          setupFiles: ['test-setup-frontend.ts'],
+          setupFiles: ['client/test/test-setup-frontend.ts'],
           include: ['client/**/*.test.{ts,tsx}'],
         },
       },

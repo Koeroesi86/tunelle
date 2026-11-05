@@ -3,7 +3,7 @@ import { spawnSync } from 'child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
-import { startDirectory } from '../scripts/screenshots/screenshot-fixtures';
+import { startDirectory } from '../../scripts/screenshots/screenshot-fixtures';
 import { installActiveAudio } from './active-audio';
 import { installAudioProbe } from './audio-probe';
 import { albums, writeLibrary } from './library';
@@ -35,7 +35,7 @@ interface Fixtures {
 
 const tracksInLibrary = albums.flatMap((album) => album.tracks).length;
 
-const root = resolve(__dirname, '..');
+const root = resolve(__dirname, '../..');
 
 /** Closes the app, and kills it (with its processes) when it has not closed in thirty seconds: the profile is thrown away anyway, and a quit that hangs would take the whole run with it */
 export const quit = async (app: ElectronApplication) => {

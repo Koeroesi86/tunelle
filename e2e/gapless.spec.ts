@@ -1,10 +1,10 @@
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { addFolder, expect, test } from './app';
-import { albums, writeTrack } from './library';
-import { clearProbe, expectTone, longestGap } from './audio';
-import { player } from './player';
+import { addFolder, expect, test } from './support/app';
+import { albums, writeTrack } from './support/library';
+import { clearProbe, expectTone, longestGap } from './support/audio';
+import { player } from './support/player';
 
 // the probe measures in windows of 1024 frames (about 21 ms): a silent window is a gap, and without gapless playback one or two are heard at every change of track
 const noGap = 0;

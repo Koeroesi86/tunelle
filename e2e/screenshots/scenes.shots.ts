@@ -3,9 +3,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { albums, startDirectory, writeLibrary } from '../../scripts/screenshots/screenshot-fixtures';
-import { installActiveAudio } from '../active-audio';
-import { installAudioProbe } from '../audio-probe';
-import { addFolder, launchApp, navigate, ui } from '../app';
+import { installActiveAudio } from '../support/active-audio';
+import { installAudioProbe } from '../support/audio-probe';
+import { addFolder, launchApp, navigate, ui } from '../support/app';
 
 // the pictures of site/screenshots (npm run screenshots [-- -g scene]), one test each, in the order of the list: a scene starts from an album playing, and from what the ones before left
 // the same pictures every time: a library of generated tagged files and a made up station directory (scripts/screenshots/screenshot-fixtures.ts), a clean profile, English (SCREENSHOTS_LANG=hu for another language of shared/locales/), reduced motion, 1360 x 850,

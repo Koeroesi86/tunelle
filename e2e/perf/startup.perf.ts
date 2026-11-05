@@ -2,9 +2,9 @@ import { expect, type Page } from '@playwright/test';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { addFolder, navigate, quit, test } from '../app';
-import { expectTone } from '../audio';
-import { player } from '../player';
+import { addFolder, navigate, quit, test } from '../support/app';
+import { expectTone } from '../support/audio';
+import { player } from '../support/player';
 import { writeLargeLibrary } from './large-library';
 import { memory, record } from './measure';
 

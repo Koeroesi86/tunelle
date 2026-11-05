@@ -20,7 +20,7 @@ const forbidden = [
   [/\.tar\.gz$/, 'archive (the sources of sqlite3 in its deps folder: the Windows App Certification Kit flags it)'],
   [/\.(test|spec)\.[jt]sx?$/, 'test'],
   [/^\/(electron|client|scripts|coverage|\.cache|\.claude|\.github)\//, 'source or tooling folder'],
-  [/^\/(index|test-utils-style-stub)\.ts$/, 'source file']
+  [/^\/index\.ts$/, 'source file']
 ]
 // the required files, so that a changed glob in package.json can not silently drop them
 const required = ['/package.json', '/out/index.js', '/out/electron/preload.js', '/out/electron/splashPreload.js', '/build/index.html', '/build/loading.html', '/migrations']

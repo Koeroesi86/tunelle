@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-// the tests start the built app (npm run build first), see e2e/app.ts; the pictures of the website are taken with the same setup (npm run screenshots)
+// the tests start the built app (npm run build first), see e2e/support/app.ts; the pictures of the website are taken with the same setup (npm run screenshots)
 export default defineConfig({
   // one app at a time: a window per test, and the audio is measured against a clock that a second app would load
   workers: 1,

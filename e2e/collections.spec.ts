@@ -1,5 +1,5 @@
-import { expect, navigate, quit, test } from './app';
-import { player } from './player';
+import { expect, navigate, quit, test } from './support/app';
+import { player } from './support/player';
 
 // what the listener builds up in the app and expects to find again: playlists, favourites, the history, the settings
 test('keeps a playlist of an album, and plays it', async ({ start, session }) => {

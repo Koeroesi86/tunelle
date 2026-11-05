@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { planLibrary, writePlan } from '../../scripts/perf/perf-library';
-import { albums as toneAlbums, writeLibrary as writeToneLibrary, writeTrack } from '../library';
+import { albums as toneAlbums, writeLibrary as writeToneLibrary, writeTrack } from '../support/library';
 
 // the profile of a real library, in numbers only (scripts/perf/perf-profile.ts): the same shape of albums, tags, formats, pictures and folders in every run
 const profile = JSON.parse(readFileSync(join(__dirname, 'library-profile.json'), 'utf8'));
