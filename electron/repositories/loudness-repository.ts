@@ -8,8 +8,8 @@ const parseAnalysis = (json: string): LoudnessAnalysis => JSON.parse(json);
 export const saveTrackLoudness = (database: Database, row: TrackLoudness) =>
   executeQuery(database, {
     query: `INSERT OR REPLACE INTO track_loudness
-      (path, status, trackGain, trackPeak, albumGain, albumPeak, integratedLufs, loudnessRange, fileModified, fileSize, analysisVersion, measuredAt, reason, analysis)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (path, status, trackGain, trackPeak, albumGain, albumPeak, fileModified, fileSize, analysisVersion, reason, analysis)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     variables: [
       row.path,
       row.status,
@@ -17,12 +17,9 @@ export const saveTrackLoudness = (database: Database, row: TrackLoudness) =>
       row.trackPeak,
       row.albumGain,
       row.albumPeak,
-      row.integratedLufs,
-      row.loudnessRange,
       row.fileModified,
       row.fileSize,
       row.analysisVersion,
-      row.measuredAt,
       row.reason,
       row.analysis ? JSON.stringify(row.analysis) : null,
     ],

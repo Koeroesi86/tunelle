@@ -8,12 +8,9 @@ CREATE TABLE IF NOT EXISTS track_loudness (
   trackPeak REAL,
   albumGain REAL,
   albumPeak REAL,
-  integratedLufs REAL,
-  loudnessRange REAL,
   fileModified INTEGER,
   fileSize INTEGER,
   analysisVersion INTEGER NOT NULL,
-  measuredAt INTEGER NOT NULL,
   reason TEXT,
   analysis TEXT
 );

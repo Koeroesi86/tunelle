@@ -10,10 +10,9 @@ The player levels tracks with the ReplayGain tags of a file (`trackGain`, `album
 |---|---|
 | `status`, `reason` | `measured`, or `failed` with why (a failed row is not measured again until the file changes) |
 | `trackGain`, `trackPeak`, `albumGain`, `albumPeak` | in the units of the tags: dB at -18 LUFS, and a ratio of full scale (a peak can be above 1) |
-| `integratedLufs`, `loudnessRange` | for the views, so no JSON is parsed for them |
 | `fileModified`, `fileSize` | the stat of the file that was measured |
 | `analysisVersion` | the algorithm and the JSON shape (`analysisVersion` in `client/loudness/summarise.ts`) |
-| `analysis` | the JSON of `LoudnessAnalysis` (`shared/types/loudness.d.ts`): a loudness curve of at most 256 points and a histogram of the 400 ms blocks |
+| `analysis` | the JSON of `LoudnessAnalysis` (`shared/types/loudness.d.ts`): the integrated loudness, the loudness range, the peak, a curve of at most 256 points and a histogram of the 400 ms blocks. A view that shows them reads the JSON of the one track |
 
 A row counts only while its `fileModified` and `fileSize` equal the ones of the track in `library`, the test the scan uses to skip an unchanged file. A changed file makes its row stale and it is ignored. Rows are deleted with their tracks (`deleteTracks`, `deleteTracksInside`).
 

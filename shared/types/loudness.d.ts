@@ -24,13 +24,10 @@ export interface TrackLoudness {
   trackPeak: number | null;
   albumGain: number | null;
   albumPeak: number | null;
-  integratedLufs: number | null;
-  loudnessRange: number | null;
   /** The stat of the file that was measured, a row counts while the library has the same */
   fileModified: number | null;
   fileSize: number | null;
   analysisVersion: number;
-  measuredAt: number;
   reason: string | null;
   analysis: LoudnessAnalysis | null;
 }
