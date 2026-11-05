@@ -2,12 +2,13 @@ import fs from 'fs';
 import type { WebContents } from 'electron';
 import type { Database } from 'sqlite3';
 import type { Folder } from '../types/library';
-import { deleteTracks, folderColumns, getFolders, getLibrary, saveFolders } from './repositories/libraryRepository';
+import { deleteTracks, getFolders, getLibrary, saveFolders } from './repositories/libraryRepository';
 import { isInsideFolder, reportOfflineFolders, withTimeout } from './folderAvailability';
 import scanFolders from './scanFolders';
 import { storeAlbumArtAccents } from './albumArtAccents';
 import { quitSignal } from './scanCancellation';
 import { findMissingTracks } from './missingTracks';
+import { folderColumns } from './constants/library';
 
 const readModifiedTimes = async (folders: Folder[]) => {
   const times = await Promise.all(folders.map(async (folder) => [folder.path, await withTimeout(fs.promises.stat(folder.path), undefined)] as const));

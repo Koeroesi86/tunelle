@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { coverSizes, restoreCoverSize } from './cover-size';
+import { restoreCoverSize } from './cover-size';
+import { coverSizes } from '../constants/cover-size';
 
 describe('restoreCoverSize', () => {
   it('keeps a size of the range', () => {

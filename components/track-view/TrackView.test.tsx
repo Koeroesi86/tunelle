@@ -2,8 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { Track } from '../../types/library';
 import type { TrackSort } from '../../types/library-query';
-import { createPageCache, pageSize, storePage } from '../../client/redux/library/pages';
+import { createPageCache, storePage } from '../../client/redux/library/pages';
 import TrackView from './TrackView';
+import { pageSize } from '../../client/constants/library';
 
 // the heart is tested with its own component, it needs the store
 vi.mock('../favourite-button', () => ({ default: () => null }));

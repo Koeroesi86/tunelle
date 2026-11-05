@@ -5,7 +5,6 @@ import {
   deleteFolders,
   deleteTracks,
   findTrackPath,
-  folderColumns,
   getFolders,
   getAlbumPage,
   getAlbumTracks,
@@ -20,6 +19,7 @@ import executeQuery from '../executeQuery';
 import { createTestDatabase } from '../test-database';
 import type { Track } from '../../types/library';
 import type { AlbumSort, GroupQuery, GroupSortField, LibraryQuery, TrackSort } from '../../types/library-query';
+import { folderColumns } from '../constants/library';
 
 const unsorted = { sort: undefined, folders: [] };
 

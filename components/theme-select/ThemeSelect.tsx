@@ -1,8 +1,9 @@
 import classNames from 'classnames';
 import type { ThemeMode, ThemeSettings } from '../../types/theme';
 import { useTranslation } from '../../client/i18n';
-import { accentPresets, autoAccent, defaultAccent } from '../../client/theme';
+import { accentPresets, defaultAccent } from '../../client/theme';
 import style from './ThemeSelect.scss';
+import { autoAccent } from '../../client/constants/theme';
 
 interface ThemeSelectProps {
   theme: ThemeSettings;

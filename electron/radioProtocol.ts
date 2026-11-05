@@ -1,5 +1,6 @@
-import { openRadioStream, stationUuid } from './radioProxy';
+import { openRadioStream } from './radioProxy';
 import type { RadioStreamDeps } from './radioProxy';
+import { stationUuid } from './constants/radio';
 
 /** Plays a station: the audio as it arrives without the ICY metadata, and the connection to the station closes when the player cancels or aborts the request */
 export const serveRadio = async (uuid: string, signal: AbortSignal, deps: RadioStreamDeps) => {

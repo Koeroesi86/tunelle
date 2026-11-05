@@ -6,10 +6,10 @@ import { getCoverAccent } from './albumArtAccents';
 import { findTrackPath } from './repositories/libraryRepository';
 import { libraryRoutes } from './libraryRoutes';
 import { serveRadio } from './radioProtocol';
-import { stationUuid } from './radioProxy';
 import type { RadioStreamDeps } from './radioProxy';
 import type { RadioArtImage } from './services/radioArt';
 import { notFound, serveFile } from './serveFile';
+import { stationUuid } from './constants/radio';
 
 const scheme = 'tunelle';
 const host = 'app';

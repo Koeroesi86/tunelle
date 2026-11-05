@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import classNames from 'classnames';
 import { MdArrowDownward as DescendingIcon, MdArrowUpward as AscendingIcon, MdPlayArrow as PlayIcon } from 'react-icons/md';
 import type { RadioOption, RadioQuery, RadioStation } from '../../types/radio';
-import { countRadioFilters, parseRadioQuery, radioBitrates, radioPageSize, radioSortFields } from '../../types/radio-query';
+import { countRadioFilters, parseRadioQuery, radioBitrates, radioSortFields } from '../../types/radio-query';
 import type { RadioSortField } from '../../types/radio-query';
 import type { RadioState } from '../../client/redux/radio/reducer';
 import { useTranslation } from '../../client/i18n';
@@ -13,6 +13,7 @@ import type { Translator } from '../../locales/translate';
 import FavouriteButton from '../favourite-button';
 import StationLogo from '../station-logo';
 import style from './RadioStations.scss';
+import { radioPageSize } from '../../shared/constants/radio';
 
 interface RadioStationsProps {
   radio: RadioState;

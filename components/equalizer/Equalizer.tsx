@@ -6,7 +6,8 @@ import type { MessageKey } from '../../locales/translate';
 import Slider from '../slider/Slider';
 import EqualizerCurve from './EqualizerCurve';
 import { useLatest } from '../../client/hooks/use-latest';
-import { bandType, defaultGains, equalizerBands, equalizerPresets, formatGain, matchingPreset, maxGain, minGain } from '../../client/audio/equalizer';
+import { bandType, defaultGains, equalizerPresets, formatGain, matchingPreset } from '../../client/audio/equalizer';
+import { equalizerBands, minGain, maxGain } from '../../client/constants/equalizer';
 
 // the names of the presets of client/audio/equalizer.ts
 const presetNames: Record<string, MessageKey> = {

@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ThemeSettings } from '../../types/theme';
-import { accentTokens, autoAccent, resolveTheme } from '../../client/theme';
+import { accentTokens, resolveTheme } from '../../client/theme';
 import { useCoverAccent } from '../../client/hooks/use-cover-accent';
+import { autoAccent } from '../../client/constants/theme';
 import './ThemeProvider.scss';
 
 interface ThemeProviderProps {

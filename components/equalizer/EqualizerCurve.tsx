@@ -2,7 +2,8 @@ import { useRef } from 'react';
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 import classNames from 'classnames';
 import style from './EqualizerCurve.scss';
-import { clampGain, equalizerBands, formatGain, frequencyText, gainStep, maxGain, minGain } from '../../client/audio/equalizer';
+import { clampGain, formatGain, frequencyText, gainStep } from '../../client/audio/equalizer';
+import { equalizerBands, minGain, maxGain } from '../../client/constants/equalizer';
 
 interface EqualizerCurveProps {
   gains: number[];

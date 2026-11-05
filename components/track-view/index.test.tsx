@@ -4,8 +4,8 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import type { Track } from '../../types/library';
 import reducers from '../../client/redux/reducers';
-import { pageSize } from '../../client/redux/library/pages';
 import TrackView from './index';
+import { pageSize } from '../../client/constants/library';
 
 vi.mock('../favourite-button', () => ({ default: () => null }));
 vi.mock('../add-to-playlist', () => ({ default: () => null }));

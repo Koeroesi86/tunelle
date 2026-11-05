@@ -1,7 +1,7 @@
 import { FaTh, FaThLarge } from 'react-icons/fa';
-import { coverSizes } from '../../client/utils/cover-size';
 import { useTranslation } from '../../client/i18n';
 import style from './CoverSizeSlider.scss';
+import { coverSizes } from '../../client/constants/cover-size';
 
 interface CoverSizeSliderProps {
   /** The least width of a cover or tile in px */

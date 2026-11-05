@@ -4,10 +4,11 @@ import type { WebContents } from 'electron';
 import type { Database } from 'sqlite3';
 import type { Track } from '../types/library';
 import addTrack from './addTrack';
-import { folderColumns, getFolders, getLibrary, saveFolders } from './repositories/libraryRepository';
+import { getFolders, getLibrary, saveFolders } from './repositories/libraryRepository';
 import removeFolderFromLibrary from './removeFolderFromLibrary';
 import { createTestDatabase } from './test-database';
 import { trackScan } from './scanCancellation';
+import { folderColumns } from './constants/library';
 
 const track = (trackPath: string): Track => ({
   path: trackPath,

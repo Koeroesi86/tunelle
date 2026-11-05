@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Equalizer from './Equalizer';
-import { defaultGains, equalizerBands, equalizerPresets } from '../../client/audio/equalizer';
+import { defaultGains, equalizerPresets } from '../../client/audio/equalizer';
+import { equalizerBands } from '../../client/constants/equalizer';
 
 const createFilter = () => {
   const filter = {

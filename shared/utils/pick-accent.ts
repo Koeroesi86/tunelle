@@ -1,12 +1,10 @@
-import { toHex } from '../theme';
+import { toHex } from './to-hex';
+import { sampleSize } from '../constants/accent';
 
 /** Pixels the picker looks at: dark, light and grey ones say nothing about the colour of a cover */
 const minLightness = 0.2;
 const maxLightness = 0.85;
 const minSaturation = 0.3;
-
-/** Size of the downscaled cover the colour is picked from */
-export const sampleSize = 32;
 
 /** Steps per channel when similar colours are counted together */
 const levels = 8;

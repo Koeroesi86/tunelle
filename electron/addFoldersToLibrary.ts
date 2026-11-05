@@ -1,9 +1,10 @@
 import fs from 'fs';
 import type { Database } from 'sqlite3';
 import type { WebContents } from 'electron';
-import { deleteFolders, folderColumns, getFolders, getFoldersInside, saveFolders } from './repositories/libraryRepository';
+import { deleteFolders, getFolders, getFoldersInside, saveFolders } from './repositories/libraryRepository';
 import scanFolders from './scanFolders';
 import { refreshLibraryWatching } from './libraryWatching';
+import { folderColumns } from './constants/library';
 
 interface AddedFile {
   path: string;

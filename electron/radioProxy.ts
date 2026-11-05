@@ -41,8 +41,6 @@ const openUpstream = (address: string, signal: AbortSignal, redirects = maxRedir
     });
   });
 
-export const stationUuid = /^[0-9a-zA-Z-]{1,64}$/;
-
 /** The audio of a station without its ICY metadata, whose titles go to `onTitle`; aborting the signal closes the upstream connection */
 export const openRadioStream = async (uuid: string, signal: AbortSignal, { resolveStream, onTitle }: RadioStreamDeps) => {
   const upstream = await openUpstream(await resolveStream(uuid), signal);

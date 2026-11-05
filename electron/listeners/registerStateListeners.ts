@@ -1,11 +1,12 @@
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { ListenerContext } from './listenerContext';
-import { folderColumns, getFolders } from '../repositories/libraryRepository';
+import { getFolders } from '../repositories/libraryRepository';
 import { getSettings, saveSettings } from '../repositories/settingsRepository';
 import { setPickedLanguage } from '../language';
 import { applyThemeMode } from '../theme';
 import { applyWatchSetting, startLibraryWatching } from '../libraryWatching';
+import { folderColumns } from '../constants/library';
 
 // the window can be closed while the database answers
 const sendIfAlive = (sender: WebContents, channel: string, payload: unknown) => {

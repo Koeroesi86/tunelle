@@ -1,5 +1,4 @@
-/** The number of items in a page of the library, the unit of fetching and caching */
-export const pageSize = 100;
+import { pageSize } from '../../constants/library';
 
 /** The pages kept in a cache, so scrolling through a very large library does not grow the memory */
 export const maxCachedPages = 30;

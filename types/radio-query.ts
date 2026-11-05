@@ -4,9 +4,6 @@ import { isRecord } from '../shared/utils/is-record';
 const maxQueryLength = 100;
 const maxOffset = 10000;
 
-/** How many stations a search answers with, and how far the next page of a narrowed list starts */
-export const radioPageSize = 60;
-
 /** The fields the stations can be sorted by, mapped to the `order` values of the directory; a sort from outside is checked against these and never put into a URL as it is */
 export const radioSortOrders = {
   popularity: 'clickcount',
