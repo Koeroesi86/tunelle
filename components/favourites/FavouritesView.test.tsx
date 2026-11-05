@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { Favourite } from '../../types/favourites';
 import type { Track } from '../../types/library';
 import type { RadioStation } from '../../types/radio';
 import { albumFavourite, stationFavourite, trackFavourite } from '../../client/favourites';
+import type { FavouritesOrder, FavouritesSource } from '../../client/redux/types';
 import FavouritesView from './FavouritesView';
 
 vi.mock('../favourite-button', () => ({ default: () => null }));
@@ -32,6 +34,15 @@ const track: Track = {
 const station: RadioStation = { uuid: 'abc', name: 'Jazz FM', country: 'Hungary', tags: ['jazz'], codec: 'MP3', bitrate: 128 };
 const album = { id: '/music - Album', title: 'Album', path: '/music', artist: 'Artist', cover: null, duration: 20, year: 2020, trackCount: 2 };
 
+type ViewProps = Parameters<typeof FavouritesView>[0];
+
+/** Keeps the choices the way the store does */
+const StatefulView = (props: Omit<ViewProps, 'source' | 'order' | 'setSource' | 'setOrder'>) => {
+  const [source, setSource] = useState<FavouritesSource>('local');
+  const [order, setOrder] = useState<FavouritesOrder>('recent');
+  return <FavouritesView {...props} source={source} order={order} setSource={setSource} setOrder={setOrder} />;
+};
+
 const stored = (item: ReturnType<typeof trackFavourite>, available = true, addedAt = 1): Favourite => ({ ...item, addedAt, available });
 const openOnline = () => fireEvent.click(screen.getByRole('button', { name: /Online/ }));
 
@@ -42,7 +53,7 @@ describe('FavouritesView', () => {
   });
 
   const renderView = (favourites: Favourite[], playTracks = vi.fn(), playStation = vi.fn()) => {
-    render(<FavouritesView favourites={favourites} playTracks={playTracks} playStation={playStation} />);
+    render(<StatefulView favourites={favourites} playTracks={playTracks} playStation={playStation} />);
     return { playTracks, playStation };
   };
 

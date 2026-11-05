@@ -33,6 +33,10 @@ const baseProps = {
   playTracks: vi.fn(),
   loadPage: vi.fn(),
   setSort: vi.fn(),
+  selectedTracks: {},
+  toggleTrack: vi.fn(),
+  selectTracks: vi.fn(),
+  clearSelection: vi.fn(),
 };
 
 describe('TrackView', () => {
@@ -64,6 +68,44 @@ describe('TrackView', () => {
     expect((screen.getByText('Clear selection') as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByText('Play selected') as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByText('Select All') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('marks the selected tracks and tells the store about a click, a clear and a play', () => {
+    const toggleTrack = vi.fn();
+    const clearSelection = vi.fn();
+    const playTracks = vi.fn();
+    const selectedTracks = { [track(1).path]: track(1), [track(3).path]: track(3) };
+    render(
+      <TrackView
+        {...baseProps}
+        tracks={firstPage}
+        selectedTracks={selectedTracks}
+        toggleTrack={toggleTrack}
+        clearSelection={clearSelection}
+        playTracks={playTracks}
+      />
+    );
+
+    expect(screen.getByText('Title 1').closest('.trackViewItem')?.classList.contains('selected')).toBe(true);
+    expect(screen.getByText('Title 2').closest('.trackViewItem')?.classList.contains('selected')).toBe(false);
+    fireEvent.click(screen.getByText('Title 2'));
+    fireEvent.click(screen.getByText('Play selected'));
+    fireEvent.click(screen.getByText('Clear selection'));
+
+    expect(toggleTrack).toHaveBeenCalledWith(track(2));
+    expect(playTracks).toHaveBeenCalledWith([track(1), track(3)]);
+    expect(clearSelection).toHaveBeenCalled();
+  });
+
+  it('plays a track that is double clicked and selects only it', () => {
+    const selectTracks = vi.fn();
+    const playTracks = vi.fn();
+    render(<TrackView {...baseProps} tracks={firstPage} selectTracks={selectTracks} playTracks={playTracks} />);
+
+    fireEvent.doubleClick(screen.getByText('Title 2'));
+
+    expect(playTracks).toHaveBeenCalledWith([track(2)]);
+    expect(selectTracks).toHaveBeenCalledWith([track(2)]);
   });
 
   it('requests the pages missing for the window', () => {

@@ -15,12 +15,16 @@ const mapState = (state: RootState) => ({
   selected: state.uiState.libraryFolders,
   folders: state.folders,
   search: selectSearch(state),
+  selectedTracks: state.uiState.selectedTracks,
 });
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   playTracks: (tracks: Track[]) => dispatch({ type: 'PLAY_TRACKS', payload: { tracks } }),
   loadPage: (page: number) => dispatch({ type: 'LOAD_LIBRARY_PAGE', payload: { kind: 'tracks', page } }),
   setSort: (sort: TrackSort | undefined) => dispatch({ type: 'SET_TRACK_SORT', payload: { sort } }),
+  toggleTrack: (track: Track) => dispatch({ type: 'TOGGLE_TRACK_SELECTION', payload: { track } }),
+  selectTracks: (tracks: Track[]) => dispatch({ type: 'SELECT_TRACKS', payload: { tracks } }),
+  clearSelection: () => dispatch({ type: 'CLEAR_TRACK_SELECTION', payload: {} }),
 });
 
 export default connect(mapState, mapDispatch)(TrackView);

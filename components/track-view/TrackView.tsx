@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import type { Folder, Track } from '../../types/library';
 import { cycleSort } from '../../types/library-query';
 import type { TrackSort, TrackSortField } from '../../types/library-query';
@@ -32,9 +32,29 @@ interface TrackViewProps {
   playTracks: (tracks: Track[]) => void;
   loadPage: (page: number) => void;
   setSort: (sort: TrackSort | undefined) => void;
+  /** The selected tracks by their path */
+  selectedTracks: Record<string, Track>;
+  toggleTrack: (track: Track) => void;
+  selectTracks: (tracks: Track[]) => void;
+  clearSelection: () => void;
 }
 
-const TrackView = ({ currentSong, playTracks, tracks, offlineFolders, sort, selected, folders, search, loadPage, setSort }: TrackViewProps) => {
+const TrackView = ({
+  currentSong,
+  playTracks,
+  tracks,
+  offlineFolders,
+  sort,
+  selected,
+  folders,
+  search,
+  loadPage,
+  setSort,
+  selectedTracks,
+  toggleTrack,
+  selectTracks,
+  clearSelection,
+}: TrackViewProps) => {
   const { t } = useTranslation();
   const headerLabels = useMemo<TrackLabels>(
     () => ({
@@ -47,7 +67,6 @@ const TrackView = ({ currentSong, playTracks, tracks, offlineFolders, sort, sele
     }),
     [t]
   );
-  const [selectedTracks, setSelectedTracks] = useState<Map<string, Track>>(new Map());
   const { separator, listing: scrolled } = useScrollSeparator(style.scrolled);
   const { listing, firstIndex, lastIndex, offsetTop, height } = useWindowedList({ itemCount: tracks.total ?? 0, rowHeight });
   const setListing = useCallback(
@@ -67,31 +86,19 @@ const TrackView = ({ currentSong, playTracks, tracks, offlineFolders, sort, sele
     if (listing.current) listing.current.scrollTop = 0;
   }, [listing, queryKey]);
 
+  const selectedCount = Object.keys(selectedTracks).length;
   const sortBy = useCallback((field: TrackSortField) => setSort(cycleSort(sort, field)), [setSort, sort]);
-
-  const toggleTrack = useCallback(
-    (track: Track) =>
-      setSelectedTracks((selected) => {
-        const next = new Map(selected);
-        if (!next.delete(track.path)) next.set(track.path, track);
-        return next;
-      }),
-    []
-  );
 
   const doubleClickTrack = useCallback(
     (track: Track) => {
       playTracks([track]);
-      setSelectedTracks(new Map([[track.path, track]]));
+      selectTracks([track]);
     },
-    [playTracks]
+    [playTracks, selectTracks]
   );
 
   // the pages that are not fetched yet are not in the cache, the whole library is fetched for the selection
-  const selectAll = () =>
-    fetchLibrary(query)
-      .then((library) => setSelectedTracks(new Map(library.map((track) => [track.path, track]))))
-      .catch(console.error);
+  const selectAll = () => fetchLibrary(query).then(selectTracks).catch(console.error);
 
   return (
     <div className={style.tracks}>
@@ -106,7 +113,7 @@ const TrackView = ({ currentSong, playTracks, tracks, offlineFolders, sort, sele
               <TrackViewItem
                 key={track.path}
                 track={track}
-                isSelected={selectedTracks.has(track.path)}
+                isSelected={Object.hasOwn(selectedTracks, track.path)}
                 isCurrent={currentSong?.path === track.path}
                 isOffline={isOffline(track.path, offlineFolders)}
                 clickTrack={toggleTrack}
@@ -121,11 +128,11 @@ const TrackView = ({ currentSong, playTracks, tracks, offlineFolders, sort, sele
       <div className={style.footer}>
         <span className={style.count}>{t('tracks.count', { count: tracks.total ?? 0 })}</span>
         <div className={style.controls}>
-          <button disabled={selectedTracks.size === 0} onClick={() => setSelectedTracks(new Map())}>
+          <button disabled={selectedCount === 0} onClick={clearSelection}>
             {t('tracks.clearSelection')}
           </button>
           <button onClick={selectAll}>{t('tracks.selectAll')}</button>
-          <button className={style.play} disabled={selectedTracks.size === 0} onClick={() => playTracks([...selectedTracks.values()])}>
+          <button className={style.play} disabled={selectedCount === 0} onClick={() => playTracks(Object.values(selectedTracks))}>
             {t('tracks.playSelected')}
           </button>
         </div>

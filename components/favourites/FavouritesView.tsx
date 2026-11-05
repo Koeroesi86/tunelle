@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import classNames from 'classnames';
 import { MdAlbum, MdFavorite, MdMusicNote, MdPlayArrow as PlayIcon, MdRadio, MdShuffle, MdWarningAmber } from 'react-icons/md';
 import type { Favourite } from '../../types/favourites';
 import type { Track } from '../../types/library';
 import type { RadioStation } from '../../types/radio';
+import type { FavouritesOrder as Order, FavouritesSource as Source } from '../../client/redux/types';
 import { toRadioTrack } from '../../client/radio-track';
 import { getFavouriteTracks } from '../../client/favourite-tracks';
 import { shuffled } from '../../client/shuffled';
@@ -13,9 +13,6 @@ import style from './FavouritesView.scss';
 import AudioFormatBadge from '../audio-format-badge';
 import FavouriteButton from '../favourite-button';
 import AddToQueue from '../add-to-queue';
-
-type Source = 'local' | 'online';
-type Order = 'recent' | 'name' | 'details';
 
 const sources: Source[] = ['local', 'online'];
 const orders: Order[] = ['recent', 'name', 'details'];
@@ -28,6 +25,10 @@ interface FavouritesViewProps {
   favourites: Favourite[];
   playTracks: (tracks: Track[]) => void;
   playStation: (station: RadioStation) => void;
+  source: Source;
+  order: Order;
+  setSource: (source: Source) => void;
+  setOrder: (order: Order) => void;
 }
 
 const describe = (favourite: Favourite, { t }: Translator) => {
@@ -137,11 +138,9 @@ interface FavouritesViewProps {
   playStation: (station: RadioStation) => void;
 }
 
-const FavouritesView = ({ favourites, playTracks, playStation }: FavouritesViewProps) => {
+const FavouritesView = ({ favourites, playTracks, playStation, source, order, setSource, setOrder }: FavouritesViewProps) => {
   const translator = useTranslation();
   const { t } = translator;
-  const [source, setSource] = useState<Source>('local');
-  const [order, setOrder] = useState<Order>('recent');
 
   // a single station plays as the station of the radio, anything else is a queue of what the favourites play
   const play = ([first, ...others]: Favourite[], shuffle = false) =>

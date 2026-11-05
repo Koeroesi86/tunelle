@@ -8,11 +8,13 @@ import Equalizer from './Equalizer';
 
 const mapState = (state: RootState) => ({
   gains: state.uiState.equalizer,
+  showFaders: state.uiState.showFaders,
 });
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   setGain: (index: number, value: number | string) => dispatch({ type: 'SET_GAIN', payload: { index, value } }),
   setGains: (gains: number[]) => dispatch({ type: 'SET_GAINS', payload: { gains } }),
+  setShowFaders: (show: boolean) => dispatch({ type: 'SET_SHOW_FADERS', payload: { show } }),
 });
 
 const connector = connect(mapState, mapDispatch);

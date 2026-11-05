@@ -23,6 +23,10 @@ export interface OpenGroup {
 }
 export type OnlineView = 'radio';
 
+/** The side of the favourites that is shown, and the order it is listed in */
+export type FavouritesSource = 'local' | 'online';
+export type FavouritesOrder = 'recent' | 'name' | 'details';
+
 /** The groups of the sidebar that open and close */
 export type NavigationGroup = 'library' | 'playlists';
 export type Tab = 'home' | 'now-playing' | 'local' | 'online-sources' | 'favourites' | 'playlist' | 'equalizer' | 'settings';
@@ -84,6 +88,14 @@ export interface UiState extends PersistedSettings {
   groupFilter: string;
   /** The app opens on the home screen, the tab is not saved */
   tab: Tab;
+  /** The side and the order of the favourites, and whether the equalizer shows its faders; they are kept while the app is open and not saved */
+  favouritesSource: FavouritesSource;
+  favouritesOrder: FavouritesOrder;
+  showFaders: boolean;
+  /** The tracks selected in the track list by their path; a change of the sort, the folders or the search is another list and clears it, not saved */
+  selectedTracks: Record<string, Track>;
+  /** The outputs that are there, kept up to date as they are plugged and unplugged; not saved */
+  outputDevices: OutputDevice[];
   /** The playlist the playlist tab shows */
   playlistId: number | null;
   scanningFolder: string | null;
@@ -175,6 +187,13 @@ export type AppAction =
   | PayloadAction<'SET_GROUP_FILTER', { filter: string }>
   | PayloadAction<'OPEN_GROUP', { group: OpenGroup }>
   | EmptyAction<'CLOSE_GROUP'>
+  | PayloadAction<'SET_FAVOURITES_SOURCE', { source: FavouritesSource }>
+  | PayloadAction<'SET_FAVOURITES_ORDER', { order: FavouritesOrder }>
+  | PayloadAction<'SET_SHOW_FADERS', { show: boolean }>
+  | PayloadAction<'TOGGLE_TRACK_SELECTION', { track: Track }>
+  | PayloadAction<'SELECT_TRACKS', { tracks: Track[] }>
+  | EmptyAction<'CLEAR_TRACK_SELECTION'>
+  | PayloadAction<'OUTPUT_DEVICES_LOADED', { devices: OutputDevice[] }>
   | PayloadAction<'SET_TRACK_SORT', { sort: TrackSort | undefined }>
   | PayloadAction<'SET_ALBUM_SORT', { sort: AlbumSort | undefined }>
   | PayloadAction<'SET_COVER_SIZE', { size: number }>

@@ -597,3 +597,69 @@ describe('uiState reducer', () => {
     });
   });
 });
+
+describe('uiState reducer, the state the views keep while the app is open', () => {
+  const selected = (...paths: string[]) => run({ type: 'SELECT_TRACKS', payload: { tracks: paths.map(track) } });
+
+  it('keeps the side and the order of the favourites, starting at the local side and the newest', () => {
+    expect(initial).toMatchObject({ favouritesSource: 'local', favouritesOrder: 'recent' });
+
+    const state = run({ type: 'SET_FAVOURITES_ORDER', payload: { order: 'name' } }, run({ type: 'SET_FAVOURITES_SOURCE', payload: { source: 'online' } }));
+
+    expect(state).toMatchObject({ favouritesSource: 'online', favouritesOrder: 'name' });
+  });
+
+  it('keeps whether the equalizer shows its faders, hidden at first', () => {
+    expect(initial.showFaders).toBe(false);
+    expect(run({ type: 'SET_SHOW_FADERS', payload: { show: true } }).showFaders).toBe(true);
+  });
+
+  it('keeps the output devices that are there', () => {
+    const devices = [{ id: 'a1', label: 'USB DAC' }];
+
+    expect(initial.outputDevices).toEqual([]);
+    expect(run({ type: 'OUTPUT_DEVICES_LOADED', payload: { devices } }).outputDevices).toEqual(devices);
+  });
+
+  it('selects and unselects a track by its path, and selects a list of them in place of the earlier ones', () => {
+    const toggled = run({ type: 'TOGGLE_TRACK_SELECTION', payload: { track: track('/a') } }, selected('/b'));
+    expect(Object.keys(toggled.selectedTracks)).toEqual(['/b', '/a']);
+
+    expect(Object.keys(run({ type: 'TOGGLE_TRACK_SELECTION', payload: { track: track('/a') } }, toggled).selectedTracks)).toEqual(['/b']);
+    expect(Object.keys(selected('/c', '/d').selectedTracks)).toEqual(['/c', '/d']);
+    expect(run({ type: 'CLEAR_TRACK_SELECTION' }, selected('/a')).selectedTracks).toEqual({});
+  });
+
+  it.each([
+    ['another sort', { type: 'SET_TRACK_SORT', payload: { sort: { field: 'title', direction: 'asc' } } }],
+    ['another search', { type: 'SET_LIBRARY_SEARCH', payload: { search: 'blue' } }],
+    ['other folders', { type: 'SET_LIBRARY_FOLDERS', payload: { folders: ['/music'] } }],
+  ] as [string, AppAction][])('drops the selection with %s, as it is another list', (_name, action) => {
+    expect(run(action, selected('/a')).selectedTracks).toEqual({});
+  });
+
+  it('keeps the selection when the search is set to what it is', () => {
+    const state = run({ type: 'SET_LIBRARY_SEARCH', payload: { search: 'blue' } }, selected('/a'));
+
+    expect(
+      Object.keys(run({ type: 'SET_LIBRARY_SEARCH', payload: { search: 'blue' } }, { ...state, selectedTracks: selected('/a').selectedTracks }).selectedTracks)
+    ).toEqual(['/a']);
+  });
+
+  it('drops the selection with a view change only when that drops a search', () => {
+    expect(Object.keys(run({ type: 'SET_VIEW', payload: { view: 'albums' } }, selected('/a')).selectedTracks)).toEqual(['/a']);
+    expect(run({ type: 'SET_VIEW', payload: { view: 'albums' } }, { ...selected('/a'), librarySearch: 'blue' }).selectedTracks).toEqual({});
+  });
+
+  it('drops the folders the library lost, with the selection', () => {
+    const state = { ...selected('/a'), libraryFolders: ['/gone', '/music'] };
+
+    expect(run({ type: 'STORE_FOLDERS', payload: { folders: [{ path: '/music' } as never] } }, state).selectedTracks).toEqual({});
+  });
+
+  it('drops the tracks of a removed folder, and only those', () => {
+    const state = run({ type: 'REMOVE_FOLDER', payload: { path: '/music' } }, selected('/music/a.flac', '/music2/b.flac', '/other/c.flac'));
+
+    expect(Object.keys(state.selectedTracks)).toEqual(['/music2/b.flac', '/other/c.flac']);
+  });
+});

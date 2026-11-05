@@ -13,6 +13,7 @@ const mapState = (state: RootState) => ({
   volume: state.uiState.volume,
   normalization: state.uiState.normalization,
   outputDevice: state.uiState.outputDevice,
+  devices: state.uiState.outputDevices,
 });
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
