@@ -262,6 +262,10 @@ h3 {
   font-size: 1.2rem;
 }
 
+main > .lead {
+  margin-left: 0;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
