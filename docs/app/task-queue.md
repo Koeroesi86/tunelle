@@ -15,6 +15,11 @@ The queue runs one task at a time. The most important goes first; tasks of the s
 
 A running task is not interrupted by a more important one: it ends, and the queue goes on with the new one. A task that takes long looks at its `signal` between its steps, which is aborted when the queue stops (`stop` also drops the tasks that wait, and answers when the running one is over).
 
+## Tasks on the queue
+
+- The loudness measurement is a source (`loudness-source.ts`), at priority 1.
+- Picking the colours of the album pictures (`queueAlbumArtAccents`) is a task of the kind `album-art` at priority 2, queued at the end of a scan and run once no scan is going on. A scan no longer waits for it.
+
 ## Work outside the queue
 
 A scan of the library runs by itself (`rescan-scheduler.ts`, `scan-cancellation.ts`) and tells the queue with `begin('scan')`, which comes back with a function that ends it: `trackScan` and `rescanLibrary` do. `isBusy(kind)` and `idleFor(kind)` tell what is going on, so work that must wait for the disk can wait for the scans to be over for a while. `idleFor` counts from the start of the queue for a kind that has not been busy yet.

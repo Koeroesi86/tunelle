@@ -5,7 +5,7 @@ import type { Database } from 'sqlite3';
 import type { WebContents } from 'electron';
 import type { Track } from '@shared/types/library';
 import { addTracks, readBatchSize } from './add-tracks';
-import { storeAlbumArtAccents } from '../art/album-art-accents';
+import { queueAlbumArtAccents } from '../art/album-art-accents';
 import { createTrackReader, ReadTimeoutError } from '../reading/track-reader';
 import { getTracksInside } from '../../repositories/library-repository';
 import isSupported, { isSupportedCodec } from '../../utils/is-supported';
@@ -153,8 +153,7 @@ const scanFiles = async (folderPath: string, sender: WebContents, deep: boolean,
     for (const [progress, fileName] of files.entries()) await scanFile(fileName, progress);
     const unread = await retryTimedOut(timedOut);
     await writer.flush();
-    // a failure leaves the pictures without a colour, which the next scan or start picks again
-    await storeAlbumArtAccents(database).catch((error) => console.error('Picking the colours of the album art failed', error));
+    queueAlbumArtAccents(database);
     return unread;
   };
 
