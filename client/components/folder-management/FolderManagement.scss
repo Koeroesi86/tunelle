@@ -1,0 +1,159 @@
+@use '../../styles/settings-tile' as *;
+
+.folderManagement {
+  @include tile;
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 28px;
+
+    .sectionTitle {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .count {
+      flex: 1 1 auto;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .addItems {
+      display: inline-flex;
+      flex: none;
+      align-items: center;
+      gap: 4px;
+      height: 28px;
+      padding: 0 12px 0 8px;
+      color: var(--accent-contrast);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 0;
+      border-radius: 14px;
+      background-color: var(--accent);
+
+      svg {
+        font-size: 16px;
+      }
+
+      &:hover {
+        filter: brightness(1.1);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--text);
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  .folders {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    .folder {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 40px;
+      padding: 0 8px 0 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      background-color: var(--overlay-faint);
+      transition: background-color 0.1s ease-in-out;
+
+      &:hover {
+        background-color: var(--overlay);
+      }
+
+      .icon {
+        flex: none;
+        font-size: 20px;
+        color: var(--accent);
+      }
+
+      .path {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-width: 0;
+        line-height: 16px;
+
+        .name,
+        .parent {
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        .name {
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .parent {
+          font-size: 11px;
+          color: var(--text-muted);
+        }
+      }
+
+      &.offline .icon,
+      &.offline .path {
+        opacity: 0.5;
+      }
+
+      .offlineLabel {
+        display: inline-flex;
+        flex: none;
+        align-items: center;
+        gap: 4px;
+        color: var(--text-soft);
+      }
+
+      .remove {
+        display: inline-flex;
+        flex: none;
+        align-items: center;
+        gap: 2px;
+        height: 24px;
+        padding: 0 8px 0 4px;
+        color: var(--text-muted);
+        font-size: 12px;
+        cursor: pointer;
+        border: 0;
+        border-radius: 12px;
+        background: transparent;
+
+        svg {
+          font-size: 14px;
+        }
+
+        &:hover {
+          color: var(--text);
+          background-color: var(--overlay-strong);
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--accent);
+        }
+      }
+    }
+  }
+
+  .dropHint {
+    padding: 14px;
+    font-size: 12px;
+    text-align: center;
+    color: var(--text-muted);
+    border: 1px dashed var(--overlay-strong);
+    border-radius: 6px;
+  }
+}

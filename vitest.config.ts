@@ -15,15 +15,7 @@ export default defineConfig({
     unstubEnvs: true,
     coverage: {
       provider: 'v8',
-      include: [
-        'electron/**/*.ts',
-        'shared/**/*.ts',
-        'locales/**/*.ts',
-        'client/**/*.{ts,tsx}',
-        'components/**/*.{ts,tsx}',
-        'scripts/**/*.{js,ts}',
-        'index.ts',
-      ],
+      include: ['electron/**/*.ts', 'shared/**/*.ts', 'locales/**/*.ts', 'client/**/*.{ts,tsx}', 'scripts/**/*.{js,ts}', 'index.ts'],
       exclude: ['**/*.test.{ts,tsx}', 'electron/test-database.ts', 'electron/test-utility-process.ts'],
       // just below the current coverage, so it can not drop; raise them as tests are added
       thresholds: { statements: 77, branches: 81, functions: 75, lines: 79 },
@@ -45,7 +37,7 @@ export default defineConfig({
           name: 'frontend',
           environment: 'jsdom',
           setupFiles: ['test-setup-frontend.ts'],
-          include: ['client/**/*.test.{ts,tsx}', 'components/**/*.test.{ts,tsx}'],
+          include: ['client/**/*.test.{ts,tsx}'],
         },
       },
     ],

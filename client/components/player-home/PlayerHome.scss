@@ -1,0 +1,156 @@
+@use '../../styles/scrollbar' as *;
+
+$FontName: "Open Sans";
+
+// the latin and latin-ext subsets (Hungarian included) of the Open Sans from the @fontsource/open-sans package
+$FontSubsets: (
+  'latin': (U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD),
+  'latin-ext': (U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF)
+);
+
+@each $subset, $range in $FontSubsets {
+  @each $weight in (300, 400, 600, 700, 800) {
+    @each $style in (normal, italic) {
+      @font-face {
+        font-family: $FontName;
+        font-style: $style;
+        font-weight: $weight;
+        src: url('@fontsource/open-sans/files/open-sans-#{$subset}-#{$weight}-#{$style}.woff2') format('woff2');
+        unicode-range: $range;
+      }
+    }
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  position: absolute;
+  background: transparent;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+
+  >div {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
+.playerHome {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: "Open Sans", sans-serif;
+  color: var(--text);
+  background: var(--app-background);
+
+  --title-bar-height: 40px;
+  --player-bar-height: 88px;
+
+  // the panels let the blur through only when there is one (see windowBackdrop.ts)
+  --panel-background: var(--panel-solid);
+
+  &.blurred {
+    --panel-background: var(--panel-glass);
+  }
+
+  &.maximized {
+    border-radius: 0;
+
+    &.opaque {
+      background: var(--window-tint-dense);
+    }
+  }
+
+  &.opaque {
+    background: var(--window-tint);
+  }
+
+  // nothing blurs behind the window, so use a denser tint to keep text readable
+  &.opaque.noBlur {
+    background: var(--window-tint-dense);
+  }
+
+  &.maximized.opaque.noBlur {
+    background: var(--window-tint-densest);
+  }
+
+  &.loaded {
+    // some effects?
+  }
+
+  audio {
+    display: none;
+  }
+
+  @include thin-scrollbar;
+
+  .wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .mainPanel {
+    display: flex;
+    flex-direction: row;
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .controls {
+    flex-shrink: 0;
+  }
+
+  .library {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: row;
+
+    .manageLibrary {
+      width: 200px;
+      flex-shrink: 0;
+      position: relative;
+
+      .manageLibraryPanel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        -webkit-app-region: drag;
+        overflow-x: hidden;
+        overflow-y: auto;
+        cursor: -webkit-grab;
+
+        &:focus {
+          cursor: -webkit-grabbing;
+        }
+
+        .navigationContainer {
+          flex: 1 1 auto;
+          min-height: 0;
+        }
+      }
+    }
+  }
+}

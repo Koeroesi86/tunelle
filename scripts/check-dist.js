@@ -19,7 +19,7 @@ const forbidden = [
   [/\.map$/, 'source map'],
   [/\.tar\.gz$/, 'archive (the sources of sqlite3 in its deps folder: the Windows App Certification Kit flags it)'],
   [/\.(test|spec)\.[jt]sx?$/, 'test'],
-  [/^\/(electron|client|components|scripts|coverage|\.cache|\.claude|\.github)\//, 'source or tooling folder'],
+  [/^\/(electron|client|scripts|coverage|\.cache|\.claude|\.github)\//, 'source or tooling folder'],
   [/^\/(index|test-utils-style-stub)\.ts$/, 'source file']
 ]
 // the required files, so that a changed glob in package.json can not silently drop them
