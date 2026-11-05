@@ -57,10 +57,8 @@ const apply = async (database: Database, folder: string, { file, version }: Migr
 };
 
 /**
- * Applies the migrations of the folder that the database has not seen, each one once and in the order of their number.
- * A database that predates the version (0) gets all of them, so 001 to 003, which ran on every start before, have to stay safe to run again.
- * A database that is ahead of the folder was opened by a newer app and is left alone.
- * A migration runs in a transaction, so it cannot change `PRAGMA foreign_keys`, which SQLite ignores there
+ * Applies the migrations of the folder that the database has not seen, each one once and in the order of their number
+ * See docs/migrations.md
  */
 export const migrate = async (database: Database, folder: string, { beforeApply }: MigrateOptions = {}) => {
   const [{ user_version: current }] = await executeQuery<{ user_version: number }>(database, { query: 'PRAGMA user_version', variables: [] });

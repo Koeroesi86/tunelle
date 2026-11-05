@@ -85,6 +85,27 @@ describe.skipIf(!hasTools)('claude hooks', () => {
     })
   })
 
+  describe('guard-comments', () => {
+    const repository = resolve(__dirname, '..')
+    const long = Array.from({ length: 5 }, (_, index) => `// line ${index}`).join('\n')
+    const edit = (file, text) => run('guard-comments.sh', { file_path: join(repository, file), new_string: text }, { CLAUDE_PROJECT_DIR: repository })
+
+    it('blocks a comment of more than 4 lines in the code and says where it goes', () => {
+      const { status, stderr } = edit('electron/main.ts', `const a = 1\n${long}\nconst b = 2`)
+
+      expect(status).toBe(2)
+      expect(stderr).toMatch(/docs\//)
+    })
+
+    it.each(['electron/main.test.ts', 'migrations/004-x.sql', 'docs/install.md'])('allows it in %s', (file) => {
+      expect(edit(file, long).status).toBe(0)
+    })
+
+    it('allows a comment of 4 lines and lines of code between comments', () => {
+      expect(edit('scripts/x.js', '// a\n// b\n// c\n// d\nconst a = 1\n// e\n// f').status).toBe(0)
+    })
+  })
+
   describe('no-ascii-preview', () => {
     it('blocks a question with a preview and allows one without', () => {
       const question = (option) => ({ questions: [{ question: 'Which?', header: 'Layout', multiSelect: false, options: [option, { label: 'B', description: 'b' }] }] })

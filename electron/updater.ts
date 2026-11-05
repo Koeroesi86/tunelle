@@ -153,9 +153,8 @@ export const inspectAppImage = (appImage: string): AppImageInstall => ({
 });
 
 /**
- * electron-updater only works in the packaged app, on Linux only in an AppImage (the Flatpak updates through its store, any other package
- * through its package manager, the Microsoft Store package through the Store, an AppImage that AM manages through AM, and one that can not be replaced not at all),
- * and TUNELLE_NO_UPDATE=1 turns it off, which the smoke tests of the packaged app set
+ * Why electron-updater can not update this install, if it can not
+ * See docs/updater.md
  */
 export const getUpdateUnavailableReason = (
   isPackaged: boolean,

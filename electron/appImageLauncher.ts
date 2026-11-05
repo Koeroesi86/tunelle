@@ -203,9 +203,8 @@ const migrateLegacyLauncher = async (appImage: string | undefined, options: Laun
 };
 
 /**
- * Keeps an enabled entry working: it points to the running AppImage when the one it started was moved,
- * and goes away when that one is gone and the app does not run from an AppImage; an entry of the running AppImage is rewritten
- * when its content or icons changed with the version, and an entry that still works for another AppImage is left alone
+ * Keeps an enabled entry working (moved, gone or outdated AppImage)
+ * See docs/appimage-launcher.md
  */
 export const syncLauncher = async (appImage: string | undefined, options: LauncherOptions) => {
   await migrateLegacyLauncher(appImage, options);

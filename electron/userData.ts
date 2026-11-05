@@ -26,9 +26,8 @@ const copyFolder = (oldFolder: string, newFolder: string) => {
 export const copyOldUserData = (oldFolder: string, newFolder: string) => !existsSync(newFolder) && existsSync(oldFolder) && copyFolder(oldFolder, newFolder);
 
 /**
- * Copies the library folder (the library, its backups, the covers) of the folder the app used before it was renamed, once.
- * It is done when the library is there, not when the folder is: on macOS and Windows `tunelle` and `Tunelle` are one folder, which Electron's data
- * has created by then. The old folder stays where it is, and a copy that fails is ignored: the app starts as on a first run.
+ * Copies the library folder of the folder the app used before it was renamed, once
+ * See docs/user-data.md
  */
 export const copyOldLibrary = (oldFolder: string, newFolder: string) =>
   !existsSync(join(newFolder, 'library.sqlite')) && existsSync(oldFolder) && copyFolder(oldFolder, newFolder);
