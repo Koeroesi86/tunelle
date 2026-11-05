@@ -1,6 +1,7 @@
 import type { Database } from 'sqlite3';
 import type { StoredPlaylist } from '@shared/types/playlists';
 import executeQuery from '../database/execute-query';
+import { mapAsync } from '@shared/utils/map-async';
 
 interface PlaylistRow {
   id: number;
@@ -54,10 +55,7 @@ export const deletePlaylist = (database: Database, id: number) =>
   );
 
 const setPositions = (database: Database, table: 'playlists' | 'playlist_tracks', ids: number[]) =>
-  ids.reduce<Promise<unknown>>(
-    (done, id, position) => done.then(() => executeQuery(database, { query: `UPDATE ${table} SET position = ? WHERE id = ?`, variables: [position, id] })),
-    Promise.resolve()
-  );
+  mapAsync(ids, (id, position) => executeQuery(database, { query: `UPDATE ${table} SET position = ? WHERE id = ?`, variables: [position, id] }));
 
 export const movePlaylist = async (database: Database, id: number, toIndex: number) => {
   const ids = (await executeQuery<PlaylistRow>(database, { query: `SELECT id, name FROM playlists ORDER BY position, id`, variables: [] })).map(
@@ -73,16 +71,12 @@ export const addEntries = async (database: Database, playlistId: number, tracks:
   if (!playlist) return undefined;
 
   // one after the other, as every entry takes the position after the one before
-  return tracks.reduce<Promise<unknown>>(
-    (done, { path, snapshot }) =>
-      done.then(() =>
-        executeQuery(database, {
-          query: `INSERT INTO playlist_tracks (playlist_id, position, path, snapshot)
-            SELECT ?, COALESCE(MAX(position) + 1, 0), ?, ? FROM playlist_tracks WHERE playlist_id = ?`,
-          variables: [playlistId, path, JSON.stringify(snapshot), playlistId],
-        })
-      ),
-    Promise.resolve()
+  return mapAsync(tracks, ({ path, snapshot }) =>
+    executeQuery(database, {
+      query: `INSERT INTO playlist_tracks (playlist_id, position, path, snapshot)
+        SELECT ?, COALESCE(MAX(position) + 1, 0), ?, ? FROM playlist_tracks WHERE playlist_id = ?`,
+      variables: [playlistId, path, JSON.stringify(snapshot), playlistId],
+    })
   );
 };
 

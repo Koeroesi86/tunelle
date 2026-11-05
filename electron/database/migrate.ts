@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import type { Database } from 'sqlite3';
 import executeQuery from './execute-query';
+import { mapAsync } from '@shared/utils/map-async';
 
 const migrationName = /^(\d+)-.+\.sql$/;
 
@@ -70,5 +71,5 @@ export const migrate = async (database: Database, folder: string, { beforeApply 
   if (pending.length === 0) return;
 
   await beforeApply?.(current);
-  await pending.reduce((previous, migration) => previous.then(() => apply(database, folder, migration)), Promise.resolve());
+  await mapAsync(pending, (migration) => apply(database, folder, migration));
 };

@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import type { Track } from '@shared/types/library';
 import { withTimeout } from '../watch/folder-availability';
-import { mapInChunks } from '../../database/in-chunks';
 import { hasErrorCode } from '@shared/utils/has-error-code';
+import { mapAsync } from '@shared/utils/map-async';
 
 const directoriesInFlight = 16;
 
@@ -28,7 +28,7 @@ export const findMissingTracks = async <T extends Pick<Track, 'path'>>(tracks: T
     return groups.set(directory, group);
   }, new Map<string, T[]>());
   const entries = [...byDirectory];
-  const names = await mapInChunks(entries, directoriesInFlight, ([directory]) => readNames(directory));
+  const names = await mapAsync(entries, ([directory]) => readNames(directory), { concurrency: directoriesInFlight });
 
   return entries.flatMap(([, inDirectory], index) => {
     const present = names[index];

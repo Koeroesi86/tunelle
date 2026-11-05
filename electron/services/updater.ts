@@ -5,6 +5,7 @@ import { wait } from '@shared/utils/wait';
 import { getTranslator } from '@shared/locales';
 import type { Translate } from '@shared/locales/translate';
 import type { UpdateUnavailableReason } from '@shared/types/update';
+import { mapAsync } from '@shared/utils/map-async';
 
 export interface SplashProgress {
   text: string;
@@ -120,9 +121,9 @@ export function createMockUpdateSource(stepDelay = 250): UpdateSource {
     autoDownload: false,
     checkForUpdates: () => wait(stepDelay).then(() => ({ isUpdateAvailable: true, updateInfo: { version: '0.0.0-mock' } })),
     downloadUpdate: () =>
-      Array.from({ length: 10 }, (_, step) => (step + 1) * 10).reduce<Promise<unknown>>(
-        (previous, percent) => previous.then(() => wait(stepDelay)).then(() => source.emit('download-progress', { percent })),
-        Promise.resolve()
+      mapAsync(
+        Array.from({ length: 10 }, (_, step) => (step + 1) * 10),
+        (percent) => wait(stepDelay).then(() => source.emit('download-progress', { percent }))
       ),
     quitAndInstall: () => console.log('Mocked update, nothing to install'),
   });

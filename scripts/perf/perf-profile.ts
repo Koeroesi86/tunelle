@@ -2,6 +2,7 @@ import { readdirSync, statSync, writeFileSync } from 'fs';
 import { extname, join } from 'path';
 import type { parseFile } from 'music-metadata';
 import { random } from './perf-library';
+import { mapAsync } from '../../shared/utils/map-async';
 
 interface Folder {
   path: string;
@@ -104,12 +105,7 @@ const readOne = async (path: string, parse: ParseFile): Promise<Sample> => {
 
 // one file after the other, a file that cannot be read is no part of the sample
 const readSample = (paths: string[], parse: ParseFile) =>
-  paths.reduce(async (previous, path) => {
-    const read = await previous;
-    const sample = await readOne(path, parse).catch(() => undefined);
-
-    return sample ? [...read, sample] : read;
-  }, Promise.resolve<Sample[]>([]));
+  mapAsync(paths, (path) => readOne(path, parse).catch(() => undefined)).then((read) => read.filter((sample) => sample !== undefined));
 
 const rounded = (values: number[], step: number) => values.map((value) => Math.round(value / step) * step);
 

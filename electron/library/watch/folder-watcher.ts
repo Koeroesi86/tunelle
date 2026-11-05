@@ -1,10 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import { withTimeout } from './folder-availability';
-import { mapInChunks } from '../../database/in-chunks';
 import type { Change } from './library-change';
 import { clamp } from '@shared/utils/clamp';
 import { logError } from '../../utils/log-error';
+import { mapAsync } from '@shared/utils/map-async';
 
 type DirectoryTimes = Map<string, number>;
 
@@ -27,7 +27,7 @@ export const readDirectoryTimes = async (folder: string): Promise<DirectoryTimes
   const visit = async (level: string[]): Promise<void> => {
     if (level.length === 0) return;
 
-    const reads = await mapInChunks(level, directoriesInFlight, readDirectory);
+    const reads = await mapAsync(level, (directory) => readDirectory(directory), { concurrency: directoriesInFlight });
     reads.forEach((read, index) => read && times.set(level[index], read.time));
     await visit(reads.flatMap((read) => read?.directories ?? []));
   };
