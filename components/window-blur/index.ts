@@ -1,6 +1,6 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
-import { electronAPI } from '../../client/electron-api';
+import { electronAPI } from '../../client/services/electron-api';
 import type { RootState } from '../../client/redux/reducers';
 import type { AppAction } from '../../client/redux/types';
 import WindowBlur from './WindowBlur';

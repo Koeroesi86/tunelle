@@ -1,5 +1,5 @@
 import { FaTh, FaThLarge } from 'react-icons/fa';
-import { coverSizes } from '../../client/cover-size';
+import { coverSizes } from '../../client/utils/cover-size';
 import { useTranslation } from '../../client/i18n';
 import style from './CoverSizeSlider.scss';
 

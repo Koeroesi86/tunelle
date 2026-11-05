@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Track } from '../types/library';
+import type { Track } from '../../types/library';
 import { resolveUpNext } from './up-next';
 
 const track = (path: string): Track => ({ path, artist: '', album: '', title: '', year: '', track: '', disk: '', genre: '', picture: null, duration: null });

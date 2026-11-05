@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import type { Track } from '../../types/library';
-import { audioFormatLabel } from '../../client/audio-format-label';
+import { audioFormatLabel } from '../../client/utils/audio-format-label';
 import style from './AudioFormatBadge.scss';
 
 /** The format of a track as a small badge, nothing for a track that has none or no track */

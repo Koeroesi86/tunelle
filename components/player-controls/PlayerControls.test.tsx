@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { Track } from '../../types/library';
-import { toRadioTrack } from '../../client/radio-track';
+import { toRadioTrack } from '../../client/utils/radio-track';
 import PlayerControls from './PlayerControls';
 
 vi.mock('../live-shimmer', () => ({ default: () => null }));

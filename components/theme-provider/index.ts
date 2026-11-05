@@ -1,6 +1,6 @@
 import { connect } from 'react-redux';
 import type { RootState } from '../../client/redux/reducers';
-import { toNowPlaying } from '../../client/now-playing';
+import { toNowPlaying } from '../../client/utils/now-playing';
 import ThemeProvider from './ThemeProvider';
 
 const mapState = ({ uiState: { theme, currentSong, streamTitle, streamArt } }: RootState) => ({

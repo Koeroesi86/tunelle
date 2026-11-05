@@ -1,6 +1,6 @@
 import type { AlbumSummary, Album, Track } from '../types/library';
 import type { Playlist } from '../types/playlists';
-import { fetchAlbum } from './library-api';
+import { fetchAlbum } from './services/library-api';
 import { isRecord } from '../shared/utils/is-record';
 
 /** What the player shows of a track of a playlist, the rest of a snapshot is not needed */

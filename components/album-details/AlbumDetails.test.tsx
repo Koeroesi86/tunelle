@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { Album } from '../../types/library';
-import { getCoverUrl } from '../../client/cover-url';
-import { getImageTint } from '../../client/cover-tint';
+import { getCoverUrl } from '../../client/utils/cover-url';
+import { getImageTint } from '../../client/utils/cover-tint';
 import AlbumDetails from './AlbumDetails';
 
 vi.mock('../favourite-button', () => ({ default: () => null }));
@@ -16,7 +16,7 @@ vi.mock('../add-to-queue', async () => {
       createElement('button', { 'aria-label': next ? 'Play next' : 'Add to the queue', onClick: () => void getTracks().then(queued) }),
   };
 });
-vi.mock('../../client/cover-tint', () => ({ getImageTint: vi.fn() }));
+vi.mock('../../client/utils/cover-tint', () => ({ getImageTint: vi.fn() }));
 
 const album: Album = {
   id: 'a1',

@@ -1,6 +1,6 @@
 import type { GroupSummary } from '../../types/library';
-import { getCoverUrl } from '../../client/cover-url';
-import { tileAccent } from '../../client/tile-accent';
+import { getCoverUrl } from '../../client/utils/cover-url';
+import { tileAccent } from '../../client/utils/tile-accent';
 import { useTranslation } from '../../client/i18n';
 import style from './GroupTile.scss';
 

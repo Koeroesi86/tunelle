@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import slugify from 'slugify';
 import { MdClose as RemoveIcon, MdMusicNote as NoteIcon, MdPlayArrow as PlayIcon } from 'react-icons/md';
 import type { Track } from '../../types/library';
-import { toNowPlaying } from '../../client/now-playing';
+import { toNowPlaying } from '../../client/utils/now-playing';
 import type { RadioStation } from '../../types/radio';
 import { useTranslation } from '../../client/i18n';
 import { useDragReorder } from '../../client/hooks/use-drag-reorder';

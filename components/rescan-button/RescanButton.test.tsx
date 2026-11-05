@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import RescanButton from './RescanButton';
 
 const send = vi.fn();
-vi.mock('../../client/electron-api', () => ({ electronAPI: { send: (...args: unknown[]) => send(...args) } }));
+vi.mock('../../client/services/electron-api', () => ({ electronAPI: { send: (...args: unknown[]) => send(...args) } }));
 
 const renderButton = (props: Partial<Parameters<typeof RescanButton>[0]> = {}) =>
   render(<RescanButton current={0} total={0} scanningFolder={null} onRescan={vi.fn()} {...props} />);

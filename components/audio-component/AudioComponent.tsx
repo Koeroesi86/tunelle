@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Track } from '../../types/library';
 import { useUpdateEffect } from '../../client/hooks/use-update-effect';
-import { radioUuidOf } from '../../client/radio-track';
+import { radioUuidOf } from '../../client/utils/radio-track';
 import { sourceOf } from '../../client/audio/track-source';
 import { useGaplessAudio } from '../../client/hooks/use-gapless-audio';
 import { liveEdgeTarget } from '../../client/audio/gapless';

@@ -1,7 +1,7 @@
 import type { Favourite, FavouriteKey, NewFavourite } from '../types/favourites';
 import type { Album, AlbumSummary, Track } from '../types/library';
 import type { RadioStation } from '../types/radio';
-import { radioUuidOf } from './radio-track';
+import { radioUuidOf } from './utils/radio-track';
 import { isRecord } from '../shared/utils/is-record';
 
 const hasText = (value: unknown, fields: string[]) => isRecord(value) && fields.every((field) => typeof value[field] === 'string');

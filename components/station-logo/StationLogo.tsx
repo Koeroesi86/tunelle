@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { getRadioLogoUrl } from '../../client/cover-url';
+import { getRadioLogoUrl } from '../../client/utils/cover-url';
 
 interface StationLogoProps {
   uuid: string;

@@ -1,6 +1,6 @@
-import type { NewFavourite } from '../types/favourites';
-import type { Track } from '../types/library';
-import { fetchAlbum } from './library-api';
+import type { NewFavourite } from '../../types/favourites';
+import type { Track } from '../../types/library';
+import { fetchAlbum } from '../services/library-api';
 import { toRadioTrack } from './radio-track';
 
 /** The tracks to play for a favourite: the track itself, the tracks of an album or the stream of a station; none when the source no longer has it */

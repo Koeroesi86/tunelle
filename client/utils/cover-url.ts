@@ -1,4 +1,4 @@
-import { localUrl } from './local-url';
+import { localUrl } from '../services/local-url';
 
 /** The URL of the optimized cover the local server generates for a stored album picture */
 export const getCoverUrl = (picture: string) => {

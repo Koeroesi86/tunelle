@@ -1,4 +1,4 @@
-import type { AudioFormat, Track } from '../types/library';
+import type { AudioFormat, Track } from '../../types/library';
 
 const toKilohertz = (sampleRate: number) => `${Math.round(sampleRate / 100) / 10}`;
 

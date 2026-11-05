@@ -1,5 +1,5 @@
-import type { Track } from '../types/library';
-import type { RadioStation } from '../types/radio';
+import type { Track } from '../../types/library';
+import type { RadioStation } from '../../types/radio';
 
 const radioPrefix = 'radio:';
 

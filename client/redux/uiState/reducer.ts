@@ -1,11 +1,11 @@
 import type { Reducer } from 'redux';
 import type { Track } from '../../../types/library';
-import { coverSizes, restoreCoverSize } from '../../cover-size';
+import { coverSizes, restoreCoverSize } from '../../utils/cover-size';
 import { knownFolders, parseFolders, restoreAlbumSort, restoreGroupSort, restoreTrackSort } from '../../../types/library-query';
 import { parseRadioQuery } from '../../../types/radio-query';
 import { isAppAction } from '../types';
 import type { OnlineView, UiState } from '../types';
-import { radioUuidOf } from '../../radio-track';
+import { radioUuidOf } from '../../utils/radio-track';
 import { autoAccent, defaultTheme, parseAccent, restoreTheme } from '../../theme';
 import { defaultNormalization, restoreNormalization } from '../../audio/loudness';
 import { restoreOutputDevice } from '../../audio/output-device';

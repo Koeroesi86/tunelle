@@ -1,6 +1,6 @@
-import type { Album, AlbumSummary, GroupSummary, LibraryPage, Track } from '../types/library';
-import type { AlbumQuery, AlbumSort, GroupKind, GroupQuery, GroupSort, LibraryQuery, TrackSort } from '../types/library-query';
-import { pageSize } from './redux/library/pages';
+import type { Album, AlbumSummary, GroupSummary, LibraryPage, Track } from '../../types/library';
+import type { AlbumQuery, AlbumSort, GroupKind, GroupQuery, GroupSort, LibraryQuery, TrackSort } from '../../types/library-query';
+import { pageSize } from '../redux/library/pages';
 import { localUrl } from './local-url';
 
 const getJson = async <T>(route: string): Promise<T> => {

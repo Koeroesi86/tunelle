@@ -6,7 +6,7 @@ import type { Playlist } from '../../types/playlists';
 import type { Track } from '../../types/library';
 import type { RadioStation } from '../../types/radio';
 import { stationFavourite, trackFavourite } from '../../client/favourites';
-import { toRadioTrack } from '../../client/radio-track';
+import { toRadioTrack } from '../../client/utils/radio-track';
 import HomeView from './HomeView';
 
 vi.mock('../favourite-button', () => ({ default: () => null }));

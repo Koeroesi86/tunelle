@@ -3,7 +3,7 @@ import type { Track } from '../types/library';
 import type { RadioStation } from '../types/radio';
 import { stationFavourite, trackFavourite } from './favourites';
 import { isHistoryItem, isPlayingItem } from './history';
-import { toRadioTrack } from './radio-track';
+import { toRadioTrack } from './utils/radio-track';
 
 const track: Track = {
   path: '/music/a.flac',

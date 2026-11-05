@@ -13,8 +13,8 @@ import {
 import { MdPlayArrow as PlayIcon, MdPause as PauseIcon } from 'react-icons/md';
 import Slider from '../slider/Slider';
 import type { Track } from '../../types/library';
-import { toNowPlaying } from '../../client/now-playing';
-import { radioUuidOf } from '../../client/radio-track';
+import { toNowPlaying } from '../../client/utils/now-playing';
+import { radioUuidOf } from '../../client/utils/radio-track';
 import { useMediaSession, useMediaSessionActions } from '../../client/hooks/use-media-session';
 import { useAudioListener } from '../../client/hooks/use-audio-listener';
 import { useUpdateEffect } from '../../client/hooks/use-update-effect';

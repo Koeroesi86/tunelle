@@ -1,7 +1,7 @@
 import type { HistoryItem } from '../types/favourites';
 import type { Track } from '../types/library';
 import { isShowable } from './favourites';
-import { radioUuidOf } from './radio-track';
+import { radioUuidOf } from './utils/radio-track';
 
 // an item of a source this version does not know (saved by a newer version) is left out
 export const isHistoryItem = (value: unknown): value is HistoryItem => isShowable(value) && typeof value.playedAt === 'number';

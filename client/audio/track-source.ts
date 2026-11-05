@@ -1,6 +1,6 @@
 import type { Track } from '../../types/library';
-import { localUrl } from '../local-url';
-import { radioUuidOf } from '../radio-track';
+import { localUrl } from '../services/local-url';
+import { radioUuidOf } from '../utils/radio-track';
 
 /** The address an audio element plays a track from: a station through the local protocol, a file by its path */
 export const sourceOf = (track: Track) => {

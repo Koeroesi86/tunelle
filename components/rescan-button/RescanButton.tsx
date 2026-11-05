@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import { FaSyncAlt } from 'react-icons/fa';
-import { electronAPI } from '../../client/electron-api';
-import { displayFolderPath } from '../../client/folder-name';
+import { electronAPI } from '../../client/services/electron-api';
+import { displayFolderPath } from '../../client/utils/folder-name';
 import { useTranslation } from '../../client/i18n';
 import style from './RescanButton.scss';
 

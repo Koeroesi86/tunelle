@@ -1,4 +1,4 @@
-import { pickAccent, sampleSize } from './pick-accent';
+import { pickAccent, sampleSize } from './utils/pick-accent';
 
 const accents = new Map<string, Promise<string | undefined>>();
 

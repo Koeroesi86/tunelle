@@ -2,7 +2,7 @@ import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
 import type { RootState } from '../../client/redux/reducers';
 import type { AppAction } from '../../client/redux/types';
-import { electronAPI } from '../../client/electron-api';
+import { electronAPI } from '../../client/services/electron-api';
 import PlayerHome from './PlayerHome';
 
 const mapState = (state: RootState) => ({

@@ -1,4 +1,4 @@
-import { toHex } from './theme';
+import { toHex } from '../theme';
 
 /** Pixels the picker looks at: dark, light and grey ones say nothing about the colour of a cover */
 const minLightness = 0.2;

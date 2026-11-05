@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import classNames from 'classnames';
 import type { Folder } from '../../types/library';
-import { electronAPI } from '../../client/electron-api';
+import { electronAPI } from '../../client/services/electron-api';
 import { useLatest } from '../../client/hooks/use-latest';
 import { useTranslation } from '../../client/i18n';
 import style from './PlayerHome.scss';

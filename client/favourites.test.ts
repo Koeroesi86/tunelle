@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Album, AlbumSummary, Track } from '../types/library';
 import type { RadioStation } from '../types/radio';
 import { albumFavourite, isFavourite, isFavourited, isSameFavourite, stationFavourite, trackFavourite } from './favourites';
-import { toRadioTrack } from './radio-track';
+import { toRadioTrack } from './utils/radio-track';
 
 const track: Track = {
   path: '/music/a.flac',

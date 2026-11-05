@@ -5,7 +5,7 @@ import type { Folder } from '../../types/library';
 import Confirm from '../confirm';
 import style from './FolderManagement.scss';
 import { useTranslation } from '../../client/i18n';
-import { splitFolderPath } from '../../client/folder-name';
+import { splitFolderPath } from '../../client/utils/folder-name';
 
 interface FolderManagementProps {
   folders: Folder[];

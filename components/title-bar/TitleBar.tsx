@@ -1,5 +1,5 @@
 import type { Track } from '../../types/library';
-import { toNowPlaying } from '../../client/now-playing';
+import { toNowPlaying } from '../../client/utils/now-playing';
 import { useTranslation } from '../../client/i18n';
 import appIcon from '../../assets/icon.svg';
 import style from './TitleBar.scss';

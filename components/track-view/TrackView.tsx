@@ -6,7 +6,7 @@ import { useTranslation } from '../../client/i18n';
 import { useScrollSeparator } from '../../client/hooks/use-scroll-separator';
 import { usePageLoader } from '../../client/hooks/use-page-loader';
 import { useWindowedList } from '../../client/hooks/use-windowed-list';
-import { fetchLibrary } from '../../client/library-api';
+import { fetchLibrary } from '../../client/services/library-api';
 import { selectedFolders } from '../../client/library-query';
 import { getCachedItem } from '../../client/redux/library/pages';
 import type { PageCache } from '../../client/redux/library/pages';

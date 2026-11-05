@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import type { GroupSummary } from '../../types/library';
-import { getCoverUrl } from '../../client/cover-url';
+import { getCoverUrl } from '../../client/utils/cover-url';
 import { useTranslation } from '../../client/i18n';
 import style from './GenreCard.scss';
 

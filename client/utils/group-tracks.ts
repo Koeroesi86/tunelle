@@ -1,7 +1,7 @@
-import type { Track } from '../types/library';
-import type { AlbumGroup } from '../types/library-query';
-import { fetchAlbum, fetchAlbumPage } from './library-api';
-import { pageSize } from './redux/library/pages';
+import type { Track } from '../../types/library';
+import type { AlbumGroup } from '../../types/library-query';
+import { fetchAlbum, fetchAlbumPage } from '../services/library-api';
+import { pageSize } from '../redux/library/pages';
 
 /** Every track of an artist, album artist or genre in the folders given, album by album */
 export const fetchGroupTracks = async (group: AlbumGroup, folders: string[]): Promise<Track[]> => {
