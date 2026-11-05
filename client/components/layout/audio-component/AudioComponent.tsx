@@ -4,6 +4,7 @@ import { useUpdateEffect } from '../../../hooks/use-update-effect';
 import { radioUuidOf } from '../../../domain/radio-track';
 import { sourceOf } from '../../../audio/track-source';
 import { useGaplessAudio } from '../../../hooks/use-gapless-audio';
+import { useTrackLoudness } from '../../../hooks/use-track-loudness';
 import { liveEdgeTarget } from '../../../audio/gapless';
 import { normalizationGain } from '../../../audio/loudness';
 import type { NormalizationMode } from '../../../audio/loudness';
@@ -172,15 +173,17 @@ const AudioComponent = ({
       .catch((err) => console.error(err));
   }, [isPlaying]);
 
+  const withLoudness = useTrackLoudness([currentSong, upNext]);
+
   // each element is levelled for the track it holds, the one that loads the next track too, so the hand-off needs no change; a station has no tags and plays as it is
   useEffect(
     () =>
       gapless.elements.current.forEach((node, index) => {
         const source = gapless.loadedSource(index);
         const track = [currentSong, upNext].find((candidate) => candidate && source !== undefined && sourceOf(candidate) === source);
-        if (node) setNormalization(node, normalizationGain(track ?? undefined, normalization));
+        if (node) setNormalization(node, normalizationGain(withLoudness(track ?? undefined), normalization));
       }),
-    [currentSong, upNext, normalization]
+    [currentSong, upNext, normalization, withLoudness]
   );
 
   return (

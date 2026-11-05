@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import type { Track } from '@shared/types/library';
 import { toRadioTrack } from '../../../domain/radio-track';
@@ -755,6 +755,23 @@ describe('AudioComponent gapless', () => {
 
       expect(setNormalization).toHaveBeenLastCalledWith(standby, expect.closeTo(half));
       expect(setNormalization).toHaveBeenCalledWith(playing, 1);
+    });
+
+    it('levels a track from the loudness the library gives, as the lists do not carry it', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ trackGain: -6, albumGain: -6, trackPeak: 0.5, albumPeak: 0.5 }) })
+      );
+      const view = render(props(null, null));
+      view.rerender(props(first, null));
+
+      // the timers are fake here, so the answer is let through by hand
+      await act(() => vi.advanceTimersByTimeAsync(0));
+
+      expect(setNormalization).toHaveBeenCalledWith(view.container.querySelectorAll('audio')[0], expect.closeTo(half));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/library/track?path='));
+      view.unmount();
+      vi.unstubAllGlobals();
     });
 
     it('follows a change of the mode in both elements', () => {

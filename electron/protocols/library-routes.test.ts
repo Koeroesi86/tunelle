@@ -52,6 +52,15 @@ describe('library routes for browsing', () => {
     expect(((await (await answer('/library/albums', '')).json()) as { total: number }).total).toBe(2);
   });
 
+  it('gives the format and the loudness of one track, and not found for a track the library does not have', async () => {
+    const found = await answer('/library/track', `path=${encodeURIComponent('/m/a/1.flac')}`);
+
+    expect(found.status).toBe(200);
+    expect(await found.json()).toMatchObject({ trackGain: null, albumGain: null });
+    expect((await answer('/library/track', 'path=%2Fm%2Fnone.flac')).status).toBe(404);
+    expect((await answer('/library/track', '')).status).toBe(400);
+  });
+
   it('serves nothing before the database is connected', async () => {
     expect((await libraryRoutes['/library/groups'](undefined, new URLSearchParams('by=artist'))).status).toBe(403);
   });
