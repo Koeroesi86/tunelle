@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cancelScans, cancelScansInside, quitSignal, trackScan } from './scan-cancellation';
+import { backgroundQueue, scanKind } from '../tasks/background-queue';
 
 describe('scanCancellation', () => {
   it('stops the scans of a folder that is removed, and of the folders around it, not of another', () => {
@@ -14,6 +15,17 @@ describe('scanCancellation', () => {
     expect(inside.wasRemoved()).toBe(true);
     expect(other.wasRemoved()).toBe(false);
     [inside, same, parent, other].forEach((scan) => scan.release());
+  });
+
+  it('tells the background queue that a scan is going on until all the scans have ended', () => {
+    const first = trackScan('/music/a');
+    const second = trackScan('/music/b');
+    first.release();
+    expect(backgroundQueue.isBusy(scanKind)).toBe(true);
+
+    second.release();
+
+    expect(backgroundQueue.isBusy(scanKind)).toBe(false);
   });
 
   it('forgets a scan that ended', () => {

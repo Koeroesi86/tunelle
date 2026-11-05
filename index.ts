@@ -22,6 +22,7 @@ import { holdSingleInstance } from './electron/windows/single-instance';
 import { registerDevDesktopEntry, removeDevDesktopEntry } from './electron/services/dev-desktop-entry';
 import closeDatabase from './electron/database/close-database';
 import { cancelScans } from './electron/library/scan/scan-cancellation';
+import { backgroundQueue } from './electron/library/tasks/background-queue';
 import closeSplash from './electron/windows/close-splash';
 import releaseWindows from './electron/windows/release-windows';
 import { getMainTranslator, setPickedLanguage } from './electron/language';
@@ -249,6 +250,7 @@ app
   .then((d) => {
     initWindow();
     setupListeners(d, windows, radio, updates);
+    backgroundQueue.start();
 
     // the native sqlite3 addon aborts the process when it is torn down with the database open, so it is closed before the app exits
     let databaseClosed = false;
@@ -263,6 +265,7 @@ app
     // the app waits for its windows to close before it quits; the main window closes on its own, as the page saves its settings on the way out
     // the database closes after its queued statements, which a running scan keeps adding to, so the scan stops first
     app.on('before-quit', () => {
+      backgroundQueue.stop();
       cancelScans();
       closeSplash(windows);
     });
