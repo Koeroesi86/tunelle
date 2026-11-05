@@ -4,7 +4,7 @@ import type { PlaylistMessage, StoredPlaylist } from '../types/playlists';
 import type { ListenerContext } from './listenerContext';
 import { addEntries, createPlaylist, deletePlaylist, getPlaylists, moveEntry, movePlaylist, removeEntry, renamePlaylist } from './playlistRepository';
 import { findTrackFormat } from './libraryRepository';
-import { isRecord } from './keyPayload';
+import { isRecord } from '../shared/utils/is-record';
 
 const maxNameLength = 200;
 

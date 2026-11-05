@@ -2,8 +2,11 @@ import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import type { Database } from 'sqlite3';
+import { wait } from '../shared/utils/wait';
+import { fetchOk } from './services/http';
 import executeQuery from './executeQuery';
 import { toSortKey } from './sortKey';
+import { isRecord } from '../shared/utils/is-record';
 
 export interface ArtistName {
   /** The name as the library compares it */
@@ -20,22 +23,12 @@ const lookupTimeout = 5000;
 // how long to wait between two lookups, Deezer limits the requests
 const lookupGap = 250;
 
-const wait = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 const maxImageBytes = 2_000_000;
 // a name without a match is looked up again after this long, the artist may have a photo by then
 const retryAfter = 1000 * 60 * 60 * 24 * 30;
 const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 
 const searchUrl = (name: string) => `https://api.deezer.com/search/artist?${new URLSearchParams({ q: name, limit: '10' })}`;
-
-const getOk = async (url: string) => {
-  const response = await fetch(url, { signal: AbortSignal.timeout(lookupTimeout) });
-  if (!response.ok) throw new Error(`${new URL(url).host} answered ${response.status}`);
-
-  return response;
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
 /** The artists of an answer of the search with the photo they have; Deezer answers a refusal (the quota) with a 200 and an error */
 const candidatesOf = (answer: unknown) => {
@@ -50,7 +43,7 @@ const candidatesOf = (answer: unknown) => {
 const hasPhoto = (url: string) => URL.canParse(url) && new URL(url).protocol === 'https:' && !new URL(url).pathname.includes('/artist//');
 
 const getImage = async (url: string): Promise<PhotoImage> => {
-  const response = await getOk(url);
+  const response = await fetchOk(url, { timeout: lookupTimeout });
   const extension = extensions[(response.headers.get('content-type') ?? '').split(';')[0].trim()];
   const data = Buffer.from(await response.arrayBuffer());
   if (!extension || data.length === 0 || data.length > maxImageBytes) throw new Error('Not a usable image');
@@ -64,7 +57,9 @@ const getImage = async (url: string): Promise<PhotoImage> => {
  */
 export const findArtistPhoto = async (name: string) => {
   const key = toSortKey(name);
-  const match = candidatesOf(await (await getOk(searchUrl(name))).json()).find((candidate) => toSortKey(candidate.name) === key && hasPhoto(candidate.picture));
+  const match = candidatesOf(await (await fetchOk(searchUrl(name), { timeout: lookupTimeout })).json()).find(
+    (candidate) => toSortKey(candidate.name) === key && hasPhoto(candidate.picture)
+  );
 
   return match && getImage(match.picture);
 };

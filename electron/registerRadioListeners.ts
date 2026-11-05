@@ -1,8 +1,7 @@
 import { ipcMain } from 'electron';
+import { errorMessage } from '../shared/utils/error-message';
 import type { ListenerContext } from './listenerContext';
 import { toRadioQuery } from './radioBrowser';
-
-const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 const registerRadioListeners = ({ radio }: ListenerContext) => {
   ipcMain.on('RADIO_SEARCH', (event, payload: unknown) => {

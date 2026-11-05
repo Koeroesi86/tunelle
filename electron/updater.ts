@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import { accessSync, constants, existsSync } from 'fs';
 import { dirname, join } from 'path';
+import { wait } from '../shared/utils/wait';
 import { getTranslator } from '../locales';
 import type { Translate } from '../locales/translate';
 import type { UpdateUnavailableReason } from '../types/update';
@@ -32,8 +33,6 @@ interface UpdateOptions {
 const defaultCheckTimeout = 10000;
 const defaultDownloadStallTimeout = 60000;
 const defaultInstallTimeout = 30000;
-
-const wait = (delay: number) => new Promise<void>((resolve) => setTimeout(resolve, delay));
 
 const withTimeout = <T>(promise: Promise<T>, timeout: number) => {
   let timer: NodeJS.Timeout | undefined;

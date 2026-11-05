@@ -1,6 +1,6 @@
-const maxFieldLength = 2000;
+import { isRecord } from '../shared/utils/is-record';
 
-export const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+const maxFieldLength = 2000;
 
 const isField = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= maxFieldLength;
 

@@ -1,4 +1,5 @@
 import type { RadioQuery } from './radio';
+import { isRecord } from '../shared/utils/is-record';
 
 const maxQueryLength = 100;
 const maxOffset = 10000;
@@ -22,8 +23,6 @@ export const radioSortFields = Object.keys(radioSortOrders).filter((field): fiel
 
 /** The minimum bitrates the filter offers, none is any bitrate */
 export const radioBitrates = [128, 192, 320] as const;
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
 const clean = (value: unknown) => (typeof value === 'string' ? value.trim().slice(0, maxQueryLength) : '');
 

@@ -1,4 +1,7 @@
 import { createHash } from 'crypto';
+import { isRecord } from '../shared/utils/is-record';
+import { wait } from '../shared/utils/wait';
+import { fetchOk } from './services/http';
 
 export interface RadioArtImage {
   type: string;
@@ -65,15 +68,8 @@ const queriesOf = (streamTitle: string) => {
 
 const searchUrl = (query: string) => `https://musicbrainz.org/ws/2/recording?${new URLSearchParams({ query, fmt: 'json', limit: '5' })}`;
 
-const getOk = async (url: string, headers?: Record<string, string>, cancel?: AbortSignal) => {
-  const response = await fetch(url, { signal: AbortSignal.any([AbortSignal.timeout(lookupTimeout), ...(cancel ? [cancel] : [])]), headers });
-  if (!response.ok) throw new Error(`${new URL(url).host} answered ${response.status}`);
-
-  return response;
-};
-
 export const getImage = async (url: string, cancel?: AbortSignal): Promise<RadioArtImage> => {
-  const response = await getOk(url, undefined, cancel);
+  const response = await fetchOk(url, { timeout: lookupTimeout, cancel });
   const type = response.headers.get('content-type') ?? '';
   const data = Buffer.from(await response.arrayBuffer());
   if (!type.startsWith('image/') || data.length === 0 || data.length > maxImageBytes) throw new Error('Not a usable image');
@@ -82,8 +78,6 @@ export const getImage = async (url: string, cancel?: AbortSignal): Promise<Radio
 };
 
 const isHttpUrl = (value: string | undefined): value is string => value !== undefined && URL.canParse(value) && /^https?:$/.test(new URL(value).protocol);
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
 const recordsOf = (value: unknown) => (Array.isArray(value) ? value.filter(isRecord) : []);
 
@@ -103,7 +97,6 @@ const coverUrlsOf = (answer: unknown) => {
 };
 
 /** The requests to MusicBrainz one after the other, each gap counted from the start of the request before it, so they stay under its limit */
-const wait = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 
 const createQueue = () => {
   let tail: Promise<unknown> = Promise.resolve();
@@ -139,7 +132,7 @@ export const createRadioArt = (userAgent: string) => {
   const images = new Map<string, RadioArtImage>();
 
   const fromQuery = async (query: string) => {
-    const answer: unknown = await queue(async () => (await getOk(searchUrl(query), { 'User-Agent': userAgent })).json());
+    const answer: unknown = await queue(async () => (await fetchOk(searchUrl(query), { headers: { 'User-Agent': userAgent }, timeout: lookupTimeout })).json());
 
     return firstImage(coverUrlsOf(answer));
   };

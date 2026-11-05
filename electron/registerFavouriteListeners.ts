@@ -3,7 +3,8 @@ import type { WebContents } from 'electron';
 import type { ListenerContext } from './listenerContext';
 import { addFavourite, getFavourites, removeFavourite } from './favouritesRepository';
 import { withAvailability } from './favouriteAvailability';
-import { isRecord, toKey } from './keyPayload';
+import { isRecord } from '../shared/utils/is-record';
+import { toKey } from './keyPayload';
 
 const sendFavourites = async (context: ListenerContext, sender: WebContents) => {
   const favourites = await withAvailability(await getFavourites(context.database), context);

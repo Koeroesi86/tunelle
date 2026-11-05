@@ -2,6 +2,7 @@ import type { Database } from 'sqlite3';
 import type { FavouriteKey } from '../types/favourites';
 import type { RadioBrowser } from './radioBrowser';
 import { findTrackFormat, findTrackPath, getAlbumTracks } from './libraryRepository';
+import { isRecord } from '../shared/utils/is-record';
 
 /** What tells whether an item is available: where it comes from and what it looked like */
 type Keyed = FavouriteKey & { snapshot: unknown };
@@ -13,8 +14,6 @@ interface AvailabilityContext {
 
 /** The items of one source and kind that the source no longer has */
 type MissingFinder = (favourites: Keyed[], context: AvailabilityContext) => Promise<Keyed[]>;
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
 const hasTracks = async ({ snapshot }: Keyed, { database }: AvailabilityContext) =>
   isRecord(snapshot) && typeof snapshot.path === 'string' && typeof snapshot.title === 'string'

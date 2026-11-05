@@ -1,6 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve4, resolve6, reverse } from 'node:dns/promises';
 import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '../types/radio';
+import { isRecord, type JsonRecord } from '../shared/utils/is-record';
+import { fetchOk } from './services/http';
 import { parseRadioSearch, radioPageSize, radioSortOrders } from '../types/radio-query';
 
 const defaultDirectoryUrl = 'https://all.api.radio-browser.info';
@@ -14,10 +16,6 @@ const maxStoredStreams = 500;
 const optionLimit = { countries: 300, languages: 300, codecs: 20 };
 const tagLimit = 40;
 const maxLogos = 2000;
-
-type JsonRecord = Record<string, unknown>;
-
-const isRecord = (value: unknown): value is JsonRecord => typeof value === 'object' && value !== null;
 
 const text = (value: unknown) => (typeof value === 'string' ? value : '');
 
@@ -125,9 +123,7 @@ export const createRadioBrowser = (
   let servers: Promise<string[]> | undefined;
 
   const fetchJson = async (url: string, cancel?: AbortSignal): Promise<unknown> => {
-    const signal = AbortSignal.any([AbortSignal.timeout(requestTimeout), ...(cancel ? [cancel] : [])]);
-    const response = await fetch(url, { headers: { 'User-Agent': userAgent }, signal });
-    if (!response.ok) throw new Error(`Station directory ${url} answered ${response.status}`);
+    const response = await fetchOk(url, { headers: { 'User-Agent': userAgent }, timeout: requestTimeout, cancel });
 
     return response.json();
   };

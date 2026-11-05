@@ -1,3 +1,4 @@
+import { errorMessage } from '../shared/utils/error-message';
 import { checkForUpdate, downloadUpdate, installUpdate } from './updater';
 import type { UpdateSource } from './updater';
 import type { UpdateState, UpdateStatus } from '../types/update';
@@ -25,8 +26,6 @@ export interface UpdateManager {
   /** Restarts into the downloaded update; does nothing before one is downloaded */
   install: () => void;
 }
-
-const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 /** The manual update flow of the settings: check, download in the background, and install only when the user asks to restart */
 export const createUpdateManager = ({
@@ -69,7 +68,7 @@ export const createUpdateManager = ({
 
       await run(source).catch((error) => {
         console.error('Update failed', error);
-        setStatus({ kind: 'failed', message: messageOf(error) });
+        setStatus({ kind: 'failed', message: errorMessage(error) });
       });
     },
     setAutomatic: async (next) => {

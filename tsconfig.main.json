@@ -12,6 +12,6 @@
     "isolatedModules": false,
     "resolveJsonModule": true
   },
-  "include": ["electron", "locales", "index.ts", "types"],
+  "include": ["electron", "locales", "index.ts", "shared", "types"],
   "exclude": ["electron/**/*.test.ts", "electron/test-database.ts", "electron/test-utility-process.ts", "locales/**/*.test.ts"]
 }
