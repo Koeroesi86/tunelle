@@ -11,7 +11,7 @@ export const accentPresets = [defaultAccent, '#5aa9ff', '#4cc38a', '#f5b942', '#
 
 export const defaultTheme: ThemeSettings = { mode: 'system', accent: undefined };
 
-/** The panel colours of client/components/theme-provider/ThemeProvider.scss, which text in the accent has to stand out from */
+/** The panel colours of client/components/layout/theme-provider/ThemeProvider.scss, which text in the accent has to stand out from */
 export const panelSurfaces: Record<ResolvedTheme, string> = { dark: '#333333', light: '#fafafa' };
 
 /** WCAG contrast for normal text */

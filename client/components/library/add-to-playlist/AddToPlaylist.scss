@@ -1,0 +1,80 @@
+@use '../../../styles/overlay' as *;
+
+.addToPlaylist {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: inherit;
+  opacity: 0.6;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+
+  &:hover,
+  &[aria-expanded='true'] {
+    opacity: 1;
+  }
+}
+
+.menu {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 60vh;
+  padding: 10px;
+  font-size: 12px;
+  @include popover-surface;
+
+  .title {
+    font-weight: 600;
+    opacity: 0.7;
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin: 0 -10px -10px;
+    padding: 4px 0;
+    overflow-y: auto;
+    border-top: 1px solid var(--overlay);
+  }
+
+  .item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    line-height: 28px;
+    color: inherit;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--overlay);
+      outline: 0;
+    }
+
+    .itemName {
+      flex: 1 1 auto;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .itemCount {
+      flex: 0 0 auto;
+      opacity: 0.6;
+    }
+  }
+}

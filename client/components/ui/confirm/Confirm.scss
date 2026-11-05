@@ -1,0 +1,56 @@
+@use '../../../styles/overlay' as *;
+
+// only there while the confirm shows, so the title bar still drags the window the rest of the time
+.scrim {
+  @include scrim;
+}
+
+.confirm {
+  position: absolute;
+  top: -100vh;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text);
+  background: var(--panel-solid);
+  border: 1px solid var(--overlay-strong);
+  border-radius: 12px;
+  z-index: 100;
+  padding: 20px;
+  opacity: 0;
+  margin-top: 20px;
+  transition: margin-top .3s ease-in-out, opacity .2s ease-in-out;
+
+  &.show {
+    top: 50%;
+    opacity: 1;
+    margin-top: 0;
+  }
+
+  .message {
+    margin-bottom: 12px;
+    font-size: 16px;
+  }
+
+  .buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 8px;
+
+    .button {
+      line-height: 32px;
+      padding: 0 12px;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--overlay);
+      border: 1px solid var(--overlay-strong);
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all .2s ease-in-out;
+
+      &:hover {
+        background: var(--overlay-strong);
+      }
+    }
+  }
+}

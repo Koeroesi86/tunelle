@@ -1,0 +1,261 @@
+// the dock: the track on the left, transport and seek bar in the middle, volume on the right
+.controls {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 24px;
+  height: var(--player-bar-height);
+  padding: 0 20px;
+  background: var(--panel-background);
+  border-top: 1px solid var(--overlay);
+
+  .meta,
+  .right {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .center {
+    flex: 1.5 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .meta {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    font-size: 12px;
+
+    .picture {
+      flex: 0 0 auto;
+      height: 56px;
+      width: 56px;
+      background: transparent url(../../../../assets/album-placeholder.svg) center center no-repeat;
+      background-size: cover;
+      border-radius: 6px;
+      box-shadow: 0 6px 16px -4px var(--shadow);
+    }
+
+    .details {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .title,
+    .artist,
+    .album {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .title {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .artist,
+    .album {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .format {
+      margin-top: 4px;
+    }
+  }
+
+  .mainControlButtons {
+    align-self: center;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .playToggleButton {
+    width: 38px;
+    height: 38px;
+    margin: 0 6px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    cursor: pointer;
+    transition: transform .15s ease-in-out;
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    &:hover:not([disabled]) {
+      transform: scale(1.06);
+    }
+
+    &[disabled] {
+      background: var(--overlay-strong);
+      color: var(--text-disabled);
+      cursor: default;
+    }
+  }
+
+  .controlButton {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    opacity: .55;
+    transition: opacity .15s ease-in-out;
+
+    &:hover {
+      opacity: 1;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    &.active {
+      color: var(--accent);
+      opacity: 1;
+    }
+  }
+
+  .seek {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .live {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    height: 25px;
+  }
+
+  .live .progress {
+    position: relative;
+    align-self: stretch;
+  }
+
+  .liveLabel {
+    flex: 0 0 auto;
+    min-width: 56px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .liveDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .playing .liveDot {
+    animation: liveDot 1.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .playing .liveDot {
+      animation: none;
+    }
+  }
+
+  .progress {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .time {
+    flex: 0 0 auto;
+    min-width: 56px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+
+    &.total {
+      text-align: right;
+    }
+  }
+
+  .right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  .volume {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+
+    .icon {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      opacity: .55;
+      transition: opacity .15s ease-in-out;
+
+      &:hover {
+        opacity: 1;
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+    }
+
+    .slider {
+      width: 96px;
+    }
+  }
+}
+
+@keyframes liveDot {
+  50% {
+    opacity: .35;
+  }
+}
