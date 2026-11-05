@@ -47,7 +47,7 @@ describe('findArtistPhoto', () => {
   });
 
   it('finds nothing when no artist has the name, or the one that has it has no photo', async () => {
-    const fetcher = deezer({
+    deezer({
       Other: [{ name: 'Someone', picture_big: photoUrl('x') }],
       Plain: [{ name: 'Plain', picture_big: 'https://cdn-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg' }],
     });
@@ -171,7 +171,7 @@ describe('createArtistPhotoQueue', () => {
 
   it('tells the lists after every ten photos and when the run is over', async () => {
     const names = Array.from({ length: 12 }, (_, index) => ({ key: `a${index}`, name: `A${index}` }));
-    const fetcher = deezer(Object.fromEntries(names.map(({ name }) => [name, [{ name, picture_big: photoUrl(name) }]])));
+    deezer(Object.fromEntries(names.map(({ name }) => [name, [{ name, picture_big: photoUrl(name) }]])));
 
     await queueOf().enqueue(names);
 

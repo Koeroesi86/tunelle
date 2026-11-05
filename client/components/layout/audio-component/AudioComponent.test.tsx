@@ -533,7 +533,6 @@ describe('AudioComponent gapless', () => {
   const second: Track = { ...station, path: '/music/b.flac' };
   const third: Track = { ...station, path: '/music/c.flac' };
   const sourceOfPath = (path: string) => `tunelle://app/track?path=${encodeURIComponent(path)}`;
-  let load: MockInstance<HTMLMediaElement['load']>;
   const trackEnded = vi.fn();
   const activateNode = vi.fn();
 
@@ -575,7 +574,7 @@ describe('AudioComponent gapless', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    load = vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
     vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
     vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
     trackEnded.mockClear();

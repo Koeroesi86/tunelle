@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { dirname, join, relative, resolve, sep } from 'path';
 
 // the rules of docs/ that a script can check, see CLAUDE.md

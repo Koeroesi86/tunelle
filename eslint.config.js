@@ -18,6 +18,7 @@ module.exports = [
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       'max-depth': ['warn', 1],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'all', caughtErrorsIgnorePattern: '^_', ignoreRestSiblings: true }],
       'prettier/prettier': [
         'error',
         {

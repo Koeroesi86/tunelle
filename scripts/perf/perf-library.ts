@@ -164,7 +164,6 @@ const planLibrary = (profile: PlanProfile, tracks: number, seed = 1) => {
   const { tags } = profile;
   const used = new Map<string, number>();
   const albums: PlannedAlbum[] = [];
-  let artistNumber = 0;
   let total = 0;
 
   // the discs of a multi disc album are folders of the album; the share is of the tracks of the sample, so an album is likely at a third of it
@@ -175,7 +174,6 @@ const planLibrary = (profile: PlanProfile, tracks: number, seed = 1) => {
   const named = (count: number) => phrase(next, count, accentedChance);
 
   while (total < tracks) {
-    artistNumber += 1;
     const artist = unique(used, named(1 + Math.floor(next() * 2)));
     const albumCount =
       pick(

@@ -149,8 +149,6 @@ const tags = (sample: Sample[]) => ({
 });
 
 /** The profile of the library in a folder, from `size` of its files read with the parseFile of music-metadata */
-export type Profile = Awaited<ReturnType<typeof profileOf>>;
-
 const profileOf = async (folder: string, size: number, parse: ParseFile) => {
   const folders = walk(folder);
   const paths = folders.flatMap(({ path, files }) => files.filter((file) => audio.has(extname(file).toLowerCase())).map((file) => join(path, file)));

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import classNames from 'classnames';
 import style from './Equalizer.scss';
 import { useTranslation } from '../../../i18n';
