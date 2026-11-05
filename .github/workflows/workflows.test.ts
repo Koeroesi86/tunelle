@@ -151,6 +151,8 @@ describe('workflows', () => {
     expect(text).not.toMatch(/\n  (?:push|pull_request|release):/);
     expect(text.indexOf('store-submission.js decide')).toBeLessThan(text.indexOf('gh release download'));
     expect(text.indexOf('store-submission.js check')).toBeLessThan(text.indexOf('msstore publish'));
+    expect(text.indexOf('msstore submission publish')).toBeLessThan(text.indexOf('store-submission.js started'));
+    expect(text.indexOf('store-submission.js started')).toBeLessThan(text.indexOf('Say what was submitted'));
   });
 
   it('store.yml runs from release.yml, by hand and weekly on Wednesday', () => {

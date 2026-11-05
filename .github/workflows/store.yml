@@ -153,6 +153,19 @@ jobs:
         run: |
           msstore submission publish $env:PRODUCT_ID
           if ($LASTEXITCODE -ne 0) { throw "msstore submission publish failed with $LASTEXITCODE" }
+      # the Store checks a committed submission for a few minutes before it is in certification, and one that fails the checks is a draft again: the run waits for that (not for the certification, which takes days)
+      - name: Wait until the submission has started
+        if: steps.decide.outputs.submit == 'true' && env.COMMIT == 'true'
+        timeout-minutes: 15
+        shell: pwsh
+        run: |
+          do {
+            msstore submission status $env:PRODUCT_ID 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath status.txt
+            if ($LASTEXITCODE -ne 0) { throw "msstore submission status failed with $LASTEXITCODE" }
+            $state = node scripts/release/store-submission.js started status.txt
+            if ($LASTEXITCODE -ne 0) { msstore submission get $env:PRODUCT_ID; throw 'The Store did not take the submission' }
+            if ($state -eq 'starting') { Start-Sleep -Seconds 30 }
+          } while ($state -eq 'starting')
       - name: Say what was submitted
         if: steps.decide.outputs.submit == 'true'
         shell: pwsh

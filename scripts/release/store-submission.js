@@ -3,6 +3,7 @@ const { compareVersions } = require('./version')
 
 // usage: node scripts/release/store-submission.js notes <file> <result> <notes> [<language>=<notes>]...
 //        node scripts/release/store-submission.js decide <status file> <submission file> <tag> <automatic>
+//        node scripts/release/store-submission.js started <status file>
 //        node scripts/release/store-submission.js status <file> | check <tag> <file> <package version>...   (see docs/release/microsoft-store.md)
 const tagPattern = /^v(\d{2}\.(?:[1-9]|1[0-2])\.\d{1,5})$/
 
@@ -68,6 +69,19 @@ const decide = (statusOutput, storeOutput, tag, automatic) => {
   return { submit: true, reason: `${version} is greater than ${storeVersion} of the last submission` }
 }
 
+// after the commit the Store checks the submission for a few minutes (CommitStarted, PreProcessing) before it goes on to certification; a submission that fails the checks
+// ends in CommitFailed or PreProcessingFailed and shows as a draft again
+const starting = ['CommitStarted', 'PreProcessing']
+const started = ['Certification', 'PendingPublication', 'Publishing', 'Release', 'Published']
+
+const submissionStarted = (output) => {
+  const status = readStatus(output)
+  if (!status) throw new Error('The output of `msstore submission status` has no "Submission Status", so the state of the submission is not known')
+  if (starting.includes(status)) return false
+  if (started.includes(status)) return true
+  throw new Error(`The submission is ${status}, not in certification: the Store did not take it`)
+}
+
 const assertSubmittable = (tag, storeVersion, packageVersions) => {
   const version = tag.match(tagPattern)?.[1]
   if (!version) throw new Error(`${tag} is not a release tag like v26.10.14`)
@@ -90,15 +104,16 @@ const run = ([command, ...args], env) => {
     const { submit, reason } = decide(read(statusFile), read(submissionFile), tag, automatic?.toLowerCase() === 'true')
     console.log(reason)
     if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, `submit=${submit}\nreason=${reason}\n`)
-  } else if (command === 'status') assertPublished(read(args[0]))
+  } else if (command === 'started') console.log(submissionStarted(read(args[0])) ? 'started' : 'starting')
+  else if (command === 'status') assertPublished(read(args[0]))
   else if (command === 'check') {
     const [tag, file, ...packageVersions] = args
     const storeVersion = readStoreVersion(read(file))
     assertSubmittable(tag, storeVersion, packageVersions)
     console.log(`${tag} is greater than ${storeVersion} of the last submission`)
-  } else throw new Error('usage: store-submission.js status <file> | check <tag> <file> <package version>... | decide <status file> <submission file> <tag> <automatic> | notes <file> <result> <notes> [<language>=<notes>]...')
+  } else throw new Error('usage: store-submission.js status <file> | started <status file> | check <tag> <file> <package version>... | decide <status file> <submission file> <tag> <automatic> | notes <file> <result> <notes> [<language>=<notes>]...')
 }
 
 if (require.main === module) run(process.argv.slice(2), process.env)
 
-module.exports = { assertPublished, assertSubmittable, decide, readStoreVersion, readStatus, releaseVersion, run, withReleaseNotes }
+module.exports = { assertPublished, assertSubmittable, decide, readStoreVersion, readStatus, releaseVersion, run, submissionStarted, withReleaseNotes }
