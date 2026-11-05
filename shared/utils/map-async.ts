@@ -13,16 +13,21 @@ export const mapAsync = async <T, R>(
   let next = 0;
   let failed = false;
 
+  const stop = (error: unknown): never => {
+    failed = true;
+    throw error;
+  };
+
   const work = async () => {
     for (let index = next++; index < items.length && !failed; index = next++) {
-      results[index] = await task(items[index], index).catch((error) => {
-        failed = true;
-        throw error;
-      });
+      results[index] = await task(items[index], index).catch(stop);
     }
   };
 
-  await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, items.length)) }, work));
+  const workers: Promise<void>[] = [];
+  for (let worker = 0; worker < Math.max(1, Math.min(concurrency, items.length)); worker++) workers.push(work());
+
+  await Promise.all(workers);
 
   return results;
 };
