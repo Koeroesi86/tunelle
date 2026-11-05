@@ -1,4 +1,5 @@
 import type { Reducer } from 'redux';
+import type { Track } from '../../../types/library';
 import { coverSizes, restoreCoverSize } from '../../cover-size';
 import { knownFolders, parseFolders, restoreAlbumSort, restoreGroupSort, restoreTrackSort } from '../../../types/library-query';
 import { parseRadioQuery } from '../../../types/radio-query';
@@ -16,6 +17,11 @@ const initialState: UiState = {
   libraryOpen: true,
   playlistsOpen: true,
   tab: 'home',
+  favouritesSource: 'local',
+  favouritesOrder: 'recent',
+  showFaders: false,
+  selectedTracks: {},
+  outputDevices: [],
   playlistId: null,
   nowPlaying: [],
   played: [],
@@ -58,6 +64,11 @@ const initialState: UiState = {
 // the Shoutcast page and the Spotify page are gone, any other saved view shows the radio
 const restoreOnlineView = (): OnlineView => 'radio';
 
+const byPath = (tracks: Track[]) => Object.fromEntries(tracks.map((track) => [track.path, track]));
+
+/** Whether a file is in the folder, a folder with the same start in its name is another one */
+const isInside = (file: string, folder: string) => file.startsWith(folder) && /^[\\/]/.test(file.slice(folder.length));
+
 const toNumber = (value: number | string) => parseFloat(`${value || 0}`);
 
 const reducer: Reducer<UiState> = (state = initialState, action) => {
@@ -65,18 +76,45 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
 
   switch (action.type) {
     // another view starts with its list, not the open artist or genre of the previous one, and without the filter of its names
+    // a search that is dropped with the view is another list of tracks, which does not keep the selection
     case 'SET_VIEW':
-      return { ...state, view: action.payload.view, librarySearch: '', openGroup: undefined, groupFilter: '' };
+      return {
+        ...state,
+        view: action.payload.view,
+        librarySearch: '',
+        openGroup: undefined,
+        groupFilter: '',
+        selectedTracks: state.librarySearch === '' ? state.selectedTracks : {},
+      };
     case 'SET_ONLINE_VIEW':
       return { ...state, onlineView: action.payload.view };
+    case 'SET_FAVOURITES_SOURCE':
+      return { ...state, favouritesSource: action.payload.source };
+    case 'SET_FAVOURITES_ORDER':
+      return { ...state, favouritesOrder: action.payload.order };
+    case 'SET_SHOW_FADERS':
+      return { ...state, showFaders: action.payload.show };
+    case 'OUTPUT_DEVICES_LOADED':
+      return { ...state, outputDevices: action.payload.devices };
+    case 'TOGGLE_TRACK_SELECTION': {
+      const { [action.payload.track.path]: removed, ...rest } = state.selectedTracks;
+      return { ...state, selectedTracks: removed ? rest : { ...state.selectedTracks, [action.payload.track.path]: action.payload.track } };
+    }
+    case 'SELECT_TRACKS':
+      return { ...state, selectedTracks: byPath(action.payload.tracks) };
+    case 'CLEAR_TRACK_SELECTION':
+      return { ...state, selectedTracks: {} };
+    // the tracks of a folder that leaves the library are not there to play any more
+    case 'REMOVE_FOLDER':
+      return { ...state, selectedTracks: byPath(Object.values(state.selectedTracks).filter(({ path }) => !isInside(path, action.payload.path))) };
     case 'SET_TRACK_SORT':
-      return { ...state, trackSort: action.payload.sort };
+      return { ...state, trackSort: action.payload.sort, selectedTracks: {} };
     case 'SET_ALBUM_SORT':
       return { ...state, albumSort: action.payload.sort };
     case 'SET_COVER_SIZE':
       return { ...state, coverSize: restoreCoverSize(action.payload.size) };
     case 'SET_LIBRARY_SEARCH':
-      return { ...state, librarySearch: action.payload.search };
+      return { ...state, librarySearch: action.payload.search, selectedTracks: state.librarySearch === action.payload.search ? state.selectedTracks : {} };
     case 'SET_ARTIST_PHOTOS':
       return { ...state, artistPhotos: action.payload.enabled };
     case 'SET_WATCH_FOLDERS':
@@ -90,14 +128,14 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
     case 'CLOSE_GROUP':
       return { ...state, openGroup: undefined };
     case 'SET_LIBRARY_FOLDERS':
-      return { ...state, libraryFolders: parseFolders(action.payload.folders) };
+      return { ...state, libraryFolders: parseFolders(action.payload.folders), selectedTracks: {} };
     // a folder that is not in the library any more is dropped from the selection
     case 'STORE_FOLDERS': {
       const libraryFolders = knownFolders(
         state.libraryFolders,
         action.payload.folders.map(({ path }) => path)
       );
-      return libraryFolders.length === state.libraryFolders.length ? state : { ...state, libraryFolders };
+      return libraryFolders.length === state.libraryFolders.length ? state : { ...state, libraryFolders, selectedTracks: {} };
     }
     // the page of a search is not part of what is saved
     case 'SEARCH_RADIO':

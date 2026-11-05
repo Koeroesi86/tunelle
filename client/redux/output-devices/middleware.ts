@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import type { OutputDevice } from '../audio/output-device';
+import type { OutputDevice } from '../../audio/output-device';
+import { actionMiddleware, onAction } from '../on-action';
 
 /** Chromium hides the devices until the page may see them: it gives one placeholder with no id, which is the system default and not a device to pick */
 const isPickable = ({ kind, deviceId }: MediaDeviceInfo) =>
@@ -10,23 +10,16 @@ const listOutputDevices = async (): Promise<OutputDevice[]> => {
   return devices.filter(isPickable).map(({ deviceId, label }) => ({ id: deviceId, label }));
 };
 
-/** The output devices that are there, kept up to date as they are plugged and unplugged */
-export const useOutputDevices = () => {
-  const [devices, setDevices] = useState<OutputDevice[]>([]);
-
-  useEffect(() => {
-    let alive = true;
+/** Keeps the output devices that are there in the state, up to date as they are plugged and unplugged, from the start of the app on */
+const middleware = actionMiddleware((store) => [
+  onAction('APP_INIT', () => {
     const refresh = () =>
       listOutputDevices()
-        .then((list) => alive && setDevices(list))
+        .then((devices) => store.dispatch({ type: 'OUTPUT_DEVICES_LOADED', payload: { devices } }))
         .catch((err) => console.error(err));
     refresh();
     navigator.mediaDevices?.addEventListener('devicechange', refresh);
-    return () => {
-      alive = false;
-      navigator.mediaDevices?.removeEventListener('devicechange', refresh);
-    };
-  }, []);
+  }),
+]);
 
-  return devices;
-};
+export default middleware;

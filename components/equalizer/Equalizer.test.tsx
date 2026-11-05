@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Equalizer from './Equalizer';
@@ -11,6 +12,14 @@ const createFilter = () => {
     connect: vi.fn(),
   };
   return filter as typeof filter & BiquadFilterNode;
+};
+
+type EqualizerProps = Parameters<typeof Equalizer>[0];
+
+/** Keeps the faders choice the way the store does */
+const StatefulEqualizer = (props: Omit<EqualizerProps, 'showFaders' | 'setShowFaders'>) => {
+  const [showFaders, setShowFaders] = useState(false);
+  return <Equalizer {...props} showFaders={showFaders} setShowFaders={setShowFaders} />;
 };
 
 const setup = (gains = defaultGains) => {
@@ -31,7 +40,7 @@ const setup = (gains = defaultGains) => {
     setGain: vi.fn(),
     setGains: vi.fn(),
   };
-  const view = render(<Equalizer {...props} />);
+  const view = render(<StatefulEqualizer {...props} />);
   return { props, filters, view, mount: () => mounted() };
 };
 
@@ -61,7 +70,7 @@ describe('Equalizer', () => {
     mount();
     expect(filters.map((filter) => filter.gain.value)).toEqual(gains);
 
-    view.rerender(<Equalizer {...props} gains={gains.map((gain) => gain + 1)} />);
+    view.rerender(<StatefulEqualizer {...props} gains={gains.map((gain) => gain + 1)} />);
     expect(filters.map((filter) => filter.gain.value)).toEqual(gains.map((gain) => gain + 1));
   });
 

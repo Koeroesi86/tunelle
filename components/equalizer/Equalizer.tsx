@@ -25,11 +25,22 @@ interface EqualizerProps {
   onAudioMounted: (listener: () => void) => void;
   setGain: (index: number, value: number | string) => void;
   setGains: (gains: number[]) => void;
+  showFaders: boolean;
+  setShowFaders: (show: boolean) => void;
 }
 
-const Equalizer = ({ gains, createBiquadFilter, connectDestination, connectToSource, onAudioMounted, setGain, setGains }: EqualizerProps) => {
+const Equalizer = ({
+  gains,
+  createBiquadFilter,
+  connectDestination,
+  connectToSource,
+  onAudioMounted,
+  setGain,
+  setGains,
+  showFaders,
+  setShowFaders,
+}: EqualizerProps) => {
   const { t } = useTranslation();
-  const [showFaders, setShowFaders] = useState(false);
   const filters = useRef<BiquadFilterNode[]>([]);
   const latestGains = useLatest(gains);
 

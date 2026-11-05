@@ -9,7 +9,6 @@ import { normalizationGain } from '../../client/audio/loudness';
 import type { NormalizationMode } from '../../client/audio/loudness';
 import { resolveOutputId } from '../../client/audio/output-device';
 import type { OutputDevice } from '../../client/audio/output-device';
-import { useOutputDevices } from '../../client/hooks/use-output-devices';
 
 interface AudioComponentProps {
   currentSong: Track | null;
@@ -18,6 +17,8 @@ interface AudioComponentProps {
   normalization: NormalizationMode;
   /** The output device picked in the settings, undefined is the system default */
   outputDevice: OutputDevice | undefined;
+  /** The outputs that are there */
+  devices: OutputDevice[];
   /** The track that follows the current one, the second element loads it while the current one plays */
   upNext: Track | null;
   trackEnded: () => void;
@@ -41,6 +42,7 @@ const AudioComponent = ({
   volume,
   normalization,
   outputDevice,
+  devices,
   upNext,
   trackEnded,
   connectNode,
@@ -49,7 +51,6 @@ const AudioComponent = ({
   setNormalization,
   setOutputDevice,
 }: AudioComponentProps) => {
-  const devices = useOutputDevices();
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const attempts = useRef(0);
   const skipped = useRef(0);

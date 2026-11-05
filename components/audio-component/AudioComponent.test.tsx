@@ -10,6 +10,7 @@ const station = toRadioTrack({ uuid: 'abc-1', name: 'Jazz FM', country: 'UK', ta
 const renderAudio = (currentSong: Track | null, isPlaying = false) =>
   render(
     <AudioComponent
+      devices={[]}
       currentSong={currentSong}
       isPlaying={isPlaying}
       volume={1}
@@ -41,6 +42,7 @@ describe('AudioComponent', () => {
     const view = renderAudio(null);
     view.rerender(
       <AudioComponent
+        devices={[]}
         currentSong={station}
         isPlaying={false}
         volume={1}
@@ -63,6 +65,7 @@ describe('AudioComponent', () => {
     const view = renderAudio(null);
     view.rerender(
       <AudioComponent
+        devices={[]}
         currentSong={station}
         isPlaying
         volume={1}
@@ -86,6 +89,7 @@ describe('AudioComponent', () => {
     const element = view.container.querySelector('audio');
     const props = (isPlaying: boolean) => (
       <AudioComponent
+        devices={[]}
         currentSong={station}
         isPlaying={isPlaying}
         volume={1}
@@ -118,6 +122,7 @@ describe('AudioComponent', () => {
     const element = view.container.querySelector('audio');
     const props = (isPlaying: boolean) => (
       <AudioComponent
+        devices={[]}
         currentSong={file}
         isPlaying={isPlaying}
         volume={1}
@@ -142,6 +147,7 @@ describe('AudioComponent', () => {
     const view = renderAudio(null);
     const props = (isPlaying: boolean) => (
       <AudioComponent
+        devices={[]}
         currentSong={station}
         isPlaying={isPlaying}
         volume={1}
@@ -169,6 +175,7 @@ describe('AudioComponent', () => {
     const view = renderAudio(null);
     const props = (isPlaying: boolean) => (
       <AudioComponent
+        devices={[]}
         currentSong={station}
         isPlaying={isPlaying}
         volume={1}
@@ -196,6 +203,7 @@ describe('AudioComponent', () => {
     const view = renderAudio(null);
     view.rerender(
       <AudioComponent
+        devices={[]}
         currentSong={station}
         isPlaying={false}
         volume={1}
@@ -223,6 +231,7 @@ describe('AudioComponent end of a track', () => {
   const renderTrack = (song: Track) =>
     render(
       <AudioComponent
+        devices={[]}
         currentSong={song}
         isPlaying={false}
         volume={1}
@@ -254,6 +263,7 @@ describe('AudioComponent end of a track', () => {
     fireEvent.ended(element(view));
     view.rerender(
       <AudioComponent
+        devices={[]}
         currentSong={other}
         isPlaying={false}
         volume={1}
@@ -301,6 +311,7 @@ describe('AudioComponent radio reconnect', () => {
     const view = renderAudio(null);
     view.rerender(
       <AudioComponent
+        devices={[]}
         currentSong={station}
         isPlaying
         volume={1}
@@ -372,6 +383,7 @@ describe('AudioComponent radio reconnect', () => {
     const view = renderAudio(null);
     view.rerender(
       <AudioComponent
+        devices={[]}
         currentSong={station}
         isPlaying
         volume={1}
@@ -389,6 +401,7 @@ describe('AudioComponent radio reconnect', () => {
     play.mockClear();
     view.rerender(
       <AudioComponent
+        devices={[]}
         currentSong={station}
         isPlaying={false}
         volume={1}
@@ -415,6 +428,7 @@ describe('AudioComponent radio reconnect', () => {
     const file = { ...station, path: '/music/a.flac' };
     const view = render(
       <AudioComponent
+        devices={[]}
         currentSong={file}
         isPlaying
         volume={1}
@@ -440,6 +454,7 @@ describe('AudioComponent radio reconnect', () => {
     const file = { ...station, path: '/mnt/usb/a.flac' };
     const view = render(
       <AudioComponent
+        devices={[]}
         currentSong={file}
         isPlaying
         volume={1}
@@ -465,6 +480,7 @@ describe('AudioComponent radio reconnect', () => {
     const file = { ...station, path: '/mnt/usb/a.flac' };
     const view = render(
       <AudioComponent
+        devices={[]}
         currentSong={file}
         isPlaying={false}
         volume={1}
@@ -490,6 +506,7 @@ describe('AudioComponent radio reconnect', () => {
     const file = { ...station, path: '/mnt/usb/a.flac' };
     const view = render(
       <AudioComponent
+        devices={[]}
         currentSong={file}
         isPlaying
         volume={1}
@@ -524,6 +541,7 @@ describe('AudioComponent gapless', () => {
 
   const props = (currentSong: Track | null, upNext: Track | null, isPlaying = true, normalization: NormalizationMode = 'album') => (
     <AudioComponent
+      devices={[]}
       currentSong={currentSong}
       isPlaying={isPlaying}
       volume={1}
@@ -754,42 +772,36 @@ describe('AudioComponent gapless', () => {
 
 describe('AudioComponent output device', () => {
   const dac = { id: 'a1', label: 'USB DAC' };
-  const mediaDevices = (devices: { kind: string; deviceId: string; label: string }[]) =>
-    vi.stubGlobal('navigator', {
-      ...navigator,
-      mediaDevices: { enumerateDevices: vi.fn().mockResolvedValue(devices), addEventListener: vi.fn(), removeEventListener: vi.fn() },
-    });
-  const renderOutput = (setOutputDevice: (id: string) => Promise<void>) =>
-    render(
-      <AudioComponent
-        currentSong={null}
-        isPlaying={false}
-        volume={1}
-        trackEnded={vi.fn()}
-        connectNode={vi.fn()}
-        connectStandbyNode={vi.fn()}
-        activateNode={vi.fn()}
-        normalization="album"
-        setNormalization={vi.fn()}
-        outputDevice={dac}
-        setOutputDevice={setOutputDevice}
-        upNext={null}
-      />
-    );
-
-  afterEach(() => vi.unstubAllGlobals());
+  const outputProps = (setOutputDevice: (id: string) => Promise<void>, devices: { id: string; label: string }[] = []) => (
+    <AudioComponent
+      devices={devices}
+      currentSong={null}
+      isPlaying={false}
+      volume={1}
+      trackEnded={vi.fn()}
+      connectNode={vi.fn()}
+      connectStandbyNode={vi.fn()}
+      activateNode={vi.fn()}
+      normalization="album"
+      setNormalization={vi.fn()}
+      outputDevice={dac}
+      setOutputDevice={setOutputDevice}
+      upNext={null}
+    />
+  );
+  const renderOutput = (setOutputDevice: (id: string) => Promise<void>) => render(outputProps(setOutputDevice));
 
   it('plays on the default until the saved device is found, then moves to it', async () => {
-    mediaDevices([{ kind: 'audiooutput', deviceId: 'a1', label: 'USB DAC' }]);
     const setOutputDevice = vi.fn().mockResolvedValue(undefined);
-    renderOutput(setOutputDevice);
+    const view = renderOutput(setOutputDevice);
+    expect(setOutputDevice).toHaveBeenLastCalledWith('');
 
-    await waitFor(() => expect(setOutputDevice).toHaveBeenLastCalledWith('a1'));
-    expect(setOutputDevice.mock.calls[0]).toEqual(['']);
+    view.rerender(outputProps(setOutputDevice, [dac]));
+
+    expect(setOutputDevice).toHaveBeenLastCalledWith('a1');
   });
 
   it('does not fail when the device cannot be set', async () => {
-    mediaDevices([]);
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     renderOutput(() => Promise.reject(new Error('gone')));
 
