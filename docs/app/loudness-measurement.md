@@ -21,7 +21,8 @@ A row counts only while its `fileModified` and `fileSize` equal the ones of the 
 
 The queries that list tracks (`getLibrary`, `getTrackPage`, `getAlbumTracks`, `getTracksInside`) and `findTrackFormat` return, for each of the four loudness columns, the tag first and the measured value for what the tags lack: `COALESCE(library.x, (SELECT x FROM track_loudness ...))` (`effectiveLoudness` in `electron/repositories/library-repository.ts`). The player takes the gain as it takes the tags (`normalizationGain` in `client/audio/loudness.ts`).
 
-- It is a lookup by primary key for each row returned, not a join, as the queries name the columns of `library` without a table. `getTrackPage` cuts the page first, so the lookups are for the rows of the page; on 50 000 tracks a page at offset 40 000 took 40 ms with measured rows, against 52 ms before.
+- It is a lookup by primary key for each row returned, not a join, as the queries name the columns of `library` without a table. `getTrackPage` cuts the page first, so the lookups are for the rows of the page: on 50 000 tracks a page at offset 40 000 took 41 ms before and 40 ms with measured rows.
+- `getLibrary` with the four columns returns every track, so it does four lookups for each of them: 86 ms before, 96 ms with an empty `track_loudness` and 147 ms when two thirds of the tracks have a measured row.
 - The JSON is not in these lists: `findLoudnessAnalysis` reads it for one track.
 
 ## The measurement (`client/loudness/`)
