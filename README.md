@@ -22,6 +22,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [The `tunelle://app` protocol](docs/app/tunelle-protocol.md)
 - [Database migrations](docs/app/migrations.md)
 - [Library queries](docs/app/library-queries.md)
+- [Supported formats](docs/app/supported-formats.md)
 - [The AppImage launcher entry](docs/app/appimage-launcher.md)
 - [The Flatpak repository](docs/release/flatpak-repository.md)
 - [The performance summary](docs/development/performance-summary.md)

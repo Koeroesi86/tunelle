@@ -144,4 +144,15 @@ describe('rescanLibrary', () => {
 
     expect((await getLibrary(database, { sort: undefined, folders: [] }, ['path'])).map((item) => item.path)).toEqual([stored('kept.flac')]);
   });
+
+  it('removes the tracks of a format or codec that is not supported, which an earlier version stored', async () => {
+    const stored = (name: string) => path.join(root, name).replace(/\\/g, '/');
+    ['kept.flac', 'old.wma', 'old.ape', 'alac.m4a'].forEach((name) => fs.writeFileSync(path.join(root, name), ''));
+    await addFolder(root, 0);
+    await Promise.all(['kept.flac', 'old.wma', 'old.ape'].map((name) => addTrack(database, track(stored(name)))));
+    await addTrack(database, { ...track(stored('alac.m4a')), codec: 'ALAC' });
+    await rescan();
+
+    expect((await getLibrary(database, { sort: undefined, folders: [] }, ['path'])).map((item) => item.path)).toEqual([stored('kept.flac')]);
+  });
 });

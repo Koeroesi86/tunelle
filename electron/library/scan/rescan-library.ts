@@ -8,6 +8,7 @@ import scanFolders from './scan-folders';
 import { storeAlbumArtAccents } from '../art/album-art-accents';
 import { quitSignal } from './scan-cancellation';
 import { findMissingTracks } from './missing-tracks';
+import isSupported, { isSupportedCodec } from '../../utils/is-supported';
 import { folderColumns } from '../../constants/library';
 
 const readModifiedTimes = async (folders: Folder[]) => {
@@ -15,16 +16,18 @@ const readModifiedTimes = async (folders: Folder[]) => {
   return new Map(times.flatMap(([folderPath, stat]) => (stat ? [[folderPath, Math.floor(stat.mtimeMs)] as const] : [])));
 };
 
-/** The tracks below an offline folder are kept, its files cannot be told from missing ones */
+/** The tracks below an offline folder are kept, its files cannot be told from missing ones; the tracks of a format or codec that is not played go too */
 const removeMissingTracks = async (database: Database, offline: string[]) => {
-  const tracks = (await getLibrary(database, { sort: undefined, folders: [] }, ['path'])).filter(
+  const tracks = (await getLibrary(database, { sort: undefined, folders: [] }, ['path', 'codec'])).filter(
     (track) => !offline.some((folderPath) => isInsideFolder(folderPath, track.path))
   );
   const missing = await findMissingTracks(tracks);
+  const unsupported = tracks.filter((track) => !isSupported(track.path) || !isSupportedCodec(track.codec));
 
   missing.forEach((track) => console.log(`Removing non existent ${track.path}`));
-  console.log(`Removing ${missing.length} of ${tracks.length} songs`);
-  await deleteTracks(database, missing);
+  unsupported.forEach((track) => console.log(`Removing unsupported format ${track.path}`));
+  console.log(`Removing ${missing.length + unsupported.length} of ${tracks.length} songs`);
+  await deleteTracks(database, [...missing, ...unsupported]);
 };
 
 /** Scan the changed folders, and remove the tracks that are gone */
