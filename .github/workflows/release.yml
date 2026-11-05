@@ -2,7 +2,7 @@ name: Release
 
 # Twice a week (Monday and Thursday) and by hand, from master only. A scheduled run releases only when the app changed since the latest release
 # (documentation, the website and the files of the repository tooling do not count), a manual run always does. The release is published, as the updater
-# of the installed apps only sees published releases, and its tag is the version that was stamped into the package (scripts/version.js). It is made as a draft,
+# of the installed apps only sees published releases, and its tag is the version that was stamped into the package (scripts/release/version.js). It is made as a draft,
 # which has no tag and is not seen by the updater, and published after all files are uploaded, so an app never finds a release without its latest*.yml.
 on:
   schedule:
@@ -47,7 +47,7 @@ jobs:
           fi
           echo 'release=true' >> "$GITHUB_OUTPUT"
           # fails when the run number restarted and the version is not greater than the latest release
-          echo "version=$(node scripts/version.js --after "$latest")" | tee -a "$GITHUB_OUTPUT"
+          echo "version=$(node scripts/release/version.js --after "$latest")" | tee -a "$GITHUB_OUTPUT"
 
   test:
     needs: plan
@@ -78,7 +78,7 @@ jobs:
           path: artifacts
       # windows and macOS write one update file for both architectures from separate runners: one list of files for electron-updater to choose from
       - name: Merge the artifacts of the runners
-        run: node scripts/merge-update-files.js artifacts dist
+        run: node scripts/release/merge-update-files.js artifacts dist
       # the update files have to name the version of the release, or the updater of a platform compares against another one
       - name: Check the version of the update files
         env:

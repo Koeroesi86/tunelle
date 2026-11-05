@@ -4,7 +4,7 @@ name: Dist
 on:
   workflow_call:
     inputs:
-      # the version of a release (see scripts/version.js), stamped into package.json before packaging; empty keeps the one of package.json
+      # the version of a release (see scripts/release/version.js), stamped into package.json before packaging; empty keeps the one of package.json
       version:
         type: string
         default: ''
@@ -51,7 +51,7 @@ jobs:
             platform: win32
             arch: arm64
     env:
-      # which Linux package the job builds (scripts/dist.js, scripts/check-dist.js); empty on the other systems
+      # which Linux package the job builds (scripts/release/dist.js, scripts/release/check-dist.js); empty on the other systems
       TUNELLE_LINUX_PACKAGE: ${{ matrix.package }}
       # names the caches and the artifact of the job: a system has a job for each Linux package
       DIST_ID: ${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.package && format('-{0}', matrix.package) || '' }}
@@ -119,16 +119,16 @@ jobs:
           VERSION: ${{ inputs.version }}
         # the default shell of Windows is PowerShell, where "$VERSION" is empty and the installer would keep the version of package.json
         shell: bash
-        run: node scripts/version.js "$VERSION"
+        run: node scripts/release/version.js "$VERSION"
       - run: npm run build
       - run: npm run dist
-      # the update information in the AppImage names it (scripts/appimage-update-info.js); AppImageUpdate and appimageupdatetool, which AM runs, download only what changed with it
+      # the update information in the AppImage names it (scripts/release/appimage-update-info.js); AppImageUpdate and appimageupdatetool, which AM runs, download only what changed with it
       - name: Make the zsync file of the AppImage
         if: matrix.package == 'appimage'
         run: |
           install() { sudo timeout 10m apt-get install -y -o Acquire::Retries=3 zsync; }
           install || { sudo timeout 10m apt-get update && install; }
-          node scripts/zsync.js
+          node scripts/release/zsync.js
       - name: Check the contents of the package
         run: npm run check:dist
       # the packaged app has to start: a file missing from the package or a native module that does not load only shows here
@@ -152,7 +152,7 @@ jobs:
           gpg --batch --passphrase '' --quick-generate-key 'Tunelle test <test@example.com>' default default 1d
           export FLATPAK_GPG_PRIVATE_KEY="$(gpg --armor --export-secret-keys)"
           gpg --export > "$RUNNER_TEMP/test-key.gpg"
-          node scripts/flatpak-repo.js dist "$RUNNER_TEMP/flatpak-repo"
+          node scripts/release/flatpak-repo.js dist "$RUNNER_TEMP/flatpak-repo"
           # the metainfo is what the software centre shows (icon, description, screenshots): the bundle has to carry it
           ostree ls --repo="$RUNNER_TEMP/flatpak-repo" "app/io.github.koeroesi86.Tunelle/$(flatpak --default-arch)/stable" /files/share/metainfo/io.github.koeroesi86.Tunelle.metainfo.xml
           flatpak uninstall --user --noninteractive io.github.koeroesi86.Tunelle

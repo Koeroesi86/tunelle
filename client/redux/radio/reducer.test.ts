@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { RadioStation } from '../../../types/radio';
+import type { RadioStation } from '@shared/types/radio';
 import type { AppAction } from '../types';
 import reducer from './reducer';
 import type { RadioState } from './reducer';

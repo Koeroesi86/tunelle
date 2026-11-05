@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Album, Track } from '../../../types/library';
+import type { Album, Track } from '@shared/types/library';
 import type { AppAction, PersistedSettings, UiState } from '../types';
 import reducer from './reducer';
 

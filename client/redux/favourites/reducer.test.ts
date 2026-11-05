@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { Favourite } from '../../../types/favourites';
-import type { Track } from '../../../types/library';
-import type { RadioStation } from '../../../types/radio';
-import { stationFavourite, trackFavourite } from '../../favourites';
+import type { Favourite } from '@shared/types/favourites';
+import type { Track } from '@shared/types/library';
+import type { RadioStation } from '@shared/types/radio';
+import { stationFavourite, trackFavourite } from '../../domain/favourites';
 import reducer from './reducer';
 
 const station: RadioStation = { uuid: 'abc', name: 'Jazz FM', country: 'Hungary', tags: ['jazz'], codec: 'MP3', bitrate: 128 };

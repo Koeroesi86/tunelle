@@ -1,5 +1,5 @@
-import { expect, navigate, test } from './app';
-import { player } from './player';
+import { expect, navigate, test } from './support/app';
+import { player } from './support/player';
 
 test('lists the stations of the directory with their format', async ({ start }) => {
   const { page } = await start();

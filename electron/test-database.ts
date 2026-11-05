@@ -1,6 +1,6 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
-import { migrate } from './migrate';
+import { migrate } from './database/migrate';
 
 const migrationsPath = path.resolve(__dirname, '../migrations');
 

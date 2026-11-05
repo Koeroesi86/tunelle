@@ -1,12 +1,12 @@
-import type { Album, AlbumSummary, Folder, GroupSummary, Track } from '../../types/library';
-import type { Favourite, FavouriteKey, HistoryItem, NewFavourite } from '../../types/favourites';
-import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '../../types/radio';
-import type { Playlist } from '../../types/playlists';
-import type { ThemeMode, ThemeSettings } from '../../types/theme';
+import type { Album, AlbumSummary, Folder, GroupSummary, Track } from '@shared/types/library';
+import type { Favourite, FavouriteKey, HistoryItem, NewFavourite } from '@shared/types/favourites';
+import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
+import type { Playlist } from '@shared/types/playlists';
+import type { ThemeMode, ThemeSettings } from '@shared/types/theme';
 import type { NormalizationMode } from '../audio/loudness';
 import type { OutputDevice } from '../audio/output-device';
-import type { AlbumSort, GroupKind, GroupSort, TrackSort } from '../../types/library-query';
-import type { UpdateState } from '../../types/update';
+import type { AlbumSort, GroupKind, GroupSort, TrackSort } from '@shared/types/library-query';
+import type { UpdateState } from '@shared/types/update';
 
 export type LibraryView = 'albums' | 'artists' | 'albumArtists' | 'genres' | 'tracks' | 'folders';
 

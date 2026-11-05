@@ -1,27 +1,13 @@
+import { equalizerBands, minGain, maxGain } from '../constants/equalizer';
+import { clamp } from '@shared/utils/clamp';
 export interface EqualizerBand {
   label: string;
   frequency: number;
 }
 
-export const equalizerBands: EqualizerBand[] = [
-  { label: '70', frequency: 70 },
-  { label: '180', frequency: 180 },
-  { label: '320', frequency: 320 },
-  { label: '600', frequency: 600 },
-  { label: '1k', frequency: 1000 },
-  { label: '3k', frequency: 3000 },
-  { label: '6k', frequency: 6000 },
-  { label: '12k', frequency: 12000 },
-  { label: '14k', frequency: 14000 },
-  { label: '16k', frequency: 16000 },
-];
-
-export const minGain = -12;
-export const maxGain = 12;
-
 export const defaultGains = equalizerBands.map(() => 0);
 
-export interface EqualizerPreset {
+interface EqualizerPreset {
   id: string;
   gains: number[];
 }
@@ -43,7 +29,7 @@ export const formatGain = (gain: number) => (gain > 0 ? '+' : gain < 0 ? '\u2212
 
 export const frequencyText = (frequency: number) => (frequency >= 1000 ? `${frequency / 1000} kHz` : `${frequency} Hz`);
 
-export const clampGain = (gain: number) => Math.min(maxGain, Math.max(minGain, Number.isFinite(gain) ? gain : 0));
+export const clampGain = (gain: number) => clamp(Number.isFinite(gain) ? gain : 0, minGain, maxGain);
 
 // settings saved before gains were in dB hold another number of unscaled values, so they are dropped
 export const restoreGains = (gains: unknown): number[] =>

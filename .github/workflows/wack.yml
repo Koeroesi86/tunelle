@@ -1,7 +1,7 @@
 name: Store certification
 
 # The Windows App Certification Kit on the x64 package, and a run of the installed arm64 package
-# See docs/microsoft-store.md
+# See docs/release/microsoft-store.md
 on:
   workflow_call:
     inputs:
@@ -91,7 +91,7 @@ jobs:
           Copy-Item "$env:RUNNER_TEMP\wack-report.xml" wack-report.xml
       - name: Read the report
         if: inputs.arch != 'arm64'
-        run: node scripts/wack-report.js wack-report.xml
+        run: node scripts/release/wack-report.js wack-report.xml
       # the Store brings the updates: the installed package must not look for a release on GitHub, which an app started from the Start menu does
       # unless process.windowsStore is true. GitHub is sent to a listener of this machine, and nothing may connect to it while the package runs
       - name: Install the package and watch for requests to GitHub
@@ -102,7 +102,7 @@ jobs:
           $lines = $hosts | ForEach-Object { "127.0.0.1 $_"; "::1 $_" }
           Add-Content -Path "$env:SystemRoot\System32\drivers\etc\hosts" -Value $lines
           ipconfig /flushdns | Out-Null
-          node scripts/watch-github.js 45 pwsh -NoProfile -File scripts/launch-store-package.ps1
+          node scripts/release/watch-github.js 45 pwsh -NoProfile -File scripts/release/launch-store-package.ps1
           if ($LASTEXITCODE -ne 0) { throw 'GitHub was contacted, or the check did not work' }
           # a package that did not start would pass the check for the wrong reason
           if (-not (Get-Process -Name Tunelle -ErrorAction SilentlyContinue)) { throw 'The package is not running' }

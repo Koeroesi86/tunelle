@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Playlist } from '../../../types/playlists';
+import type { Playlist } from '@shared/types/playlists';
 import reducer from './reducer';
 
 const playlist: Playlist = { id: 1, name: 'Road', entries: [] };

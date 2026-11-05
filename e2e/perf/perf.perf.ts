@@ -2,10 +2,10 @@ import { expect, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { test } from '../app';
-import { clearProbe, expectTone, longestGap } from '../audio';
-import { navigate } from '../app';
-import { player } from '../player';
+import { test } from '../support/app';
+import { clearProbe, expectTone, longestGap } from '../support/audio';
+import { navigate } from '../support/app';
+import { player } from '../support/player';
 import { writeLargeLibrary } from './large-library';
 import { memory, percentile, record, scrollList, startMainLoop, startRenderer, stopMainLoop, stopRenderer } from './measure';
 

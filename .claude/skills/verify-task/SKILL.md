@@ -21,7 +21,7 @@ Per requirement, tests: ✅ / ⚠️ / ❌ / N/A (reason). Read the tests, a tou
 Repository rules (`CLAUDE.md`), report only the ones that apply:
 - a test next to the code (`name.test.ts`) that fails without the change, for the success and the failure path; no fixed sleeps
 - database change: a new file in `migrations/` (a shipped one is not edited), covered by `electron/migrations.test.ts`-style tests
-- main/renderer boundary: new IPC channel is wired in `electron/preload.ts`, `client/electron-api.ts` and `electron/setupListeners.ts`
+- main/renderer boundary: new IPC channel is wired in `electron/preload.ts`, `client/services/electron-api.ts` and `electron/listeners/setup-listeners.ts`
 - no `any`/casts, flat conditions, no dead comments; fallow suppressions have a reason; no new unused export or dependency
 - platform-specific code (paths, packaging) works on Linux, macOS and Windows
 - `.github/`: minimal `permissions`, no `${{ }}` of untrusted input in `run:`, the OS matrix intact, no uncommented `continue-on-error`

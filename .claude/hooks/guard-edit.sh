@@ -18,14 +18,14 @@ case "$FILE" in
   "$PROJECT"/package.json)
     # edits that touch the "version" line; the release workflow stamps it
     jq -e '[.tool_input.old_string, .tool_input.new_string] | map(. // "") | any(test("\"version\"[[:space:]]*:"))' <<<"$INPUT" >/dev/null \
-      && deny "never edit version in package.json; scripts/version.js stamps it in the release workflow."
+      && deny "never edit version in package.json; scripts/release/version.js stamps it in the release workflow."
     CURRENT="$(jq -r '.version' "$FILE")"
     NEW="$(jq -r '.tool_input.content // empty' <<<"$INPUT" | jq -r '.version // empty' 2>/dev/null || true)"
-    [ -z "$NEW" ] || [ "$NEW" = "$CURRENT" ] || deny "never edit version in package.json; scripts/version.js stamps it in the release workflow."
+    [ -z "$NEW" ] || [ "$NEW" = "$CURRENT" ] || deny "never edit version in package.json; scripts/release/version.js stamps it in the release workflow."
     ;;
   "$PROJECT"/migrations/*.sql)
-    if jq -e --arg name "$(basename "$FILE")" 'has($name)' "$PROJECT/electron/migrations-checksums.json" >/dev/null 2>&1; then
-      deny "$(basename "$FILE") has shipped; add a new migration with the next number instead (and its line in electron/migrations-checksums.json)."
+    if jq -e --arg name "$(basename "$FILE")" 'has($name)' "$PROJECT/electron/database/migrations-checksums.json" >/dev/null 2>&1; then
+      deny "$(basename "$FILE") has shipped; add a new migration with the next number instead (and its line in electron/database/migrations-checksums.json)."
     fi
     ;;
 esac

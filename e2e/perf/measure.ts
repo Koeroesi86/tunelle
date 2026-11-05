@@ -2,7 +2,7 @@ import { test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
-export interface Renderer {
+interface Renderer {
   /** Tasks of the main thread of the page longer than 50 ms (the Long Tasks API) */
   longTasks: number[];
   /** The time between the frames the page drew, in ms */
@@ -154,7 +154,7 @@ export const scrollList = (page: Page, seconds: number) =>
     seconds
   );
 
-/** Prints what a measurement found, and keeps it in test-results/perf-<name>.json (perf-<name>.<n>.json for the later runs of PERF_REPEAT) for the summary of the runs (scripts/perf-summary.js) */
+/** Prints what a measurement found, and keeps it in test-results/perf-<name>.json (perf-<name>.<n>.json for the later runs of PERF_REPEAT) for the summary of the runs (scripts/checks/perf-summary.js) */
 export const record = (name: string, report: Record<string, unknown>) => {
   console.log(JSON.stringify({ [name]: report }));
   mkdirSync('test-results', { recursive: true });

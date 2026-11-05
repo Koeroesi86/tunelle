@@ -1,16 +1,18 @@
 {
   "$schema": "./node_modules/fallow/schema.json",
+  // hidden folders that only hold hooks and workflow tests, which fallow skips on its own
+  "ignorePatterns": [".claude/**", ".github/**"],
   "entry": [
     // run by node, not imported
-    "scripts/**",
+    "scripts/**/*",
     "index.ts",
     "electron/preload.ts",
-    "electron/splashPreload.ts",
+    "electron/splash-preload.ts",
     "client/app.tsx",
     // webpack entry that renders the loading splash html
     "client/htmlGenerator.tsx",
     // vitest alias for the stylesheets
-    "test-utils-style-stub.ts",
+    "client/test/test-utils-style-stub.ts",
     // the website, loaded by site/index.html
     "site/**",
     // run by Playwright (npm run test:e2e), the helpers they import are reached from there
@@ -20,19 +22,19 @@
     "e2e/**/*.perf.ts"
   ],
   "ignoreDependencies": [
-    // webpack loaders, referenced by name in config/webpack.config.base.js
+    // webpack loaders, referenced by name in scripts/tooling/config/webpack.config.base.js
     "esbuild-loader",
     "css-loader",
     "sass-loader",
     "style-loader",
-    // the fonts of components/player-home/PlayerHome.scss
+    // the fonts of client/components/layout/player-home/PlayerHome.scss
     "@fontsource/open-sans",
-    // used by the scripts of the checks (scripts/smoke.js, scripts/check-dist.js, scripts/security-scan.js), which run in CI only
+    // used by the scripts of the checks (scripts/checks/smoke.js, scripts/release/check-dist.js, scripts/checks/security-scan.js), which run in CI only
     "@electron/asar",
     "@doyensec/electronegativity",
-    // augmented by types/csstype.d.ts, installed with the React typings
+    // augmented by shared/types/csstype.d.ts, installed with the React typings
     "csstype",
-    // scripts/dist.js takes the toolset of the AppImage from them to put the update information into its runtime; they are the versions that electron-builder
+    // scripts/release/dist.js takes the toolset of the AppImage from them to put the update information into its runtime; they are the versions that electron-builder
     // brings (a version of our own could differ from the one it uses), and the script fails when their layout changes
     "app-builder-lib",
     "builder-util"

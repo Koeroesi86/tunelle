@@ -1,0 +1,13 @@
+@use '../../../styles/settings-tile' as *;
+
+.windowBlur {
+  @include tile;
+
+  .sectionTitle {
+    @include tile-title;
+  }
+
+  .hint {
+    @include tile-hint;
+  }
+}

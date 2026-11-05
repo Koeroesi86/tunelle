@@ -12,7 +12,7 @@ First that yields one: the argument (URL, `N`/`#N`, or a commit hash via `git sh
 `gh issue view <N> --json number,title,body,state,labels,comments,url`. Comments often change the scope. Check linked issues and `gh issue list --search "<keywords>"` for duplicates or overlap.
 
 ## 2. Check against the code
-Read what the issue touches (`README.md`, `electron/`, `client/`, `migrations/`, `types/`, tests). Verify that the files, functions, IPC channels, settings and tables it names exist and that the described behaviour is the current one.
+Read what the issue touches (`README.md`, `electron/`, `client/`, `migrations/`, `shared/`, tests). Verify that the files, functions, IPC channels, settings and tables it names exist and that the described behaviour is the current one.
 
 ## 3. Analyse
 - **Ambiguities**: technical points open to more than one implementation: undefined scope or boundary, behaviour without a condition or threshold (with unit), a criterion no test could verify.

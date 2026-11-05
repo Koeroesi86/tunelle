@@ -1,7 +1,7 @@
 import type { Reducer } from 'redux';
-import type { AlbumSummary, GroupSummary, Track } from '../../../types/library';
-import { groupKinds } from '../../../types/library-query';
-import type { GroupKind } from '../../../types/library-query';
+import type { AlbumSummary, GroupSummary, Track } from '@shared/types/library';
+import { groupKinds } from '@shared/types/library-query';
+import type { GroupKind } from '@shared/types/library-query';
 import { isAppAction } from '../types';
 import { createPageCache, markStale, storePage } from './pages';
 import type { PageCache } from './pages';

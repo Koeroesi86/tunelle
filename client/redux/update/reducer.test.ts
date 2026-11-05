@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { UpdateState } from '../../../types/update';
+import type { UpdateState } from '@shared/types/update';
 import reducer from './reducer';
 
 const state: UpdateState = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, automatic: true, status: { kind: 'idle' } };

@@ -1,18 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  bandType,
-  clampGain,
-  defaultGains,
-  equalizerBands,
-  equalizerPresets,
-  formatGain,
-  frequencyText,
-  matchingPreset,
-  maxGain,
-  minGain,
-  needsSeek,
-  restoreGains,
-} from './equalizer';
+import { bandType, clampGain, defaultGains, equalizerPresets, formatGain, frequencyText, matchingPreset, needsSeek, restoreGains } from './equalizer';
+import { equalizerBands, minGain, maxGain } from '../constants/equalizer';
 
 describe('equalizer', () => {
   it('uses shelves at the ends and peaking filters between them', () => {

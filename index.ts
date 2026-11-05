@@ -4,33 +4,33 @@ import { join, resolve } from 'path';
 import fs from 'fs';
 import minimist from 'minimist';
 import ws from 'windows-shortcuts-appid';
-import type { AppWindows } from './types/global';
-import getAppDataPath from './electron/appDataPath';
-import { readAutomaticUpdates, saveAutomaticUpdates } from './electron/updatePreference';
-import { copyOldLibrary, copyOldUserData, getAppName } from './electron/userData';
-import createWindow from './electron/createWindow';
-import getLoadingWindow from './electron/getLoadingWindow';
-import createDatabase from './electron/createDatabase';
-import { libraryErrorMessage } from './electron/libraryErrorMessage';
-import setupListeners from './electron/setupListeners';
-import { tunelleOrigin, handleTunelleProtocol, registerTunelleScheme } from './electron/tunelleProtocol';
-import { createRadioBrowser } from './electron/radioBrowser';
-import { createRadioArt } from './electron/radioArt';
-import { createRadioLogos } from './electron/radioLogos';
-import { getAppUserModelId, setsAppUserModelId } from './electron/appUserModelId';
-import { holdSingleInstance } from './electron/singleInstance';
-import { registerDevDesktopEntry, removeDevDesktopEntry } from './electron/devDesktopEntry';
-import closeDatabase from './electron/closeDatabase';
-import { cancelScans } from './electron/scanCancellation';
-import closeSplash from './electron/closeSplash';
-import releaseWindows from './electron/releaseWindows';
+import type { AppWindows } from '@shared/types/global';
+import getAppDataPath from './electron/utils/app-data-path';
+import { readAutomaticUpdates, saveAutomaticUpdates } from './electron/services/update-preference';
+import { copyOldLibrary, copyOldUserData, getAppName } from './electron/utils/user-data';
+import createWindow from './electron/windows/create-window';
+import getLoadingWindow from './electron/windows/get-loading-window';
+import createDatabase from './electron/database/create-database';
+import { libraryErrorMessage } from './electron/utils/library-error-message';
+import setupListeners from './electron/listeners/setup-listeners';
+import { tunelleOrigin, handleTunelleProtocol, registerTunelleScheme } from './electron/protocols/tunelle-protocol';
+import { createRadioBrowser } from './electron/services/radio-browser';
+import { createRadioArt } from './electron/services/radio-art';
+import { createRadioLogos } from './electron/services/radio-logos';
+import { getAppUserModelId, setsAppUserModelId } from './electron/app-user-model-id';
+import { holdSingleInstance } from './electron/windows/single-instance';
+import { registerDevDesktopEntry, removeDevDesktopEntry } from './electron/services/dev-desktop-entry';
+import closeDatabase from './electron/database/close-database';
+import { cancelScans } from './electron/library/scan/scan-cancellation';
+import closeSplash from './electron/windows/close-splash';
+import releaseWindows from './electron/windows/release-windows';
 import { getMainTranslator, setPickedLanguage } from './electron/language';
 import { applyThemeMode } from './electron/theme';
-import { getSettings } from './electron/settingsRepository';
+import { getSettings } from './electron/repositories/settings-repository';
 import { autoUpdater } from 'electron-updater';
-import { createMockUpdateSource, getUpdateUnavailableReason, inspectAppImage, runUpdate } from './electron/updater';
-import { createUpdateManager } from './electron/updateManager';
-import type { UpdateSource } from './electron/updater';
+import { createMockUpdateSource, getUpdateUnavailableReason, inspectAppImage, runUpdate } from './electron/services/updater';
+import { createUpdateManager } from './electron/services/update-manager';
+import type { UpdateSource } from './electron/services/updater';
 
 // compiled to out/index.js, the project root is one level up
 const rootPath = resolve(__dirname, '..');
@@ -60,7 +60,7 @@ if (isDev && process.platform === 'linux') {
   app.on('will-quit', () => removeDevDesktopEntry(dataHome));
 }
 
-// the entry the AppImage launcher installs (electron/appImageLauncher.ts), or the one the Flatpak installs under its id, so the running window gets its icon in the dock and taskbar
+// the entry the AppImage launcher installs (electron/services/app-image-launcher.ts), or the one the Flatpak installs under its id, so the running window gets its icon in the dock and taskbar
 if (!isDev && process.platform === 'linux') {
   app.setDesktopName(`${process.env.FLATPAK_ID ?? 'tunelle'}.desktop`);
 }

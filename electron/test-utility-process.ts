@@ -1,11 +1,11 @@
 import { vi } from 'vitest';
 import { EventEmitter } from 'events';
-import type { ReadRequest } from './trackReaderWorker';
+import type { ReadRequest } from './library/reading/track-reader-worker';
 
 /** The utility process of the tests: it answers like the worker of the app does, in the process of the test, so a test reads real files (or the `music-metadata` it mocks) without Electron */
 class FakeUtilityProcess extends EventEmitter {
   postMessage = async (request: ReadRequest) => {
-    const { answer } = await import('./trackReaderWorker');
+    const { answer } = await import('./library/reading/track-reader-worker');
     const reply = await answer(request);
     this.emit('message', reply);
   };

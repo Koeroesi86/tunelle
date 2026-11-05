@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "ES2024",
+      "DOM",
+      "DOM.Iterable"
+    ]
+  },
+  "include": [
+    "scripts/**/*.ts",
+    "scripts/**/*.js",
+    ".claude/hooks/*.test.ts",
+    ".github/workflows/*.test.ts",
+    "packaging/**/*.test.ts"
+  ]
+}

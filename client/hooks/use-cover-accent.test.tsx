@@ -4,7 +4,7 @@ import { useCoverAccent } from './use-cover-accent';
 
 const coverAccent = vi.hoisted(() => vi.fn());
 
-vi.mock('../cover-accent', () => ({ coverAccent }));
+vi.mock('../services/cover-accent', () => ({ coverAccent }));
 
 const deferred = () => {
   let resolve: (accent: string | undefined) => void = () => undefined;

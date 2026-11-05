@@ -1,15 +1,17 @@
 import type { Reducer } from 'redux';
-import type { Track } from '../../../types/library';
-import { coverSizes, restoreCoverSize } from '../../cover-size';
-import { knownFolders, parseFolders, restoreAlbumSort, restoreGroupSort, restoreTrackSort } from '../../../types/library-query';
-import { parseRadioQuery } from '../../../types/radio-query';
+import type { Track } from '@shared/types/library';
+import { restoreCoverSize } from '../../utils/cover-size';
+import { knownFolders, parseFolders, restoreAlbumSort, restoreGroupSort, restoreTrackSort } from '@shared/types/library-query';
+import { parseRadioQuery } from '@shared/types/radio-query';
 import { isAppAction } from '../types';
 import type { OnlineView, UiState } from '../types';
-import { radioUuidOf } from '../../radio-track';
-import { autoAccent, defaultTheme, parseAccent, restoreTheme } from '../../theme';
+import { radioUuidOf } from '../../domain/radio-track';
+import { defaultTheme, parseAccent, restoreTheme } from '../../theme';
 import { defaultNormalization, restoreNormalization } from '../../audio/loudness';
 import { restoreOutputDevice } from '../../audio/output-device';
 import { clampGain, defaultGains, restoreGains } from '../../audio/equalizer';
+import { autoAccent } from '../../constants/theme';
+import { coverSizes } from '../../constants/cover-size';
 
 const initialState: UiState = {
   view: 'albums',

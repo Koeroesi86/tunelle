@@ -1,5 +1,5 @@
 import type { Reducer } from 'redux';
-import type { Folder } from '../../../types/library';
+import type { Folder } from '@shared/types/library';
 import { isAppAction } from '../types';
 
 const reducer: Reducer<Folder[]> = (state = [], action) => {

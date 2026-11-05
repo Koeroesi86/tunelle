@@ -1,8 +1,8 @@
 import { spawn } from 'child_process';
 import { rmSync, writeFileSync } from 'fs';
 import { basename, dirname, join } from 'path';
-import { expect, libraryTracks, navigate, quit, test } from './app';
-import { player } from './player';
+import { expect, libraryTracks, navigate, quit, test } from './support/app';
+import { player } from './support/player';
 
 // where the app meets the system around it: the window, the media controls of the desktop, the protocol that serves the files
 test('tells the desktop what plays', async ({ session: { page } }) => {
