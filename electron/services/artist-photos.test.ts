@@ -85,8 +85,11 @@ describe('createArtistPhotoQueue', () => {
       enqueue: async (artists: { key: string; name: string }[]) => {
         let done = false;
         const run = queue.enqueue(artists).finally(() => (done = true));
-        // with fake timers, waitFor moves the clock by the interval at every check
-        await vi.waitFor(() => expect(done).toBe(true), { interval: 250, timeout: 10_000 });
+        // the database answers in real time, so the clock moves by one gap only when the queue waits for it
+        while (!done) {
+          await new Promise((resolve) => setImmediate(resolve));
+          await vi.advanceTimersByTimeAsync(vi.getTimerCount() > 0 ? 250 : 0);
+        }
         await run;
       },
     };

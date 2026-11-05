@@ -18,10 +18,9 @@ const answers = (routes: Record<string, (url: string) => Response>) =>
 
 /** Lets the fake clock pass the pause between two searches, so a lookup that makes several does not wait for them */
 const settle = async <T>(promise: Promise<T>) => {
-  let done = false;
-  const run = promise.finally(() => (done = true));
-  await vi.waitFor(() => expect(done).toBe(true), { interval: 1100, timeout: 30_000 });
-  return run;
+  promise.catch(() => undefined);
+  await vi.advanceTimersByTimeAsync(10_000);
+  return promise;
 };
 
 /** The art of a station with the fetch of the app replaced by the fetcher */
