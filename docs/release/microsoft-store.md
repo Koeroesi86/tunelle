@@ -26,9 +26,10 @@ The secrets of the Microsoft Entra application (Manager role in Partner Center) 
 - `notes <file> <result> <notes> [<language>=<notes>]...` writes the submission in `<file>` to `<result>` with the release notes of its listings set to `<notes>` and the packages of the earlier submission marked for deletion (all but the one pending upload), or to the notes of the language of the listing (`hu` for `hu-hu`), for `msstore submission updateMetadata`.
 - `decide <status file> <submission file> <tag> <automatic>` says whether the release is submitted now (`submit=true` or `false` and the reason, also to `$GITHUB_OUTPUT`).
 - `status <file>` fails unless the last submission in the output of `msstore submission status` is published.
+- `started <status file>` prints `starting` while the committed submission is in `CommitStarted` or `PreProcessing`, `started` once it is in certification or beyond, and fails in any other state (`CommitFailed`, `PreProcessingFailed`: the Store did not take it and it shows as a draft again).
 - `check <tag> <file> <package version>...` fails when the release cannot go to the Store, with the output of `msstore submission get` in `<file>`.
 
-`store.yml` runs both `status` and `check` before it submits a release. The Store takes a version only when it is greater than the one of the last submission and its fourth part is 0 (the Store keeps that part for itself, electron-builder adds the 0). A submission that is not published (in certification, or failed and still there) blocks the next one: the Store keeps one per app, and nothing here deletes or cancels it.
+`store.yml` runs both `status` and `check` before it submits a release. The Store takes a version only when it is greater than the one of the last submission and its fourth part is 0 (the Store keeps that part for itself, electron-builder adds the 0). After the commit `store.yml` waits (every 30 seconds, at most 15 minutes) until the submission is in certification, so a submission that the Store rejects fails the run and prints its `StatusDetails`; it does not wait for the certification itself, which takes days on the side of Microsoft. A submission that is not published (in certification, or failed and still there) blocks the next one: the Store keeps one per app, and nothing here deletes or cancels it.
 
 ## The certification kit (`wack.yml`)
 

@@ -2,7 +2,17 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { assertPublished, assertSubmittable, decide, readStatus, readStoreVersion, releaseVersion, run, withReleaseNotes } from './store-submission';
+import {
+  assertPublished,
+  assertSubmittable,
+  decide,
+  readStatus,
+  readStoreVersion,
+  releaseVersion,
+  run,
+  submissionStarted,
+  withReleaseNotes,
+} from './store-submission';
 
 const submission = (...versions: string[]) =>
   `Retrieving Submission\n${JSON.stringify({ Id: '1', ApplicationPackages: versions.map((Version) => ({ FileName: 'Tunelle.appx', Version })) }, undefined, 2)}\n`;
@@ -39,6 +49,24 @@ describe('assertPublished', () => {
 
   it('stops when the status is not known, instead of submitting', () => {
     expect(() => assertPublished('Error!')).toThrow('not known');
+  });
+});
+
+describe('submissionStarted', () => {
+  it.each(['CommitStarted', 'PreProcessing'])('is still starting in %s', (status) => {
+    expect(submissionStarted(`Submission Status = ${status}`)).toBe(false);
+  });
+
+  it.each(['Certification', 'PendingPublication', 'Publishing', 'Release', 'Published'])('has started in %s', (status) => {
+    expect(submissionStarted(`Submission Status = ${status}`)).toBe(true);
+  });
+
+  it.each(['CommitFailed', 'PreProcessingFailed', 'PendingCommit', 'CertificationFailed'])('stops in %s, which the Store did not take', (status) => {
+    expect(() => submissionStarted(`Submission Status = ${status}`)).toThrow(status);
+  });
+
+  it('stops when the status is not known', () => {
+    expect(() => submissionStarted('Error!')).toThrow('not known');
   });
 });
 
@@ -210,6 +238,16 @@ describe('run', () => {
 
   afterEach(() => {
     folders.splice(0).forEach((folder) => rmSync(folder, { recursive: true, force: true }));
+  });
+
+  it('says whether the submission has started', () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    run(['started', write('starting.txt', 'Submission Status = CommitStarted')], {});
+    run(['started', write('started.txt', 'Submission Status = Certification')], {});
+
+    expect(log.mock.calls).toEqual([['starting'], ['started']]);
+    log.mockRestore();
   });
 
   it('writes the submission with the notes, by language', () => {
