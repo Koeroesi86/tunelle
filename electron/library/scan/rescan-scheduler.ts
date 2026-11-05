@@ -1,5 +1,6 @@
 import { changeKey } from '../watch/library-change';
 import type { Change } from '../watch/library-change';
+import { logError } from '../../utils/log-error';
 
 /** The places that changed are scanned once after a quiet time, so a big copy is one scan; a change during a scan is scanned after it, never two scans at once */
 export const createRescanScheduler = (run: (changes: Change[]) => Promise<void>, quietTime = 2000) => {
@@ -19,7 +20,7 @@ export const createRescanScheduler = (run: (changes: Change[]) => Promise<void>,
     pending.clear();
     running = true;
     await run(changes)
-      .catch((e) => console.error(e))
+      .catch(logError)
       .finally(() => {
         running = false;
       });

@@ -8,6 +8,7 @@ import type { PlaylistSource } from '../../../domain/playlists';
 import { useTranslation } from '../../../i18n';
 import style from './AddToPlaylist.scss';
 import NameField from '../../ui/name-field';
+import { clamp } from '@shared/utils/clamp';
 
 interface AddToPlaylistProps {
   /** The track or album the menu adds */
@@ -58,7 +59,7 @@ const AddToPlaylist = ({ source, playlists, add, create, className }: AddToPlayl
     const rect = button.current?.getBoundingClientRect();
     if (!rect) return;
 
-    setPosition({ top: rect.bottom + 4, left: Math.max(4, Math.min(rect.left, window.innerWidth - menuWidth - 4)) });
+    setPosition({ top: rect.bottom + 4, left: clamp(rect.left, 4, window.innerWidth - menuWidth - 4) });
   };
 
   const submit = () => {

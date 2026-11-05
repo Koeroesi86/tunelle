@@ -8,12 +8,12 @@ import type { Track } from '@shared/types/library';
 import readAudioFormat from './read-audio-format';
 import readLoudness from './read-loudness';
 import normalizePath from '../../utils/normalize-path';
-
-const hasCode = (error: unknown, code: string) => error instanceof Error && 'code' in error && error.code === code;
+import { getAlbumArtFolder } from '../../utils/album-art-folder';
+import { hasErrorCode } from '@shared/utils/has-error-code';
 
 const ignoreExisting = (error: unknown, whenFolderIsGone: () => void) => {
-  if (hasCode(error, 'ENOENT')) return whenFolderIsGone();
-  if (!hasCode(error, 'EEXIST')) throw error;
+  if (hasErrorCode(error, 'ENOENT')) return whenFolderIsGone();
+  if (!hasErrorCode(error, 'EEXIST')) throw error;
 };
 
 const albumArtFolders = new Set<string>();
@@ -40,7 +40,7 @@ const parsePicture = (picture: IPicture, album: string, appDataPath: string): st
   const extension = picture.format.replace(/^image\//, '').replace(/^jpeg$/, 'jpg');
   if (!extension) return null;
 
-  const folderPath = path.resolve(appDataPath, `./albumart/`);
+  const folderPath = path.resolve(getAlbumArtFolder(appDataPath));
   const fileHash = crypto.createHash('md5').update(Buffer.from(picture.data).toString('base64')).digest('hex');
   const slug = slugify(album, { remove: /[*+~./()'",!:@\\]/g, lower: true });
   const filePath = path.resolve(folderPath, `./${slug}-${fileHash}.${extension}`);

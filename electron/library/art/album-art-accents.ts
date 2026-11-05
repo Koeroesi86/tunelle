@@ -4,13 +4,14 @@ import type { Database } from 'sqlite3';
 import { pickAccent } from '@shared/utils/pick-accent';
 import executeQuery from '../../database/execute-query';
 import { sampleSize } from '@shared/constants/accent';
+import { getAlbumArtFolder } from '../../utils/album-art-folder';
 
 /** Pictures written to the table in one statement, so a long run is saved as it goes */
 const chunkSize = 100;
 
 /** The main colour of a picture as `#rrggbb`, empty when it has none; a file that cannot be read has none either, as a picture never changes under its name */
 const readAccent = async (picture: string) => {
-  const file = path.join(global._appDataPath, './albumart/', picture);
+  const file = path.join(getAlbumArtFolder(global._appDataPath), picture);
 
   return sharp(file)
     .resize(sampleSize, sampleSize, { fit: 'fill' })

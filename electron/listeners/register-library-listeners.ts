@@ -8,16 +8,17 @@ import openLibraryPath from '../utils/open-library-path';
 import checkFolders from '../library/scan/check-folders';
 import pickFolders from '../utils/pick-folders';
 import { getMainTranslator } from '../language';
+import { logError } from '../utils/log-error';
 
 const isForced = (payload: unknown) => typeof payload === 'object' && payload !== null && 'forced' in payload && payload.forced === true;
 
 const registerLibraryListeners = ({ database }: ListenerContext) => {
   ipcMain.on('ADD_FOLDERS_TO_LIBRARY', (event, files: unknown) => {
-    addFoldersToLibrary(database, files, event.sender).catch((e) => console.error(e));
+    addFoldersToLibrary(database, files, event.sender).catch(logError);
   });
 
   ipcMain.on('REMOVE_FOLDER_FROM_LIBRARY', (event, target: unknown) => {
-    removeFolderFromLibrary(database, target, event.sender).catch((e) => console.error(e));
+    removeFolderFromLibrary(database, target, event.sender).catch(logError);
   });
 
   ipcMain.on('RESCAN_LIBRARY', (event, payload: unknown) => {
@@ -25,19 +26,17 @@ const registerLibraryListeners = ({ database }: ListenerContext) => {
   });
 
   ipcMain.on('CHECK_FOLDERS', (event) => {
-    checkFolders(database, event.sender).catch((e) => console.error(e));
+    checkFolders(database, event.sender).catch(logError);
   });
 
   ipcMain.on('PICK_FOLDERS', (event) => {
     const options: OpenDialogOptions = { title: getMainTranslator().t('folders.pick'), properties: ['openDirectory', 'multiSelections'] };
     const window = BrowserWindow.fromWebContents(event.sender);
-    pickFolders(database, event.sender, () => (window ? dialog.showOpenDialog(window, options) : dialog.showOpenDialog(options))).catch((e) =>
-      console.error(e)
-    );
+    pickFolders(database, event.sender, () => (window ? dialog.showOpenDialog(window, options) : dialog.showOpenDialog(options))).catch(logError);
   });
 
   ipcMain.on('OPEN_LIBRARY_PATH', (_event, target: unknown) => {
-    openLibraryPath(database, target, (folder) => shell.openPath(folder)).catch((e) => console.error(e));
+    openLibraryPath(database, target, (folder) => shell.openPath(folder)).catch(logError);
   });
 };
 

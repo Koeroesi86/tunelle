@@ -2,6 +2,7 @@ import type { Database } from 'sqlite3';
 import { getAlbumPage, getAlbumTracks, getGroupPage, getLibrary, getTrackPage, trackColumns } from '../repositories/library-repository';
 import { parseAlbumSort, parseFolders, parseGroupKind, parseGroupSort, parseSearch, parseTrackSort } from '@shared/types/library-query';
 import type { AlbumGroup, LibraryQuery } from '@shared/types/library-query';
+import { clamp } from '@shared/utils/clamp';
 
 const maxPageSize = 500;
 
@@ -9,7 +10,7 @@ const toInteger = (value: string | null, fallback: number) => (value !== null &&
 
 const toWindow = (params: URLSearchParams) => ({
   offset: toInteger(params.get('offset'), 0),
-  limit: Math.min(Math.max(toInteger(params.get('limit'), 100), 1), maxPageSize),
+  limit: clamp(toInteger(params.get('limit'), 100), 1, maxPageSize),
 });
 
 /** The sort, the folders and the search of a request; a sort that is not a known field with a known direction is no query at all */

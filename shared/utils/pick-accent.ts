@@ -1,5 +1,4 @@
 import { toHex } from './to-hex';
-import { sampleSize } from '../constants/accent';
 
 /** Pixels the picker looks at: dark, light and grey ones say nothing about the colour of a cover */
 const minLightness = 0.2;

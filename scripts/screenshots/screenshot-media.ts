@@ -1,4 +1,5 @@
 import { crc32, deflateSync } from 'zlib';
+import { clamp } from '../../shared/utils/clamp';
 
 // the files of the screenshots are written here and not drawn or recorded: the same input gives the same bytes, so a retake shows what changed in the app and not in the pictures
 
@@ -21,7 +22,7 @@ interface FlacOptions {
 
 type ByteOrder = 'writeUInt32BE' | 'writeUInt32LE';
 
-const clamp = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
+const toChannel = (value: number) => clamp(Math.round(value), 0, 255);
 const mix = (from: Colour, to: Colour, amount: number) => from.map((channel, index) => channel + (to[index] - channel) * amount);
 
 // the colours of a cover: the sky from top to horizon, the sun, and two layers of ground in front of it
@@ -64,7 +65,7 @@ const chunk = (type: string, data: Buffer) => {
 /** A square PNG of the colours of a spec: { sky: [top, horizon], sun, ground: [near, far], shape: 'mountains' | 'waves' | 'grid' }, each colour [r, g, b] */
 const drawCover = (spec: CoverSpec, size = 500) => {
   const rows = Array.from({ length: size }, (_, row) =>
-    Buffer.from([0, ...Array.from({ length: size }, (_, column) => paint(spec, column / size, row / size).map(clamp)).flat()])
+    Buffer.from([0, ...Array.from({ length: size }, (_, column) => paint(spec, column / size, row / size).map(toChannel)).flat()])
   );
   const header = Buffer.alloc(13);
   header.writeUInt32BE(size, 0);

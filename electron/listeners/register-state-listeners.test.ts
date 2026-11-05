@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IpcMainEvent } from 'electron';
 import type { ListenerContext } from './listener-context';
 import registerStateListeners from './register-state-listeners';
-import { folderColumns } from '../constants/library';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
 

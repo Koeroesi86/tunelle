@@ -7,11 +7,8 @@ import { setPickedLanguage } from '../language';
 import { applyThemeMode } from '../theme';
 import { applyWatchSetting, startLibraryWatching } from '../library/watch/library-watching';
 import { folderColumns } from '../constants/library';
-
-// the window can be closed while the database answers
-const sendIfAlive = (sender: WebContents, channel: string, payload: unknown) => {
-  if (!sender.isDestroyed()) sender.send(channel, payload);
-};
+import { sendIfAlive } from '../utils/send-if-alive';
+import { logError } from '../utils/log-error';
 
 const sendState = async ({ database }: ListenerContext, sender: WebContents) => {
   sendIfAlive(sender, 'STORE_FOLDERS', { folders: await getFolders(database, folderColumns) });
@@ -22,17 +19,17 @@ const sendState = async ({ database }: ListenerContext, sender: WebContents) => 
 
 const registerStateListeners = (context: ListenerContext) => {
   ipcMain.on('APP_READY', (event) => {
-    sendState(context, event.sender).catch((e) => console.error(e));
-    startLibraryWatching(context.database, event.sender).catch((e) => console.error(e));
+    sendState(context, event.sender).catch(logError);
+    startLibraryWatching(context.database, event.sender).catch(logError);
   });
 
   ipcMain.on('SAVE_SETTINGS', (event, settings: unknown) => {
     setPickedLanguage(settings);
     applyThemeMode(settings);
-    applyWatchSetting(settings).catch((e) => console.error(e));
+    applyWatchSetting(settings).catch(logError);
     saveSettings(context.database, settings)
       .then(() => sendIfAlive(event.sender, 'SETTINGS_SAVED', { settings }))
-      .catch((e) => console.error(e));
+      .catch(logError);
   });
 };
 

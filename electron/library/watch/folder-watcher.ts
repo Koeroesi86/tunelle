@@ -3,6 +3,8 @@ import path from 'path';
 import { withTimeout } from './folder-availability';
 import { mapInChunks } from '../../database/in-chunks';
 import type { Change } from './library-change';
+import { clamp } from '@shared/utils/clamp';
+import { logError } from '../../utils/log-error';
 
 type DirectoryTimes = Map<string, number>;
 
@@ -40,7 +42,7 @@ const maxInterval = 15 * 60_000;
 const waitPerLookMs = 100;
 
 /** How long to wait before the next look at a folder, from how long the last looks took (the whole tree of folders, a folder that does not answer takes the time it was waited for): a look takes about one hundredth of the time, so a small library on the disk of the computer is looked at every 10 seconds, a big tree or a network or removable drive less often, never rarer than every 15 minutes */
-export const pollInterval = (lookMs: number) => Math.min(maxInterval, Math.max(minInterval, Math.round(lookMs * waitPerLookMs)));
+export const pollInterval = (lookMs: number) => clamp(Math.round(lookMs * waitPerLookMs), minInterval, maxInterval);
 
 /** What differs between two looks: the folders with another time or that are new are scanned for their own files, a folder that is gone is looked at with what was below it */
 const differences = (before: DirectoryTimes, after: DirectoryTimes): Change[] => [
@@ -145,7 +147,7 @@ export const createFolderWatcher = (onChange: (changes: Change[]) => void, optio
   return {
     /** Keep exactly these folders: a look at each now and then */
     update: (folders: string[]) => {
-      queue = queue.then(() => apply(folders)).catch((e) => console.error(e));
+      queue = queue.then(() => apply(folders)).catch(logError);
       return queue;
     },
     check,

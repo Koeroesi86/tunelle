@@ -14,6 +14,8 @@ import {
 } from '../repositories/playlist-repository';
 import { findTrackFormat } from '../repositories/library-repository';
 import { isRecord } from '@shared/utils/is-record';
+import { sendIfAlive } from '../utils/send-if-alive';
+import { logError } from '../utils/log-error';
 
 const maxNameLength = 200;
 
@@ -48,12 +50,12 @@ const withAvailability = (database: ListenerContext['database'], playlists: Stor
 const sendPlaylists = async ({ database }: ListenerContext, sender: WebContents) => {
   const playlists = await withAvailability(database, await getPlaylists(database));
   // the window can be closed while the database answers
-  if (!sender.isDestroyed()) sender.send('PLAYLISTS', { playlists });
+  sendIfAlive(sender, 'PLAYLISTS', { playlists });
 };
 
 const registerPlaylistListeners = (context: ListenerContext) => {
   const { database } = context;
-  const reply = (sender: WebContents, work: Promise<unknown>) => work.then(() => sendPlaylists(context, sender)).catch((e) => console.error(e));
+  const reply = (sender: WebContents, work: Promise<unknown>) => work.then(() => sendPlaylists(context, sender)).catch(logError);
 
   ipcMain.on('PLAYLISTS_LOAD', (event) => {
     reply(event.sender, Promise.resolve());

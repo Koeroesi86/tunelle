@@ -5,15 +5,16 @@ import { clearHistory, getHistory, recordPlayed } from '../repositories/history-
 import { withAvailability } from '../library/watch/favourite-availability';
 import { isRecord } from '@shared/utils/is-record';
 import { toKey } from '../utils/key-payload';
+import { sendIfAlive } from '../utils/send-if-alive';
+import { logError } from '../utils/log-error';
 
 const sendHistory = async (context: ListenerContext, sender: WebContents) => {
   const history = await withAvailability(await getHistory(context.database), context);
-  // the window can be closed while the database and the station directory answer
-  if (!sender.isDestroyed()) sender.send('HISTORY', { history });
+  sendIfAlive(sender, 'HISTORY', { history });
 };
 
 const registerHistoryListeners = (context: ListenerContext) => {
-  const reply = (sender: WebContents, work: Promise<unknown>) => work.then(() => sendHistory(context, sender)).catch((e) => console.error(e));
+  const reply = (sender: WebContents, work: Promise<unknown>) => work.then(() => sendHistory(context, sender)).catch(logError);
 
   ipcMain.on('HISTORY_LOAD', (event) => {
     reply(event.sender, Promise.resolve());

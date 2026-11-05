@@ -1,3 +1,4 @@
+import { clamp } from '@shared/utils/clamp';
 /** The head start of the next track in seconds until a start has been measured */
 export const defaultLead = 0.1;
 const minLead = 0.01;
@@ -20,7 +21,7 @@ export const createLeadMeter = () => {
       samples.push(seconds);
       if (samples.length > keptSamples) samples.shift();
     },
-    lead: () => (samples.length ? Math.min(maxLead, Math.max(minLead, median(samples))) : defaultLead),
+    lead: () => (samples.length ? clamp(median(samples), minLead, maxLead) : defaultLead),
   };
 };
 

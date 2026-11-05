@@ -3,6 +3,7 @@ import playlistParser from 'playlist-parser';
 import { fetchOk } from '../services/http';
 import { getMainWindow } from '../windows/get-main-window';
 import type { ListenerContext } from './listener-context';
+import { logError } from '../utils/log-error';
 
 const sendPlaylist = async (url: string, { windows }: ListenerContext) => {
   const response = await fetchOk(url);
@@ -15,7 +16,7 @@ const sendPlaylist = async (url: string, { windows }: ListenerContext) => {
 const registerPlaylistDownload = (context: ListenerContext) => {
   session.defaultSession.on('will-download', (event, item) => {
     event.preventDefault();
-    sendPlaylist(item.getURL(), context).catch((error) => console.error(error));
+    sendPlaylist(item.getURL(), context).catch(logError);
   });
 };
 

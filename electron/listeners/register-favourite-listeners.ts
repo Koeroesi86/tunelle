@@ -5,15 +5,16 @@ import { addFavourite, getFavourites, removeFavourite } from '../repositories/fa
 import { withAvailability } from '../library/watch/favourite-availability';
 import { isRecord } from '@shared/utils/is-record';
 import { toKey } from '../utils/key-payload';
+import { sendIfAlive } from '../utils/send-if-alive';
+import { logError } from '../utils/log-error';
 
 const sendFavourites = async (context: ListenerContext, sender: WebContents) => {
   const favourites = await withAvailability(await getFavourites(context.database), context);
-  // the window can be closed while the database and the station directory answer
-  if (!sender.isDestroyed()) sender.send('FAVOURITES', { favourites });
+  sendIfAlive(sender, 'FAVOURITES', { favourites });
 };
 
 const registerFavouriteListeners = (context: ListenerContext) => {
-  const reply = (sender: WebContents, work: Promise<unknown>) => work.then(() => sendFavourites(context, sender)).catch((e) => console.error(e));
+  const reply = (sender: WebContents, work: Promise<unknown>) => work.then(() => sendFavourites(context, sender)).catch(logError);
 
   ipcMain.on('FAVOURITES_LOAD', (event) => {
     reply(event.sender, Promise.resolve());

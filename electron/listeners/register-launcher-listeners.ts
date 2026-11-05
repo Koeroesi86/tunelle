@@ -11,6 +11,7 @@ import {
   wasLauncherOffered,
 } from '../services/app-image-launcher';
 import type { LauncherOptions } from '../services/app-image-launcher';
+import { logError } from '../utils/log-error';
 
 // the menu entry is only offered from an AppImage, it has no install step of its own
 const findAppImage = () => (process.platform === 'linux' ? process.env.APPIMAGE : undefined);
@@ -32,10 +33,10 @@ const isEnabledRequest = (payload: unknown): payload is { enabled: boolean } =>
 const registerLauncherListeners = (_context?: unknown, appImage = findAppImage()) => {
   if (!appImage) return;
 
-  syncLauncher(appImage, getOptions()).catch((e) => console.error(e));
+  syncLauncher(appImage, getOptions()).catch(logError);
 
   ipcMain.on('APP_READY', (event) => {
-    sendState(event.sender, appImage).catch((e) => console.error(e));
+    sendState(event.sender, appImage).catch(logError);
   });
 
   // an answer to the offer on the first run and the toggle in the settings are the same request, either way the user was asked
@@ -47,10 +48,10 @@ const registerLauncherListeners = (_context?: unknown, appImage = findAppImage()
     // the other tool's entry stays the only one; turning the app's own off is always possible
     (payload.enabled ? hasOtherLauncher(appImage, getOptions()) : Promise.resolve(false))
       .then((other) => (other ? undefined : change()))
-      .catch((e) => console.error(e))
+      .catch(logError)
       .then(() => markLauncherOffered(app.getPath('userData')))
       .then(() => sendState(event.sender, appImage))
-      .catch((e) => console.error(e));
+      .catch(logError);
   });
 };
 

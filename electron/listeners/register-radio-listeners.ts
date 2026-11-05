@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import { errorMessage } from '@shared/utils/error-message';
 import type { ListenerContext } from './listener-context';
 import { toRadioQuery } from '../services/radio-browser';
+import { logError } from '../utils/log-error';
 
 const registerRadioListeners = ({ radio }: ListenerContext) => {
   ipcMain.on('RADIO_SEARCH', (event, payload: unknown) => {
@@ -19,7 +20,7 @@ const registerRadioListeners = ({ radio }: ListenerContext) => {
       radio
         .getOptions(kind)
         .then((options) => event.sender.send('RADIO_OPTIONS_LOADED', { kind, options }))
-        .catch((error) => console.error(error))
+        .catch(logError)
     );
   });
 
@@ -27,7 +28,7 @@ const registerRadioListeners = ({ radio }: ListenerContext) => {
     radio
       .getTags()
       .then((tags) => event.sender.send('RADIO_TAGS_LOADED', { tags }))
-      .catch((error) => console.error(error));
+      .catch(logError);
   });
 };
 

@@ -3,6 +3,7 @@ import { join } from 'path';
 import { crc32 } from 'zlib';
 import { drawCover, writeFlac } from '../screenshots/screenshot-media';
 import type { CoverSpec } from '../screenshots/screenshot-media';
+import { clamp } from '../../shared/utils/clamp';
 
 /** The part of a profile (scripts/perf/perf-profile.ts) that the plan reads */
 export interface PlanProfile {
@@ -153,8 +154,6 @@ const weighted = (counts: Record<string, number>, next: Next) => {
   let point = next() * total;
   return (entries.find(([, count]) => (point -= count) < 0) ?? entries[0])[0];
 };
-
-const clamp = (value: number, least: number, most: number) => Math.min(most, Math.max(least, value));
 
 /**
  * The albums of a library of about this many tracks, drawn from the profile, each as { folder, albumArtist, album, tracks: [{ file, format, seconds, tags, pictureKilobytes }], extras }

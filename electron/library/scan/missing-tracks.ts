@@ -3,6 +3,7 @@ import path from 'path';
 import type { Track } from '@shared/types/library';
 import { withTimeout } from '../watch/folder-availability';
 import { mapInChunks } from '../../database/in-chunks';
+import { hasErrorCode } from '@shared/utils/has-error-code';
 
 const directoriesInFlight = 16;
 
@@ -11,7 +12,7 @@ const readNames = (directory: string) =>
   withTimeout(
     fs.promises.readdir(directory).then(
       (names) => new Set(names),
-      (e) => (e instanceof Error && 'code' in e && (e.code === 'ENOENT' || e.code === 'ENOTDIR') ? new Set<string>() : undefined)
+      (e) => (hasErrorCode(e, 'ENOENT', 'ENOTDIR') ? new Set<string>() : undefined)
     ),
     undefined
   );

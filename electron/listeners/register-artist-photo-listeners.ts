@@ -1,9 +1,11 @@
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
-import path from 'path';
 import type { ListenerContext } from './listener-context';
 import { createArtistPhotoQueue } from '../services/artist-photos';
 import type { ArtistName } from '../services/artist-photos';
+import { sendIfAlive } from '../utils/send-if-alive';
+import { logError } from '../utils/log-error';
+import { getAlbumArtFolder } from '../utils/album-art-folder';
 
 /** The most names one request holds, a page of a list is a hundred */
 const maxNames = 200;
@@ -23,15 +25,15 @@ const registerArtistPhotoListeners = ({ database }: ListenerContext, env: NodeJS
   let requester: WebContents | undefined;
   const queue = createArtistPhotoQueue({
     database,
-    getFolder: () => path.join(global._appDataPath, './albumart/'),
+    getFolder: () => getAlbumArtFolder(global._appDataPath),
     onFound: () => {
-      if (requester && !requester.isDestroyed()) requester.send('ARTIST_PHOTOS_READY', {});
+      if (requester) sendIfAlive(requester, 'ARTIST_PHOTOS_READY', {});
     },
   });
 
   ipcMain.on('ARTIST_PHOTOS_WANTED', (event, payload: unknown) => {
     requester = event.sender;
-    queue.enqueue(namesOf(payload)).catch((e) => console.error(e));
+    queue.enqueue(namesOf(payload)).catch(logError);
   });
 };
 

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
+import { getAlbumArtFolder } from '../../utils/album-art-folder';
 
 const optimizing = new Map<string, Promise<void>>();
 
@@ -29,7 +30,7 @@ const optimizeAlbumArt = (source: string, target: string) => {
 
 /** The stored album art of a request; the optimized copy is generated from the original when it does not exist yet */
 export const resolveAlbumArt = async (basename: string) => {
-  const folder = path.join(global._appDataPath, './albumart/');
+  const folder = getAlbumArtFolder(global._appDataPath);
   const current = path.join(folder, basename);
   if (await exists(current)) return current;
   if (!/-optimized/.test(basename)) return undefined;
