@@ -4,4 +4,4 @@
 
 The repository only holds the bundles it was given, so it is built again from the latest release instead of being carried from one release to the next. The `.flatpakrepo` and `.flatpakref` next to it are what `flatpak remote-add` and `flatpak install` read. The runtime comes from Flathub (`RuntimeRepo`).
 
-The install commands are in [install.md](install.md).
+The install commands are in [install.md](../install.md).

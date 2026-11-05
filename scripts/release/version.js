@@ -4,7 +4,7 @@ const { resolve } = require('path')
 // usage: node scripts/release/version.js                    prints the version of a new release
 //        node scripts/release/version.js --after <latest>   the same, but fails when it is not greater than the latest release
 //        node scripts/release/version.js <version>          writes that version to package.json
-// See docs/releases.md
+// See docs/release/releases.md
 const versionPattern = /^\d{2}\.(?:[1-9]|1[0-2])\.\d{1,5}$/
 
 const createVersion = (date, runNumber) => `${String(date.getFullYear()).slice(2)}.${date.getMonth() + 1}.${runNumber}`

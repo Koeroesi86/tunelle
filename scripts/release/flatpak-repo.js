@@ -5,7 +5,7 @@ const { join } = require('path')
 
 // usage: node scripts/release/flatpak-repo.js <bundles folder> <repo folder>
 // builds the signed Flatpak repository from the *.flatpak bundles of a release
-// See docs/flatpak-repository.md
+// See docs/release/flatpak-repository.md
 const siteUrl = 'https://koeroesi86.github.io/tunelle/'
 const repoUrl = `${siteUrl}repo/`
 const appId = 'io.github.koeroesi86.Tunelle'

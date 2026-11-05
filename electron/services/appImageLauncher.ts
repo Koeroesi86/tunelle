@@ -204,7 +204,7 @@ const migrateLegacyLauncher = async (appImage: string | undefined, options: Laun
 
 /**
  * Keeps an enabled entry working (moved, gone or outdated AppImage)
- * See docs/appimage-launcher.md
+ * See docs/app/appimage-launcher.md
  */
 export const syncLauncher = async (appImage: string | undefined, options: LauncherOptions) => {
   await migrateLegacyLauncher(appImage, options);

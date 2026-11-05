@@ -27,7 +27,7 @@ export const copyOldUserData = (oldFolder: string, newFolder: string) => !exists
 
 /**
  * Copies the library folder of the folder the app used before it was renamed, once
- * See docs/user-data.md
+ * See docs/app/user-data.md
  */
 export const copyOldLibrary = (oldFolder: string, newFolder: string) =>
   !existsSync(join(newFolder, 'library.sqlite')) && existsSync(oldFolder) && copyFolder(oldFolder, newFolder);

@@ -1,7 +1,7 @@
 const { readdirSync, readFileSync, writeFileSync } = require('fs')
 const { dirname, join, posix, relative, sep } = require('path')
 
-// tsc leaves "@shared/x" as it is, and node can not resolve it. See docs/building.md.
+// tsc leaves "@shared/x" as it is, and node can not resolve it. See docs/development/building.md.
 const aliasPattern = /(require\(\s*|from\s*)(["'])@shared\/([^"']+)\2/g
 
 const rewrite = (source, file, outDir) =>

@@ -1,6 +1,6 @@
 # The app data folder
 
-The app name (`getAppName` in `electron/utils/userData.ts`) is `Tunelle`, `Tunelle-dev` for a development run. The folder of Electron's own data follows it, and the library lives there. `TUNELLE_APP_DATA=<folder>` replaces it, see [building.md](building.md).
+The app name (`getAppName` in `electron/utils/userData.ts`) is `Tunelle`, `Tunelle-dev` for a development run. The folder of Electron's own data follows it, and the library lives there. `TUNELLE_APP_DATA=<folder>` replaces it, see [building.md](../development/building.md).
 
 ## Copy from the folder before the rename
 

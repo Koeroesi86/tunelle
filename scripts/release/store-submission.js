@@ -3,7 +3,7 @@ const { compareVersions } = require('./version')
 
 // usage: node scripts/release/store-submission.js notes <file> <result> <notes> [<language>=<notes>]...
 //        node scripts/release/store-submission.js decide <status file> <submission file> <tag> <automatic>
-//        node scripts/release/store-submission.js status <file> | check <tag> <file> <package version>...   (see docs/microsoft-store.md)
+//        node scripts/release/store-submission.js status <file> | check <tag> <file> <package version>...   (see docs/release/microsoft-store.md)
 const tagPattern = /^v(\d{2}\.(?:[1-9]|1[0-2])\.\d{1,5})$/
 
 // the first three parts: the Store writes the version of a package with the fourth part, a release has none

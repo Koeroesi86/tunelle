@@ -9,7 +9,7 @@ const commentFile = /\.(ts|tsx|js|yml|yaml|sh|ps1)$/;
 const hashComments = /\.(yml|yaml|sh|ps1)$/;
 const exempt = /(^|[\\/])(node_modules|e2e|migrations)[\\/]|\.test\.|\.shots\./;
 const directive = /eslint-|fallow-ignore|@ts-|prettier-ignore|istanbul|c8 ignore|v8 ignore|^#!/;
-const docLink = /docs\/[a-z0-9-]+\.md/g;
+const docLink = /docs\/[a-z0-9/-]+\.md/g;
 
 const listFiles = (folder: string): string[] =>
   readdirSync(folder, { withFileTypes: true }).flatMap((entry) => {

@@ -1,7 +1,7 @@
 name: Store submission
 
 # Sends a release to the Microsoft Store as a new submission, after every release, weekly and by hand
-# See docs/microsoft-store.md
+# See docs/release/microsoft-store.md
 on:
   workflow_call:
     inputs:

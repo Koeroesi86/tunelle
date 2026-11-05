@@ -3,7 +3,7 @@ const { join } = require('path')
 
 // usage: node scripts/checks/perf-summary.js <folder>
 // prints the numbers of the perf artifacts of a pull request, the ones that changed by a fifth or more on top
-// See docs/performance-summary.md
+// See docs/development/performance-summary.md
 
 const isNumber = value => typeof value === 'number' && Number.isFinite(value)
 

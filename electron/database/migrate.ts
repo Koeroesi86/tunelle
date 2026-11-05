@@ -58,7 +58,7 @@ const apply = async (database: Database, folder: string, { file, version }: Migr
 
 /**
  * Applies the migrations of the folder that the database has not seen, each one once and in the order of their number
- * See docs/migrations.md
+ * See docs/app/migrations.md
  */
 export const migrate = async (database: Database, folder: string, { beforeApply }: MigrateOptions = {}) => {
   const [{ user_version: current }] = await executeQuery<{ user_version: number }>(database, { query: 'PRAGMA user_version', variables: [] });

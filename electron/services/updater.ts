@@ -153,7 +153,7 @@ export const inspectAppImage = (appImage: string): AppImageInstall => ({
 
 /**
  * Why electron-updater can not update this install, if it can not
- * See docs/updater.md
+ * See docs/app/updater.md
  */
 export const getUpdateUnavailableReason = (
   isPackaged: boolean,

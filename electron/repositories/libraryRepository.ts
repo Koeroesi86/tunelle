@@ -317,7 +317,7 @@ const toGroupFilter = (group: AlbumGroup | undefined) => ({
 
 /**
  * A page of the albums, a folder and an album title make one album, with the number of albums
- * See docs/library-queries.md
+ * See docs/app/library-queries.md
  */
 export const getAlbumPage = (
   database: Database,

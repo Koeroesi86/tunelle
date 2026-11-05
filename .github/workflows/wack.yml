@@ -1,7 +1,7 @@
 name: Store certification
 
 # The Windows App Certification Kit on the x64 package, and a run of the installed arm64 package
-# See docs/microsoft-store.md
+# See docs/release/microsoft-store.md
 on:
   workflow_call:
     inputs:
