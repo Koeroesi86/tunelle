@@ -95,7 +95,7 @@ jobs:
         id: decide
         shell: pwsh
         run: |
-          node scripts/store-submission.js decide status.txt store.json $env:TAG $env:AUTOMATIC
+          node scripts/release/store-submission.js decide status.txt store.json $env:TAG $env:AUTOMATIC
           if ($LASTEXITCODE -ne 0) { throw 'The release can not go to the Store' }
       - name: Download the packages of the release
         if: steps.decide.outputs.submit == 'true'
@@ -117,7 +117,7 @@ jobs:
             $reader.Dispose()
             $archive.Dispose()
           }
-          node scripts/store-submission.js check $env:TAG store.json @versions
+          node scripts/release/store-submission.js check $env:TAG store.json @versions
           if ($LASTEXITCODE -ne 0) { throw 'The release can not go to the Store' }
       - name: Bundle the packages
         if: steps.decide.outputs.submit == 'true'
@@ -143,7 +143,7 @@ jobs:
         run: |
           msstore submission get $env:PRODUCT_ID 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath draft.json
           if ($LASTEXITCODE -ne 0) { throw "msstore submission get failed with $LASTEXITCODE" }
-          node scripts/store-submission.js notes draft.json metadata.json $env:RELEASE_NOTES "hu=$env:RELEASE_NOTES_HU"
+          node scripts/release/store-submission.js notes draft.json metadata.json $env:RELEASE_NOTES "hu=$env:RELEASE_NOTES_HU"
           if ($LASTEXITCODE -ne 0) { throw 'The release notes could not be put into the draft' }
           msstore submission updateMetadata $env:PRODUCT_ID metadata.json
           if ($LASTEXITCODE -ne 0) { throw "msstore submission updateMetadata failed with $LASTEXITCODE" }

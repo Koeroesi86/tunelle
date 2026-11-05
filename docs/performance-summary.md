@@ -1,6 +1,6 @@
 # The performance summary of a pull request
 
-`node scripts/perf-summary.js <folder>` reads the artifacts of `.github/workflows/perf.yml`. The folder has a subfolder for each system:
+`node scripts/checks/perf-summary.js <folder>` reads the artifacts of `.github/workflows/perf.yml`. The folder has a subfolder for each system:
 
 - `perf-<system>` with the `perf-<name>.json` files that `npm run perf` writes for the pull request;
 - `base-perf-<system>` with the same for the base branch, which are run first on the same runner.

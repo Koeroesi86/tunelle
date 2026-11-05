@@ -2,7 +2,7 @@
   "$schema": "./node_modules/fallow/schema.json",
   "entry": [
     // run by node, not imported
-    "scripts/**",
+    "scripts/**/*",
     "index.ts",
     "electron/preload.ts",
     "electron/splashPreload.ts",
@@ -27,12 +27,12 @@
     "style-loader",
     // the fonts of client/components/player-home/PlayerHome.scss
     "@fontsource/open-sans",
-    // used by the scripts of the checks (scripts/smoke.js, scripts/check-dist.js, scripts/security-scan.js), which run in CI only
+    // used by the scripts of the checks (scripts/checks/smoke.js, scripts/release/check-dist.js, scripts/checks/security-scan.js), which run in CI only
     "@electron/asar",
     "@doyensec/electronegativity",
     // augmented by shared/types/csstype.d.ts, installed with the React typings
     "csstype",
-    // scripts/dist.js takes the toolset of the AppImage from them to put the update information into its runtime; they are the versions that electron-builder
+    // scripts/release/dist.js takes the toolset of the AppImage from them to put the update information into its runtime; they are the versions that electron-builder
     // brings (a version of our own could differ from the one it uses), and the script fails when their layout changes
     "app-builder-lib",
     "builder-util"

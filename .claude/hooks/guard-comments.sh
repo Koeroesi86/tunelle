@@ -15,7 +15,7 @@ TEXT="$(jq -r '.tool_input.new_string // .tool_input.content // empty' <<<"$INPU
 
 [ -n "$FILE" ] && [ -n "$TEXT" ] || exit 0
 
-if ! MESSAGE="$(printf '%s\n' "$TEXT" | "$TSX" "$PROJECT/scripts/docs-check.ts" "$FILE" 2>&1)"; then
+if ! MESSAGE="$(printf '%s\n' "$TEXT" | "$TSX" "$PROJECT/scripts/checks/docs-check.ts" "$FILE" 2>&1)"; then
   echo "guard-comments: blocked: $MESSAGE. Keep a comment to 4 lines, put the reasoning in a file of docs/ and write 'See docs/<file>.md'." >&2
   exit 2
 fi

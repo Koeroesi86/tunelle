@@ -1,7 +1,7 @@
 name: Rebase auto-merge
 
 # master requires up to date branches, so every merge leaves the other pull requests with auto-merge behind. This rebases one of them at a time, the one
-# whose auto-merge was enabled first (scripts/rebase-auto-merge.js), and runs again when master moves, when auto-merge is switched on or off and when the
+# whose auto-merge was enabled first (scripts/release/rebase-auto-merge.js), and runs again when master moves, when auto-merge is switched on or off and when the
 # checks of a pull request end, so a failed one does not hold the others.
 on:
   push:
@@ -36,6 +36,6 @@ jobs:
           node-version: 24
       # a push with GITHUB_TOKEN starts no workflow, so the rebased pull request would get no checks: GH_REBASE_TOKEN is a token of the owner (a fine-grained
       # personal access token with Pull requests and Contents write on this repository) or of a GitHub App
-      - run: node scripts/rebase-auto-merge.js
+      - run: node scripts/release/rebase-auto-merge.js
         env:
           GH_TOKEN: ${{ secrets.GH_REBASE_TOKEN }}

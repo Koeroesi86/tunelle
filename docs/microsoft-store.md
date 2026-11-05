@@ -6,7 +6,7 @@ A release goes to the Microsoft Store through `store.yml` (the workflow `Store s
 
 `release.yml` calls it after every release it publishes, it runs weekly (Wednesday) for the latest release, in case a release was skipped because a submission was still in certification, and by hand it takes the tag of a release (`workflow_dispatch`).
 
-- An automatic run commits. It skips quietly when there is nothing to do yet (a submission in certification, or a release that is not greater than the version in the Store), and fails when somebody has to look (a draft, or a failed submission that is still there). This is `decide` of `scripts/store-submission.js`.
+- An automatic run commits. It skips quietly when there is nothing to do yet (a submission in certification, or a release that is not greater than the version in the Store), and fails when somebody has to look (a draft, or a failed submission that is still there). This is `decide` of `scripts/release/store-submission.js`.
 - By hand it stops on everything it cannot submit, and without `commit` it only makes the draft.
 
 ## The draft
@@ -21,7 +21,7 @@ Both packages of the release (x64 and arm64) are put in one bundle, as the Store
 
 The secrets of the Microsoft Entra application (Manager role in Partner Center) are in the environment `microsoft-store`, limited to `master`, with no reviewer: an automatic run starts by itself. The Store product ID is its variable `MS_STORE_PRODUCT_ID`. Certification then runs on the side of Microsoft.
 
-## `scripts/store-submission.js`
+## `scripts/release/store-submission.js`
 
 - `notes <file> <result> <notes> [<language>=<notes>]...` writes the submission in `<file>` to `<result>` with the release notes of its listings set to `<notes>` and the packages of the earlier submission marked for deletion (all but the one pending upload), or to the notes of the language of the listing (`hu` for `hu-hu`), for `msstore submission updateMetadata`.
 - `decide <status file> <submission file> <tag> <automatic>` says whether the release is submitted now (`submit=true` or `false` and the reason, also to `$GITHUB_OUTPUT`).

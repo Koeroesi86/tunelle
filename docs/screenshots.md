@@ -2,7 +2,7 @@
 
 The pictures in `site/screenshots/` are retaken, not edited: `npm run build` and then `npm run screenshots` (`npm run screenshots -- -g songs` takes one; `SCREENSHOTS_OUT=<folder>` writes elsewhere). Linux draws headless and needs no display, Windows and macOS need their desktop.
 
-They are taken with the Playwright setup of `e2e/` (the `screenshots` project, `e2e/screenshots/scenes.shots.ts`), the same pictures every time, from made-up data only, which `scripts/screenshot-fixtures.ts` writes:
+They are taken with the Playwright setup of `e2e/` (the `screenshots` project, `e2e/screenshots/scenes.shots.ts`), the same pictures every time, from made-up data only, which `scripts/screenshots/screenshot-fixtures.ts` writes:
 
 - generated tagged FLAC files with drawn covers, no real artists, covers or stations;
 - a fake station directory through `TUNELLE_RADIO_DIRECTORY` whose stream names its cover in `StreamUrl`, otherwise the app looks one up online and may show someone else's art;

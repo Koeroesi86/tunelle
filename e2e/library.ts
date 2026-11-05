@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { drawCover, writeFlac } from '../scripts/screenshot-media';
+import { drawCover, writeFlac } from '../scripts/screenshots/screenshot-media';
 
 export interface FixtureTrack {
   title: string;

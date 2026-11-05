@@ -8,7 +8,7 @@
 | `npm run typecheck`         | Type-check the whole project                                                  |
 | `npm run dist`              | Build for current OS                                                          |
 
-`npx tsx scripts/verify.ts` runs the checks of [CLAUDE.md](../CLAUDE.md) in order and prints only the end of the one that failed.
+`npx tsx scripts/checks/verify.ts` runs the checks of [CLAUDE.md](../CLAUDE.md) in order and prints only the end of the one that failed.
 
 ## Environment variables
 
@@ -18,8 +18,8 @@
 
 ## The `@shared` import alias
 
-Code in `shared/` (used by `electron/` and `client/`) is imported as `@shared/utils/wait`, not with `../../shared/...`. It is set in four places: `paths` in `tsconfig.json`, `resolve.alias` in `config/webpack.config.base.js`, `alias` in `vitest.config.ts`, and, because `tsc` leaves the alias in the compiled files of the main process and node can not resolve it, `scripts/alias-paths.js`, which `scripts/tsc.js` runs over `out/` after every emit and which turns `@shared/x` into a relative path. A new alias needs the same four places.
+Code in `shared/` (used by `electron/` and `client/`) is imported as `@shared/utils/wait`, not with `../../shared/...`. It is set in four places: `paths` in `tsconfig.json`, `resolve.alias` in `config/webpack.config.base.js`, `alias` in `vitest.config.ts`, and, because `tsc` leaves the alias in the compiled files of the main process and node can not resolve it, `scripts/tooling/alias-paths.js`, which `scripts/tooling/tsc.js` runs over `out/` after every emit and which turns `@shared/x` into a relative path. A new alias needs the same four places.
 
 ## Scripts in TypeScript
 
-The scripts that only developers and the Claude hooks run (`scripts/verify.ts`, `ci-failure.ts`, `docs-check.ts`, `perf-profile.ts` and the two modules `perf-library.ts` and `screenshot-media.ts` they use, `screenshot-fixtures.ts`) and the tests of every script are TypeScript, started with `npx tsx scripts/<name>.ts` (`tsx` is a dev dependency) and checked by `npm run typecheck` (`tsconfig.scripts.json`). The scripts that the workflows run (`version.js`, `store-submission.js`, `merge-update-files.js`, `flatpak-repo.js`, `build-site.js` and the others) and the build (`tsc.js`, `build.js`, `postinstall.js`) stay JavaScript: several workflows run them with plain `node` and no `npm ci`, so they must not need `tsx`. A script that a workflow runs, or that another JavaScript script requires, is not converted.
+The scripts that only developers and the Claude hooks run (`scripts/checks/verify.ts`, `ci-failure.ts`, `docs-check.ts`, `perf-profile.ts` and the two modules `perf-library.ts` and `screenshot-media.ts` they use, `screenshot-fixtures.ts`) and the tests of every script are TypeScript, started with `npx tsx scripts/<name>.ts` (`tsx` is a dev dependency) and checked by `npm run typecheck` (`tsconfig.scripts.json`). The scripts that the workflows run (`version.js`, `store-submission.js`, `merge-update-files.js`, `flatpak-repo.js`, `build-site.js` and the others) and the build (`tsc.js`, `build.js`, `postinstall.js`) stay JavaScript: several workflows run them with plain `node` and no `npm ci`, so they must not need `tsx`. A script that a workflow runs, or that another JavaScript script requires, is not converted.

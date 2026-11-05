@@ -19,8 +19,8 @@
       "Bash(npm run test*)",
       "Bash(npm run build*)",
       "Bash(npm run security:electron*)",
-      "Bash(npx tsx scripts/verify.ts*)",
-      "Bash(npx tsx scripts/ci-failure.ts*)"
+      "Bash(npx tsx scripts/checks/verify.ts*)",
+      "Bash(npx tsx scripts/checks/ci-failure.ts*)"
     ]
   },
   "hooks": {

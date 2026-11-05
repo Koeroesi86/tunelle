@@ -154,7 +154,7 @@ export const scrollList = (page: Page, seconds: number) =>
     seconds
   );
 
-/** Prints what a measurement found, and keeps it in test-results/perf-<name>.json (perf-<name>.<n>.json for the later runs of PERF_REPEAT) for the summary of the runs (scripts/perf-summary.js) */
+/** Prints what a measurement found, and keeps it in test-results/perf-<name>.json (perf-<name>.<n>.json for the later runs of PERF_REPEAT) for the summary of the runs (scripts/checks/perf-summary.js) */
 export const record = (name: string, report: Record<string, unknown>) => {
   console.log(JSON.stringify({ [name]: report }));
   mkdirSync('test-results', { recursive: true });

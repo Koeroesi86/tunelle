@@ -3,7 +3,7 @@ import { spawnSync } from 'child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
-import { startDirectory } from '../scripts/screenshot-fixtures';
+import { startDirectory } from '../scripts/screenshots/screenshot-fixtures';
 import { installActiveAudio } from './active-audio';
 import { installAudioProbe } from './audio-probe';
 import { albums, writeLibrary } from './library';
