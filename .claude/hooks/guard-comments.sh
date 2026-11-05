@@ -4,6 +4,7 @@
 set -euo pipefail
 
 command -v jq >/dev/null 2>&1 || exit 0
+command -v node >/dev/null 2>&1 || exit 0
 
 INPUT="$(cat)"
 FILE="$(jq -r '.tool_input.file_path // empty' <<<"$INPUT")"

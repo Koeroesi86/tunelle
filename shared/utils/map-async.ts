@@ -14,8 +14,7 @@ export const mapAsync = async <T, R>(
   let failed = false;
 
   const work = async () => {
-    while (!failed && next < items.length) {
-      const index = next++;
+    for (let index = next++; index < items.length && !failed; index = next++) {
       results[index] = await task(items[index], index).catch((error) => {
         failed = true;
         throw error;
