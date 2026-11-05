@@ -5,6 +5,7 @@ import { pickAccent } from '@shared/utils/pick-accent';
 import executeQuery from '../../database/execute-query';
 import { sampleSize } from '@shared/constants/accent';
 import { getAlbumArtFolder } from '../../utils/album-art-folder';
+import { mapAsync } from '@shared/utils/map-async';
 
 /** Pictures written to the table in one statement, so a long run is saved as it goes */
 const chunkSize = 100;
@@ -42,10 +43,8 @@ export const storeAlbumArtAccents = async (database: Database) => {
   });
   const pictures = rows.map((row) => row.picture);
 
-  await Array.from({ length: Math.ceil(pictures.length / chunkSize) }, (_, index) => pictures.slice(index * chunkSize, (index + 1) * chunkSize)).reduce(
-    (previous, chunk) => previous.then(() => storeChunk(database, chunk)),
-    Promise.resolve()
-  );
+  const chunks = Array.from({ length: Math.ceil(pictures.length / chunkSize) }, (_, index) => pictures.slice(index * chunkSize, (index + 1) * chunkSize));
+  await mapAsync(chunks, (chunk) => storeChunk(database, chunk));
 };
 
 /** The colour of each picture of a list that has one, by the name of the picture */

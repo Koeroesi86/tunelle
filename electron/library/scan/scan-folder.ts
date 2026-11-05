@@ -11,6 +11,7 @@ import { getTracksInside } from '../../repositories/library-repository';
 import isSupported from '../../utils/is-supported';
 import normalizePath from '../../utils/normalize-path';
 import { quitSignal, trackScan } from './scan-cancellation';
+import { mapAsync } from '@shared/utils/map-async';
 
 const fileReadTimeout = 2000;
 /** A file that did not answer in time is asked for again after the others, with time for a drive that has to spin up or a network that was busy */
@@ -73,10 +74,7 @@ const createBatchWriter = (database: Database, sender: WebContents, size: number
     batch = [];
     await addTracks(database, tracks).catch((error) => {
       console.error('Storing a batch of tracks failed, storing them one by one', error);
-      return tracks.reduce(
-        (done, track) => done.then(() => addTracks(database, [track]).catch((trackError) => console.error(track.path, trackError))),
-        Promise.resolve()
-      );
+      return mapAsync(tracks, (track) => addTracks(database, [track]).catch((trackError) => console.error(track.path, trackError)));
     });
 
     // the lists on the screen show what is stored while the scan goes on, not only at its end

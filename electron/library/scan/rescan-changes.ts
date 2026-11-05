@@ -8,6 +8,7 @@ import { withoutCovered } from '../watch/library-change';
 import type { Change } from '../watch/library-change';
 import { findMissingTracks } from './missing-tracks';
 import scanFolder from './scan-folder';
+import { mapAsync } from '@shared/utils/map-async';
 
 const isDirectory = (folderPath: string) =>
   fs.promises.stat(folderPath).then(
@@ -32,13 +33,9 @@ async function rescanChanges(sender: WebContents, changes: Change[]) {
     );
     console.log(`Scanning ${places.length} changed folders...`);
 
-    await places.reduce(
-      (done, place) =>
-        done.then(async () => {
-          if (await isDirectory(place.path)) await scanFolder(place.path, sender, place.deep);
-        }),
-      Promise.resolve()
-    );
+    await mapAsync(places, async (place) => {
+      if (await isDirectory(place.path)) await scanFolder(place.path, sender, place.deep);
+    });
 
     const tracks = new Map<string, Pick<Track, 'path'>>((await Promise.all(places.map(tracksAt(database)))).flat().map((track) => [track.path, track]));
     const missing = await findMissingTracks([...tracks.values()]);
