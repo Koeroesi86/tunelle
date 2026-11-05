@@ -128,6 +128,16 @@ describe('workflows', () => {
     expect(text.indexOf('scripts/release/flatpak-repo.js flatpak-bundles _site/repo')).toBeLessThan(text.indexOf('upload-pages-artifact'));
   });
 
+  it('pages.yml keeps the downloads of apt between runs, also after a failed install', () => {
+    const text = read('pages.yml');
+
+    expect(text.indexOf('actions/cache/restore')).toBeLessThan(text.indexOf('apt-get install'));
+    expect(text.indexOf('apt-get install')).toBeLessThan(text.indexOf('actions/cache/save'));
+    expect(text).toMatch(/Dir::Cache::archives="\$HOME\/apt-archives"/);
+    expect(text).toMatch(/- name: Keep the packaging tools\n\s+if: always\(\)/);
+    expect(text).not.toMatch(/\n\s+sudo apt-get update\n/);
+  });
+
   it('dist.yml installs the app from the Flatpak repository it builds', () => {
     expect(read('dist.yml')).toMatch(/scripts\/release\/flatpak-repo\.js dist[\s\S]*flatpak install --user --noninteractive tunelle-test/);
   });
