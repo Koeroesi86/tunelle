@@ -48,6 +48,17 @@ jobs:
         run: |
           gh api "repos/${GITHUB_REPOSITORY}/releases/latest" > release.json
           node scripts/tooling/build-site.js release.json _site
+      # the downloads of apt are kept between runs, as in dist.yml: the mirror of the runner is slow at times (a step took 12 minutes at 23 kB/s). See docs/release/flatpak-repository.md
+      - name: Find the image of the runner
+        id: image
+        run: echo "name=$ImageOS" >> "$GITHUB_OUTPUT"
+      - name: Restore the packaging tools
+        id: apt-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/apt-archives
+          key: apt-pages-${{ steps.image.outputs.name }}-${{ runner.arch }}-${{ github.run_id }}
+          restore-keys: apt-pages-${{ steps.image.outputs.name }}-${{ runner.arch }}-
       # without the key the site is deployed without the repository, never with an unsigned one
       - name: Build the Flatpak repository
         env:
@@ -58,12 +69,21 @@ jobs:
             echo '::warning::FLATPAK_GPG_PRIVATE_KEY is not set, the site is deployed without the Flatpak repository'
             exit 0
           fi
-          sudo apt-get update
-          sudo apt-get install -y flatpak ostree gnupg
+          mkdir -p ~/apt-archives/partial
+          install() { sudo timeout 10m apt-get install -y -o Acquire::Retries=3 -o Dir::Cache::archives="$HOME/apt-archives" flatpak ostree gnupg; }
+          install || { sudo timeout 10m apt-get update && install; }
+          sudo chown -R "$USER" ~/apt-archives
           gh release download --repo "$GITHUB_REPOSITORY" --pattern '*.flatpak' --dir flatpak-bundles
           node scripts/release/flatpak-repo.js flatpak-bundles _site/repo
           # the local state of the repository is not for the clients
           rm -rf _site/repo/tmp _site/repo/state
+      # saved when the install fails too: the next run continues with the packages that were downloaded
+      - name: Keep the packaging tools
+        if: always() && steps.apt-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/apt-archives
+          key: apt-pages-${{ steps.image.outputs.name }}-${{ runner.arch }}-${{ github.run_id }}
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
