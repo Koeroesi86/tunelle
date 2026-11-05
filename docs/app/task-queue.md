@@ -7,7 +7,7 @@ The background work of the app (what the user does not wait for, and what must n
 - A **task** has a `kind`, a `key`, a `priority` and a `run(signal)`, and may have a `canRun()`. It is added with `enqueue`.
 - A **source** (`addSource`) is a supply of tasks for work that is too big to queue at once, like every track of the library: the queue asks it for the next task, with `next()`, when it has a free turn.
 
-The queue runs one task at a time. The most important goes first; tasks of the same priority go in the order they came, and a queued task goes before a source of the same priority. A task that is added with the key of a waiting one replaces it, in its place.
+The queue runs one task at a time. The most important goes first; tasks of the same priority go in the order they came, and a queued task goes before a source of the same priority. A task that is added with the key of a waiting one replaces it, in its place; `dequeue(key)` takes a waiting one out.
 
 ## What may run
 

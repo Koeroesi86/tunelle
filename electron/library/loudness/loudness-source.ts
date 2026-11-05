@@ -10,6 +10,7 @@ import { getSettings } from '../../repositories/settings-repository';
 import { findOfflineFolders, isInsideFolder } from '../watch/folder-availability';
 import { backgroundQueue, scanKind } from '../tasks/background-queue';
 import type { Task } from '../tasks/task-queue';
+import { poolAlbumGains } from './album-gains';
 import { createLoudnessWindow } from './loudness-window';
 import type { Measurement } from './loudness-window';
 import { isPlaying } from './playback-state';
@@ -24,6 +25,9 @@ const batchSize = 20;
 /** After a pass over the library the source waits this long to look for new tracks, and for the ones that were on a drive that is away or did not answer */
 const restPause = 60_000;
 const defaultIdleSeconds = 30;
+/** The albums are pooled at most this often while tracks are measured, as the look for them goes over the library */
+const poolPause = 5000;
+const poolKey = 'album-gains';
 
 /** How long no folder must have been scanned before a measurement starts, from `TUNELLE_LOUDNESS_IDLE_SECONDS`; what is not a number of seconds is the default */
 const readIdleTime = (value = process.env.TUNELLE_LOUDNESS_IDLE_SECONDS) => {
@@ -40,6 +44,7 @@ const row = (track: TrackToMeasure, fields: Pick<TrackLoudness, 'status' | 'reas
   path: track.path,
   albumGain: null,
   albumPeak: null,
+  albumTracks: null,
   // the stat of the file as the library had it before the measurement: a file that changes meanwhile differs from it, and is measured again
   fileModified: track.fileModified ?? null,
   fileSize: track.fileSize ?? null,
@@ -84,11 +89,29 @@ export const registerLoudness = (database: Database, pageUrl: string) => {
     return !powerMonitor.isOnBatteryPower() && !isOff(await getSettings(database));
   };
 
+  let nextPoolAt = 0;
+
+  /** The gains of the albums follow what was stored: when a track is measured, and at the end of a pass for the tracks a scan added or took away */
+  const poolSoon = () =>
+    backgroundQueue.enqueue({
+      kind: loudnessKind,
+      key: poolKey,
+      priority,
+      canRun: () => !backgroundQueue.isBusy(scanKind) && Date.now() >= nextPoolAt,
+      run: async (signal) => {
+        nextPoolAt = Date.now() + poolPause;
+        await poolAlbumGains(database, signal).catch((error) => console.error('Pooling the gains of the albums failed', error));
+      },
+    });
+
   const measure =
     (track: TrackToMeasure): Task['run'] =>
     async (signal) => {
       const result = (track.duration ?? 0) > maxSeconds ? failed(track, 'too-large') : toRow(track, await window.measure(track.path));
-      if (result && !signal.aborted) await saveTrackLoudness(database, result);
+      if (!result || signal.aborted) return;
+
+      await saveTrackLoudness(database, result);
+      poolSoon();
     };
 
   /** The next track to measure; the end of the library starts the rest, and the next one starts again from the first track */
@@ -103,6 +126,8 @@ export const registerLoudness = (database: Database, pageUrl: string) => {
     if (batch.length === 0) {
       cursor = '';
       restUntil = Date.now() + restPause;
+      nextPoolAt = 0;
+      poolSoon();
       return undefined;
     }
     cursor = batch[batch.length - 1].path;
@@ -111,10 +136,13 @@ export const registerLoudness = (database: Database, pageUrl: string) => {
   };
 
   const removeSource = backgroundQueue.addSource({ kind: loudnessKind, priority, canRun: mayRun, next });
+  // what was stored before this start may have changed on its own: a scan added or took away tracks while the app was closed
+  poolSoon();
 
   return {
     stop: () => {
       removeSource();
+      backgroundQueue.dequeue(poolKey);
       window.close();
     },
   };

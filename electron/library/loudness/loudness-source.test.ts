@@ -12,11 +12,14 @@ import { getSettings } from '../../repositories/settings-repository';
 import { findOfflineFolders } from '../watch/folder-availability';
 import { setPlaying } from './playback-state';
 import { createLoudnessWindow, type Measurement } from './loudness-window';
+import { poolAlbumGains } from './album-gains';
 import { maxSeconds, registerLoudness } from './loudness-source';
+import type { Task } from '../tasks/task-queue';
 
 // everything the source reads or does outside of itself is replaced: the database and what is read from it, the drives, the window, the system and the queue
 vi.mock('sqlite3', () => ({ Database: class {} }));
 vi.mock('electron', () => ({ powerMonitor: { isOnBatteryPower: vi.fn() } }));
+vi.mock('./album-gains', () => ({ poolAlbumGains: vi.fn() }));
 vi.mock('./loudness-window', () => ({ createLoudnessWindow: vi.fn() }));
 vi.mock('../../repositories/loudness-repository', () => ({ findTracksToMeasure: vi.fn(), saveTrackLoudness: vi.fn() }));
 vi.mock('../../repositories/library-repository', () => ({ getFolders: vi.fn() }));
@@ -106,6 +109,8 @@ describe('the measurement of the loudness as a source of the background queue', 
         stored.push(row);
         return [];
       });
+    vi.mocked(backgroundQueue.enqueue).mockReset();
+    vi.mocked(poolAlbumGains).mockReset().mockResolvedValue(0);
     vi.mocked(getFolders).mockReset().mockResolvedValue([]);
     vi.mocked(getSettings).mockReset().mockResolvedValue(undefined);
     vi.mocked(findOfflineFolders).mockReset().mockResolvedValue([]);
@@ -138,6 +143,7 @@ describe('the measurement of the loudness as a source of the background queue', 
         trackPeak: 1.2,
         albumGain: null,
         albumPeak: null,
+        albumTracks: null,
         fileModified: 100,
         fileSize: 1000,
         analysisVersion,
@@ -363,11 +369,78 @@ describe('the measurement of the loudness as a source of the background queue', 
     });
   });
 
-  it('takes itself off the queue and closes its window when it stops', () => {
+  describe('the gains of the albums', () => {
+    const pooling = () =>
+      vi
+        .mocked(backgroundQueue.enqueue)
+        .mock.calls.map(([task]): Task => task)
+        .filter((task) => task.key === 'album-gains');
+    const lastPooling = () => {
+      const task = pooling().at(-1);
+      if (!task) throw new Error('No pooling was queued');
+      return task;
+    };
+
+    it('are pooled once for what was stored before the start, which a scan may have changed', async () => {
+      register();
+
+      expect(pooling()).toEqual([expect.objectContaining({ kind: 'loudness', key: 'album-gains', priority: 1 })]);
+      await lastPooling().run(signal);
+      expect(poolAlbumGains).toHaveBeenCalledWith(database, signal);
+    });
+
+    it('are pooled again when a track was measured, and not when nothing was stored', async () => {
+      library = [track('/music/a.flac')];
+      measure.mockResolvedValueOnce({ id: 1, outcome: 'unreadable' });
+      register();
+      await drain();
+      expect(pooling()).toHaveLength(1);
+
+      measure.mockResolvedValue(measured);
+      elapse(rest + 1);
+      await drain();
+
+      expect(pooling()).toHaveLength(2);
+    });
+
+    it('are pooled at the end of a pass, for the tracks a scan added or took away', async () => {
+      register();
+      await source.next();
+
+      expect(pooling()).toHaveLength(2);
+    });
+
+    it('wait for a scan to end and for a pause after the last pooling, as the look goes over the library', async () => {
+      register();
+      const { canRun: mayPool } = lastPooling();
+      vi.mocked(backgroundQueue.isBusy).mockReturnValue(true);
+      expect(mayPool?.()).toBe(false);
+
+      vi.mocked(backgroundQueue.isBusy).mockReturnValue(false);
+      expect(mayPool?.()).toBe(true);
+      await lastPooling().run(signal);
+      expect(mayPool?.()).toBe(false);
+
+      elapse(5000);
+      expect(mayPool?.()).toBe(true);
+    });
+
+    it('do not stop the source when the pooling fails', async () => {
+      vi.mocked(poolAlbumGains).mockRejectedValue(new Error('database is locked'));
+      const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      register();
+
+      await expect(lastPooling().run(signal)).resolves.toBeUndefined();
+      expect(error).toHaveBeenCalledWith('Pooling the gains of the albums failed', expect.any(Error));
+    });
+  });
+
+  it('takes itself off the queue, takes its pooling off it and closes its window when it stops', () => {
     register();
     loudness.stop();
 
     expect(removeSource).toHaveBeenCalledTimes(1);
+    expect(backgroundQueue.dequeue).toHaveBeenCalledWith('album-gains');
     expect(close).toHaveBeenCalledTimes(1);
   });
 });

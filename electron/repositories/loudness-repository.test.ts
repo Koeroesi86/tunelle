@@ -44,6 +44,7 @@ const measured = (path: string, extra: Partial<TrackLoudness> = {}): TrackLoudne
   trackPeak: 1.2,
   albumGain: -5,
   albumPeak: 1.3,
+  albumTracks: null,
   fileModified: 100,
   fileSize: 1000,
   analysisVersion: 1,

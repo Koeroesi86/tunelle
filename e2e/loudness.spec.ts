@@ -1,6 +1,7 @@
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import type { Page } from '@playwright/test';
 import { addFolder, expect, libraryTracks, navigate, test } from './support/app';
 import { albums, writeTrack } from './support/library';
 import { expectTone, levelNow, steadyLevel } from './support/audio';
@@ -9,24 +10,28 @@ import { player } from './support/player';
 // a sine of half the full scale in both channels is at -6.7 LUFS (BS.1770), so levelling it to -18 LUFS cuts it by 11.3 dB, to 0.27 of the amplitude
 const cut = 10 ** (-11.3 / 20);
 
+type Gains = { trackGain: number | null; albumGain: number | null };
+
+/** The player takes the gains of a track from its own address, where the tags come first and the measurement is for the tracks without */
+const gainsOf = (page: Page, path: string) =>
+  page.evaluate(
+    (trackPath): Promise<Gains> => fetch(`tunelle://app/library/track?path=${encodeURIComponent(trackPath)}`).then((response) => response.json()),
+    path
+  );
+
+const folderOfTracks = (count: number) => {
+  const folder = mkdtempSync(join(tmpdir(), 'tunelle-loudness-'));
+  [...Array(count).keys()].forEach((index) => writeTrack(folder, albums[0], index, 10));
+  return folder;
+};
+
 test('measures a track without gain tags in the background and levels it by the measurement', async ({ start }) => {
   const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
-  const folder = mkdtempSync(join(tmpdir(), 'tunelle-loudness-'));
-  writeTrack(folder, albums[0], 0, 10);
-  await addFolder(page, folder, 1);
+  await addFolder(page, folderOfTracks(1), 1);
   const [{ path }] = await libraryTracks(page);
 
-  // the player takes the gain of a track from its own address, where the tags come first and the measurement is for the tracks without
-  const gainOf = () =>
-    page.evaluate(
-      (trackPath) =>
-        fetch(`tunelle://app/library/track?path=${encodeURIComponent(trackPath)}`)
-          .then((response) => response.json())
-          .then((track: { trackGain: number | null }) => track.trackGain),
-      path
-    );
-  await expect.poll(gainOf, { message: 'the measured gain of the track', timeout: 90_000 }).not.toBeNull();
-  expect(await gainOf()).toBeCloseTo(-11.3, 0);
+  await expect.poll(async () => (await gainsOf(page, path)).trackGain, { message: 'the measured gain of the track', timeout: 90_000 }).not.toBeNull();
+  expect((await gainsOf(page, path)).trackGain).toBeCloseTo(-11.3, 0);
 
   const controls = player(page);
   await controls.playAlbum('Pitch Perfect');
@@ -37,6 +42,35 @@ test('measures a track without gain tags in the background and levels it by the 
   const full = await steadyLevel(page);
 
   await page.getByRole('radio', { name: 'Track', exact: true }).click();
+
+  await expect.poll(async () => (await levelNow(page)) / full).toBeCloseTo(cut, 1);
+});
+
+test('gives the tracks of an album the gain pooled from all of them once each is measured, and levels the album by it', async ({ start }) => {
+  const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
+  await addFolder(page, folderOfTracks(2), 2);
+  const paths = (await libraryTracks(page)).map((track) => track.path);
+
+  await expect
+    .poll(async () => Promise.all(paths.map(async (path) => (await gainsOf(page, path)).albumGain)), {
+      message: 'the pooled gain of the album',
+      timeout: 90_000,
+    })
+    .not.toContain(null);
+  const [first, second] = await Promise.all(paths.map((path) => gainsOf(page, path)));
+  // two sines of the same level pool to the gain of either
+  expect(first.albumGain).toBeCloseTo(-11.3, 0);
+  expect(second.albumGain).toBe(first.albumGain);
+
+  const controls = player(page);
+  await controls.playAlbum('Pitch Perfect');
+  await controls.setVolume(1);
+  await expectTone(page, 440);
+  await navigate(page, 'Settings');
+  await page.getByRole('radio', { name: 'Off', exact: true }).click();
+  const full = await steadyLevel(page);
+
+  await page.getByRole('radio', { name: 'Album', exact: true }).click();
 
   await expect.poll(async () => (await levelNow(page)) / full).toBeCloseTo(cut, 1);
 });

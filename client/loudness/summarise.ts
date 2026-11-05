@@ -1,10 +1,8 @@
 import type { LoudnessAnalysis } from '@shared/types/loudness';
-import { analysisVersion } from '@shared/constants/loudness';
+import { analysisVersion, targetLufs } from '@shared/constants/loudness';
+import { toLufs } from '@shared/utils/to-lufs';
 import type { BlockStats } from './block-energies';
 import { measurementRate } from './k-weighting';
-
-/** The level a track is played at, the reference level of ReplayGain 2 */
-export const targetLufs = -18;
 
 const absoluteGate = -70;
 const relativeGate = -10;
@@ -13,9 +11,6 @@ const curvePoints = 256;
 /** A short term value is the mean of the blocks of 3 s, taken every second */
 const shortTermBlocks = 27;
 const shortTermStep = 10;
-
-/** The loudness of a mean square, in LUFS (the offset is the one of the K-weighting) */
-const toLufs = (energy: number) => -0.691 + 10 * Math.log10(energy);
 
 const mean = (values: ArrayLike<number>) => Array.from(values).reduce((sum, value) => sum + value, 0) / values.length;
 
