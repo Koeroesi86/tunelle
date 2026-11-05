@@ -7,7 +7,7 @@ import type { Database } from 'sqlite3';
 import addTrack from './addTrack';
 import executeQuery from './executeQuery';
 import { getAlbumArtAccents, storeAlbumArtAccents } from './albumArtAccents';
-import { getAlbumPage, getGroupPage } from './libraryRepository';
+import { getAlbumPage, getGroupPage } from './repositories/libraryRepository';
 import { createTestDatabase } from './test-database';
 import type { Track } from '../types/library';
 

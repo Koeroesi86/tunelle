@@ -12,10 +12,10 @@ import createWindow from './electron/createWindow';
 import getLoadingWindow from './electron/getLoadingWindow';
 import createDatabase from './electron/createDatabase';
 import { libraryErrorMessage } from './electron/libraryErrorMessage';
-import setupListeners from './electron/setupListeners';
+import setupListeners from './electron/listeners/setupListeners';
 import { tunelleOrigin, handleTunelleProtocol, registerTunelleScheme } from './electron/tunelleProtocol';
-import { createRadioBrowser } from './electron/radioBrowser';
-import { createRadioArt } from './electron/radioArt';
+import { createRadioBrowser } from './electron/services/radioBrowser';
+import { createRadioArt } from './electron/services/radioArt';
 import { createRadioLogos } from './electron/radioLogos';
 import { getAppUserModelId, setsAppUserModelId } from './electron/appUserModelId';
 import { holdSingleInstance } from './electron/singleInstance';
@@ -26,11 +26,11 @@ import closeSplash from './electron/closeSplash';
 import releaseWindows from './electron/releaseWindows';
 import { getMainTranslator, setPickedLanguage } from './electron/language';
 import { applyThemeMode } from './electron/theme';
-import { getSettings } from './electron/settingsRepository';
+import { getSettings } from './electron/repositories/settingsRepository';
 import { autoUpdater } from 'electron-updater';
-import { createMockUpdateSource, getUpdateUnavailableReason, inspectAppImage, runUpdate } from './electron/updater';
+import { createMockUpdateSource, getUpdateUnavailableReason, inspectAppImage, runUpdate } from './electron/services/updater';
 import { createUpdateManager } from './electron/updateManager';
-import type { UpdateSource } from './electron/updater';
+import type { UpdateSource } from './electron/services/updater';
 
 // compiled to out/index.js, the project root is one level up
 const rootPath = resolve(__dirname, '..');

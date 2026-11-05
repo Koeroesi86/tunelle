@@ -2,11 +2,11 @@ import type { Database } from 'sqlite3';
 import type { WebContents } from 'electron';
 import { createFolderWatcher } from './folderWatcher';
 import { findOfflineFolders } from './folderAvailability';
-import { getFolders } from './libraryRepository';
+import { getFolders } from './repositories/libraryRepository';
 import { createRescanScheduler } from './rescanScheduler';
 import rescanChanges from './rescanChanges';
 import rescanLibrary from './rescanLibrary';
-import { getSettings } from './settingsRepository';
+import { getSettings } from './repositories/settingsRepository';
 
 interface Watching {
   database: Database;

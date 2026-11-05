@@ -1,7 +1,7 @@
 import type { Database } from 'sqlite3';
 import type { FavouriteKey } from '../types/favourites';
-import type { RadioBrowser } from './radioBrowser';
-import { findTrackFormat, findTrackPath, getAlbumTracks } from './libraryRepository';
+import type { RadioBrowser } from './services/radioBrowser';
+import { findTrackFormat, findTrackPath, getAlbumTracks } from './repositories/libraryRepository';
 import { isRecord } from '../shared/utils/is-record';
 
 /** What tells whether an item is available: where it comes from and what it looked like */

@@ -1,5 +1,5 @@
 import type { Database } from 'sqlite3';
-import { getAlbumPage, getAlbumTracks, getGroupPage, getLibrary, getTrackPage, trackColumns } from './libraryRepository';
+import { getAlbumPage, getAlbumTracks, getGroupPage, getLibrary, getTrackPage, trackColumns } from './repositories/libraryRepository';
 import { parseAlbumSort, parseFolders, parseGroupKind, parseGroupSort, parseSearch, parseTrackSort } from '../types/library-query';
 import type { AlbumGroup, LibraryQuery } from '../types/library-query';
 

@@ -3,12 +3,12 @@ import { protocol } from 'electron';
 import type { Database } from 'sqlite3';
 import { resolveAlbumArt } from './albumArt';
 import { getCoverAccent } from './albumArtAccents';
-import { findTrackPath } from './libraryRepository';
+import { findTrackPath } from './repositories/libraryRepository';
 import { libraryRoutes } from './libraryRoutes';
 import { serveRadio } from './radioProtocol';
 import { stationUuid } from './radioProxy';
 import type { RadioStreamDeps } from './radioProxy';
-import type { RadioArtImage } from './radioArt';
+import type { RadioArtImage } from './services/radioArt';
 import { notFound, serveFile } from './serveFile';
 
 const scheme = 'tunelle';

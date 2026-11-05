@@ -1,5 +1,5 @@
-import { getImage } from './radioArt';
-import type { RadioArtImage } from './radioArt';
+import { getImage } from './services/radioArt';
+import type { RadioArtImage } from './services/radioArt';
 
 const maxLogos = 300;
 

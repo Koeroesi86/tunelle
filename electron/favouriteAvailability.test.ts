@@ -2,8 +2,8 @@ import path from 'path';
 import { describe, expect, it } from 'vitest';
 import type { StoredFavourite } from '../types/favourites';
 import addTrack from './addTrack';
-import { addFavourite, getFavourites } from './favouritesRepository';
-import { deleteTracksInside } from './libraryRepository';
+import { addFavourite, getFavourites } from './repositories/favouritesRepository';
+import { deleteTracksInside } from './repositories/libraryRepository';
 import { withAvailability } from './favouriteAvailability';
 import { createTestDatabase } from './test-database';
 

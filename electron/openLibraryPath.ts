@@ -1,6 +1,6 @@
 import path from 'path';
 import type { Database } from 'sqlite3';
-import { getFolders } from './libraryRepository';
+import { getFolders } from './repositories/libraryRepository';
 
 const isInside = (folder: string, target: string) => {
   const relative = path.relative(folder, target);

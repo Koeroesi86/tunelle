@@ -3,7 +3,7 @@ import path from 'path';
 import type { Database } from 'sqlite3';
 import type { WebContents } from 'electron';
 import type { Folder } from '../types/library';
-import { getFolders, hasTracksInside } from './libraryRepository';
+import { getFolders, hasTracksInside } from './repositories/libraryRepository';
 
 /** How long a call against a folder may take before the folder counts as unresponsive */
 const folderTimeout = 5000;

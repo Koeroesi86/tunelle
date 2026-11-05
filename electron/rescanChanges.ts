@@ -2,7 +2,7 @@ import fs from 'fs';
 import type { WebContents } from 'electron';
 import type { Database } from 'sqlite3';
 import type { Track } from '../types/library';
-import { deleteTracks, getFolders, getTracksInside } from './libraryRepository';
+import { deleteTracks, getFolders, getTracksInside } from './repositories/libraryRepository';
 import { isDirectlyInside, isInsideFolder, reportOfflineFolders } from './folderAvailability';
 import { withoutCovered } from './libraryChange';
 import type { Change } from './libraryChange';

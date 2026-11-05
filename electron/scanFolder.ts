@@ -7,7 +7,7 @@ import type { Track } from '../types/library';
 import { addTracks, readBatchSize } from './addTracks';
 import { storeAlbumArtAccents } from './albumArtAccents';
 import { createTrackReader, ReadTimeoutError } from './trackReader';
-import { getTracksInside } from './libraryRepository';
+import { getTracksInside } from './repositories/libraryRepository';
 import isSupported from './isSupported';
 import normalizePath from './normalizePath';
 import { quitSignal, trackScan } from './scanCancellation';

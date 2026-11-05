@@ -2,7 +2,7 @@ import fs from 'fs';
 import type { WebContents } from 'electron';
 import type { Database } from 'sqlite3';
 import type { Folder } from '../types/library';
-import { deleteTracks, folderColumns, getFolders, getLibrary, saveFolders } from './libraryRepository';
+import { deleteTracks, folderColumns, getFolders, getLibrary, saveFolders } from './repositories/libraryRepository';
 import { isInsideFolder, reportOfflineFolders, withTimeout } from './folderAvailability';
 import scanFolders from './scanFolders';
 import { storeAlbumArtAccents } from './albumArtAccents';

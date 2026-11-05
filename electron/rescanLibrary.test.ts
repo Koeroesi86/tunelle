@@ -7,7 +7,7 @@ import type { Database } from 'sqlite3';
 import type { Folder } from '../types/library';
 import addTrack from './addTrack';
 import executeQuery from './executeQuery';
-import { getLibrary } from './libraryRepository';
+import { getLibrary } from './repositories/libraryRepository';
 import rescanLibrary from './rescanLibrary';
 import scanFolders from './scanFolders';
 import { createTestDatabase } from './test-database';

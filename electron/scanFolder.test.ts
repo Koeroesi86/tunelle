@@ -7,7 +7,7 @@ import type { Database } from 'sqlite3';
 import scanFolder from './scanFolder';
 import { createTestDatabase } from './test-database';
 import { cancelScansInside } from './scanCancellation';
-import { getTracksInside } from './libraryRepository';
+import { getTracksInside } from './repositories/libraryRepository';
 
 describe('scanFolder', () => {
   let database: Database;

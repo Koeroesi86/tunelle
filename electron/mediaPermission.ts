@@ -1,5 +1,5 @@
 import { session } from 'electron';
-import type { ListenerContext } from './listenerContext';
+import type { ListenerContext } from './listeners/listenerContext';
 
 const originOf = (url: string) => (URL.canParse(url) ? new URL(url).origin : undefined);
 

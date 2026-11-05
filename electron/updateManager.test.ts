@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUpdateManager } from './updateManager';
-import type { UpdateSource } from './updater';
+import type { UpdateSource } from './services/updater';
 import type { UpdateState } from '../types/update';
 
 const info = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined } as const;

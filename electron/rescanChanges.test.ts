@@ -6,7 +6,7 @@ import type { WebContents } from 'electron';
 import type { Database } from 'sqlite3';
 import addTrack from './addTrack';
 import executeQuery from './executeQuery';
-import { getLibrary } from './libraryRepository';
+import { getLibrary } from './repositories/libraryRepository';
 import rescanChanges from './rescanChanges';
 import scanFolder from './scanFolder';
 import { createTestDatabase } from './test-database';

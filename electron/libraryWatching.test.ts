@@ -3,8 +3,8 @@ import type { WebContents } from 'electron';
 import type { Database } from 'sqlite3';
 import { applyWatchSetting, checkLibraryWatching, refreshLibraryWatching, startLibraryWatching } from './libraryWatching';
 import { findOfflineFolders } from './folderAvailability';
-import { getFolders } from './libraryRepository';
-import { getSettings } from './settingsRepository';
+import { getFolders } from './repositories/libraryRepository';
+import { getSettings } from './repositories/settingsRepository';
 import rescanChanges from './rescanChanges';
 import rescanLibrary from './rescanLibrary';
 
@@ -22,8 +22,8 @@ vi.mock('./folderWatcher', () => ({
   },
 }));
 vi.mock('./folderAvailability', () => ({ findOfflineFolders: vi.fn() }));
-vi.mock('./libraryRepository', () => ({ getFolders: vi.fn() }));
-vi.mock('./settingsRepository', () => ({ getSettings: vi.fn() }));
+vi.mock('./repositories/libraryRepository', () => ({ getFolders: vi.fn() }));
+vi.mock('./repositories/settingsRepository', () => ({ getSettings: vi.fn() }));
 vi.mock('./rescanLibrary', () => ({ default: vi.fn() }));
 vi.mock('./rescanChanges', () => ({ default: vi.fn() }));
 
