@@ -3,7 +3,7 @@ import { tmpdir } from 'os';
 import { posix } from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IpcMainEvent } from 'electron';
-import type { LauncherOptions } from '../appImageLauncher';
+import type { LauncherOptions } from '../services/appImageLauncher';
 
 // the entry only takes paths without a backslash, the temporary folder of Windows is full of them
 const { join } = posix;
@@ -21,8 +21,8 @@ vi.mock('electron', () => ({
 }));
 
 // the listeners find the icons relative to the compiled files, the tests bring their own
-vi.mock('../appImageLauncher', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../appImageLauncher')>();
+vi.mock('../services/appImageLauncher', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../services/appImageLauncher')>();
   return {
     ...original,
     enableLauncher: (appImage: string, options: LauncherOptions) => original.enableLauncher(appImage, { ...options, iconsPath: join(home, 'icons') }),

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IpcMainEvent } from 'electron';
 import type { ListenerContext } from './listenerContext';
-import type { UpdateManager } from '../updateManager';
+import type { UpdateManager } from '../services/updateManager';
 import registerUpdateListeners from './registerUpdateListeners';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;

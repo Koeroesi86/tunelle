@@ -9,8 +9,8 @@ import {
   markLauncherOffered,
   syncLauncher,
   wasLauncherOffered,
-} from '../appImageLauncher';
-import type { LauncherOptions } from '../appImageLauncher';
+} from '../services/appImageLauncher';
+import type { LauncherOptions } from '../services/appImageLauncher';
 
 // the menu entry is only offered from an AppImage, it has no install step of its own
 const findAppImage = () => (process.platform === 'linux' ? process.env.APPIMAGE : undefined);
