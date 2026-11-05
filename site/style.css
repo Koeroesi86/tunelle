@@ -128,6 +128,11 @@ footer {
   color: var(--text);
 }
 
+.top .languages {
+  display: flex;
+  gap: 12px;
+}
+
 .top .theme {
   padding: 4px 10px;
   border: 1px solid var(--border);

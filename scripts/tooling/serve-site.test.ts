@@ -26,6 +26,13 @@ describe('createSiteServer', () => {
     expect(html).not.toMatch(/\{\{/);
   });
 
+  it.each(['/privacy.html', '/hu/', '/hu/privacy.html'])('serves the page %s', async (path) => {
+    const html = await (await fetch(`${await open()}${path}`)).text();
+
+    expect(html).toContain('<html lang=');
+    expect(html).not.toMatch(/\{\{/);
+  });
+
   it('serves the other files as they are', async () => {
     const response = await fetch(`${await open()}/style.css`);
 

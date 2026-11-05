@@ -1,6 +1,7 @@
 // the theme follows the system until the visitor picks one with the button in the top bar; the choice is kept in this browser
 const themes = ['system', 'light', 'dark']
-const labels = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
+// the labels are written into the script tag in the language of the page
+const labels = { ...document.currentScript.dataset }
 const read = () => {
   try {
     return localStorage.getItem('theme')
