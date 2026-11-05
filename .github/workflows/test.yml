@@ -49,13 +49,13 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu-22.04')
         run: echo "npm_config_build_from_source=true" >> "$GITHUB_ENV"
       - uses: ./.github/actions/install-dependencies
-      # the files Flathub takes the app from (flatpak/) and the desktop file of the AppImage (appimage/) are checked with the tools it uses
+      # the files Flathub takes the app from (packaging/flatpak/) and the desktop file of the AppImage (packaging/appimage/) are checked with the tools it uses
       - name: Validate the Flatpak metadata
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get install -y appstream desktop-file-utils
-          appstreamcli validate --no-net flatpak/*.metainfo.xml
-          desktop-file-validate flatpak/*.desktop appimage/*.desktop
+          appstreamcli validate --no-net packaging/flatpak/*.metainfo.xml
+          desktop-file-validate packaging/flatpak/*.desktop packaging/appimage/*.desktop
       - run: npm run test:coverage
       # the built app is started and driven (e2e/); the audio goes to a sink that plays nothing (--disable-audio-output), so the runners need no sound device, and Linux draws the window headless
       - run: npm run build

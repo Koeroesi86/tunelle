@@ -5,8 +5,8 @@ const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.ur
 const { build, license, homepage } = JSON.parse(read('package.json'));
 const en = JSON.parse(read('shared/locales/en.json'));
 const hu = JSON.parse(read('shared/locales/hu.json'));
-const metainfo = read(`flatpak/${build.appId}.metainfo.xml`);
-const desktop = read(`flatpak/${build.appId}.desktop`);
+const metainfo = read(`packaging/flatpak/${build.appId}.metainfo.xml`);
+const desktop = read(`packaging/flatpak/${build.appId}.desktop`);
 const desktopValue = (key: string) =>
   desktop
     .split('\n')
@@ -14,7 +14,7 @@ const desktopValue = (key: string) =>
     ?.slice(key.length + 1);
 const pagesUrl = `https://${homepage.split('/')[3].toLowerCase()}.github.io/${homepage.split('/')[4]}/`;
 
-// Flathub takes the app from these files (see flatpak/), so they have to stay in step with the app they describe
+// Flathub takes the app from these files (see packaging/flatpak/), so they have to stay in step with the app they describe
 describe('the desktop entry of the Flatpak', () => {
   it('starts the executable of the package under the window class the app opens with', () => {
     expect(desktopValue('Exec')).toBe(build.linux.executableName);
@@ -68,7 +68,7 @@ describe('the metainfo of the Flatpak', () => {
 
   // without it in /app/share/metainfo the repository has no AppStream data and the software centre shows no icon, screenshots or description
   it('is copied into the Flatpak bundle', () => {
-    expect(build.flatpak.files).toContainEqual([`flatpak/${build.appId}.metainfo.xml`, `/share/metainfo/${build.appId}.metainfo.xml`]);
+    expect(build.flatpak.files).toContainEqual([`packaging/flatpak/${build.appId}.metainfo.xml`, `/share/metainfo/${build.appId}.metainfo.xml`]);
   });
 
   // GNOME Software marks an app of the branch master as coming from a development repository and shows it as a beta

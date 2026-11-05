@@ -11,7 +11,7 @@ const repoUrl = `${siteUrl}repo/`
 const appId = 'io.github.koeroesi86.Tunelle'
 const flathubRepoUrl = 'https://dl.flathub.org/repo/flathub.flatpakrepo'
 // what the software centre shows of the .flatpakref before the app is installed (the metainfo of the app is not read from it): the summary and the
-// first paragraph of the description of flatpak/<appId>.metainfo.xml, and the icon of the website
+// first paragraph of the description of packaging/flatpak/<appId>.metainfo.xml, and the icon of the website
 const comment = 'Lossless audio player'
 const description = 'Tunelle plays your own music library and internet radio, and shows the format of everything it plays: FLAC 16/44.1, FLAC 24/96, MP3 320.'
 const iconUrl = `${siteUrl}icon-512.png`

@@ -4,7 +4,7 @@ import { comment, description, findBranch, findKey, refFile, repoFile } from './
 
 const { build } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-const metainfo = readFileSync(new URL(`../flatpak/${build.appId}.metainfo.xml`, import.meta.url), 'utf8');
+const metainfo = readFileSync(new URL(`../packaging/flatpak/${build.appId}.metainfo.xml`, import.meta.url), 'utf8');
 
 const listing = (validity: string, expires = '') =>
   [

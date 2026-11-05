@@ -56,7 +56,7 @@ if (require.main === module) {
     const packagePath = resolve(__dirname, '../package.json')
     stampVersion(packagePath, version)
     const { build } = JSON.parse(readFileSync(packagePath, 'utf8'))
-    stampMetainfo(resolve(__dirname, `../flatpak/${build.appId}.metainfo.xml`), version, new Date(), `${build.publish.owner}/${build.publish.repo}`)
+    stampMetainfo(resolve(__dirname, `../packaging/flatpak/${build.appId}.metainfo.xml`), version, new Date(), `${build.publish.owner}/${build.publish.repo}`)
   }
   else if (!process.env.GITHUB_RUN_NUMBER) throw new Error('GITHUB_RUN_NUMBER is not set')
   else {

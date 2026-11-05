@@ -30,8 +30,8 @@ describe('AppImage', () => {
 
   it('carries the metainfo of the Flatpak and the desktop file it names', () => {
     expect(build.linux.extraFiles).toEqual([
-      { from: `flatpak/${build.appId}.metainfo.xml`, to: `usr/share/metainfo/${build.appId}.appdata.xml` },
-      { from: `appimage/${build.appId}.desktop`, to: `usr/share/applications/${build.appId}.desktop` },
+      { from: `packaging/flatpak/${build.appId}.metainfo.xml`, to: `usr/share/metainfo/${build.appId}.appdata.xml` },
+      { from: `packaging/appimage/${build.appId}.desktop`, to: `usr/share/applications/${build.appId}.desktop` },
     ]);
   });
 });

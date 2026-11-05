@@ -95,11 +95,11 @@
       "category": "AudioVideo;Audio;Music;Player",
       "extraFiles": [
         {
-          "from": "flatpak/io.github.koeroesi86.Tunelle.metainfo.xml",
+          "from": "packaging/flatpak/io.github.koeroesi86.Tunelle.metainfo.xml",
           "to": "usr/share/metainfo/io.github.koeroesi86.Tunelle.appdata.xml"
         },
         {
-          "from": "appimage/io.github.koeroesi86.Tunelle.desktop",
+          "from": "packaging/appimage/io.github.koeroesi86.Tunelle.desktop",
           "to": "usr/share/applications/io.github.koeroesi86.Tunelle.desktop"
         }
       ],
@@ -126,7 +126,7 @@
       "branch": "stable",
       "files": [
         [
-          "flatpak/io.github.koeroesi86.Tunelle.metainfo.xml",
+          "packaging/flatpak/io.github.koeroesi86.Tunelle.metainfo.xml",
           "/share/metainfo/io.github.koeroesi86.Tunelle.metainfo.xml"
         ]
       ],
