@@ -2,7 +2,7 @@ import { createHash } from 'crypto';
 import { readdir, readFile } from 'fs/promises';
 import { resolve } from 'path';
 import { describe, expect, it } from 'vitest';
-import checksums from '../migrations-checksums.json';
+import checksums from './migrations-checksums.json';
 
 const migrationsPath = resolve(__dirname, '../../migrations');
 

@@ -10,7 +10,7 @@ import { albums, writeLibrary } from './library';
 import { installNoNotifications } from './no-notifications';
 import { readStartTimes, type StartTimes } from './start-times';
 
-export interface Session {
+interface Session {
   app: ElectronApplication;
   page: Page;
   /** When the first load of the page painted, from the spawn of the app: only with `measureStart` */

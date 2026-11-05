@@ -2,7 +2,7 @@ import { test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
-export interface Renderer {
+interface Renderer {
   /** Tasks of the main thread of the page longer than 50 ms (the Long Tasks API) */
   longTasks: number[];
   /** The time between the frames the page drew, in ms */

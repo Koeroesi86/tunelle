@@ -1,5 +1,7 @@
 {
   "$schema": "./node_modules/fallow/schema.json",
+  // hidden folders that only hold hooks and workflow tests, which fallow skips on its own
+  "ignorePatterns": [".claude/**", ".github/**"],
   "entry": [
     // run by node, not imported
     "scripts/**/*",

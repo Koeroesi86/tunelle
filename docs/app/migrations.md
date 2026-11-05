@@ -2,7 +2,7 @@
 
 A new migration goes in `migrations/` as `NNN-name.sql` with the next number. It runs once per library (the number is stored as `PRAGMA user_version`), so it may `ALTER TABLE`.
 
-- Do not edit one that has shipped: `electron/migrations.checksums.test.ts` fails on it. A new migration gets its line in `electron/migrations-checksums.json`.
+- Do not edit one that has shipped: `electron/database/migrations.checksums.test.ts` fails on it. A new migration gets its line in `electron/database/migrations-checksums.json`.
 - Numbers start at 1 with no gap.
 - `001` to `003` ran on every start before the number was stored, so they stay safe to run again.
 - A migration runs in a transaction, so it cannot change `PRAGMA foreign_keys`, which SQLite ignores there.

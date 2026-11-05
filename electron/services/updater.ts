@@ -7,7 +7,7 @@ import type { Translate } from '@shared/locales/translate';
 import type { UpdateUnavailableReason } from '@shared/types/update';
 import { mapAsync } from '@shared/utils/map-async';
 
-export interface SplashProgress {
+interface SplashProgress {
   text: string;
   percent?: number;
 }
@@ -131,7 +131,7 @@ export function createMockUpdateSource(stepDelay = 250): UpdateSource {
   return source;
 }
 
-export interface AppImageInstall {
+interface AppImageInstall {
   /** AM (portable-linux-apps) installed it: its `AM-updater` is next to the AppImage, and `am -u` replaces the file and keeps its own record of the version */
   managedByAm: boolean;
   /** An update replaces the file, which needs the folder of the AppImage to be writable (AM installs for all users into /opt, owned by root) */

@@ -2,13 +2,13 @@ import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { drawCover, writeFlac } from '../../scripts/screenshots/screenshot-media';
 
-export interface FixtureTrack {
+interface FixtureTrack {
   title: string;
   /** The pitch of the generated sine, so what is heard says which track plays */
   frequency: number;
 }
 
-export interface FixtureAlbum {
+interface FixtureAlbum {
   title: string;
   artist: string;
   genre: string;

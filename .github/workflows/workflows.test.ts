@@ -1,9 +1,9 @@
 import { readdirSync, readFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 
 // the rules of .claude/rules/workflows.md that a script can check
-const directory = resolve(__dirname, '../../.github/workflows');
+const directory = __dirname;
 const workflows = readdirSync(directory)
   .filter((name) => name.endsWith('.yml'))
   .map((name) => [name, readFileSync(join(directory, name), 'utf8')]);

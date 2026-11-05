@@ -4,7 +4,7 @@ import type { UtilityProcess } from 'electron';
 import type { Track } from '@shared/types/library';
 import type { ReadReply } from './track-reader-worker';
 
-export type TrackReader = {
+type TrackReader = {
   /** The tags of a file, read one file at a time; rejects when the file takes longer than the timeout, and the process that was stuck on it is replaced */
   read: (fileName: string, appDataPath: string, timeout: number) => Promise<Track>;
   close: () => void;

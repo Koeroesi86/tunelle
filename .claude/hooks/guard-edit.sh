@@ -24,8 +24,8 @@ case "$FILE" in
     [ -z "$NEW" ] || [ "$NEW" = "$CURRENT" ] || deny "never edit version in package.json; scripts/release/version.js stamps it in the release workflow."
     ;;
   "$PROJECT"/migrations/*.sql)
-    if jq -e --arg name "$(basename "$FILE")" 'has($name)' "$PROJECT/electron/migrations-checksums.json" >/dev/null 2>&1; then
-      deny "$(basename "$FILE") has shipped; add a new migration with the next number instead (and its line in electron/migrations-checksums.json)."
+    if jq -e --arg name "$(basename "$FILE")" 'has($name)' "$PROJECT/electron/database/migrations-checksums.json" >/dev/null 2>&1; then
+      deny "$(basename "$FILE") has shipped; add a new migration with the next number instead (and its line in electron/database/migrations-checksums.json)."
     fi
     ;;
 esac

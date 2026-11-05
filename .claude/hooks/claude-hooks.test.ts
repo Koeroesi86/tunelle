@@ -4,7 +4,7 @@ import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-const hooks = resolve(__dirname, '../../.claude/hooks');
+const hooks = __dirname;
 const hasTools = process.platform !== 'win32' && ['bash', 'jq'].every((tool) => spawnSync(tool, ['--version']).status === 0);
 let project: string;
 
@@ -21,10 +21,10 @@ const run = (hook: string, toolInput: object, env: Record<string, string> = {}) 
 describe.skipIf(!hasTools)('claude hooks', () => {
   beforeAll(() => {
     project = mkdtempSync(join(tmpdir(), 'tunelle-hooks-'));
-    mkdirSync(join(project, 'electron'));
+    mkdirSync(join(project, 'electron/database'), { recursive: true });
     mkdirSync(join(project, 'migrations'));
     writeFileSync(join(project, 'package.json'), JSON.stringify({ name: 'x', version: '26.10.1' }));
-    writeFileSync(join(project, 'electron/migrations-checksums.json'), JSON.stringify({ '001-shipped.sql': 'abc' }));
+    writeFileSync(join(project, 'electron/database/migrations-checksums.json'), JSON.stringify({ '001-shipped.sql': 'abc' }));
   });
 
   afterAll(() => rmSync(project, { recursive: true, force: true }));

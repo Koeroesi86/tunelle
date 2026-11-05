@@ -28,7 +28,14 @@ export default defineConfig({
           name: 'backend',
           environment: 'node',
           setupFiles: ['electron/test-utility-process.ts'],
-          include: ['electron/**/*.test.ts', 'shared/**/*.test.ts', 'scripts/**/*.test.ts'],
+          include: [
+            'electron/**/*.test.ts',
+            'shared/**/*.test.ts',
+            'scripts/**/*.test.ts',
+            '.claude/hooks/*.test.ts',
+            '.github/workflows/*.test.ts',
+            'packaging/**/*.test.ts',
+          ],
         },
       },
       {

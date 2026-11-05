@@ -21,7 +21,7 @@ export const tunelleOrigin = `${scheme}://${host}`;
 export const registerTunelleScheme = () =>
   protocol.registerSchemesAsPrivileged([{ scheme, privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } }]);
 
-export interface TunelleDeps {
+interface TunelleDeps {
   getDatabase: () => Database | undefined;
   radio: RadioStreamDeps & { getArt?: (key: string) => RadioArtImage | undefined; getLogo?: (uuid: string) => Promise<RadioArtImage | undefined> };
   /** The folder of the built page */

@@ -6,7 +6,7 @@ import type { CoverSpec } from '../screenshots/screenshot-media';
 import { clamp } from '../../shared/utils/clamp';
 
 /** The part of a profile (scripts/perf/perf-profile.ts) that the plan reads */
-export interface PlanProfile {
+interface PlanProfile {
   tracksPerAlbumFolder: number[];
   albumFoldersPerArtist: number[];
   formats: Record<string, number>;
@@ -25,7 +25,7 @@ export interface PlanProfile {
 type Next = () => number;
 type Tags = Record<string, string | number>;
 
-export interface PlannedTrack {
+interface PlannedTrack {
   file: string;
   disc: number;
   format: string;
@@ -33,7 +33,7 @@ export interface PlannedTrack {
   tags: Tags;
 }
 
-export interface PlannedAlbum {
+interface PlannedAlbum {
   folder: string[];
   albumArtist: string;
   album: string;

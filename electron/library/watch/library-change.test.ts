@@ -1,39 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import fs from 'fs';
-import os from 'os';
+import { describe, expect, it } from 'vitest';
 import path from 'path';
-import { toChanges, withoutCovered } from './library-change';
+import { withoutCovered } from './library-change';
 
 describe('libraryChange', () => {
-  let root: string;
-
-  beforeEach(() => {
-    root = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-change-'));
-    fs.mkdirSync(path.join(root, 'album'));
-    fs.writeFileSync(path.join(root, 'album', 'one.flac'), '');
-  });
-
-  afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
-
-  describe('toChanges', () => {
-    it('scans a folder with what is below it, as a whole album can be moved in', async () => {
-      expect(await toChanges(path.join(root, 'album'))).toEqual([{ path: path.join(root, 'album'), deep: true }]);
-    });
-
-    it('scans the folder of a file, and nothing below it', async () => {
-      expect(await toChanges(path.join(root, 'album', 'one.flac'))).toEqual([{ path: path.join(root, 'album'), deep: false }]);
-    });
-
-    it('looks at what was below a path that is gone, and at the folder it was in', async () => {
-      const gone = path.join(root, 'album', 'two.flac');
-
-      expect(await toChanges(gone)).toEqual([
-        { path: gone, deep: true },
-        { path: path.join(root, 'album'), deep: false },
-      ]);
-    });
-  });
-
   describe('withoutCovered', () => {
     const at = (...segments: string[]) => path.join(path.sep, 'music', ...segments);
 

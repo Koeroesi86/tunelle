@@ -1,6 +1,6 @@
 import en from './en.json';
 
-export type Messages = Record<string, string>;
+type Messages = Record<string, string>;
 export type Catalog = Record<string, Messages>;
 
 type PluralCategory = 'zero' | 'one' | 'two' | 'few' | 'many' | 'other';
@@ -8,7 +8,7 @@ type BaseKey<K> = K extends `${infer Base}_${PluralCategory}` ? Base : K;
 
 /** The keys of the English messages, a plural message is addressed without its category (`items_one` and `items_other` are `items`) */
 export type MessageKey = BaseKey<keyof typeof en>;
-export type Values = Record<string, string | number>;
+type Values = Record<string, string | number>;
 export type Translate = (key: MessageKey, values?: Values) => string;
 
 export interface Translator {

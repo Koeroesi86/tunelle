@@ -14,6 +14,9 @@
   },
   "include": [
     "scripts/**/*.ts",
-    "scripts/**/*.js"
+    "scripts/**/*.js",
+    ".claude/hooks/*.test.ts",
+    ".github/workflows/*.test.ts",
+    "packaging/**/*.test.ts"
   ]
 }

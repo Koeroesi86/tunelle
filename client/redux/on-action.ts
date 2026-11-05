@@ -4,7 +4,7 @@ import { isAppAction } from './types';
 import type { AppAction } from './types';
 
 export type Store = MiddlewareAPI<Dispatch<AppAction>, RootState>;
-export type ActionHandler = (action: AppAction) => void;
+type ActionHandler = (action: AppAction) => void;
 
 const isActionOfType = <T extends AppAction['type']>(action: AppAction, type: T): action is Extract<AppAction, { type: T }> => action.type === type;
 

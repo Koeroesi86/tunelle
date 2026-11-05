@@ -7,7 +7,7 @@ export interface EqualizerBand {
 
 export const defaultGains = equalizerBands.map(() => 0);
 
-export interface EqualizerPreset {
+interface EqualizerPreset {
   id: string;
   gains: number[];
 }
