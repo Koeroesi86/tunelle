@@ -1,8 +1,8 @@
 name: Rebase auto-merge
 
-# master requires up to date branches, so every merge leaves the other pull requests with auto-merge behind. This rebases one of them at a time, the one
-# whose auto-merge was enabled first (scripts/release/rebase-auto-merge.js), and runs again when master moves, when auto-merge is switched on or off and when the
-# checks of a pull request end, so a failed one does not hold the others.
+# master requires up to date branches, so every merge leaves the other pull requests with auto-merge behind. This rebases one of them at a time, the first
+# one that is behind in the order auto-merge was enabled (scripts/release/rebase-auto-merge.js), and runs again when master moves, when auto-merge is switched on
+# or off and when the checks of a pull request end.
 on:
   push:
     branches: [master]

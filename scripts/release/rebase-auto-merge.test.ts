@@ -1,36 +1,23 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRequest, pickNext, run } from './rebase-auto-merge.js';
+import { createRequest, queue, run } from './rebase-auto-merge.js';
 
-const pullRequest = (number: number, enabledAt?: string, { mergeable = 'MERGEABLE', state }: { mergeable?: string; state?: string } = {}) => ({
+const pullRequest = (number: number, enabledAt?: string, { mergeable = 'MERGEABLE' }: { mergeable?: string } = {}) => ({
   number,
   mergeable,
   autoMergeRequest: enabledAt ? { enabledAt } : null,
-  commits: { nodes: [{ commit: { statusCheckRollup: state ? { state } : null } }] },
 });
 
-describe('pickNext', () => {
-  it('takes the pull request whose auto-merge was enabled first, not the oldest one', () => {
+describe('queue', () => {
+  it('orders by when the auto-merge was enabled, not by the number', () => {
     const pullRequests = [pullRequest(1, '2026-11-02T10:00:00Z'), pullRequest(2, '2026-11-02T08:00:00Z'), pullRequest(3, '2026-11-02T09:00:00Z')];
 
-    expect(pickNext(pullRequests).number).toBe(2);
+    expect(queue(pullRequests).map((item: { number: number }) => item.number)).toEqual([2, 3, 1]);
   });
 
-  it('ignores pull requests without auto-merge', () => {
-    expect(pickNext([pullRequest(1), pullRequest(2, '2026-11-02T08:00:00Z')]).number).toBe(2);
-  });
+  it('ignores pull requests without auto-merge and the ones with a conflict, not the state of their checks', () => {
+    const pullRequests = [pullRequest(1), pullRequest(2, '2026-11-02T08:00:00Z', { mergeable: 'CONFLICTING' }), pullRequest(3, '2026-11-02T09:00:00Z')];
 
-  it('does not wait for a pull request with a failed check or a conflict', () => {
-    const pullRequests = [
-      pullRequest(1, '2026-11-02T08:00:00Z', { state: 'FAILURE' }),
-      pullRequest(2, '2026-11-02T08:30:00Z', { mergeable: 'CONFLICTING' }),
-      pullRequest(3, '2026-11-02T09:00:00Z', { state: 'PENDING' }),
-    ];
-
-    expect(pickNext(pullRequests).number).toBe(3);
-  });
-
-  it('has nothing to take without a pull request with auto-merge', () => {
-    expect(pickNext([pullRequest(1)])).toBeUndefined();
+    expect(queue(pullRequests).map((item: { number: number }) => item.number)).toEqual([3]);
   });
 });
 
@@ -50,7 +37,18 @@ describe('run', () => {
     });
   });
 
-  it('leaves a pull request that is up to date to its checks', async () => {
+  it('leaves a pull request that is up to date and takes the next one that is behind', async () => {
+    const second = { ...pullRequest(8, '2026-11-02T09:00:00Z'), headRefOid: 'def' };
+    const request = vi.fn(async (path: string) =>
+      path === '/graphql' ? { data: { repository: { pullRequests: { nodes: [waiting, second] } } } } : { behind_by: path.endsWith('abc') ? 0 : 2 }
+    );
+
+    await run(request, 'owner/name', 'master');
+
+    expect(request).toHaveBeenLastCalledWith('/repos/owner/name/pulls/8/update-branch', expect.anything());
+  });
+
+  it('does nothing when every pull request is up to date', async () => {
     const request = createFake();
 
     await run(request, 'owner/name', 'master');

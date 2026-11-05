@@ -9,22 +9,16 @@ const query = `query ($owner: String!, $name: String!, $base: String!) {
         headRefOid
         mergeable
         autoMergeRequest { enabledAt }
-        commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
       }
     }
   }
 }`
 
-// a conflict or a failed check needs a push of its author: it must not hold the ones behind it
-const isWaiting = (pullRequest) =>
-  pullRequest.mergeable !== 'CONFLICTING' && !['FAILURE', 'ERROR'].includes(pullRequest.commits.nodes[0]?.commit.statusCheckRollup?.state)
-
-const pickNext = (pullRequests) =>
+// the checks are not looked at, as a cancelled check that is not required fails the rollup: a conflict needs a push of its author and must not hold the ones behind it
+const queue = (pullRequests) =>
   pullRequests
-    .filter((pullRequest) => pullRequest.autoMergeRequest)
-    .filter(isWaiting)
+    .filter((pullRequest) => pullRequest.autoMergeRequest && pullRequest.mergeable !== 'CONFLICTING')
     .sort((a, b) => a.autoMergeRequest.enabledAt.localeCompare(b.autoMergeRequest.enabledAt))
-    .at(0)
 
 const createRequest = (token) => async (path, options) => {
   if (!token) throw new Error('GH_TOKEN is not set')
@@ -41,17 +35,19 @@ const run = async (request, repository, base) => {
   const { data, errors } = await request('/graphql', { method: 'POST', body: JSON.stringify({ query, variables: { owner, name, base } }) })
   if (errors) throw new Error(`GraphQL: ${JSON.stringify(errors)}`)
 
-  const next = pickNext(data.repository.pullRequests.nodes)
-  if (!next) return console.log('No pull request with auto-merge is waiting')
-
-  const { behind_by: behindBy } = await request(`/repos/${repository}/compare/${base}...${next.headRefOid}`)
-  if (behindBy === 0) return console.log(`#${next.number} is up to date, waiting for its checks`)
-
-  await request(`/repos/${repository}/pulls/${next.number}/update-branch`, {
-    method: 'PUT',
-    body: JSON.stringify({ expected_head_sha: next.headRefOid, update_method: 'rebase' })
-  })
-  console.log(`Rebased #${next.number}, ${behindBy} commits behind ${base}`)
+  for (const next of queue(data.repository.pullRequests.nodes)) {
+    const { behind_by: behindBy } = await request(`/repos/${repository}/compare/${base}...${next.headRefOid}`)
+    if (behindBy === 0) {
+      console.log(`#${next.number} is up to date, looking at the next one`)
+      continue
+    }
+    await request(`/repos/${repository}/pulls/${next.number}/update-branch`, {
+      method: 'PUT',
+      body: JSON.stringify({ expected_head_sha: next.headRefOid, update_method: 'rebase' })
+    })
+    return console.log(`Rebased #${next.number}, ${behindBy} commits behind ${base}`)
+  }
+  console.log('No pull request with auto-merge is behind')
 }
 
 if (require.main === module) {
@@ -61,4 +57,4 @@ if (require.main === module) {
   })
 }
 
-module.exports = { createRequest, pickNext, run }
+module.exports = { createRequest, queue, run }
