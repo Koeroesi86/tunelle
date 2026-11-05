@@ -1,7 +1,7 @@
 const { spawnSync } = require('child_process')
 const { existsSync, rmSync } = require('fs')
 const { basename, join } = require('path')
-const cache = require('../../config/cache')
+const cache = require('./config/cache')
 const { rewriteFolder } = require('./alias-paths')
 
 // usage: node scripts/tooling/tsc.js <tsconfig> [outDir]

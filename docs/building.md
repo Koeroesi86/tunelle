@@ -18,7 +18,7 @@
 
 ## The `@shared` import alias
 
-Code in `shared/` (used by `electron/` and `client/`) is imported as `@shared/utils/wait`, not with `../../shared/...`. It is set in four places: `paths` in `tsconfig.json`, `resolve.alias` in `config/webpack.config.base.js`, `alias` in `vitest.config.ts`, and, because `tsc` leaves the alias in the compiled files of the main process and node can not resolve it, `scripts/tooling/alias-paths.js`, which `scripts/tooling/tsc.js` runs over `out/` after every emit and which turns `@shared/x` into a relative path. A new alias needs the same four places.
+Code in `shared/` (used by `electron/` and `client/`) is imported as `@shared/utils/wait`, not with `../../shared/...`. It is set in four places: `paths` in `tsconfig.json`, `resolve.alias` in `scripts/tooling/config/webpack.config.base.js`, `alias` in `vitest.config.ts`, and, because `tsc` leaves the alias in the compiled files of the main process and node can not resolve it, `scripts/tooling/alias-paths.js`, which `scripts/tooling/tsc.js` runs over `out/` after every emit and which turns `@shared/x` into a relative path. A new alias needs the same four places.
 
 ## Scripts in TypeScript
 

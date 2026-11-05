@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'fs/promises';
 import { resolve } from 'path';
 
 // the preference is read before the splash, and the library, where the settings live, opens after it
-const getFile = (folder: string) => resolve(folder, '../update-preference.json');
+const getFile = (folder: string) => resolve(folder, './update-preference.json');
 
 const isOff = (value: unknown) => typeof value === 'object' && value !== null && 'automatic' in value && value.automatic === false;
 

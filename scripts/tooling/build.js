@@ -1,5 +1,5 @@
 const webpack = require('webpack')
-const webpackConfig = require('../../config/webpack.config.prod')
+const webpackConfig = require('./config/webpack.config.prod')
 
 process.env.NODE_ENV = 'production'
 

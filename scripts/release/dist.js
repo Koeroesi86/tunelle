@@ -2,7 +2,7 @@ const { join, relative, resolve } = require('path')
 const os = require('os')
 const rimraf = require('rimraf')
 const fs = require('fs')
-const cache = require('../../config/cache')
+const cache = require('../tooling/config/cache')
 const { buildsAppImage, linuxBuilds } = require('./dist-layout')
 const { embedUpdateInformation, updateInformation } = require('./appimage-update-info')
 

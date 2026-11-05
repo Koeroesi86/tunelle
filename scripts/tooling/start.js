@@ -12,8 +12,8 @@ process.on('unhandledRejection', err => {
 
 const webpack = require('webpack')
 const WebpackDevServer = require('webpack-dev-server')
-const config = require('../../config/webpack.config.dev')
-const createDevServerConfig = require('../../config/devServer.config')
+const config = require('./config/webpack.config.dev')
+const createDevServerConfig = require('./config/devServer.config')
 
 const port = parseInt(process.env.PORT, 10) || 3000
 const host = process.env.HOST || '0.0.0.0'

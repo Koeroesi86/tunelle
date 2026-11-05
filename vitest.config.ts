@@ -16,7 +16,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['electron/**/*.ts', 'shared/**/*.ts', 'client/**/*.{ts,tsx}', 'scripts/**/*.{js,ts}', 'index.ts'],
-      exclude: ['**/*.test.{ts,tsx}', 'client/test/**', 'electron/test-database.ts', 'electron/test-utility-process.ts'],
+      exclude: ['**/*.test.{ts,tsx}', 'client/test/**', 'scripts/tooling/config/**', 'electron/test-database.ts', 'electron/test-utility-process.ts'],
       // just below the current coverage, so it can not drop; raise them as tests are added
       thresholds: { statements: 77, branches: 81, functions: 75, lines: 79 },
       reporter: ['text-summary', 'json-summary', 'lcov'],

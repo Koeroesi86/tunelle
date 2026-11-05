@@ -27,7 +27,7 @@ module.exports = function (host, port) {
       const electronApp = spawn(
         'electron',
         [
-          resolve(__dirname, '../out/index.js'),
+          resolve(__dirname, '../../../out/index.js'),
           ...sandboxArgs,
           `--webpackPort=${port}`
         ],
@@ -35,7 +35,7 @@ module.exports = function (host, port) {
           shell: true,
           env,
           stdio: 'inherit',
-          cwd: resolve(__dirname, '../')
+          cwd: resolve(__dirname, '../../../')
         }
       )
       electronApp.on('close', code => process.exit(code))

@@ -22,7 +22,7 @@ const createConfig = ({ name, entry, target, resolveFallback, plugins }) => ({
   output: {
     pathinfo: true,
     libraryTarget: 'umd',
-    path: path.resolve(__dirname, '../build'),
+    path: path.resolve(__dirname, '../../../build'),
     publicPath: './',
     globalObject: 'this',
     filename: '[name].js'
@@ -85,27 +85,9 @@ const createConfig = ({ name, entry, target, resolveFallback, plugins }) => ({
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
-    alias: { '@shared': path.resolve(__dirname, '../shared') },
+    alias: { '@shared': path.resolve(__dirname, '../../../shared') },
     fallback: resolveFallback
   },
-  // optimization: {
-  //   splitChunks: {
-  //     cacheGroups: {
-  //       clientStyles: {
-  //         name: 'clientStyle',
-  //         test: (m, c, entry = 'client') => m.constructor.name === 'CssModule' && recursiveIssuer(m) === entry,
-  //         chunks: 'all',
-  //         enforce: true
-  //       },
-  //       htmlGeneratorStyles: {
-  //         name: 'htmlGeneratorStyle',
-  //         test: (m, c, entry = 'htmlGenerator') => m.constructor.name === 'CssModule' && recursiveIssuer(m) === entry,
-  //         chunks: 'all',
-  //         enforce: true
-  //       }
-  //     }
-  //   }
-  // },
   plugins
 })
 
@@ -113,14 +95,14 @@ const createConfig = ({ name, entry, target, resolveFallback, plugins }) => ({
 const config = [
   createConfig({
     name: 'client',
-    entry: path.resolve(__dirname, '../client/app.tsx'),
+    entry: path.resolve(__dirname, '../../../client/app.tsx'),
     target: 'web',
     resolveFallback: { path: require.resolve('path-browserify') },
     plugins: []
   }),
   createConfig({
     name: 'htmlGenerator',
-    entry: path.resolve(__dirname, '../client/htmlGenerator.tsx'),
+    entry: path.resolve(__dirname, '../../../client/htmlGenerator.tsx'),
     target: 'node',
     plugins: [
       new StaticSitePlugin({

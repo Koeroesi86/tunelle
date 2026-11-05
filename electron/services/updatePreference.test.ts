@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'fs';
+import { existsSync, mkdtempSync, writeFileSync } from 'fs';
 import { rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -27,6 +27,12 @@ describe('the preference for automatic updates', () => {
 
     await saveAutomaticUpdates(folder, true);
     expect(readAutomaticUpdates(folder)).toBe(true);
+  });
+
+  it('keeps the file inside the folder it was given', async () => {
+    await saveAutomaticUpdates(folder, false);
+
+    expect(existsSync(join(folder, 'update-preference.json'))).toBe(true);
   });
 
   it('creates the folder when it is missing', async () => {

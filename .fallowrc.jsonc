@@ -20,7 +20,7 @@
     "e2e/**/*.perf.ts"
   ],
   "ignoreDependencies": [
-    // webpack loaders, referenced by name in config/webpack.config.base.js
+    // webpack loaders, referenced by name in scripts/tooling/config/webpack.config.base.js
     "esbuild-loader",
     "css-loader",
     "sass-loader",
