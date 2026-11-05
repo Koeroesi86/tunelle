@@ -46,8 +46,16 @@ export const trackColumns = [
   'albumPeak',
 ] as const satisfies readonly (keyof Track)[];
 
+const loudnessColumns = ['trackGain', 'albumGain', 'trackPeak', 'albumPeak'];
+
+const isLoudnessColumn = (column: string) => loudnessColumns.includes(column);
+
+/** A loudness column of a track: its tags first, else what was measured, while the measurement is of the file as it is. See docs/app/loudness-measurement.md */
+const effectiveLoudness = (column: string) =>
+  `COALESCE(library.${column}, (SELECT track_loudness.${column} FROM track_loudness WHERE track_loudness.path = library.path AND track_loudness.fileModified = library.fileModified AND track_loudness.fileSize = library.fileSize)) AS ${column}`;
+
 /** The columns of a query as a list; the names come from the keys of a type, never from the incoming text */
-const columnList = (columns: readonly string[]) => columns.join(', ');
+const columnList = (columns: readonly string[]) => columns.map((column) => (isLoudnessColumn(column) ? effectiveLoudness(column) : column)).join(', ');
 
 /** The folders in the order of their paths, with the columns asked for */
 export const getFolders = <K extends keyof Folder>(database: Database, columns: readonly K[]) =>
@@ -79,7 +87,7 @@ export const deleteFolders = (database: Database, folders: Pick<Folder, 'path'>[
 /** The format and the loudness the library holds of a track, undefined for a track it does not have */
 export const findTrackFormat = (database: Database, trackPath: string) =>
   executeQuery<AudioFormat & Loudness>(database, {
-    query: `SELECT codec, bitDepth, sampleRate, bitrate, vbr, lossless, trackGain, albumGain, trackPeak, albumPeak FROM library WHERE path = ?`,
+    query: `SELECT codec, bitDepth, sampleRate, bitrate, vbr, lossless, ${columnList(loudnessColumns)} FROM library WHERE path = ?`,
     variables: [trackPath],
   }).then(([format]) => format);
 
@@ -93,10 +101,10 @@ const insidePatterns = (folderPath: string) => {
 const insideCondition = (patterns: string[]) => patterns.map(() => `path LIKE ? ESCAPE '!'`).join(' OR ');
 
 export const deleteTracksInside = (database: Database, folderPath: string) =>
-  executeQuery(database, {
-    query: `DELETE FROM library WHERE ${insideCondition(insidePatterns(folderPath))}`,
-    variables: insidePatterns(folderPath),
-  });
+  executeQueries(database, [
+    { query: `DELETE FROM track_loudness WHERE ${insideCondition(insidePatterns(folderPath))}`, variables: insidePatterns(folderPath) },
+    { query: `DELETE FROM library WHERE ${insideCondition(insidePatterns(folderPath))}`, variables: insidePatterns(folderPath) },
+  ]);
 
 /** The tracks below a folder, with the columns asked for */
 export const getTracksInside = <K extends keyof Track>(database: Database, folderPath: string, columns: readonly K[]) =>
@@ -210,7 +218,8 @@ export const getTrackPage = (database: Database, offset: number, limit: number, 
 
   return Promise.all([
     executeQuery<Track>(database, {
-      query: `SELECT ${columnList(trackColumns)} FROM library ${filter.where} ORDER BY ${toOrderBy(trackOrders, query.sort, 'path')} LIMIT ? OFFSET ?`,
+      // the page is cut first, so what was measured is looked up for the tracks of the page and not for the ones before it
+      query: `SELECT ${columnList(trackColumns)} FROM (SELECT * FROM library ${filter.where} ORDER BY ${toOrderBy(trackOrders, query.sort, 'path')} LIMIT ? OFFSET ?) AS library ORDER BY ${toOrderBy(trackOrders, query.sort, 'path')}`,
       variables: [...filter.variables, limit, offset],
     }),
     countTotal(database, `SELECT COUNT(*) AS total FROM library ${filter.where}`, filter.variables),
@@ -376,5 +385,8 @@ export const findTrackPath = (database: Database, trackPath: string) =>
 export const deleteTracks = (database: Database, tracks: Pick<Track, 'path'>[]) =>
   executeQueries(
     database,
-    tracks.map((track) => ({ query: `DELETE FROM library WHERE path = ?`, variables: [track.path] }))
+    tracks.flatMap((track) => [
+      { query: `DELETE FROM track_loudness WHERE path = ?`, variables: [track.path] },
+      { query: `DELETE FROM library WHERE path = ?`, variables: [track.path] },
+    ])
   );
