@@ -347,15 +347,30 @@ const createQueryWatcher = (store: Store) => {
   };
 };
 
+/** The main process waits to measure the loudness of the library while a track plays, so it is told when the player starts and stops (it starts as stopped) */
+const createPlaybackWatcher = (store: Store) => {
+  let playing = false;
+
+  return () => {
+    const next = store.getState().uiState.isPlaying;
+    if (next === playing) return;
+
+    playing = next;
+    electronAPI.send('PLAYBACK_STATE', { isPlaying: next });
+  };
+};
+
 const middleware: Middleware<object, RootState> = (store) => {
   if (window) start(store);
 
   const handle = handleActions(store);
   const watchQueries = createQueryWatcher(store);
+  const watchPlayback = createPlaybackWatcher(store);
 
   return (next) => (action) => {
     const result = handle(next)(action);
     watchQueries();
+    watchPlayback();
     return result;
   };
 };

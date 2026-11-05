@@ -1,9 +1,7 @@
 import type { LoudnessAnalysis } from '@shared/types/loudness';
+import { analysisVersion } from '@shared/constants/loudness';
 import type { BlockStats } from './block-energies';
 import { measurementRate } from './k-weighting';
-
-/** The version of the algorithm and of the shape of the analysis; a change of either raises it, and the tracks measured with an older one are measured again */
-export const analysisVersion = 1;
 
 /** The level a track is played at, the reference level of ReplayGain 2 */
 export const targetLufs = -18;
