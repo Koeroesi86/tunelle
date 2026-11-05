@@ -46,17 +46,25 @@ describe('mapAsync', () => {
     expect(most()).toBe(2);
   });
 
-  it('starts the next task when one finishes, not when the whole round does', async () => {
-    const started: number[] = [];
-    const slowFirst = async (item: number) => {
-      started.push(item);
-      if (item === 1) await new Promise((resolve) => setTimeout(resolve, 20));
-      return item;
+  it('starts a round only when the one before it has finished', async () => {
+    const events: string[] = [];
+    const task = async (item: number) => {
+      events.push(`start ${item}`);
+      await new Promise((resolve) => setTimeout(resolve, item === 1 ? 20 : 1));
+      events.push(`end ${item}`);
     };
 
-    await mapAsync([1, 2, 3, 4], slowFirst, { concurrency: 2 });
+    await mapAsync([1, 2, 3], task, { concurrency: 2 });
 
-    expect(started).toEqual([1, 2, 3, 4]);
+    expect(events).toEqual(['start 1', 'start 2', 'end 2', 'end 1', 'start 3', 'end 3']);
+  });
+
+  it('treats a concurrency below 1 as 1', async () => {
+    const { task, most } = track();
+
+    await mapAsync([1, 2, 3], task, { concurrency: 0 });
+
+    expect(most()).toBe(1);
   });
 
   it('gives the task the index of the item', async () => {

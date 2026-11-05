@@ -3,31 +3,18 @@ interface MapAsyncOptions {
   concurrency?: number;
 }
 
-/** Maps the items with an async task, the results in the order of the items; after the first failure no task is started, and it is the error that is thrown */
+/** Maps the items with an async task, a round of `concurrency` items after the other, the results in the order of the items; after a failure no round is started, and it is the error that is thrown */
 export const mapAsync = async <T, R>(
   items: readonly T[],
   task: (item: T, index: number) => Promise<R>,
   { concurrency = 1 }: MapAsyncOptions = {}
 ): Promise<R[]> => {
-  const results = new Array<R>(items.length);
-  let next = 0;
-  let failed = false;
+  const size = Math.max(1, concurrency);
+  const results: R[] = [];
 
-  const stop = (error: unknown): never => {
-    failed = true;
-    throw error;
-  };
-
-  const work = async () => {
-    for (let index = next++; index < items.length && !failed; index = next++) {
-      results[index] = await task(items[index], index).catch(stop);
-    }
-  };
-
-  const workers: Promise<void>[] = [];
-  for (let worker = 0; worker < Math.max(1, Math.min(concurrency, items.length)); worker++) workers.push(work());
-
-  await Promise.all(workers);
+  for (let start = 0; start < items.length; start += size) {
+    results.push(...(await Promise.all(items.slice(start, start + size).map((item, offset) => task(item, start + offset)))));
+  }
 
   return results;
 };
