@@ -15,7 +15,15 @@ export default defineConfig({
     unstubEnvs: true,
     coverage: {
       provider: 'v8',
-      include: ['electron/**/*.ts', 'shared/**/*.ts', 'locales/**/*.ts', 'client/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}', 'scripts/**/*.js', 'index.ts'],
+      include: [
+        'electron/**/*.ts',
+        'shared/**/*.ts',
+        'locales/**/*.ts',
+        'client/**/*.{ts,tsx}',
+        'components/**/*.{ts,tsx}',
+        'scripts/**/*.{js,ts}',
+        'index.ts',
+      ],
       exclude: ['**/*.test.{ts,tsx}', 'electron/test-database.ts', 'electron/test-utility-process.ts'],
       // just below the current coverage, so it can not drop; raise them as tests are added
       thresholds: { statements: 77, branches: 81, functions: 75, lines: 79 },
@@ -28,7 +36,7 @@ export default defineConfig({
           name: 'backend',
           environment: 'node',
           setupFiles: ['electron/test-utility-process.ts'],
-          include: ['electron/**/*.test.ts', 'shared/**/*.test.ts', 'locales/**/*.test.ts', 'scripts/**/*.test.js'],
+          include: ['electron/**/*.test.ts', 'shared/**/*.test.ts', 'locales/**/*.test.ts', 'scripts/**/*.test.ts'],
         },
       },
       {

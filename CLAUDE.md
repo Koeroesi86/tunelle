@@ -18,7 +18,7 @@ Pull requests also run `fallow audit --base`, CodeQL, dependency review and OSV 
 
 Releases come from `release.yml` (Monday and Thursday 06:00 UTC and by hand, from `master` only) and the published release is what installed apps update from. Never edit `version` of `package.json` by hand (`scripts/version.js` stamps `YY.M.<run number>` in the release workflow; no zero padded month and no prerelease part, electron-updater would take it for a channel), and `release.yml` must not be renamed or recreated (its run number would restart). A release goes to the Microsoft Store through `store.yml`, whose secrets are in the environment `microsoft-store` (limited to `master`, with no reviewer: an automatic run starts by itself). Read [docs/releases.md](docs/releases.md) and [docs/microsoft-store.md](docs/microsoft-store.md) before working on either. The `TUNELLE_` variables that the smoke and end to end tests set are in [docs/building.md](docs/building.md).
 
-`node scripts/verify.js` runs 1, 2, 3, 4, 6 and the build of 7 in order and prints only the end of the failed check. A SessionStart hook puts Node 24 of nvm on `PATH` for Claude.
+`npx tsx scripts/verify.ts` runs 1, 2, 3, 4, 6 and the build of 7 in order and prints only the end of the failed check. A SessionStart hook puts Node 24 of nvm on `PATH` for Claude.
 
 ## Guards
 

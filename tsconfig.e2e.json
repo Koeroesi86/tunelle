@@ -1,5 +1,24 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "allowJs": true, "checkJs": false, "types": ["node"] },
-  "include": ["shared/types", "e2e", "playwright.config.ts", "scripts/screenshot-media.js", "scripts/screenshot-fixtures.js"]
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "ES2024",
+      "DOM",
+      "DOM.Iterable"
+    ]
+  },
+  "include": [
+    "shared/types",
+    "e2e",
+    "playwright.config.ts",
+    "scripts/screenshot-media.ts",
+    "scripts/screenshot-fixtures.ts",
+    "scripts/screenshot-media.ts",
+    "scripts/screenshot-fixtures.ts"
+  ]
 }
