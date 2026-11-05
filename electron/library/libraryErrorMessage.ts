@@ -1,5 +1,5 @@
 import { errorMessage } from '@shared/utils/error-message';
-import type { Translator } from '../../locales/translate';
+import type { Translator } from '@shared/locales/translate';
 import { NewerLibraryError } from '../database/migrate';
 
 /** What to tell the user when the library could not be opened */

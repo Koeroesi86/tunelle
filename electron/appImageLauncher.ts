@@ -1,7 +1,7 @@
 import { execFile } from 'child_process';
 import { copyFile, mkdir, readdir, readFile, readlink, rename, rm, rmdir, stat, symlink, utimes, writeFile } from 'fs/promises';
 import { join, posix } from 'path';
-import { catalog } from '../locales';
+import { catalog } from '@shared/locales';
 
 const launcherName = 'tunelle';
 // the name of the entry that the app installed as eMusic: an update renames the app, so the entry of the old name is carried over to the new one

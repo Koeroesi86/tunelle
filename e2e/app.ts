@@ -131,11 +131,11 @@ interface LaunchOptions {
   measureStart?: boolean;
 }
 
-/** The language of the app in the run: English, or another file of locales/ with SCREENSHOTS_LANG=hu (the pictures of the Store listing) */
+/** The language of the app in the run: English, or another file of shared/locales/ with SCREENSHOTS_LANG=hu (the pictures of the Store listing) */
 const language = process.env.SCREENSHOTS_LANG ?? 'en';
 const locale = language === 'en' ? 'en_US' : `${language}_${language.toUpperCase()}`;
 
-const messages = (tag: string): Record<string, string> => JSON.parse(readFileSync(join(root, 'locales', `${tag}.json`), 'utf8'));
+const messages = (tag: string): Record<string, string> => JSON.parse(readFileSync(join(root, 'shared', 'locales', `${tag}.json`), 'utf8'));
 
 /** The text of the app in the language of the run, from its English text: a text with a number ("20 tracks") is found by its {count} message */
 export const ui = (english: string) => {

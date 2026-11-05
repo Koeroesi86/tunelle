@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const { build, license, homepage } = JSON.parse(read('package.json'));
-const en = JSON.parse(read('locales/en.json'));
-const hu = JSON.parse(read('locales/hu.json'));
+const en = JSON.parse(read('shared/locales/en.json'));
+const hu = JSON.parse(read('shared/locales/hu.json'));
 const metainfo = read(`flatpak/${build.appId}.metainfo.xml`);
 const desktop = read(`flatpak/${build.appId}.desktop`);
 const desktopValue = (key: string) =>

@@ -1,6 +1,6 @@
 import { app } from 'electron';
-import { getTranslator } from '../locales';
-import type { Translator } from '../locales/translate';
+import { getTranslator } from '@shared/locales';
+import type { Translator } from '@shared/locales/translate';
 
 let picked: string | undefined;
 const listeners = new Set<() => void>();

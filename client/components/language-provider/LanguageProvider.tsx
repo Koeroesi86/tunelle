@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { TranslationContext } from '../../i18n';
-import { getTranslator } from '../../../locales';
+import { getTranslator } from '@shared/locales';
 
 interface LanguageProviderProps {
   /** The language picked in the settings, undefined follows the system */

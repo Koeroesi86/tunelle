@@ -1,5 +1,5 @@
 import { useTranslation } from '../../i18n';
-import { getLanguageName, supportedLanguages } from '../../../locales';
+import { getLanguageName, supportedLanguages } from '@shared/locales';
 import style from './LanguageSelect.scss';
 
 interface LanguageSelectProps {

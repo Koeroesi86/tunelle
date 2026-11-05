@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import style from './Equalizer.scss';
 import { useTranslation } from '../../i18n';
-import type { MessageKey } from '../../../locales/translate';
+import type { MessageKey } from '@shared/locales/translate';
 import Slider from '../slider/Slider';
 import EqualizerCurve from './EqualizerCurve';
 import { useLatest } from '../../hooks/use-latest';

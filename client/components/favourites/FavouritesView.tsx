@@ -8,7 +8,7 @@ import { toRadioTrack } from '../../utils/radio-track';
 import { getFavouriteTracks } from '../../utils/favourite-tracks';
 import { shuffled } from '../../utils/shuffled';
 import { useTranslation } from '../../i18n';
-import type { MessageKey, Translator } from '../../../locales/translate';
+import type { MessageKey, Translator } from '@shared/locales/translate';
 import style from './FavouritesView.scss';
 import AudioFormatBadge from '../audio-format-badge';
 import FavouriteButton from '../favourite-button';

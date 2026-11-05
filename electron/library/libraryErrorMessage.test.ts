@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getTranslator } from '../../locales';
+import { getTranslator } from '@shared/locales';
 import { libraryErrorMessage } from './libraryErrorMessage';
 import { NewerLibraryError } from '../database/migrate';
 
