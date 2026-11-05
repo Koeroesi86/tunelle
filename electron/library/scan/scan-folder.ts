@@ -8,7 +8,7 @@ import { addTracks, readBatchSize } from './add-tracks';
 import { storeAlbumArtAccents } from '../art/album-art-accents';
 import { createTrackReader, ReadTimeoutError } from '../reading/track-reader';
 import { getTracksInside } from '../../repositories/library-repository';
-import isSupported from '../../utils/is-supported';
+import isSupported, { isSupportedCodec } from '../../utils/is-supported';
 import normalizePath from '../../utils/normalize-path';
 import { quitSignal, trackScan } from './scan-cancellation';
 import { mapAsync } from '@shared/utils/map-async';
@@ -112,6 +112,8 @@ const scanFiles = async (folderPath: string, sender: WebContents, deep: boolean,
     const meta = await reader.read(fileName, global._appDataPath, timeout);
     // a folder removed while the file was read must not get the track back
     signal.throwIfAborted();
+    // a file with a codec that does not play stays out of the library, and is read again by the next scan of its folder
+    if (!isSupportedCodec(meta.codec)) return;
     await writer.add({ ...meta, ...stat });
   };
 

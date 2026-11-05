@@ -5,4 +5,7 @@ const supportedFormats = ['flac', 'm4a', 'm4b', 'm4p', 'm4v', 'm4r', '3gp', 'mp4
 
 const isSupported = (filePath: string) => supportedFormats.includes(path.extname(filePath).replace('.', ''));
 
+/** ALAC is stored in an .m4a file, which plays, but Chromium does not decode the codec */
+export const isSupportedCodec = (codec: string | null | undefined) => codec !== 'ALAC';
+
 export default isSupported;

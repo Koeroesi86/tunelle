@@ -7,8 +7,8 @@ These are the formats that Chromium plays in an `<audio>` element and decodes wi
 Formats that were in the list and are not played, checked in Electron 44 with generated files and with files of a real library:
 
 - `ape`, `wma`, `asf`, `wmv`, `aif`, `aiff`, `aifc`, `mp2`, `m2a`, `wv` and `wvp`: `<audio>` fails with `MEDIA_ERR_SRC_NOT_SUPPORTED`, `decodeAudioData` with `EncodingError`.
-- ALAC in an `.m4a` file has a supported extension but not a supported codec: it is scanned, and it does not play. It is told apart by the `codec` of the track, not by the extension.
+- ALAC in an `.m4a` file has a supported extension but not a supported codec. It is told apart by the `codec` read from the file (`isSupportedCodec`), so the scan does not store it, and a rescan removes one that an earlier version stored. A folder with ALAC files is read again by each scan of that folder, as nothing is stored to tell that the file is unchanged.
 
-A track of a format that left the list is removed from the library by the next rescan (`removeMissingTracks` in `electron/library/scan/rescan-library.ts`), together with the tracks whose file is gone. The file itself is not touched.
+A track of a format or codec that left the list is removed from the library by the next rescan (`removeMissingTracks` in `electron/library/scan/rescan-library.ts`), together with the tracks whose file is gone. The file itself is not touched.
 
 Before a format is added, test it with `<audio>` and `decodeAudioData` in the app, not with `canPlayType`, which answers an empty string for formats that play.
