@@ -4,7 +4,10 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   oxc: { jsx: { runtime: 'automatic' } },
   resolve: {
-    alias: [{ find: /^.+\.scss$/, replacement: path.resolve(__dirname, 'test-utils-style-stub.ts') }],
+    alias: [
+      { find: /^@shared\//, replacement: `${path.resolve(__dirname, 'shared')}/` },
+      { find: /^.+\.scss$/, replacement: path.resolve(__dirname, 'test-utils-style-stub.ts') },
+    ],
   },
   test: {
     restoreMocks: true,

@@ -1,5 +1,5 @@
-import { pickAccent } from '../shared/utils/pick-accent';
-import { sampleSize } from '../shared/constants/accent';
+import { pickAccent } from '@shared/utils/pick-accent';
+import { sampleSize } from '@shared/constants/accent';
 
 const accents = new Map<string, Promise<string | undefined>>();
 

@@ -13,7 +13,7 @@ import {
   renamePlaylist,
 } from '../repositories/playlistRepository';
 import { findTrackFormat } from '../repositories/libraryRepository';
-import { isRecord } from '../../shared/utils/is-record';
+import { isRecord } from '@shared/utils/is-record';
 
 const maxNameLength = 200;
 

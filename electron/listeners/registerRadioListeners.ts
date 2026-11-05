@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { errorMessage } from '../../shared/utils/error-message';
+import { errorMessage } from '@shared/utils/error-message';
 import type { ListenerContext } from './listenerContext';
 import { toRadioQuery } from '../services/radioBrowser';
 

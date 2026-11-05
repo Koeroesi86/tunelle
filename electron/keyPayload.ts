@@ -1,4 +1,4 @@
-import { isRecord } from '../shared/utils/is-record';
+import { isRecord } from '@shared/utils/is-record';
 
 const maxFieldLength = 2000;
 

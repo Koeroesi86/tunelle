@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { accessSync, constants, existsSync } from 'fs';
 import { dirname, join } from 'path';
-import { wait } from '../../shared/utils/wait';
+import { wait } from '@shared/utils/wait';
 import { getTranslator } from '../../locales';
 import type { Translate } from '../../locales/translate';
 import type { UpdateUnavailableReason } from '../../types/update';

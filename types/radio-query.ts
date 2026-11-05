@@ -1,5 +1,5 @@
 import type { RadioQuery } from './radio';
-import { isRecord } from '../shared/utils/is-record';
+import { isRecord } from '@shared/utils/is-record';
 
 const maxQueryLength = 100;
 const maxOffset = 10000;

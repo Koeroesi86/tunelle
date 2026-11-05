@@ -1,7 +1,7 @@
 import type { AlbumSummary, Album, Track } from '../types/library';
 import type { Playlist } from '../types/playlists';
 import { fetchAlbum } from './services/library-api';
-import { isRecord } from '../shared/utils/is-record';
+import { isRecord } from '@shared/utils/is-record';
 
 /** What the player shows of a track of a playlist, the rest of a snapshot is not needed */
 const isTrack = (value: unknown): value is Track => isRecord(value) && typeof value.path === 'string' && typeof value.title === 'string';

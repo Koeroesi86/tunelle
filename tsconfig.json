@@ -11,7 +11,8 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "paths": { "@shared/*": ["./shared/*"] }
   },
   "include": ["client", "components", "electron", "locales", "index.ts", "shared", "types"]
 }

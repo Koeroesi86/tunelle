@@ -1,10 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve4, resolve6, reverse } from 'node:dns/promises';
 import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '../../types/radio';
-import { isRecord, type JsonRecord } from '../../shared/utils/is-record';
+import { isRecord, type JsonRecord } from '@shared/utils/is-record';
 import { fetchOk } from './http';
 import { parseRadioSearch, radioSortOrders } from '../../types/radio-query';
-import { radioPageSize } from '../../shared/constants/radio';
+import { radioPageSize } from '@shared/constants/radio';
 
 const defaultDirectoryUrl = 'https://all.api.radio-browser.info';
 const directoryHost = 'all.api.radio-browser.info';

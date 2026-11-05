@@ -85,6 +85,7 @@ const createConfig = ({ name, entry, target, resolveFallback, plugins }) => ({
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
+    alias: { '@shared': path.resolve(__dirname, '../shared') },
     fallback: resolveFallback
   },
   // optimization: {

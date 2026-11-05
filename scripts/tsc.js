@@ -2,6 +2,7 @@ const { spawnSync } = require('child_process')
 const { existsSync, rmSync } = require('fs')
 const { basename, join } = require('path')
 const cache = require('../config/cache')
+const { rewriteFolder } = require('./alias-paths')
 
 // usage: node scripts/tsc.js <tsconfig> [outDir]
 const [project, outDir] = process.argv.slice(2)
@@ -17,5 +18,7 @@ const { status } = spawnSync(
   [require.resolve('typescript/bin/tsc'), '-p', project, '--incremental', '--tsBuildInfoFile', buildInfoFile],
   { stdio: 'inherit' }
 )
+
+if (status === 0 && outDir) rewriteFolder(outDir)
 
 process.exit(status === null ? 1 : status)

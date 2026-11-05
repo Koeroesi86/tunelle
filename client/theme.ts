@@ -1,6 +1,6 @@
 import type { ThemeMode, ThemeSettings } from '../types/theme';
 import { autoAccent } from './constants/theme';
-import { toHex } from '../shared/utils/to-hex';
+import { toHex } from '@shared/utils/to-hex';
 
 export type ResolvedTheme = 'light' | 'dark';
 

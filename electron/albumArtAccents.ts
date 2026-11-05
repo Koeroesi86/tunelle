@@ -1,9 +1,9 @@
 import path from 'path';
 import sharp from 'sharp';
 import type { Database } from 'sqlite3';
-import { pickAccent } from '../shared/utils/pick-accent';
+import { pickAccent } from '@shared/utils/pick-accent';
 import executeQuery from './executeQuery';
-import { sampleSize } from '../shared/constants/accent';
+import { sampleSize } from '@shared/constants/accent';
 
 /** Pictures written to the table in one statement, so a long run is saved as it goes */
 const chunkSize = 100;

@@ -3,7 +3,7 @@ import type { WebContents } from 'electron';
 import type { ListenerContext } from './listenerContext';
 import { clearHistory, getHistory, recordPlayed } from '../repositories/historyRepository';
 import { withAvailability } from '../favouriteAvailability';
-import { isRecord } from '../../shared/utils/is-record';
+import { isRecord } from '@shared/utils/is-record';
 import { toKey } from '../keyPayload';
 
 const sendHistory = async (context: ListenerContext, sender: WebContents) => {

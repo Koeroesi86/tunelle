@@ -1,4 +1,4 @@
-import { errorMessage } from '../shared/utils/error-message';
+import { errorMessage } from '@shared/utils/error-message';
 import { checkForUpdate, downloadUpdate, installUpdate } from './services/updater';
 import type { UpdateSource } from './services/updater';
 import type { UpdateState, UpdateStatus } from '../types/update';

@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
-import { isRecord } from '../../shared/utils/is-record';
-import { wait } from '../../shared/utils/wait';
+import { isRecord } from '@shared/utils/is-record';
+import { wait } from '@shared/utils/wait';
 import { fetchOk } from './http';
 
 export interface RadioArtImage {

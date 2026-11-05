@@ -2,11 +2,11 @@ import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import type { Database } from 'sqlite3';
-import { wait } from '../../shared/utils/wait';
+import { wait } from '@shared/utils/wait';
 import { fetchOk } from './http';
 import executeQuery from '../executeQuery';
 import { toSortKey } from '../sortKey';
-import { isRecord } from '../../shared/utils/is-record';
+import { isRecord } from '@shared/utils/is-record';
 
 export interface ArtistName {
   /** The name as the library compares it */

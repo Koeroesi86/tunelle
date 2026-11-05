@@ -13,7 +13,7 @@ import type { Translator } from '../../locales/translate';
 import FavouriteButton from '../favourite-button';
 import StationLogo from '../station-logo';
 import style from './RadioStations.scss';
-import { radioPageSize } from '../../shared/constants/radio';
+import { radioPageSize } from '@shared/constants/radio';
 
 interface RadioStationsProps {
   radio: RadioState;

@@ -1,4 +1,4 @@
-import { errorMessage } from '../shared/utils/error-message';
+import { errorMessage } from '@shared/utils/error-message';
 import type { Translator } from '../locales/translate';
 import { NewerLibraryError } from './migrate';
 
