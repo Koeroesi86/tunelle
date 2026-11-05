@@ -11,6 +11,7 @@ import { getLibrary } from '../../repositories/library-repository';
 import rescanLibrary from './rescan-library';
 import scanFolders from './scan-folders';
 import { createTestDatabase } from '../../test-database';
+import { backgroundQueue, scanKind } from '../tasks/background-queue';
 
 vi.mock('./scan-folders', () => ({ default: vi.fn() }));
 
@@ -67,6 +68,22 @@ describe('rescanLibrary', () => {
     await rescan();
 
     expect(await storedFolders()).toEqual([]);
+  });
+
+  it('tells the background queue that a scan is going on while it runs, also when it fails', async () => {
+    await addFolder(root, 0);
+    let during = false;
+    vi.mocked(scanFolders).mockImplementation(async () => {
+      during = backgroundQueue.isBusy(scanKind);
+      throw new Error('failed');
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    rescanLibrary(sender, false);
+    await vi.waitFor(() => expect(console.error).toHaveBeenCalled());
+
+    expect(during).toBe(true);
+    await vi.waitFor(() => expect(backgroundQueue.isBusy(scanKind)).toBe(false));
   });
 
   it('skips a folder that did not change', async () => {

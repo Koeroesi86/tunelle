@@ -1,4 +1,5 @@
 import { isInsideFolder } from '../watch/folder-availability';
+import { backgroundQueue, scanKind } from '../tasks/background-queue';
 
 const quitting = new AbortController();
 
@@ -13,12 +14,16 @@ const running = new Map<AbortController, string>();
 export const trackScan = (folderPath: string, parent: AbortSignal = quitSignal) => {
   const removal = new AbortController();
   running.set(removal, folderPath);
+  const endActivity = backgroundQueue.begin(scanKind);
 
   return {
     signal: AbortSignal.any([parent, removal.signal]),
     /** Whether the folder was taken out of the library while it was scanned, as opposed to the app quitting */
     wasRemoved: () => removal.signal.aborted && !parent.aborted,
-    release: () => running.delete(removal),
+    release: () => {
+      running.delete(removal);
+      endActivity();
+    },
   };
 };
 

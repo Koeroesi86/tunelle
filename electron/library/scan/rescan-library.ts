@@ -10,6 +10,7 @@ import { quitSignal } from './scan-cancellation';
 import { findMissingTracks } from './missing-tracks';
 import isSupported, { isSupportedCodec } from '../../utils/is-supported';
 import { folderColumns } from '../../constants/library';
+import { backgroundQueue, scanKind } from '../tasks/background-queue';
 
 const readModifiedTimes = async (folders: Folder[]) => {
   const times = await Promise.all(folders.map(async (folder) => [folder.path, await withTimeout(fs.promises.stat(folder.path), undefined)] as const));
@@ -35,6 +36,7 @@ async function rescanLibrary(sender: WebContents, forced = false) {
   const database = global._database;
   if (!database) return;
   console.log(`Scanning library ${forced ? 'completely' : 'wisely'}...`);
+  const endActivity = backgroundQueue.begin(scanKind);
 
   try {
     const all = await getFolders(database, folderColumns);
@@ -59,6 +61,8 @@ async function rescanLibrary(sender: WebContents, forced = false) {
     sender.send('RESCAN_COMPLETE', {});
   } catch (e) {
     (quitSignal.aborted ? console.log : console.error)(quitSignal.aborted ? 'Scan stopped, the app is quitting' : e);
+  } finally {
+    endActivity();
   }
 }
 
