@@ -4,8 +4,8 @@ import path from 'path';
 import type { Database } from 'sqlite3';
 import { wait } from '@shared/utils/wait';
 import { fetchOk } from './http';
-import executeQuery from '../executeQuery';
-import { toSortKey } from '../sortKey';
+import executeQuery from '../database/executeQuery';
+import { toSortKey } from '../database/sortKey';
 import { isRecord } from '@shared/utils/is-record';
 
 export interface ArtistName {

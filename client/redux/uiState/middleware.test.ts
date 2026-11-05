@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyMiddleware, createStore } from 'redux';
-import type { Track } from '../../../types/library';
+import type { Track } from '@shared/types/library';
 import reducers from '../reducers';
 import type { AppAction } from '../types';
 import middleware from './middleware';

@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
-import type { PlaylistMessage, StoredPlaylist } from '../../types/playlists';
+import type { PlaylistMessage, StoredPlaylist } from '@shared/types/playlists';
 import type { ListenerContext } from './listenerContext';
 import {
   addEntries,

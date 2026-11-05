@@ -4,7 +4,7 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import reducers from '../../client/redux/reducers';
 import type { AppAction } from '../../client/redux/types';
-import type { UpdateState } from '../../types/update';
+import type { UpdateState } from '@shared/types/update';
 import About from './index';
 
 const state: UpdateState = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, automatic: true, status: { kind: 'idle' } };

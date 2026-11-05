@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AlbumSummary, Track } from '../../../types/library';
+import type { AlbumSummary, Track } from '@shared/types/library';
 import reducer from './reducer';
 import type { LibraryState } from './reducer';
 

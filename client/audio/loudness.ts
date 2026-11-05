@@ -1,4 +1,4 @@
-import type { Loudness } from '../../types/library';
+import type { Loudness } from '@shared/types/library';
 
 /** Off plays the files as they are; track levels every track on its own, album keeps the differences between the tracks of an album */
 export type NormalizationMode = 'off' | 'track' | 'album';

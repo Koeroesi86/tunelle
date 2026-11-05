@@ -1,6 +1,6 @@
 import type { Database } from 'sqlite3';
-import type { StoredPlaylist } from '../../types/playlists';
-import executeQuery from '../executeQuery';
+import type { StoredPlaylist } from '@shared/types/playlists';
+import executeQuery from '../database/executeQuery';
 
 interface PlaylistRow {
   id: number;

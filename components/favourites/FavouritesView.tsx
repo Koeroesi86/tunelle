@@ -1,8 +1,8 @@
 import classNames from 'classnames';
 import { MdAlbum, MdFavorite, MdMusicNote, MdPlayArrow as PlayIcon, MdRadio, MdShuffle, MdWarningAmber } from 'react-icons/md';
-import type { Favourite } from '../../types/favourites';
-import type { Track } from '../../types/library';
-import type { RadioStation } from '../../types/radio';
+import type { Favourite } from '@shared/types/favourites';
+import type { Track } from '@shared/types/library';
+import type { RadioStation } from '@shared/types/radio';
 import type { FavouritesOrder as Order, FavouritesSource as Source } from '../../client/redux/types';
 import { toRadioTrack } from '../../client/utils/radio-track';
 import { getFavouriteTracks } from '../../client/utils/favourite-tracks';

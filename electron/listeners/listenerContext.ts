@@ -1,5 +1,5 @@
 import type { Database } from 'sqlite3';
-import type { AppWindows } from '../../types/global';
+import type { AppWindows } from '@shared/types/global';
 import type { RadioBrowser } from '../services/radioBrowser';
 import type { UpdateManager } from '../updateManager';
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import { useUpdateEffect } from '../../client/hooks/use-update-effect';
 import { radioUuidOf } from '../../client/utils/radio-track';
 import { sourceOf } from '../../client/audio/track-source';

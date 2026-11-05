@@ -1,7 +1,7 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
-import type { Track } from '../../types/library';
-import type { GroupKind } from '../../types/library-query';
+import type { Track } from '@shared/types/library';
+import type { GroupKind } from '@shared/types/library-query';
 import type { RootState } from '../../client/redux/reducers';
 import type { AppAction, OpenGroup } from '../../client/redux/types';
 import GroupView from './GroupView';

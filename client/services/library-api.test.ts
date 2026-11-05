@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AlbumSummary, Track } from '../../types/library';
+import type { AlbumSummary, Track } from '@shared/types/library';
 import { fetchAlbum, fetchAlbumPage, fetchGroupPage, fetchLibrary, fetchTrackPage } from './library-api';
 
 const track = (path: string, picture: string | null = null): Track => ({

@@ -1,5 +1,5 @@
-import type { NewFavourite } from '../../types/favourites';
-import type { Track } from '../../types/library';
+import type { NewFavourite } from '@shared/types/favourites';
+import type { Track } from '@shared/types/library';
 import { fetchAlbum } from '../services/library-api';
 import { toRadioTrack } from './radio-track';
 

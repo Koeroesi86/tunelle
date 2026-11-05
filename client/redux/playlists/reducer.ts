@@ -1,5 +1,5 @@
 import type { Reducer } from 'redux';
-import type { Playlist } from '../../../types/playlists';
+import type { Playlist } from '@shared/types/playlists';
 import { isAppAction } from '../types';
 
 /** The playlists in the order the sidebar lists them, as the main process stores them: every change is answered with the stored list */

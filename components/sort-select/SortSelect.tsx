@@ -1,6 +1,6 @@
 import { FaArrowDown, FaArrowUp, FaCheck, FaChevronDown, FaSort } from 'react-icons/fa';
-import { sortDirections } from '../../types/library-query';
-import type { Sort, SortDirection } from '../../types/library-query';
+import { sortDirections } from '@shared/types/library-query';
+import type { Sort, SortDirection } from '@shared/types/library-query';
 import { usePopup } from '../../client/hooks/use-popup';
 import style from './SortSelect.scss';
 

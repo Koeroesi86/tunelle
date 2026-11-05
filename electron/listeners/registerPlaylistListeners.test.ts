@@ -3,7 +3,7 @@ import type { Database } from 'sqlite3';
 import type { IpcMainEvent } from 'electron';
 import type { ListenerContext } from './listenerContext';
 import registerPlaylistListeners from './registerPlaylistListeners';
-import addTrack from '../addTrack';
+import addTrack from '../library/addTrack';
 import { createTestDatabase } from '../test-database';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;

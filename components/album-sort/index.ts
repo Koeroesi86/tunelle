@@ -1,6 +1,6 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
-import type { AlbumSort as AlbumSortValue } from '../../types/library-query';
+import type { AlbumSort as AlbumSortValue } from '@shared/types/library-query';
 import type { RootState } from '../../client/redux/reducers';
 import type { AppAction } from '../../client/redux/types';
 import AlbumSort from './AlbumSort';

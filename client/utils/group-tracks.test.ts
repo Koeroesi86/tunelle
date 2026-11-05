@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AlbumSummary, Track } from '../../types/library';
+import type { AlbumSummary, Track } from '@shared/types/library';
 import { fetchGroupTracks } from './group-tracks';
 import { fetchAlbum, fetchAlbumPage } from '../services/library-api';
 

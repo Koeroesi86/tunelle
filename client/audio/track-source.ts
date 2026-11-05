@@ -1,4 +1,4 @@
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import { localUrl } from '../services/local-url';
 import { radioUuidOf } from '../utils/radio-track';
 

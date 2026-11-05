@@ -1,4 +1,4 @@
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import { toNowPlaying } from '../../client/utils/now-playing';
 import { useTranslation } from '../../client/i18n';
 import appIcon from '../../assets/icon.svg';

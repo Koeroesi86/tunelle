@@ -110,7 +110,7 @@ describe('radio art', () => {
     ['finds only a doubtful match', answers({ 'musicbrainz.org': () => match(undefined, 60), 'coverartarchive.org': () => image() })],
     ['answers something else', answers({ 'musicbrainz.org': () => Response.json({ error: 'nope' }) })],
     ['is declined (503)', answers({ 'musicbrainz.org': () => new Response(null, { status: 503 }) })],
-    ['finds a release with an id that is not one', answers({ 'musicbrainz.org': () => match([{ id: '../../x', group: '../../y' }]) })],
+    ['finds a release with an id that is not one', answers({ 'musicbrainz.org': () => match([{ id: '../x', group: '../y' }]) })],
     ['finds no cover for any release', answers({ 'musicbrainz.org': () => match() })],
     ['finds a cover that is no image', answers({ 'musicbrainz.org': () => match(), 'coverartarchive.org': () => image('text/html') })],
     ['fails', vi.fn().mockRejectedValue(new Error('offline'))],

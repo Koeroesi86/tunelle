@@ -1,11 +1,11 @@
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { Favourite, HistoryItem } from '../../types/favourites';
-import type { Playlist } from '../../types/playlists';
-import type { Track } from '../../types/library';
-import type { RadioStation } from '../../types/radio';
-import { stationFavourite, trackFavourite } from '../../client/favourites';
+import type { Favourite, HistoryItem } from '@shared/types/favourites';
+import type { Playlist } from '@shared/types/playlists';
+import type { Track } from '@shared/types/library';
+import type { RadioStation } from '@shared/types/radio';
+import { stationFavourite, trackFavourite } from '../../client/utils/favourites';
 import { toRadioTrack } from '../../client/utils/radio-track';
 import HomeView from './HomeView';
 

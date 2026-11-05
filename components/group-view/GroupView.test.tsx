@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
-import type { GroupSummary, Track } from '../../types/library';
+import type { GroupSummary, Track } from '@shared/types/library';
 import { createPageCache, storePage } from '../../client/redux/library/pages';
 import { fetchGroupTracks } from '../../client/utils/group-tracks';
 import GroupView from './GroupView';

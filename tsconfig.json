@@ -14,5 +14,5 @@
     "forceConsistentCasingInFileNames": true,
     "paths": { "@shared/*": ["./shared/*"] }
   },
-  "include": ["client", "components", "electron", "locales", "index.ts", "shared", "types"]
+  "include": ["client", "components", "electron", "locales", "index.ts", "shared"]
 }

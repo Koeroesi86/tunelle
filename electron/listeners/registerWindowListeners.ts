@@ -1,9 +1,9 @@
 import { ipcMain, nativeImage } from 'electron';
 import type { BrowserWindow } from 'electron';
 import { resolve } from 'path';
-import type { AppWindows } from '../../types/global';
-import { getMainWindow } from '../getMainWindow';
-import closeSplash from '../closeSplash';
+import type { AppWindows } from '@shared/types/global';
+import { getMainWindow } from '../windows/getMainWindow';
+import closeSplash from '../windows/closeSplash';
 import type { ListenerContext } from './listenerContext';
 import { getMainTranslator, onLanguageChange } from '../language';
 
@@ -12,7 +12,7 @@ const showDelay = 200;
 
 const playbackButton = (main: BrowserWindow, tooltip: string, icon: string, isPlaying: boolean) => ({
   tooltip,
-  icon: nativeImage.createFromPath(resolve(__dirname, `../../assets/${icon}`)),
+  icon: nativeImage.createFromPath(resolve(__dirname, `../../../assets/${icon}`)),
   click: () => main.webContents.send('SET_PLAYING', { isPlaying }),
 });
 

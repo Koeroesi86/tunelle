@@ -1,4 +1,4 @@
-import type { ThemeMode, ThemeSettings } from '../types/theme';
+import type { ThemeMode, ThemeSettings } from '@shared/types/theme';
 import { autoAccent } from './constants/theme';
 import { toHex } from '@shared/utils/to-hex';
 

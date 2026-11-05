@@ -7,7 +7,7 @@ import ThemeProvider from './ThemeProvider';
 
 const coverAccent = vi.hoisted(() => vi.fn());
 
-vi.mock('../../client/cover-accent', () => ({ coverAccent }));
+vi.mock('../../client/services/cover-accent', () => ({ coverAccent }));
 
 type Listener = () => void;
 

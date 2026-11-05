@@ -21,7 +21,7 @@ import {
   MdSettings as SettingsIcon,
 } from 'react-icons/md';
 import type { NavigationGroup, LibraryView, Tab } from '../../client/redux/types';
-import type { Playlist } from '../../types/playlists';
+import type { Playlist } from '@shared/types/playlists';
 import { useDragReorder } from '../../client/hooks/use-drag-reorder';
 import style from './Navigation.scss';
 import NameField from '../name-field';

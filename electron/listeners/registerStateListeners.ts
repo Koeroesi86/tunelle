@@ -5,7 +5,7 @@ import { getFolders } from '../repositories/libraryRepository';
 import { getSettings, saveSettings } from '../repositories/settingsRepository';
 import { setPickedLanguage } from '../language';
 import { applyThemeMode } from '../theme';
-import { applyWatchSetting, startLibraryWatching } from '../libraryWatching';
+import { applyWatchSetting, startLibraryWatching } from '../library/libraryWatching';
 import { folderColumns } from '../constants/library';
 
 // the window can be closed while the database answers

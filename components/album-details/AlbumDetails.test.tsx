@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { Album } from '../../types/library';
+import type { Album } from '@shared/types/library';
 import { getCoverUrl } from '../../client/utils/cover-url';
 import { getImageTint } from '../../client/utils/cover-tint';
 import AlbumDetails from './AlbumDetails';

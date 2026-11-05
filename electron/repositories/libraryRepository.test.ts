@@ -14,11 +14,11 @@ import {
   getTrackPage,
   saveFolders,
 } from './libraryRepository';
-import addTrack from '../addTrack';
-import executeQuery from '../executeQuery';
+import addTrack from '../library/addTrack';
+import executeQuery from '../database/executeQuery';
 import { createTestDatabase } from '../test-database';
-import type { Track } from '../../types/library';
-import type { AlbumSort, GroupQuery, GroupSortField, LibraryQuery, TrackSort } from '../../types/library-query';
+import type { Track } from '@shared/types/library';
+import type { AlbumSort, GroupQuery, GroupSortField, LibraryQuery, TrackSort } from '@shared/types/library-query';
 import { folderColumns } from '../constants/library';
 
 const unsorted = { sort: undefined, folders: [] };

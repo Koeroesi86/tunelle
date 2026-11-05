@@ -2,9 +2,9 @@ import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { ListenerContext } from './listenerContext';
 import { clearHistory, getHistory, recordPlayed } from '../repositories/historyRepository';
-import { withAvailability } from '../favouriteAvailability';
+import { withAvailability } from '../library/favouriteAvailability';
 import { isRecord } from '@shared/utils/is-record';
-import { toKey } from '../keyPayload';
+import { toKey } from '../utils/keyPayload';
 
 const sendHistory = async (context: ListenerContext, sender: WebContents) => {
   const history = await withAvailability(await getHistory(context.database), context);

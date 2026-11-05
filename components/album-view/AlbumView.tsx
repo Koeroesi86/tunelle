@@ -1,8 +1,8 @@
 import { useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import classNames from 'classnames';
-import type { Album, AlbumSummary, Folder, Track } from '../../types/library';
-import type { AlbumSort as AlbumSortValue } from '../../types/library-query';
+import type { Album, AlbumSummary, Folder, Track } from '@shared/types/library';
+import type { AlbumSort as AlbumSortValue } from '@shared/types/library-query';
 import { useTranslation } from '../../client/i18n';
 import { useScrollSeparator } from '../../client/hooks/use-scroll-separator';
 import { usePageLoader } from '../../client/hooks/use-page-loader';
@@ -13,7 +13,7 @@ import type { PageCache } from '../../client/redux/library/pages';
 import style from './AlbumView.scss';
 import AlbumViewThumbnail from '../album-view-thumbnail';
 import CoverSizeSlider from '../cover-size-slider';
-import { selectedFolders } from '../../client/library-query';
+import { selectedFolders } from '../../client/utils/library-query';
 
 /** The gap between two covers in px, the covers grow to fill the width; matching .row in AlbumView.scss */
 const columnGap = 18;

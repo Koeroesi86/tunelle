@@ -1,5 +1,5 @@
-import { groupSortFields } from '../../types/library-query';
-import type { GroupSort as GroupSortValue } from '../../types/library-query';
+import { groupSortFields } from '@shared/types/library-query';
+import type { GroupSort as GroupSortValue } from '@shared/types/library-query';
 import { useTranslation } from '../../client/i18n';
 import SortSelect from '../sort-select/SortSelect';
 

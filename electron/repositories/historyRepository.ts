@@ -1,6 +1,6 @@
 import type { Database } from 'sqlite3';
-import type { FavouriteKey, StoredHistoryItem } from '../../types/favourites';
-import executeQuery from '../executeQuery';
+import type { FavouriteKey, StoredHistoryItem } from '@shared/types/favourites';
+import executeQuery from '../database/executeQuery';
 
 /** The history keeps this many items, the oldest are dropped when something is played */
 export const historyLimit = 100;

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import type { GroupSummary } from '../../types/library';
+import type { GroupSummary } from '@shared/types/library';
 import GenreCard from './GenreCard';
 
 const group: GroupSummary = { key: 'jazz', name: 'Jazz', albumCount: 22, trackCount: 187, cover: null, covers: [] };

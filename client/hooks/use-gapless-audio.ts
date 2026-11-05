@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { SyntheticEvent } from 'react';
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import { createLeadMeter, msUntilHandoff } from '../audio/gapless';
 import { isFileTrack, sourceOf } from '../audio/track-source';
 import { useLatest } from './use-latest';

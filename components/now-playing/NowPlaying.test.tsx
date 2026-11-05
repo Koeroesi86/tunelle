@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import NowPlaying from './NowPlaying';
 
 vi.mock('../favourite-button', () => ({ default: () => null }));

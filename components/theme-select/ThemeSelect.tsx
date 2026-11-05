@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import type { ThemeMode, ThemeSettings } from '../../types/theme';
+import type { ThemeMode, ThemeSettings } from '@shared/types/theme';
 import { useTranslation } from '../../client/i18n';
 import { accentPresets, defaultAccent } from '../../client/theme';
 import style from './ThemeSelect.scss';

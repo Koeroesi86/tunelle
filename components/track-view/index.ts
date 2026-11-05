@@ -1,10 +1,10 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
-import type { Track } from '../../types/library';
-import type { TrackSort } from '../../types/library-query';
+import type { Track } from '@shared/types/library';
+import type { TrackSort } from '@shared/types/library-query';
 import type { RootState } from '../../client/redux/reducers';
 import type { AppAction } from '../../client/redux/types';
-import { selectSearch } from '../../client/library-query';
+import { selectSearch } from '../../client/utils/library-query';
 import TrackView from './TrackView';
 
 const mapState = (state: RootState) => ({

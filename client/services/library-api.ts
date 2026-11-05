@@ -1,5 +1,5 @@
-import type { Album, AlbumSummary, GroupSummary, LibraryPage, Track } from '../../types/library';
-import type { AlbumQuery, AlbumSort, GroupKind, GroupQuery, GroupSort, LibraryQuery, TrackSort } from '../../types/library-query';
+import type { Album, AlbumSummary, GroupSummary, LibraryPage, Track } from '@shared/types/library';
+import type { AlbumQuery, AlbumSort, GroupKind, GroupQuery, GroupSort, LibraryQuery, TrackSort } from '@shared/types/library-query';
 import { localUrl } from './local-url';
 import { pageSize } from '../constants/library';
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Folder } from '../../../types/library';
+import type { Folder } from '@shared/types/library';
 import reducer from './reducer';
 
 const folders: Folder[] = [{ path: '/music', lastModified: 1 }];

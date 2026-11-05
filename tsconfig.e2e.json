@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "allowJs": true, "checkJs": false, "types": ["node"] },
-  "include": ["types", "e2e", "playwright.config.ts", "scripts/screenshot-media.js", "scripts/screenshot-fixtures.js"]
+  "include": ["shared/types", "e2e", "playwright.config.ts", "scripts/screenshot-media.js", "scripts/screenshot-fixtures.js"]
 }

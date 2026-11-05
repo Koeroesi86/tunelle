@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import type { AlbumSummary } from '../../types/library';
+import type { AlbumSummary } from '@shared/types/library';
 import AlbumViewThumbnail from './AlbumViewThumbnail';
 
 vi.mock('../favourite-button', () => ({ default: () => null }));

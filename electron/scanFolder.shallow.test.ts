@@ -4,7 +4,7 @@ import os from 'os';
 import path from 'path';
 import type { WebContents } from 'electron';
 import { parseFile } from 'music-metadata';
-import scanFolder from './scanFolder';
+import scanFolder from './library/scanFolder';
 import { createTestDatabase } from './test-database';
 
 vi.mock('music-metadata', () => ({ parseFile: vi.fn() }));

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import classNames from 'classnames';
 import { MdAdd, MdClose, MdFolder, MdWarningAmber } from 'react-icons/md';
-import type { Folder } from '../../types/library';
+import type { Folder } from '@shared/types/library';
 import Confirm from '../confirm';
 import style from './FolderManagement.scss';
 import { useTranslation } from '../../client/i18n';

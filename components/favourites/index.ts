@@ -1,7 +1,7 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
-import type { Track } from '../../types/library';
-import type { RadioStation } from '../../types/radio';
+import type { Track } from '@shared/types/library';
+import type { RadioStation } from '@shared/types/radio';
 import type { RootState } from '../../client/redux/reducers';
 import type { AppAction, FavouritesOrder, FavouritesSource } from '../../client/redux/types';
 import FavouritesView from './FavouritesView';

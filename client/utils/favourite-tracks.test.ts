@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Favourite } from '../../types/favourites';
-import type { Track } from '../../types/library';
-import { albumFavourite, stationFavourite, trackFavourite } from '../favourites';
+import type { Favourite } from '@shared/types/favourites';
+import type { Track } from '@shared/types/library';
+import { albumFavourite, stationFavourite, trackFavourite } from './favourites';
 import { getFavouriteTracks } from './favourite-tracks';
 import { toRadioTrack } from './radio-track';
 

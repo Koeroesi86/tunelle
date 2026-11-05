@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
-import type { RadioStation } from '../../types/radio';
+import type { RadioStation } from '@shared/types/radio';
 import reducers from '../../client/redux/reducers';
-import { stationFavourite } from '../../client/favourites';
+import { stationFavourite } from '../../client/utils/favourites';
 import FavouriteButton from './FavouriteButton';
 import ConnectedFavouriteButton from './index';
 

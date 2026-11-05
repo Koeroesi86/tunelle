@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/react';
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import AudioFormatBadge from './AudioFormatBadge';
 
 const track: Track = {

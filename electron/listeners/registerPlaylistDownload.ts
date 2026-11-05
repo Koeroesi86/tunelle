@@ -1,7 +1,7 @@
 import { session } from 'electron';
 import playlistParser from 'playlist-parser';
 import { fetchOk } from '../services/http';
-import { getMainWindow } from '../getMainWindow';
+import { getMainWindow } from '../windows/getMainWindow';
 import type { ListenerContext } from './listenerContext';
 
 const sendPlaylist = async (url: string, { windows }: ListenerContext) => {

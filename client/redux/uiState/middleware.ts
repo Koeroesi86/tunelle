@@ -1,4 +1,4 @@
-import type { Track } from '../../../types/library';
+import type { Track } from '@shared/types/library';
 import { toRadioTrack } from '../../utils/radio-track';
 import { actionMiddleware, onAction } from '../on-action';
 import type { Store } from '../on-action';

@@ -1,4 +1,4 @@
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import { getCoverUrl, getRadioArtUrl, getRadioLogoUrl } from './cover-url';
 import { radioUuidOf } from './radio-track';
 

@@ -1,6 +1,6 @@
 import type { Reducer } from 'redux';
-import type { RadioOption, RadioQuery, RadioStation, RadioTag } from '../../../types/radio';
-import { isSameRadioQuery, parseRadioQuery } from '../../../types/radio-query';
+import type { RadioOption, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
+import { isSameRadioQuery, parseRadioQuery } from '@shared/types/radio-query';
 import { isAppAction } from '../types';
 
 export interface RadioState {

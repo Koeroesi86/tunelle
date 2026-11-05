@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import { audioFormatLabel } from '../../client/utils/audio-format-label';
 import style from './AudioFormatBadge.scss';
 

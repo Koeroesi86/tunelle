@@ -1,5 +1,5 @@
-import { albumSortFields } from '../../types/library-query';
-import type { AlbumSort as AlbumSortValue } from '../../types/library-query';
+import { albumSortFields } from '@shared/types/library-query';
+import type { AlbumSort as AlbumSortValue } from '@shared/types/library-query';
 import { useTranslation } from '../../client/i18n';
 import SortSelect from '../sort-select/SortSelect';
 

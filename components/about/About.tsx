@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import classNames from 'classnames';
-import type { UpdateState } from '../../types/update';
+import type { UpdateState } from '@shared/types/update';
 import Confirm from '../confirm';
 import Switch from '../switch/Switch';
 import { useTranslation } from '../../client/i18n';

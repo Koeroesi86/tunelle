@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import classNames from 'classnames';
 import { FaChevronDown, FaRegFolder } from 'react-icons/fa';
-import type { Folder } from '../../types/library';
-import { selectedFolders } from '../../client/library-query';
+import type { Folder } from '@shared/types/library';
+import { selectedFolders } from '../../client/utils/library-query';
 import { useTranslation } from '../../client/i18n';
 import { usePopup } from '../../client/hooks/use-popup';
 import style from './FolderFilter.scss';

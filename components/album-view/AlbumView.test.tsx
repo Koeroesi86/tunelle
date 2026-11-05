@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { AlbumSummary } from '../../types/library';
+import type { AlbumSummary } from '@shared/types/library';
 import { createPageCache, storePage } from '../../client/redux/library/pages';
 import AlbumView from './AlbumView';
 

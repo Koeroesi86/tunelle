@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import type { GroupSummary } from '../../types/library';
+import type { GroupSummary } from '@shared/types/library';
 import { getCoverUrl } from '../../client/utils/cover-url';
 import { useTranslation } from '../../client/i18n';
 import style from './GenreCard.scss';

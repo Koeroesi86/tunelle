@@ -4,7 +4,7 @@ import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Database } from 'sqlite3';
 import { createArtistPhotoQueue, findArtistPhoto } from './artistPhotos';
-import executeQuery from '../executeQuery';
+import executeQuery from '../database/executeQuery';
 import { createTestDatabase } from '../test-database';
 
 const photoUrl = (name: string) => `https://cdn-images.dzcdn.net/images/artist/${name}/500x500-000000-80-0-0.jpg`;

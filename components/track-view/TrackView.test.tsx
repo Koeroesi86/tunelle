@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { Track } from '../../types/library';
-import type { TrackSort } from '../../types/library-query';
+import type { Track } from '@shared/types/library';
+import type { TrackSort } from '@shared/types/library-query';
 import { createPageCache, storePage } from '../../client/redux/library/pages';
 import TrackView from './TrackView';
 import { pageSize } from '../../client/constants/library';

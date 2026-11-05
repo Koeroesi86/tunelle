@@ -2,9 +2,9 @@ import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { ListenerContext } from './listenerContext';
 import { addFavourite, getFavourites, removeFavourite } from '../repositories/favouritesRepository';
-import { withAvailability } from '../favouriteAvailability';
+import { withAvailability } from '../library/favouriteAvailability';
 import { isRecord } from '@shared/utils/is-record';
-import { toKey } from '../keyPayload';
+import { toKey } from '../utils/keyPayload';
 
 const sendFavourites = async (context: ListenerContext, sender: WebContents) => {
   const favourites = await withAvailability(await getFavourites(context.database), context);

@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import classNames from 'classnames';
 import { MdArrowDownward as DescendingIcon, MdArrowUpward as AscendingIcon, MdPlayArrow as PlayIcon } from 'react-icons/md';
-import type { RadioOption, RadioQuery, RadioStation } from '../../types/radio';
-import { countRadioFilters, parseRadioQuery, radioBitrates, radioSortFields } from '../../types/radio-query';
-import type { RadioSortField } from '../../types/radio-query';
+import type { RadioOption, RadioQuery, RadioStation } from '@shared/types/radio';
+import { countRadioFilters, parseRadioQuery, radioBitrates, radioSortFields } from '@shared/types/radio-query';
+import type { RadioSortField } from '@shared/types/radio-query';
 import type { RadioState } from '../../client/redux/radio/reducer';
 import { useTranslation } from '../../client/i18n';
 import { useDelayedValue } from '../../client/hooks/use-delayed-value';
 import { useUpdateEffect } from '../../client/hooks/use-update-effect';
-import { stationFavourite } from '../../client/favourites';
+import { stationFavourite } from '../../client/utils/favourites';
 import type { Translator } from '../../locales/translate';
 import FavouriteButton from '../favourite-button';
 import StationLogo from '../station-logo';

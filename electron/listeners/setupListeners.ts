@@ -1,5 +1,5 @@
 import type { Database } from 'sqlite3';
-import type { AppWindows } from '../../types/global';
+import type { AppWindows } from '@shared/types/global';
 import type { RadioBrowser } from '../services/radioBrowser';
 import type { UpdateManager } from '../updateManager';
 import type { ListenerContext } from './listenerContext';
@@ -14,7 +14,7 @@ import registerPlaylistListeners from './registerPlaylistListeners';
 import registerLauncherListeners from './registerLauncherListeners';
 import registerUpdateListeners from './registerUpdateListeners';
 import registerArtistPhotoListeners from './registerArtistPhotoListeners';
-import registerMediaPermission from '../mediaPermission';
+import registerMediaPermission from '../windows/mediaPermission';
 
 const registrars: ((context: ListenerContext) => void)[] = [
   registerWindowListeners,

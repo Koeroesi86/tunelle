@@ -1,7 +1,7 @@
 import { errorMessage } from '@shared/utils/error-message';
 import { checkForUpdate, downloadUpdate, installUpdate } from './services/updater';
 import type { UpdateSource } from './services/updater';
-import type { UpdateState, UpdateStatus } from '../types/update';
+import type { UpdateState, UpdateStatus } from '@shared/types/update';
 
 interface UpdateManagerOptions {
   /** Undefined where the app does not update itself */

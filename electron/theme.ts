@@ -1,5 +1,5 @@
 import { nativeTheme } from 'electron';
-import type { ThemeMode } from '../types/theme';
+import type { ThemeMode } from '@shared/types/theme';
 
 /** The mode of the saved settings, the system one where none was picked or the saved value is not a mode */
 export const themeModeOf = (settings: unknown): ThemeMode => {

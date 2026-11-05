@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { ThemeSettings } from '../../types/theme';
+import type { ThemeSettings } from '@shared/types/theme';
 import { accentPresets, defaultAccent } from '../../client/theme';
 import ThemeSelect from './ThemeSelect';
 

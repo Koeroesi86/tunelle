@@ -1,8 +1,8 @@
 import type { Reducer } from 'redux';
-import type { Track } from '../../../types/library';
+import type { Track } from '@shared/types/library';
 import { restoreCoverSize } from '../../utils/cover-size';
-import { knownFolders, parseFolders, restoreAlbumSort, restoreGroupSort, restoreTrackSort } from '../../../types/library-query';
-import { parseRadioQuery } from '../../../types/radio-query';
+import { knownFolders, parseFolders, restoreAlbumSort, restoreGroupSort, restoreTrackSort } from '@shared/types/library-query';
+import { parseRadioQuery } from '@shared/types/radio-query';
 import { isAppAction } from '../types';
 import type { OnlineView, UiState } from '../types';
 import { radioUuidOf } from '../../utils/radio-track';

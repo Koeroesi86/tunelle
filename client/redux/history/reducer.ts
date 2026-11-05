@@ -1,5 +1,5 @@
 import type { Reducer } from 'redux';
-import type { HistoryItem } from '../../../types/favourites';
+import type { HistoryItem } from '@shared/types/favourites';
 import { isAppAction } from '../types';
 
 /** What was played, the last played first; the main process answers with the stored list when something is played */

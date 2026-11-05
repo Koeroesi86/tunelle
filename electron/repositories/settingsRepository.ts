@@ -1,5 +1,5 @@
 import type { Database } from 'sqlite3';
-import executeQuery from '../executeQuery';
+import executeQuery from '../database/executeQuery';
 
 /** The stored settings, undefined when none were saved yet */
 export const getSettings = (database: Database): Promise<unknown> =>

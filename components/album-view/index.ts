@@ -1,9 +1,9 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
-import type { Album, Track } from '../../types/library';
+import type { Album, Track } from '@shared/types/library';
 import type { RootState } from '../../client/redux/reducers';
 import type { AppAction } from '../../client/redux/types';
-import { selectSearch } from '../../client/library-query';
+import { selectSearch } from '../../client/utils/library-query';
 import AlbumView from './AlbumView';
 
 const mapState = (state: RootState) => ({

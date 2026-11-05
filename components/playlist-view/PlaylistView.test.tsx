@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { Track } from '../../types/library';
-import type { Playlist } from '../../types/playlists';
+import type { Track } from '@shared/types/library';
+import type { Playlist } from '@shared/types/playlists';
 import PlaylistView from './PlaylistView';
 
 const queued = vi.hoisted(() => vi.fn());

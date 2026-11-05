@@ -1,4 +1,4 @@
-import type { GroupSummary } from '../../types/library';
+import type { GroupSummary } from '@shared/types/library';
 import { getCoverUrl } from '../../client/utils/cover-url';
 import { tileAccent } from '../../client/utils/tile-accent';
 import { useTranslation } from '../../client/i18n';

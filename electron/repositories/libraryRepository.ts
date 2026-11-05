@@ -1,6 +1,6 @@
 import path from 'path';
 import type { Database } from 'sqlite3';
-import type { AlbumSummary, AudioFormat, Folder, GroupSummary, LibraryPage, Loudness, Track } from '../../types/library';
+import type { AlbumSummary, AudioFormat, Folder, GroupSummary, LibraryPage, Loudness, Track } from '@shared/types/library';
 import type {
   AlbumGroup,
   AlbumQuery,
@@ -12,11 +12,11 @@ import type {
   SortDirection,
   TrackSort,
   TrackSortField,
-} from '../../types/library-query';
-import executeQuery from '../executeQuery';
-import executeQueries from '../executeQueries';
-import { toSortKey } from '../sortKey';
-import { getAlbumArtAccents } from '../albumArtAccents';
+} from '@shared/types/library-query';
+import executeQuery from '../database/executeQuery';
+import executeQueries from '../database/executeQueries';
+import { toSortKey } from '../database/sortKey';
+import { getAlbumArtAccents } from '../library/albumArtAccents';
 
 // ! is the escape character of the LIKE below, so % and _ in a folder name match themselves
 const escapeLike = (value: string) => value.replace(/[!%_]/g, '!$&');

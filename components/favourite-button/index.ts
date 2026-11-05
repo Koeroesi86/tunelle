@@ -1,9 +1,9 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
-import type { FavouriteKey, NewFavourite } from '../../types/favourites';
+import type { FavouriteKey, NewFavourite } from '@shared/types/favourites';
 import type { RootState } from '../../client/redux/reducers';
 import type { AppAction } from '../../client/redux/types';
-import { isFavourited } from '../../client/favourites';
+import { isFavourited } from '../../client/utils/favourites';
 import FavouriteButton from './FavouriteButton';
 
 const mapState = (state: RootState, { item }: { item: NewFavourite }) => ({

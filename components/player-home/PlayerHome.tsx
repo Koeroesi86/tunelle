@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import classNames from 'classnames';
-import type { Folder } from '../../types/library';
+import type { Folder } from '@shared/types/library';
 import { electronAPI } from '../../client/services/electron-api';
 import { useLatest } from '../../client/hooks/use-latest';
 import { useTranslation } from '../../client/i18n';

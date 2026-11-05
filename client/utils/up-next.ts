@@ -1,4 +1,4 @@
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import type { UiState } from '../redux/types';
 
 type QueueState = Pick<UiState, 'nowPlaying' | 'currentSong' | 'repeat' | 'shuffle' | 'played' | 'upNext'>;

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { Favourite } from '../../types/favourites';
-import type { Track } from '../../types/library';
-import type { RadioStation } from '../../types/radio';
-import { albumFavourite, stationFavourite, trackFavourite } from '../../client/favourites';
+import type { Favourite } from '@shared/types/favourites';
+import type { Track } from '@shared/types/library';
+import type { RadioStation } from '@shared/types/radio';
+import { albumFavourite, stationFavourite, trackFavourite } from '../../client/utils/favourites';
 import type { FavouritesOrder, FavouritesSource } from '../../client/redux/types';
 import FavouritesView from './FavouritesView';
 

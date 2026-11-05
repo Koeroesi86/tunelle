@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { MdFavorite as FilledHeart, MdFavoriteBorder as OutlineHeart } from 'react-icons/md';
-import type { FavouriteKey, NewFavourite } from '../../types/favourites';
+import type { FavouriteKey, NewFavourite } from '@shared/types/favourites';
 import { useTranslation } from '../../client/i18n';
 import style from './FavouriteButton.scss';
 

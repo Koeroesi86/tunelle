@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import reducers from '../../client/redux/reducers';
 import TrackView from './index';
 import { pageSize } from '../../client/constants/library';

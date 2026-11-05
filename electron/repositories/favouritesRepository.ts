@@ -1,6 +1,6 @@
 import type { Database } from 'sqlite3';
-import type { FavouriteKey, StoredFavourite } from '../../types/favourites';
-import executeQuery from '../executeQuery';
+import type { FavouriteKey, StoredFavourite } from '@shared/types/favourites';
+import executeQuery from '../database/executeQuery';
 
 interface FavouriteRow extends FavouriteKey {
   snapshot: string;

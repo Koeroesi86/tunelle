@@ -1,6 +1,6 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
-import type { RadioQuery, RadioStation } from '../../types/radio';
+import type { RadioQuery, RadioStation } from '@shared/types/radio';
 import type { RootState } from '../../client/redux/reducers';
 import type { AppAction } from '../../client/redux/types';
 import { radioUuidOf } from '../../client/utils/radio-track';

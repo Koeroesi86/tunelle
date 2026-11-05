@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import classNames from 'classnames';
 import { MdClose as RemoveIcon, MdPlayArrow as PlayIcon } from 'react-icons/md';
-import type { Track } from '../../types/library';
-import type { Playlist } from '../../types/playlists';
-import { getPlaylistTracks } from '../../client/playlists';
+import type { Track } from '@shared/types/library';
+import type { Playlist } from '@shared/types/playlists';
+import { getPlaylistTracks } from '../../client/utils/playlists';
 import { useDragReorder } from '../../client/hooks/use-drag-reorder';
 import { useTranslation } from '../../client/i18n';
 import style from './PlaylistView.scss';

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import classNames from 'classnames';
 import { MdCheck as AddedIcon, MdAddToQueue as QueueIcon, MdQueuePlayNext as PlayNextIcon } from 'react-icons/md';
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import { useTranslation } from '../../client/i18n';
 import style from './AddToQueue.scss';
 

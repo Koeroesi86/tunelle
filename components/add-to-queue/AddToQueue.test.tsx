@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import AddToQueue from './AddToQueue';
 
 const track: Track = {

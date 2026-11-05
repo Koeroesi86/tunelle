@@ -1,14 +1,14 @@
 import classNames from 'classnames';
 import { FaPlay } from 'react-icons/fa';
-import type { AlbumSummary } from '../../types/library';
-import { isOffline } from '../../client/offline-folders';
+import type { AlbumSummary } from '@shared/types/library';
+import { isOffline } from '../../client/utils/offline-folders';
 import { useTranslation } from '../../client/i18n';
 import style from './AlbumViewThumbnail.scss';
 import { getCoverUrl } from '../../client/utils/cover-url';
 import { tileAccent } from '../../client/utils/tile-accent';
 import { albumFormatLabel } from '../../client/utils/audio-format-label';
 import { formatLength } from '../../client/utils/format-length';
-import { albumFavourite } from '../../client/favourites';
+import { albumFavourite } from '../../client/utils/favourites';
 import FavouriteButton from '../favourite-button';
 import AddToPlaylist from '../add-to-playlist';
 

@@ -23,7 +23,7 @@ const registerArtistPhotoListeners = ({ database }: ListenerContext, env: NodeJS
   let requester: WebContents | undefined;
   const queue = createArtistPhotoQueue({
     database,
-    getFolder: () => path.join(global._appDataPath, '../albumart'),
+    getFolder: () => path.join(global._appDataPath, './albumart/'),
     onFound: () => {
       if (requester && !requester.isDestroyed()) requester.send('ARTIST_PHOTOS_READY', {});
     },

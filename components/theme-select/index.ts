@@ -1,6 +1,6 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
-import type { ThemeMode } from '../../types/theme';
+import type { ThemeMode } from '@shared/types/theme';
 import type { RootState } from '../../client/redux/reducers';
 import type { AppAction } from '../../client/redux/types';
 import ThemeSelect from './ThemeSelect';

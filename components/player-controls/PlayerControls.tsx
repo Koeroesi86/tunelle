@@ -12,7 +12,7 @@ import {
 } from 'react-icons/fi';
 import { MdPlayArrow as PlayIcon, MdPause as PauseIcon } from 'react-icons/md';
 import Slider from '../slider/Slider';
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import { toNowPlaying } from '../../client/utils/now-playing';
 import { radioUuidOf } from '../../client/utils/radio-track';
 import { useMediaSession, useMediaSessionActions } from '../../client/hooks/use-media-session';

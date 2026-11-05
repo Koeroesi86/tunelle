@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ThemeMode } from '../types/theme';
+import type { ThemeMode } from '@shared/types/theme';
 import {
   accentPresets,
   accentTokens,

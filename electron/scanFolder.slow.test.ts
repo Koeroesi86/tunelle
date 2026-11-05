@@ -5,8 +5,8 @@ import path from 'path';
 import type { WebContents } from 'electron';
 import type { Database } from 'sqlite3';
 import { parseFile } from 'music-metadata';
-import scanFolder from './scanFolder';
-import executeQuery from './executeQuery';
+import scanFolder from './library/scanFolder';
+import executeQuery from './database/executeQuery';
 import { createTestDatabase } from './test-database';
 
 vi.mock('music-metadata', () => ({ parseFile: vi.fn() }));
@@ -59,7 +59,7 @@ describe('scanFolder of files that do not answer in time', () => {
     global._database = database;
     global._appDataPath = root;
     // the worker is loaded before the clock stops, as the first load takes real time
-    await import('./trackReaderWorker');
+    await import('./library/trackReaderWorker');
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
   });
 

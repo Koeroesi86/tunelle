@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import { albumFormatLabel, audioFormatLabel } from './audio-format-label';
 
 const track = (format: Partial<Track>): Track => ({

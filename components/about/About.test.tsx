@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { UpdateState, UpdateStatus } from '../../types/update';
+import type { UpdateState, UpdateStatus } from '@shared/types/update';
 import About from './About';
 
 const base: UpdateState = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, automatic: true, status: { kind: 'idle' } };

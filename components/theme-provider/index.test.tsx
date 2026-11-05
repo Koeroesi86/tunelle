@@ -5,12 +5,12 @@ import { createStore } from 'redux';
 import reducers from '../../client/redux/reducers';
 import type { AppAction } from '../../client/redux/types';
 import { toRadioTrack } from '../../client/utils/radio-track';
-import type { Track } from '../../types/library';
+import type { Track } from '@shared/types/library';
 import ThemeProvider from './index';
 
 const coverAccent = vi.hoisted(() => vi.fn());
 
-vi.mock('../../client/cover-accent', () => ({ coverAccent }));
+vi.mock('../../client/services/cover-accent', () => ({ coverAccent }));
 
 const track: Track = {
   path: '/music/song.flac',

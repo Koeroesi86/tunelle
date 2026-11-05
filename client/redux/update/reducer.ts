@@ -1,5 +1,5 @@
 import type { Reducer } from 'redux';
-import type { UpdateState } from '../../../types/update';
+import type { UpdateState } from '@shared/types/update';
 import { isAppAction } from '../types';
 
 /** What the main process last told about the installed version and its updates, null until it answered */
