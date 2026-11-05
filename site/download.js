@@ -1,10 +1,13 @@
+// the words come from the script tag, in the language of the page
+const { copied, downloadFor, installLinux } = document.currentScript.dataset
+
 // the copy button next to a command; without the clipboard (or this script) the command is still there to select
 document.querySelectorAll('[data-copy]').forEach((copy) => {
   if (!navigator.clipboard) return
   copy.hidden = false
   copy.addEventListener('click', async () => {
     await navigator.clipboard.writeText(document.getElementById(copy.dataset.copy).textContent)
-    copy.textContent = 'Copied'
+    copy.textContent = copied
   })
 })
 
@@ -28,12 +31,12 @@ document.querySelectorAll('[data-copy]').forEach((copy) => {
 
   card.classList.add('detected')
   button.href = preferred.href
-  button.textContent = `Download for ${card.querySelector('h3').textContent}`
+  button.textContent = downloadFor.replace('{system}', card.querySelector('h3').textContent)
 
   // Linux has the Flatpak as the first choice: its button stays in the card and the big button leads to it instead of the AppImage
   if (system === 'linux') {
     button.href = '#flatpak'
-    button.textContent = 'Install for Linux'
+    button.textContent = installLinux
     return
   }
   preferred.classList.add('button')

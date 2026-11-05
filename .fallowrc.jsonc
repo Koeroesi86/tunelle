@@ -13,7 +13,7 @@
     "client/htmlGenerator.tsx",
     // vitest alias for the stylesheets
     "client/test/test-utils-style-stub.ts",
-    // the website, loaded by site/index.html
+    // the website, loaded by the pages built from site/templates
     "site/**",
     // run by Playwright (npm run test:e2e), the helpers they import are reached from there
     "playwright.config.ts",

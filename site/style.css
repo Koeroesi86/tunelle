@@ -128,14 +128,19 @@ footer {
   color: var(--text);
 }
 
+.top .languages {
+  display: flex;
+  gap: 12px;
+}
+
 .top .theme {
-  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  padding: 6px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
-  font: inherit;
-  font-size: 0.85rem;
   cursor: pointer;
 }
 
@@ -255,6 +260,10 @@ h3 {
   margin: 0 auto 24px;
   color: var(--muted);
   font-size: 1.2rem;
+}
+
+main > .lead {
+  margin-left: 0;
 }
 
 .actions {

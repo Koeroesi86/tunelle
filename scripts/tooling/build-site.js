@@ -1,8 +1,9 @@
 const { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } = require('fs')
 const { join, resolve } = require('path')
+const { renderPages } = require('./site-pages')
 
 // usage: node scripts/tooling/build-site.js <release.json> <out folder>
-// copies site/ to the out folder and writes the latest release into index.html: the version, the installer of each system and the titles of the
+// copies site/ to the out folder and writes the pages of every language (scripts/tooling/site-pages.js) with the latest release: the version, the installer of each system and the titles of the
 // changes (release.json is the answer of `gh api repos/<owner>/<repo>/releases/latest`), so the page needs no script to know the release
 // {{version}}, {{notes}} and {{asset:<system>-<arch>}} are the placeholders; a system without an installer links to the page of the latest release
 const releasesUrl = 'https://github.com/Koeroesi86/tunelle/releases/latest'
@@ -44,11 +45,14 @@ const stampSite = (html, release) => {
     .replace(/\{\{asset:([\w-]+)\}\}/g, (_, key) => escapeHtml(assets[key] ?? releasesUrl))
 }
 
-const copyFolder = (from, to) => {
+// the templates and the strings are the source of the pages, not part of the site
+const sources = ['templates', 'strings']
+
+const copyFolder = (from, to, skip = []) => {
   mkdirSync(to, { recursive: true })
-  readdirSync(from, { withFileTypes: true }).forEach((entry) =>
-    entry.isDirectory() ? copyFolder(join(from, entry.name), join(to, entry.name)) : copyFileSync(join(from, entry.name), join(to, entry.name))
-  )
+  readdirSync(from, { withFileTypes: true })
+    .filter((entry) => !skip.includes(entry.name))
+    .forEach((entry) => (entry.isDirectory() ? copyFolder(join(from, entry.name), join(to, entry.name)) : copyFileSync(join(from, entry.name), join(to, entry.name))))
 }
 
 const buildSite = (releasePath, outPath) => {
@@ -56,8 +60,11 @@ const buildSite = (releasePath, outPath) => {
   const source = resolve(__dirname, '../..', 'site')
 
   rmSync(outPath, { recursive: true, force: true })
-  copyFolder(source, outPath)
-  writeFileSync(join(outPath, 'index.html'), stampSite(readFileSync(join(source, 'index.html'), 'utf8'), release))
+  copyFolder(source, outPath, sources)
+  renderPages().forEach(([path, html]) => {
+    mkdirSync(join(outPath, path, '..'), { recursive: true })
+    writeFileSync(join(outPath, path), stampSite(html, release))
+  })
 }
 
 if (require.main === module) {

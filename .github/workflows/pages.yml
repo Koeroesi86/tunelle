@@ -10,6 +10,7 @@ on:
     paths:
       - site/**
       - scripts/tooling/build-site.js
+      - scripts/tooling/site-pages.js
       - scripts/release/flatpak-repo.js
       - .github/workflows/pages.yml
   workflow_call:

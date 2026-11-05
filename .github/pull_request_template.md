@@ -12,7 +12,7 @@
 
 ## Docs and website
 
-<!-- Explanations live in docs/, not in comments or the README: did a change to documented behaviour update its doc? Did a visible feature change update site/index.html and the screenshots? Delete the section if neither applies. -->
+<!-- Explanations live in docs/, not in comments or the README: did a change to documented behaviour update its doc? Did a visible feature change update site/templates/index.html, site/strings and the screenshots? Delete the section if neither applies. -->
 
 ## Verification
 

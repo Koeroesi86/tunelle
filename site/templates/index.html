@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="{{lang}}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>{{t:meta.title}}</title>
+    <meta name="description" content="{{t:meta.description}}" />
+    <link rel="canonical" href="{{url}}" />
+    {{alternates}}
+    <link rel="icon" href="{{base}}icon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="{{t:meta.title}}" />
+    <meta property="og:description" content="{{t:meta.ogDescription}}" />
+    <meta property="og:url" content="{{url}}" />
+    <meta property="og:locale" content="{{lang}}" />
+    <meta property="og:image" content="https://koeroesi86.github.io/tunelle/screenshots/album.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="stylesheet" href="{{base}}style.css" />
+    <script src="{{base}}theme.js" data-system="{{t:js.theme.system}}" data-light="{{t:js.theme.light}}" data-dark="{{t:js.theme.dark}}"></script>
+  </head>
+  <body>
+    <nav class="top">
+      <a class="brand" href="#top"><img src="{{base}}icon.svg" alt="" width="28" height="28" /><svg class="wordmark" viewBox="-9 -8 386 124" role="img" aria-label="Tunelle"><defs><linearGradient id="wordmark-bars" gradientUnits="userSpaceOnUse" x1="0" y1="2" x2="0" y2="100"><stop offset="0" stop-color="#ffb347"/><stop offset="1" stop-color="#ff5a36"/></linearGradient></defs><g fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><path transform="translate(0 0)" d="M0 20H44M22 20V100"/><path transform="translate(74 0)" d="M0 60V84A16 16 0 0 0 32 84M32 60V100"/><path transform="translate(136 0)" d="M0 100V60M0 76A16 16 0 0 1 32 76V100"/><path transform="translate(198 0)" d="M0 80H40A20 20 0 1 0 34.14 94.14"/><path transform="translate(328 0)" d="M0 80H40A20 20 0 1 0 34.14 94.14"/></g><line x1="268" x2="268" y1="2" y2="100" stroke="url(#wordmark-bars)" stroke-width="9" stroke-linecap="round"/><line x1="298" x2="298" y1="38" y2="100" stroke="url(#wordmark-bars)" stroke-width="9" stroke-linecap="round"/></svg></a>
+      <a href="#features">{{t:nav.features}}</a>
+      <a href="#download">{{t:nav.download}}</a>
+      <a href="https://github.com/Koeroesi86/tunelle">GitHub</a>
+      {{switcher}}
+      <button class="theme" id="theme-toggle" type="button" hidden></button>
+    </nav>
+
+    <header class="hero" id="top">
+      <div class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <h1>{{t:hero.title}}</h1>
+      <p class="lead">{{t:hero.lead}}</p>
+      <p class="actions">
+        <a class="button big" id="download-primary" href="#download" data-fallback="#download">{{t:hero.download}}</a>
+        <a class="ghost" href="#features">{{t:hero.see}}</a>
+      </p>
+      <p class="meta">{{t:hero.meta}}</p>
+      <figure class="shot hero-shot">
+        <img src="{{base}}screenshots/album.webp" width="1360" height="850" alt="{{t:hero.alt}}" fetchpriority="high" />
+      </figure>
+    </header>
+
+    <ul class="chips" aria-label="{{t:chips.label}}">
+      <li>{{t:chips.free}}</li>
+      <li>{{t:chips.openSource}}</li>
+      <li>{{t:chips.noAccount}}</li>
+      <li>{{t:chips.lossless}}</li>
+      <li>{{t:chips.radio}}</li>
+      <li>{{t:chips.playlists}}</li>
+      <li>{{t:chips.equalizer}}</li>
+      <li>{{t:chips.theme}}</li>
+      <li>{{t:chips.platforms}}</li>
+    </ul>
+
+    <main>
+      <section aria-labelledby="features">
+        <h2 id="features">{{t:features.title}}</h2>
+        <ul class="cards">
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h16" /></svg>
+            <h3>{{t:features.library.title}}</h3>
+            <p>{{t:features.library.text}}</p>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h3l2-6 4 12 3-9 2 3h4" /></svg>
+            <h3>{{t:features.lossless.title}}</h3>
+            <p>{{t:features.lossless.text}}</p>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" /></svg>
+            <h3>{{t:features.formats.title}}</h3>
+            <p>{{t:features.formats.text}}</p>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9a10 10 0 0 1 14 0M8 12.5a6 6 0 0 1 8 0M12 16h.01M3 6a14 14 0 0 1 18 0" /></svg>
+            <h3>{{t:features.radio.title}}</h3>
+            <p>{{t:features.radio.text}}</p>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" /></svg>
+            <h3>{{t:features.home.title}}</h3>
+            <p>{{t:features.home.text}}</p>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /></svg>
+            <h3>{{t:features.liked.title}}</h3>
+            <p>{{t:features.liked.text}}</p>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M12 4v16M18 4v16M4 14h4M10 8h4M16 12h4" /></svg>
+            <h3>{{t:features.equalizer.title}}</h3>
+            <p>{{t:features.equalizer.text}}</p>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h12M4 12h12M4 17h8M19 14v6M16 17h6" /></svg>
+            <h3>{{t:features.queue.title}}</h3>
+            <p>{{t:features.queue.text}}</p>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 3 3 0 0 0 0-6 3 3 0 0 1 0-6 3 3 0 0 0 0-6z" /></svg>
+            <h3>{{t:features.theme.title}}</h3>
+            <p>{{t:features.theme.text}}</p>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M12 5v14M8 19h8" /></svg>
+            <h3>{{t:features.language.title}}</h3>
+            <p>{{t:features.language.text}}</p>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v11H3zM8 21h8M12 16v5" /></svg>
+            <h3>{{t:features.native.title}}</h3>
+            <p>{{t:features.native.text}}</p>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5" /></svg>
+            <h3>{{t:features.free.title}}</h3>
+            <p>{{t:features.free.text}}</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="tour" aria-labelledby="tour">
+        <h2 id="tour">{{t:tour.title}}</h2>
+        <div class="row">
+          <div class="copy">
+            <h3>{{t:tour.home.title}}</h3>
+            <p>{{t:tour.home.text}}</p>
+          </div>
+          <figure class="shot"><img src="{{base}}screenshots/home.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.home.alt}}" /></figure>
+        </div>
+        <div class="row flip">
+          <div class="copy">
+            <h3>{{t:tour.albums.title}}</h3>
+            <p>{{t:tour.albums.text}}</p>
+          </div>
+          <figure class="shot"><img src="{{base}}screenshots/albums.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.albums.alt}}" /></figure>
+        </div>
+        <div class="row">
+          <div class="copy">
+            <h3>{{t:tour.genre.title}}</h3>
+            <p>{{t:tour.genre.text}}</p>
+          </div>
+          <figure class="shot"><img src="{{base}}screenshots/genre.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.genre.alt}}" /></figure>
+        </div>
+        <div class="row flip">
+          <div class="copy">
+            <h3>{{t:tour.songs.title}}</h3>
+            <p>{{t:tour.songs.text}}</p>
+          </div>
+          <figure class="shot"><img src="{{base}}screenshots/songs.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.songs.alt}}" /></figure>
+        </div>
+        <div class="row">
+          <div class="copy">
+            <h3>{{t:tour.folders.title}}</h3>
+            <p>{{t:tour.folders.text}}</p>
+          </div>
+          <figure class="shot"><img src="{{base}}screenshots/folders.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.folders.alt}}" /></figure>
+        </div>
+        <div class="row flip">
+          <div class="copy">
+            <h3>{{t:tour.now.title}}</h3>
+            <p>{{t:tour.now.text}}</p>
+          </div>
+          <figure class="shot"><img src="{{base}}screenshots/now.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.now.alt}}" /></figure>
+        </div>
+        <div class="row" id="radio">
+          <div class="copy">
+            <h3>{{t:tour.radio.title}}</h3>
+            <p>{{t:tour.radio.text}}</p>
+            <p>{{t:tour.radio.more}}</p>
+          </div>
+          <figure class="shot"><img src="{{base}}screenshots/radio.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.radio.alt}}" /></figure>
+        </div>
+        <div class="row flip">
+          <div class="copy">
+            <h3>{{t:tour.liked.title}}</h3>
+            <p>{{t:tour.liked.text}}</p>
+          </div>
+          <figure class="shot"><img src="{{base}}screenshots/liked.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.liked.alt}}" /></figure>
+        </div>
+        <div class="row">
+          <div class="copy">
+            <h3>{{t:tour.playlist.title}}</h3>
+            <p>{{t:tour.playlist.text}}</p>
+          </div>
+          <figure class="shot"><img src="{{base}}screenshots/playlist.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.playlist.alt}}" /></figure>
+        </div>
+        <div class="row flip">
+          <div class="copy">
+            <h3>{{t:tour.equalizer.title}}</h3>
+            <p>{{t:tour.equalizer.text}}</p>
+          </div>
+          <figure class="shot"><img src="{{base}}screenshots/equalizer.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.equalizer.alt}}" /></figure>
+        </div>
+        <div class="row">
+          <div class="copy">
+            <h3>{{t:tour.settings.title}}</h3>
+            <p>{{t:tour.settings.text}}</p>
+            <p>{{t:tour.settings.more}}</p>
+          </div>
+          <figure class="shot"><img src="{{base}}screenshots/settings.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.settings.alt}}" /></figure>
+        </div>
+        <figure class="shot light-shot"><img src="{{base}}screenshots/light.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.light.alt}}" /><figcaption>{{t:tour.light.caption}}</figcaption></figure>
+        <p class="meta">{{t:tour.madeUp}}</p>
+      </section>
+
+      <section id="download" aria-labelledby="download-title">
+        <h2 id="download-title">{{t:download.title}}</h2>
+        <p>{{t:download.intro}}</p>
+        <div class="systems">
+          <article data-system="windows">
+            <h3>Windows</h3>
+            <p><a href="https://apps.microsoft.com/detail/9p32skjlncnv" target="_blank" rel="noopener"><img class="badge-on-light" src="{{base}}microsoft-store-badge.svg" width="161" height="44" alt="{{t:download.windows.storeAlt}}"><img class="badge-on-dark" src="{{base}}microsoft-store-badge-light.svg" width="161" height="44" alt="{{t:download.windows.storeAlt}}"></a></p>
+            <p>{{t:download.windows.or}}</p>
+            <p><a href="{{asset:windows-x64}}">{{t:download.windows.x64}}</a></p>
+            <p><a href="{{asset:windows-arm64}}">{{t:download.windows.arm64}}</a></p>
+          </article>
+          <article data-system="mac">
+            <h3>macOS</h3>
+            <p><a class="button" href="{{asset:mac-arm64}}"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>{{t:download.mac.arm64}}</a></p>
+            <p><a href="{{asset:mac-x64}}">{{t:download.mac.x64}}</a></p>
+          </article>
+          <article data-system="linux">
+            <h3>Linux</h3>
+            <p><a class="button" href="#flatpak"><svg class="icon" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><g fill="currentColor" transform="matrix(.04764 0 0 .04764 -8.374 -7.77)"><path d="M474.61 255.118V406.3l-130.927 75.59V330.71zM343.683 330.709V179.528l-130.927 75.59Z"/><path d="M218.612 233.262a43.667 43.667 0 0 0-21.856 37.856V390.3a43.667 43.667 0 0 0 21.856 37.857l103.214 59.59a43.667 43.667 0 0 0 43.713 0l103.214-59.59a43.667 43.667 0 0 0 21.856-37.857V271.12a43.667 43.667 0 0 0-21.856-37.857l-103.214-59.59a43.667 43.667 0 0 0-43.713 0zm130.927-31.878 103.214 59.59a11.759 11.759 0 0 1 5.856 10.144V390.3c0 4.166-2.249 8.06-5.856 10.144l-103.214 59.59a11.759 11.759 0 0 1-11.713 0l-103.214-59.59a11.759 11.759 0 0 1-5.856-10.144V271.12c0-4.167 2.249-8.062 5.856-10.144l103.214-59.591a11.759 11.759 0 0 1 11.713 0z"/></g></svg>{{t:download.linux.flatpak}}</a></p>
+            <p>{{t:download.linux.recommended}}</p>
+            <p><a href="{{asset:linux-x64}}">{{t:download.linux.x64}}</a></p>
+            <p><a href="{{asset:linux-arm64}}">{{t:download.linux.arm64}}</a></p>
+          </article>
+        </div>
+
+        <div class="flatpak" id="flatpak">
+          <h3>{{t:flatpak.title}} <span class="badge">{{t:flatpak.badge}}</span></h3>
+          <p>{{t:flatpak.intro}}</p>
+          <p><a class="button" href="flatpak+https://koeroesi86.github.io/tunelle/repo/tunelle.flatpakref"><svg class="icon" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><g fill="currentColor" transform="matrix(.04764 0 0 .04764 -8.374 -7.77)"><path d="M474.61 255.118V406.3l-130.927 75.59V330.71zM343.683 330.709V179.528l-130.927 75.59Z"/><path d="M218.612 233.262a43.667 43.667 0 0 0-21.856 37.856V390.3a43.667 43.667 0 0 0 21.856 37.857l103.214 59.59a43.667 43.667 0 0 0 43.713 0l103.214-59.59a43.667 43.667 0 0 0 21.856-37.857V271.12a43.667 43.667 0 0 0-21.856-37.857l-103.214-59.59a43.667 43.667 0 0 0-43.713 0zm130.927-31.878 103.214 59.59a11.759 11.759 0 0 1 5.856 10.144V390.3c0 4.166-2.249 8.06-5.856 10.144l-103.214 59.59a11.759 11.759 0 0 1-11.713 0l-103.214-59.59a11.759 11.759 0 0 1-5.856-10.144V271.12c0-4.167 2.249-8.062 5.856-10.144l103.214-59.591a11.759 11.759 0 0 1 11.713 0z"/></g></svg>{{t:download.linux.flatpak}}</a> {{t:flatpak.opens}}</p>
+          <div class="command">
+            <code id="flatpak-command">flatpak install --user https://koeroesi86.github.io/tunelle/repo/tunelle.flatpakref</code>
+            <button type="button" data-copy="flatpak-command" hidden>{{t:flatpak.copy}}</button>
+          </div>
+          <p class="meta">{{t:flatpak.meta}}</p>
+        </div>
+
+        <details class="help">
+          <summary>{{t:appimage.summary}}</summary>
+          <ol>
+            <li>{{t:appimage.glibc}}</li>
+            <li>{{t:appimage.am}}</li>
+            <li>{{t:appimage.chmod}}</li>
+            <li>{{t:appimage.start}}</li>
+            <li>{{t:appimage.fuse}}</li>
+            <li>{{t:appimage.fuse2}}</li>
+          </ol>
+        </details>
+        <p class="meta">{{t:download.releases}}</p>
+      </section>
+
+      <section aria-labelledby="news">
+        <h2 id="news">{{t:news.title}}</h2>
+        <ul class="news">
+          {{notes}}
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <a href="https://github.com/Koeroesi86/tunelle">{{t:footer.source}}</a>
+      <a href="https://github.com/Koeroesi86/tunelle/releases">{{t:footer.releases}}</a>
+      <a href="https://github.com/Koeroesi86/tunelle/issues">{{t:footer.report}}</a>
+      <a href="privacy.html">{{t:footer.privacy}}</a>
+      <a href="https://github.com/Koeroesi86/tunelle/blob/master/LICENSE.md">{{t:footer.licence}}</a>
+    </footer>
+    <script src="{{base}}download.js" data-copied="{{t:js.copied}}" data-download-for="{{t:js.downloadFor}}" data-install-linux="{{t:js.installLinux}}"></script>
+  </body>
+</html>

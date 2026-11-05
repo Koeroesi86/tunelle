@@ -28,7 +28,7 @@ done
 if [[ "$CMD" =~ $PR_CREATE ]]; then
   CHANGED="$(git diff --name-only origin/master...HEAD 2>/dev/null || true)"
   if grep -qE '^(client|electron|shared/locales)/' <<<"$CHANGED" && ! grep -q '^site/' <<<"$CHANGED"; then
-    jq -n '{hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: "The app changed and site/ did not: if this adds, removes or visibly changes a feature, update the matching section of site/index.html (and retake the screenshots) in this pull request."}}'
+    jq -n '{hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: "The app changed and site/ did not: if this adds, removes or visibly changes a feature, update the matching section of site/templates/index.html and site/strings/*.json (and retake the screenshots) in this pull request."}}'
   fi
 fi
 
