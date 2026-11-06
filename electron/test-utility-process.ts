@@ -21,7 +21,6 @@ class FakeUtilityProcess extends EventEmitter {
   };
 }
 
-vi.mock('electron', async (importOriginal) => ({
-  ...(await importOriginal<object>()),
+vi.mock('electron', () => ({
   utilityProcess: { fork: () => new FakeUtilityProcess() },
 }));
