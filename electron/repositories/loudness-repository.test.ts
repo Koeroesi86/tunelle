@@ -3,7 +3,7 @@ import type { Database } from 'sqlite3';
 import type { Track } from '@shared/types/library';
 import type { LoudnessAnalysis, TrackLoudness } from '@shared/types/loudness';
 import { deleteTracks, deleteTracksInside, findTrackFormat, getAlbumTracks, getLibrary, getTrackPage, trackColumns } from './library-repository';
-import { findLoudnessAnalysis, saveTrackLoudness } from './loudness-repository';
+import { findLoudnessAnalysis, findTracksToMeasure, saveTrackLoudness } from './loudness-repository';
 import addTrack from '../library/scan/add-track';
 import executeQuery from '../database/execute-query';
 import { createTestDatabase } from '../test-database';
@@ -162,6 +162,54 @@ describe('loudnessRepository', () => {
       const found = await Promise.all(['failed', 'stale', 'old', 'gone'].map((name) => findLoudnessAnalysis(database, `/music/${name}.flac`, 1)));
 
       expect(found).toEqual([undefined, undefined, undefined, undefined]);
+    });
+  });
+
+  describe('the tracks to measure', () => {
+    const toMeasure = async (afterPath = '', limit = 100, version = 1) =>
+      (await findTracksToMeasure(database, afterPath, limit, version)).map((found) => found.path);
+
+    it('are the tracks with no row, in the order of their paths, after a path and up to a limit', async () => {
+      await Promise.all(['/music/c.flac', '/music/a.flac', '/music/b.flac'].map((path) => addTrack(database, track(path))));
+
+      expect(await toMeasure()).toEqual(['/music/a.flac', '/music/b.flac', '/music/c.flac']);
+      expect(await toMeasure('/music/a.flac')).toEqual(['/music/b.flac', '/music/c.flac']);
+      expect(await toMeasure('', 2)).toEqual(['/music/a.flac', '/music/b.flac']);
+    });
+
+    it('carry what the measurement needs of the track: its length, its file and the gains of its tags', async () => {
+      await addTrack(database, track('/music/a.flac', { duration: 200, trackGain: -3, trackPeak: 0.9 }));
+
+      expect(await findTracksToMeasure(database, '', 10, 1)).toEqual([
+        { path: '/music/a.flac', duration: 200, fileModified: 100, fileSize: 1000, trackGain: -3, trackPeak: 0.9 },
+      ]);
+    });
+
+    it('leave out a track that was measured, and one that failed, as the file is now', async () => {
+      await Promise.all(['/music/ok.flac', '/music/failed.flac', '/music/new.flac'].map((path) => addTrack(database, track(path))));
+      await saveTrackLoudness(database, measured('/music/ok.flac'));
+      await saveTrackLoudness(database, measured('/music/failed.flac', { status: 'failed', analysis: null }));
+
+      expect(await toMeasure()).toEqual(['/music/new.flac']);
+    });
+
+    it('take a track again when its file changed since, by the modification time or by the size, and when the version of the analysis rose', async () => {
+      await addTrack(database, track('/music/time.flac', { fileModified: 200 }));
+      await addTrack(database, track('/music/size.flac', { fileSize: 2000 }));
+      await addTrack(database, track('/music/old.flac'));
+      await saveTrackLoudness(database, measured('/music/time.flac'));
+      await saveTrackLoudness(database, measured('/music/size.flac'));
+      await saveTrackLoudness(database, measured('/music/old.flac'));
+      expect(await toMeasure()).toEqual(['/music/size.flac', '/music/time.flac']);
+
+      expect(await toMeasure('', 100, 2)).toEqual(['/music/old.flac', '/music/size.flac', '/music/time.flac']);
+    });
+
+    it('take a failed track again when its file changed', async () => {
+      await addTrack(database, track('/music/a.flac', { fileSize: 2000 }));
+      await saveTrackLoudness(database, measured('/music/a.flac', { status: 'failed', analysis: null }));
+
+      expect(await toMeasure()).toEqual(['/music/a.flac']);
     });
   });
 

@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Database } from 'sqlite3';
 import type { IpcMainEvent } from 'electron';
 import type { ListenerContext } from './listener-context';
 import registerArtistPhotoListeners from './register-artist-photo-listeners';
-import { createTestDatabase } from '../test-database';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
 
 const listeners = new Map<string, Listener>();
 const enqueue = vi.fn();
 
+// the database is not used by what is tested: the queue that would use it is replaced too
+vi.mock('sqlite3', () => ({ Database: class {} }));
 vi.mock('electron', () => ({
   ipcMain: { on: (channel: string, listener: Listener) => listeners.set(channel, listener) },
 }));
@@ -16,12 +18,11 @@ vi.mock('../services/artist-photos', () => ({ createArtistPhotoQueue: () => ({ e
 
 describe('registerArtistPhotoListeners', () => {
   const event = { sender: { send: vi.fn(), isDestroyed: () => false } } as unknown as IpcMainEvent;
-  let context: ListenerContext;
+  const context = { database: new Database(':memory:') } as unknown as ListenerContext;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     listeners.clear();
     enqueue.mockReset().mockResolvedValue(undefined);
-    context = { database: await createTestDatabase() } as unknown as ListenerContext;
   });
 
   it('looks up the names a window asks for, and leaves out what is not a name', () => {

@@ -7,15 +7,22 @@ import type { Database } from 'sqlite3';
 import addTrack from '../scan/add-track';
 import executeQuery from '../../database/execute-query';
 import { getAlbumArtAccents, queueAlbumArtAccents, storeAlbumArtAccents } from './album-art-accents';
-import { backgroundQueue, scanKind } from '../tasks/background-queue';
+import { backgroundQueue } from '../tasks/background-queue';
 import { getAlbumPage, getGroupPage } from '../../repositories/library-repository';
 import { createTestDatabase } from '../../test-database';
+import type { Task } from '../tasks/task-queue';
 import type { Track } from '@shared/types/library';
 
 const picture = (colour: { r: number; g: number; b: number }) =>
   sharp({ create: { width: 64, height: 64, channels: 3, background: colour } })
     .png()
     .toBuffer();
+
+// the queue is the one of the app: the test asks the task what it would do, and runs it, so no queue runs and nothing waits
+vi.mock('../tasks/background-queue', () => ({
+  scanKind: 'scan',
+  backgroundQueue: { enqueue: vi.fn(), isBusy: vi.fn() },
+}));
 
 describe('album art accents', () => {
   let database: Database;
@@ -47,17 +54,37 @@ describe('album art accents', () => {
 
   afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
 
-  it('picks the colours through the background queue, after the scan that queued it', async () => {
+  it('puts the picking of the colours on the background queue, which waits for a scan to end', async () => {
+    vi.mocked(backgroundQueue.enqueue).mockReset();
+    vi.mocked(backgroundQueue.isBusy).mockReset();
     await addTrack(database, track('one', 'Red', 'red.png'));
-    const endScan = backgroundQueue.begin(scanKind);
-    backgroundQueue.start();
 
     queueAlbumArtAccents(database);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const task: Task = vi.mocked(backgroundQueue.enqueue).mock.calls[0][0];
+    expect(task).toMatchObject({ kind: 'album-art', key: 'album-art-accents' });
+    vi.mocked(backgroundQueue.isBusy).mockReturnValue(true);
+    expect(await task.canRun?.()).toBe(false);
+    expect(backgroundQueue.isBusy).toHaveBeenCalledWith('scan');
     expect(await stored()).toEqual([]);
 
-    endScan();
-    await vi.waitFor(async () => expect(await stored()).toEqual([{ picture: 'red.png', accent: '#dc2828' }]), { timeout: 5000 });
+    vi.mocked(backgroundQueue.isBusy).mockReturnValue(false);
+    expect(await task.canRun?.()).toBe(true);
+    await task.run(new AbortController().signal);
+    expect(await stored()).toEqual([{ picture: 'red.png', accent: '#dc2828' }]);
+  });
+
+  it('does not fail the queue when the colours cannot be picked', async () => {
+    vi.mocked(backgroundQueue.enqueue).mockReset();
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await executeQuery(database, { query: 'DROP TABLE album_art', variables: [] });
+
+    await addTrack(database, track('one', 'Red', 'red.png'));
+    queueAlbumArtAccents(database);
+    const task: Task = vi.mocked(backgroundQueue.enqueue).mock.calls[0][0];
+
+    await expect(task.run(new AbortController().signal)).resolves.toBeUndefined();
+    expect(error).toHaveBeenCalledWith('Picking the colours of the album art failed', expect.anything());
   });
 
   it('picks the colour of each picture of the library once, and keeps none for a grey or an unreadable picture', async () => {

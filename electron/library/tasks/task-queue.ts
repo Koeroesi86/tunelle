@@ -96,14 +96,12 @@ export const createTaskQueue = (pause = 2000) => {
   };
 
   /** The task to run: the most important of the queued ones and the sources that may run, a queued task before a source of the same priority */
-  const pick = async () => {
-    const candidates = [...queued.map(fromQueue), ...[...sources].map(fromSource)].sort((a, b) => b.priority - a.priority);
-    for (const candidate of candidates) {
-      const task = await allowed(candidate);
-      if (task) return task;
-    }
-    return undefined;
+  const firstAllowed = async (candidates: Candidate[]): Promise<Task | undefined> => {
+    const [candidate, ...rest] = candidates;
+    return candidate && ((await allowed(candidate)) ?? firstAllowed(rest));
   };
+
+  const pick = () => firstAllowed([...queued.map(fromQueue), ...[...sources].map(fromSource)].sort((a, b) => b.priority - a.priority));
 
   const execute = async (task: Task) => {
     enter(task.kind);
@@ -117,12 +115,13 @@ export const createTaskQueue = (pause = 2000) => {
       return undefined;
     });
 
+  const step = async () => {
+    const task = await pickSafely();
+    return task ? execute(task) : rest();
+  };
+
   const loop = async () => {
-    while (!stopping.signal.aborted) {
-      const task = await pickSafely();
-      if (task) await execute(task);
-      else await rest();
-    }
+    while (!stopping.signal.aborted) await step();
   };
 
   return {
