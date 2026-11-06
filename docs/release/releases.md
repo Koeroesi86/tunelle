@@ -16,4 +16,4 @@ It is valid semver for electron-updater: no zero padded month and no prerelease 
 
 ## Pull requests and `master`
 
-`master` requires up to date branches. Pull requests with auto-merge on are rebased onto `master` one at a time, the first one whose auto-merge was enabled that is behind (`rebase-auto-merge.yml`, `scripts/release/rebase-auto-merge.js`). The state of the checks is not looked at, as one cancelled check that is not required makes the whole state a failure; a pull request with a conflict is skipped. It pushes with the `GH_REBASE_TOKEN` secret, as a push with `GITHUB_TOKEN` starts no checks.
+`master` requires up to date branches. Pull requests with auto-merge on are rebased onto `master` one at a time: only the one whose auto-merge was enabled first is looked at, and it is rebased when it is behind (`rebase-auto-merge.yml`, `scripts/release/rebase-auto-merge.js`). The ones after it wait until it merges or its auto-merge is turned off, also when its checks fail or it has a conflict, so that the author fixes it first. The state of the checks is not looked at. It pushes with the `GH_REBASE_TOKEN` secret, as a push with `GITHUB_TOKEN` starts no checks.

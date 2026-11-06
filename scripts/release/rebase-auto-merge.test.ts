@@ -14,10 +14,10 @@ describe('queue', () => {
     expect(queue(pullRequests).map((item: { number: number }) => item.number)).toEqual([2, 3, 1]);
   });
 
-  it('ignores pull requests without auto-merge and the ones with a conflict, not the state of their checks', () => {
+  it('ignores pull requests without auto-merge, and keeps the ones with a conflict', () => {
     const pullRequests = [pullRequest(1), pullRequest(2, '2026-11-02T08:00:00Z', { mergeable: 'CONFLICTING' }), pullRequest(3, '2026-11-02T09:00:00Z')];
 
-    expect(queue(pullRequests).map((item: { number: number }) => item.number)).toEqual([3]);
+    expect(queue(pullRequests).map((item: { number: number }) => item.number)).toEqual([2, 3]);
   });
 });
 
@@ -37,18 +37,30 @@ describe('run', () => {
     });
   });
 
-  it('leaves a pull request that is up to date and takes the next one that is behind', async () => {
-    const second = { ...pullRequest(8, '2026-11-02T09:00:00Z'), headRefOid: 'def' };
-    const request = vi.fn(async (path: string) =>
-      path === '/graphql' ? { data: { repository: { pullRequests: { nodes: [waiting, second] } } } } : { behind_by: path.endsWith('abc') ? 0 : 2 }
+  const second = { ...pullRequest(8, '2026-11-02T09:00:00Z'), headRefOid: 'def' };
+  const createPair = (first: object) =>
+    vi.fn(async (path: string) =>
+      path === '/graphql' ? { data: { repository: { pullRequests: { nodes: [second, first] } } } } : { behind_by: path.endsWith('def') ? 2 : 0 }
     );
+
+  it('waits for the first pull request while it is up to date, and leaves the next one behind', async () => {
+    const request = createPair(waiting);
 
     await run(request, 'owner/name', 'master');
 
-    expect(request).toHaveBeenLastCalledWith('/repos/owner/name/pulls/8/update-branch', expect.anything());
+    expect(request).not.toHaveBeenCalledWith(expect.stringContaining('update-branch'), expect.anything());
+    expect(request).toHaveBeenCalledTimes(2);
   });
 
-  it('does nothing when every pull request is up to date', async () => {
+  it('waits for the first pull request while it has a conflict, and leaves the next one behind', async () => {
+    const request = createPair({ ...waiting, mergeable: 'CONFLICTING' });
+
+    await run(request, 'owner/name', 'master');
+
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing when the first pull request is up to date', async () => {
     const request = createFake();
 
     await run(request, 'owner/name', 'master');

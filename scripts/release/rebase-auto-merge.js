@@ -1,6 +1,6 @@
 // usage: node scripts/release/rebase-auto-merge.js    rebases the pull request whose auto-merge was enabled first onto master, when it is behind
-// master requires up to date branches, so with auto-merge on several pull requests every merge leaves the others behind: this rebases one at a time, in
-// the order the auto-merge was enabled, and its CI result lets GitHub merge it, which moves master and starts the next one (rebase-auto-merge.yml)
+// master requires up to date branches, so with auto-merge on several pull requests every merge leaves the others behind: only the first one in the order the
+// auto-merge was enabled is looked at, and the ones behind it wait until it merges, or until its auto-merge is off (rebase-auto-merge.yml)
 const query = `query ($owner: String!, $name: String!, $base: String!) {
   repository(owner: $owner, name: $name) {
     pullRequests(states: OPEN, baseRefName: $base, first: 100) {
@@ -14,10 +14,10 @@ const query = `query ($owner: String!, $name: String!, $base: String!) {
   }
 }`
 
-// the checks are not looked at, as a cancelled check that is not required fails the rollup: a conflict needs a push of its author and must not hold the ones behind it
+// the checks are not looked at: a pull request that fails or conflicts holds the ones behind it until its author fixes it or turns its auto-merge off
 const queue = (pullRequests) =>
   pullRequests
-    .filter((pullRequest) => pullRequest.autoMergeRequest && pullRequest.mergeable !== 'CONFLICTING')
+    .filter((pullRequest) => pullRequest.autoMergeRequest)
     .sort((a, b) => a.autoMergeRequest.enabledAt.localeCompare(b.autoMergeRequest.enabledAt))
 
 const createRequest = (token) => async (path, options) => {
@@ -35,19 +35,18 @@ const run = async (request, repository, base) => {
   const { data, errors } = await request('/graphql', { method: 'POST', body: JSON.stringify({ query, variables: { owner, name, base } }) })
   if (errors) throw new Error(`GraphQL: ${JSON.stringify(errors)}`)
 
-  for (const next of queue(data.repository.pullRequests.nodes)) {
-    const { behind_by: behindBy } = await request(`/repos/${repository}/compare/${base}...${next.headRefOid}`)
-    if (behindBy === 0) {
-      console.log(`#${next.number} is up to date, looking at the next one`)
-      continue
-    }
-    await request(`/repos/${repository}/pulls/${next.number}/update-branch`, {
-      method: 'PUT',
-      body: JSON.stringify({ expected_head_sha: next.headRefOid, update_method: 'rebase' })
-    })
-    return console.log(`Rebased #${next.number}, ${behindBy} commits behind ${base}`)
-  }
-  console.log('No pull request with auto-merge is behind')
+  const [next] = queue(data.repository.pullRequests.nodes)
+  if (!next) return console.log('No pull request has auto-merge on')
+  if (next.mergeable === 'CONFLICTING') return console.log(`#${next.number} has a conflict, the queue waits for its author`)
+
+  const { behind_by: behindBy } = await request(`/repos/${repository}/compare/${base}...${next.headRefOid}`)
+  if (behindBy === 0) return console.log(`#${next.number} is up to date, the queue waits for it to merge`)
+
+  await request(`/repos/${repository}/pulls/${next.number}/update-branch`, {
+    method: 'PUT',
+    body: JSON.stringify({ expected_head_sha: next.headRefOid, update_method: 'rebase' })
+  })
+  console.log(`Rebased #${next.number}, ${behindBy} commits behind ${base}`)
 }
 
 if (require.main === module) {
