@@ -349,6 +349,61 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(stored).toEqual([expect.objectContaining({ status: 'measured' })]);
     });
 
+    describe('a measurement that times out', () => {
+      const timeout: Measurement = { outcome: 'timeout' };
+
+      it('is tried again after the rest, and stored as failed when it timed out three times in a row', async () => {
+        await addTrack(database, track('/music/a.flac'));
+        measure.mockResolvedValue(timeout);
+        register();
+
+        await elapse(5000);
+        await elapse(65_000);
+        expect(measure).toHaveBeenCalledTimes(2);
+        expect(await rows()).toEqual([]);
+        await elapse(65_000);
+
+        expect(measure).toHaveBeenCalledTimes(3);
+        expect(await rows()).toEqual([expect.objectContaining({ status: 'failed', reason: 'timeout', analysis: null })]);
+        await elapse(65_000);
+        expect(measure).toHaveBeenCalledTimes(3);
+      });
+
+      it('starts the count again after a measurement that went through', async () => {
+        await addTrack(database, track('/music/a.flac'));
+        measure
+          .mockResolvedValueOnce(timeout)
+          .mockResolvedValueOnce(timeout)
+          .mockResolvedValueOnce({ id: 1, outcome: 'unreadable' })
+          .mockResolvedValue(timeout);
+        register();
+
+        // two timeouts, an unreadable file, and two more timeouts: never three in a row
+        await elapse(5000);
+        await elapse(65_000);
+        await elapse(65_000);
+        await elapse(65_000);
+        await elapse(65_000);
+
+        expect(measure).toHaveBeenCalledTimes(5);
+        expect(await rows()).toEqual([]);
+      });
+
+      it('does not count a page that did not load', async () => {
+        await addTrack(database, track('/music/a.flac'));
+        measure.mockResolvedValue({ outcome: 'unavailable' });
+        register();
+
+        await elapse(5000);
+        await elapse(65_000);
+        await elapse(65_000);
+        await elapse(65_000);
+
+        expect(measure.mock.calls.length).toBeGreaterThanOrEqual(3);
+        expect(await rows()).toEqual([]);
+      });
+    });
+
     it('gives the window the length of the track, which decodes a long one in pieces', async () => {
       library = [track('/music/mix.flac', { duration: 7200 })];
       register();

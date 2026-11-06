@@ -4,14 +4,13 @@ import { BrowserWindow, ipcMain } from 'electron';
 import type { IpcMainEvent } from 'electron';
 import type { MeasureResult } from '@shared/types/loudness';
 import lockNavigation from '../../windows/lock-navigation';
+import { measureTimeout } from './measure-timeout';
 
-/** What a measurement gives: the answer of the page, or why there is none (the window crashed, or did not answer in time) */
-export type Measurement = MeasureResult | { outcome: 'crashed' | 'timeout' };
+/** What a measurement gives: the answer of the page, or why there is none: the window crashed, the track did not answer in time, or the page did not load */
+export type Measurement = MeasureResult | { outcome: 'crashed' | 'timeout' | 'unavailable' };
 
 /** The window is made again after this many files, which gives back the memory that decoding took */
 const filesPerWindow = 50;
-/** A file that takes longer than this has a drive that does not answer; its window is closed, and the file is tried again later */
-const measureTimeout = 300_000;
 /** The page has this long to load and say it is ready */
 const pageTimeout = 30_000;
 
@@ -104,7 +103,7 @@ export const createLoudnessWindow = (pageUrl: string) => {
 
   const ask = (current: BrowserWindow, id: number, path: string, duration: number | undefined) =>
     new Promise<Measurement>((resolveAsk) => {
-      const timer = setTimeout(() => resolveAsk({ outcome: 'timeout' }), measureTimeout);
+      const timer = setTimeout(() => resolveAsk({ outcome: 'timeout' }), measureTimeout(duration));
       const settle = (measurement: Measurement) => {
         clearTimeout(timer);
         resolveAsk(measurement);
@@ -120,7 +119,7 @@ export const createLoudnessWindow = (pageUrl: string) => {
       const current = window ?? open();
       if (!(await ready)) {
         close();
-        return { outcome: 'timeout' };
+        return { outcome: 'unavailable' };
       }
       measured += 1;
 
