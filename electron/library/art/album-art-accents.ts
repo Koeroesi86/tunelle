@@ -6,6 +6,7 @@ import executeQuery from '../../database/execute-query';
 import { sampleSize } from '@shared/constants/accent';
 import { getAlbumArtFolder } from '../../utils/album-art-folder';
 import { mapAsync } from '@shared/utils/map-async';
+import { backgroundQueue, scanKind } from '../tasks/background-queue';
 
 /** Pictures written to the table in one statement, so a long run is saved as it goes */
 const chunkSize = 100;
@@ -46,6 +47,16 @@ export const storeAlbumArtAccents = async (database: Database) => {
   const chunks = Array.from({ length: Math.ceil(pictures.length / chunkSize) }, (_, index) => pictures.slice(index * chunkSize, (index + 1) * chunkSize));
   await mapAsync(chunks, (chunk) => storeChunk(database, chunk));
 };
+
+/** Puts the picking of the colours on the background queue, after the scans: a failure leaves the pictures without a colour, which the next scan or start picks again. See docs/app/task-queue.md */
+export const queueAlbumArtAccents = (database: Database) =>
+  backgroundQueue.enqueue({
+    kind: 'album-art',
+    key: 'album-art-accents',
+    priority: 2,
+    canRun: () => !backgroundQueue.isBusy(scanKind),
+    run: () => storeAlbumArtAccents(database).catch((error) => console.error('Picking the colours of the album art failed', error)),
+  });
 
 /** The colour of each picture of a list that has one, by the name of the picture */
 export const getAlbumArtAccents = async (database: Database, pictures: (string | null)[]) => {

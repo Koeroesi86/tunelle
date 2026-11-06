@@ -2,11 +2,12 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import sharp from 'sharp';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Database } from 'sqlite3';
 import addTrack from '../scan/add-track';
 import executeQuery from '../../database/execute-query';
-import { getAlbumArtAccents, storeAlbumArtAccents } from './album-art-accents';
+import { getAlbumArtAccents, queueAlbumArtAccents, storeAlbumArtAccents } from './album-art-accents';
+import { backgroundQueue, scanKind } from '../tasks/background-queue';
 import { getAlbumPage, getGroupPage } from '../../repositories/library-repository';
 import { createTestDatabase } from '../../test-database';
 import type { Track } from '@shared/types/library';
@@ -45,6 +46,19 @@ describe('album art accents', () => {
   });
 
   afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  it('picks the colours through the background queue, after the scan that queued it', async () => {
+    await addTrack(database, track('one', 'Red', 'red.png'));
+    const endScan = backgroundQueue.begin(scanKind);
+    backgroundQueue.start();
+
+    queueAlbumArtAccents(database);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(await stored()).toEqual([]);
+
+    endScan();
+    await vi.waitFor(async () => expect(await stored()).toEqual([{ picture: 'red.png', accent: '#dc2828' }]), { timeout: 5000 });
+  });
 
   it('picks the colour of each picture of the library once, and keeps none for a grey or an unreadable picture', async () => {
     await addTrack(database, track('one', 'Red', 'red.png'));

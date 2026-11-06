@@ -9,6 +9,7 @@ import addFoldersToLibrary from './add-folders-to-library';
 import executeQuery from '../../database/execute-query';
 import scanFolders from './scan-folders';
 import { createTestDatabase } from '../../test-database';
+import { backgroundQueue } from '../tasks/background-queue';
 
 vi.mock('./scan-folders', () => ({ default: vi.fn() }));
 
@@ -25,6 +26,7 @@ describe('addFoldersToLibrary', () => {
     Promise.all(paths.map((p) => executeQuery(database, { query: 'INSERT INTO folders (path, lastModified) VALUES (?, 1)', variables: [p] })));
 
   beforeEach(async () => {
+    backgroundQueue.start();
     send.mockReset();
     vi.mocked(scanFolders).mockReset().mockResolvedValue([]);
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-add-'));

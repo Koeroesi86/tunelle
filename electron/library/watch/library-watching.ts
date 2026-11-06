@@ -7,6 +7,10 @@ import { createRescanScheduler } from '../scan/rescan-scheduler';
 import rescanChanges from '../scan/rescan-changes';
 import rescanLibrary from '../scan/rescan-library';
 import { getSettings } from '../../repositories/settings-repository';
+import { queueTask } from '../tasks/queue-task';
+
+const watchKind = 'watch';
+const watchPriority = 5;
 
 interface Watching {
   database: Database;
@@ -56,7 +60,8 @@ export const startLibraryWatching = async (database: Database, sender: WebConten
 
 /** Look at the watched folders for a change the watch did not report, as on a network drive; a look a moment ago is not repeated */
 export const checkLibraryWatching = async () => {
-  await watching?.watcher.check();
+  const current = watching;
+  if (current) await queueTask(watchKind, 'check-library-watching', watchPriority, () => current.watcher.check());
 };
 
 /** Follow the setting of the window */

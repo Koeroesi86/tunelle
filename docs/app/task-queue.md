@@ -15,8 +15,19 @@ The queue runs one task at a time. The most important goes first; tasks of the s
 
 A running task is not interrupted by a more important one: it ends, and the queue goes on with the new one. A task that takes long looks at its `signal` between its steps, which is aborted when the queue stops (`stop` also drops the tasks that wait, and answers when the running one is over).
 
-## Work outside the queue
+## Tasks on the queue
 
-A scan of the library runs by itself (`rescan-scheduler.ts`, `scan-cancellation.ts`) and tells the queue with `begin('scan')`, which comes back with a function that ends it: `trackScan` and `rescanLibrary` do. `isBusy(kind)` and `idleFor(kind)` tell what is going on, so work that must wait for the disk can wait for the scans to be over for a while. `idleFor` counts from the start of the queue for a kind that has not been busy yet.
+- The loudness measurement is a source (`loudness-source.ts`), at priority 1.
+- Picking the colours of the album pictures (`queueAlbumArtAccents`) is a task of the kind `album-art` at priority 2, queued at the end of a scan and run once no scan is going on. A scan no longer waits for it.
 
-A later change can move the scans themselves onto the queue as tasks of the highest priority, without a change to it.
+## Scans and the watching of the folders
+
+The work of the library is queued with `queueTask` (`queue-task.ts`), which answers when the task is over and shares the answer between callers of a key that waits:
+
+- `rescanLibrary` (the scan at start, a forced one, the folders that came back), `rescanChanges` (what the folder watcher reported, after its quiet time) and the scan of the folders that are added are tasks of the kind `scan` at priority 10, so they come before any other work and never run two at once. A rescan that waits is shared, and is complete when any of the callers asked for it.
+- The look at the watched folders for a change that the watch did not report (`checkLibraryWatching`) is a task of the kind `watch` at priority 5.
+- A task never waits for another queued task, as the queue runs one at a time: `scanFolder` and `scanFolders` run inside the task of their caller.
+
+`trackScan` still tells the queue with `begin('scan')` for each folder it scans, and `isBusy(kind)` and `idleFor(kind)` tell what is going on, so work that must wait for the disk waits for the scans to be over for a while. `idleFor` counts from the start of the queue for a kind that has not been busy yet.
+
+The watcher of the folders itself (`folder-watcher.ts`) only reports what the system tells it and does no work of its own; what it reports is scheduled by `rescan-scheduler.ts` and scanned as a task.

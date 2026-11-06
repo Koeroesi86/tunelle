@@ -10,6 +10,7 @@ import { getLibrary } from '../../repositories/library-repository';
 import rescanChanges from './rescan-changes';
 import scanFolder from './scan-folder';
 import { createTestDatabase } from '../../test-database';
+import { backgroundQueue } from '../tasks/background-queue';
 
 vi.mock('./scan-folder', () => ({ default: vi.fn() }));
 
@@ -39,6 +40,7 @@ describe('rescanChanges', () => {
   };
 
   beforeEach(async () => {
+    backgroundQueue.start();
     vi.mocked(scanFolder).mockReset().mockResolvedValue(0);
     vi.mocked(sender.send).mockReset();
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-changes-'));

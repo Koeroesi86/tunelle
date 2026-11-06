@@ -9,6 +9,8 @@ import type { Change } from '../watch/library-change';
 import { findMissingTracks } from './missing-tracks';
 import scanFolder from './scan-folder';
 import { mapAsync } from '@shared/utils/map-async';
+import { scanKind } from '../tasks/background-queue';
+import { queueTask, scanPriority } from '../tasks/queue-task';
 
 const isDirectory = (folderPath: string) =>
   fs.promises.stat(folderPath).then(
@@ -22,7 +24,7 @@ const tracksAt = (database: Database) => async (change: Change) => {
 };
 
 /** Scan the places that changed and remove the tracks that are gone from them, which costs what changed and not the size of the library; the tracks below an offline folder are kept, its files cannot be told from missing ones */
-async function rescanChanges(sender: WebContents, changes: Change[]) {
+async function scanChanges(sender: WebContents, changes: Change[]) {
   const database = global._database;
   if (!database) return;
 
@@ -46,5 +48,8 @@ async function rescanChanges(sender: WebContents, changes: Change[]) {
     console.error(e);
   }
 }
+
+/** Queue the scan of the places that changed as work of the background queue, and answer when it is over */
+const rescanChanges = (sender: WebContents, changes: Change[]) => queueTask(scanKind, 'rescan-changes', scanPriority, () => scanChanges(sender, changes));
 
 export default rescanChanges;

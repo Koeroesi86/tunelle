@@ -7,6 +7,7 @@ import { getFolders } from '../../repositories/library-repository';
 import { getSettings } from '../../repositories/settings-repository';
 import rescanChanges from '../scan/rescan-changes';
 import rescanLibrary from '../scan/rescan-library';
+import { backgroundQueue } from '../tasks/background-queue';
 
 const folderWatcher = vi.hoisted(() => ({
   update: vi.fn(async () => undefined),
@@ -34,6 +35,7 @@ describe('libraryWatching', () => {
   const folders = ['/music', '/usb'].map((path) => ({ path, lastModified: 0 }));
 
   beforeEach(() => {
+    backgroundQueue.start();
     vi.useFakeTimers();
     handlers.clear();
     folderWatcher.update.mockReset().mockResolvedValue(undefined);
