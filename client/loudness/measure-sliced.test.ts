@@ -1,131 +1,259 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { measureBlocks } from './block-energies';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createBlockMeter } from './block-energies';
 import { measurementRate } from './k-weighting';
 import { measureSliced } from './measure-sliced';
-import { page } from './slicing/ogg-fixture';
+import { readBody } from './read-body';
+import { slicerOf } from './slicing/slice-file';
+import { NotSliceable, SliceError } from './slicing/types';
+import type { ReadRange, Slice } from './slicing/types';
 import { summarise } from './summarise';
 
-const ascii = (text: string) => [...text].map((letter) => letter.charCodeAt(0));
-const u32 = (value: number) => [value & 255, (value >> 8) & 255, (value >> 16) & 255, (value >>> 24) & 255];
-const u16 = (value: number) => [value & 255, value >> 8];
+// what measureSliced works with is replaced: the slicer of the format, the meter, the summary, the reading of a body and the fetch of the page
+vi.mock('./slicing/slice-file', () => ({ slicerOf: vi.fn() }));
+vi.mock('./block-energies', () => ({ createBlockMeter: vi.fn() }));
+vi.mock('./summarise', () => ({ summarise: vi.fn() }));
+vi.mock('./read-body', () => ({ readBody: vi.fn() }));
 
-/** A WAV file of 16 bit stereo samples at the measuring rate */
-const wavOf = (samples: Int16Array) => {
-  const sound = new Uint8Array(samples.buffer);
-  const header = [
-    ...ascii('RIFF'),
-    ...u32(36 + sound.length),
-    ...ascii('WAVE'),
-    ...ascii('fmt '),
-    ...u32(16),
-    ...u16(1),
-    ...u16(2),
-    ...u32(measurementRate),
-    ...u32(measurementRate * 4),
-    ...u16(4),
-    ...u16(16),
-    ...ascii('data'),
-    ...u32(sound.length),
-  ];
-  return Uint8Array.from([...header, ...sound]);
+const url = 'tunelle://app/track?path=a';
+const stats = { energies: new Float64Array(3), peak: 0.5, channels: 2 };
+const summary = { analysis: { integratedLufs: -20 }, trackGain: 2, trackPeak: 0.5 };
+
+type Pieces = (read: ReadRange) => AsyncGenerator<Slice>;
+
+/** The slicer of the test gives these pieces, one after the other */
+const slicing = (...slices: Slice[]) => {
+  const slicer = vi.fn((_read: ReadRange, _size: number, _sliceBytes: number) =>
+    (async function* () {
+      yield* slices;
+    })()
+  );
+  vi.mocked(slicerOf).mockResolvedValue(slicer);
+  return slicer;
 };
 
-const seconds = 20;
-/** A tone that is louder in the second half, in both channels */
-const frames = Array.from({ length: seconds * measurementRate }, (_, index) => {
-  const level = index < (seconds * measurementRate) / 2 ? 3000 : 12_000;
-  return Math.round(level * Math.sin((2 * Math.PI * 440 * index) / measurementRate));
+/** The slicer of the test runs what it is given: it can read, and it can fail */
+const slicingWith = (pieces: Pieces) => vi.mocked(slicerOf).mockResolvedValue((read) => pieces(read));
+
+const piece = (skip = 0, extra: Partial<Slice> = {}): Slice => ({ bytes: Uint8Array.of(1, 2, 3), skip, ...extra });
+
+/** A decoded piece of two seconds in which each sample is its number, so what was left out of it shows */
+const decoded = (channels = 2) => ({
+  numberOfChannels: channels,
+  getChannelData: () => Float32Array.from({ length: 2 * measurementRate }, (_, index) => index),
 });
-const stereo = Int16Array.from(frames.flatMap((value) => [value, value]));
-const file = wavOf(stereo);
 
-/** The decoder of the test reads the 16 bit samples of the WAV file it is given, as the browser decodes one */
-const decode = async (bytes: ArrayBuffer) => {
-  const samples = new Int16Array(bytes.slice(44));
-  const channels = [0, 1].map((channel) => Float32Array.from({ length: samples.length / 2 }, (_, index) => samples[index * 2 + channel] / 32768));
-  return { numberOfChannels: 2, getChannelData: (channel: number) => channels[channel] };
-};
-
-const serve = (bytes: Uint8Array, status = 206) =>
+const answer = (total: number | undefined, status = 206) =>
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (_: string, init?: RequestInit) => {
-      const [start, end] = new Headers(init?.headers).get('Range')?.match(/\d+/g)?.map(Number) ?? [0, bytes.length - 1];
-      const piece = bytes.slice(start, end + 1);
-      return new Response(piece, { status, headers: { 'Content-Range': `bytes ${start}-${start + piece.length - 1}/${bytes.length}` } });
-    })
+    vi.fn(async () => new Response(undefined, { status, headers: total === undefined ? {} : { 'Content-Range': `bytes 0-0/${total}` } }))
   );
 
-afterEach(() => vi.unstubAllGlobals());
+type Decode = (bytes: ArrayBuffer) => Promise<ReturnType<typeof decoded> | undefined>;
+
+interface Options {
+  decode?: Decode;
+  /** The length of the track in seconds, undefined when it is not known */
+  duration?: number | undefined;
+  progress?: () => void;
+}
+
+/** A duration that is not given is 1000 s, one that is given as undefined is a track of which the length is not known */
+const measure = (options: Options = {}) =>
+  measureSliced(1, url, 'duration' in options ? options.duration : 1000, options.decode ?? (async () => decoded()), options.progress ?? vi.fn());
 
 describe('measureSliced', () => {
-  it('gives the loudness of the whole file for a file that is decoded in pieces', async () => {
-    serve(file);
-    const whole = summarise([
-      measureBlocks([0, 1].map((channel) => Float32Array.from({ length: frames.length }, (_, index) => stereo[index * 2 + channel] / 32768))),
-    ]);
+  const meter = { push: vi.fn<(channels: Float32Array[]) => boolean>(), finish: vi.fn() };
 
-    // a file of 3.8 MB for the 1000 s that are given is cut in pieces of 1.15 MB
-    const decoder = vi.fn(decode);
-    const result = await measureSliced(1, 'tunelle://app/track?path=a', 1000, decoder, vi.fn());
-
-    expect(decoder).toHaveBeenCalledTimes(4);
-    expect(result).toMatchObject({ outcome: 'measured' });
-    if (result.outcome !== 'measured' || !whole) return;
-    expect(result.analysis.integratedLufs).toBeCloseTo(whole.analysis.integratedLufs, 6);
-    expect(result.analysis.loudnessRange).toBeCloseTo(whole.analysis.loudnessRange, 6);
-    expect(result.trackPeak).toBe(whole.trackPeak);
+  beforeEach(() => {
+    vi.resetAllMocks();
+    meter.push.mockReturnValue(true);
+    meter.finish.mockReturnValue(stats);
+    vi.mocked(createBlockMeter).mockReturnValue(meter);
+    vi.mocked(summarise).mockReturnValue(summary as ReturnType<typeof summarise>);
+    vi.mocked(readBody).mockResolvedValue(new Uint8Array(1));
+    answer(3_800_000);
   });
 
-  it('tells that it makes progress while it reads and decodes the pieces', async () => {
-    serve(file);
-    const progress = vi.fn();
+  afterEach(() => vi.unstubAllGlobals());
 
-    await measureSliced(1, 'tunelle://app/track?path=a', 1000, decode, progress);
+  describe('the pieces', () => {
+    it('asks the size of the file with a range of one byte, and gives it to the slicer of the format with the reader of the ranges', async () => {
+      const slicer = slicing(piece());
 
-    // a chunk is told as it is read, and each of the 4 pieces as it is measured
-    expect(progress.mock.calls.length).toBeGreaterThanOrEqual(4 + 4);
+      await measure();
+
+      expect(fetch).toHaveBeenNthCalledWith(1, url, { headers: { Range: 'bytes=0-0' } });
+      expect(slicerOf).toHaveBeenCalledTimes(1);
+      expect(slicer).toHaveBeenCalledWith(expect.any(Function), 3_800_000, expect.any(Number));
+    });
+
+    it.each([
+      ['about 300 s of the file', 1000, 3_800_000, 1_140_000],
+      ['at least 1 MiB, for a short file', 1000, 100_000, 1024 * 1024],
+      ['at most 256 MiB, for a file that is dense', 1, 3_800_000_000, 256 * 1024 * 1024],
+      ['16 MiB for a file of which the length is not known', undefined, 3_800_000, 16 * 1024 * 1024],
+    ])('cuts %s', async (_, duration, total, expected) => {
+      answer(total);
+      const slicer = slicing(piece());
+
+      await measure({ duration });
+
+      expect(slicer).toHaveBeenCalledWith(expect.anything(), total, expected);
+    });
+
+    it('reads a range of the file as the answer to a request for its bytes, and tells the progress of the body', async () => {
+      const progress = vi.fn();
+      slicingWith(async function* (read) {
+        await read(10, 20);
+        yield piece();
+      });
+
+      await measure({ progress });
+
+      expect(fetch).toHaveBeenLastCalledWith(url, { headers: { Range: 'bytes=10-19' } });
+      expect(readBody).toHaveBeenCalledWith(expect.any(Response), progress);
+    });
   });
 
-  it('is too large for a format that is not cut', async () => {
-    serve(Uint8Array.from([...ascii('MAC '), ...new Array(100).fill(0)]));
+  describe('the measurement', () => {
+    it('decodes each piece from a copy of its bytes and measures them all with one meter of the channels of the first', async () => {
+      slicing(piece(), piece(), piece());
+      const decode = vi.fn<Decode>(async () => decoded(2));
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode, vi.fn())).toEqual({ id: 1, outcome: 'too-large' });
+      const result = await measure({ decode });
+
+      expect(decode).toHaveBeenCalledTimes(3);
+      expect(new Uint8Array(decode.mock.calls[0][0])).toEqual(Uint8Array.of(1, 2, 3));
+      expect(createBlockMeter).toHaveBeenCalledExactlyOnceWith(2);
+      expect(meter.push).toHaveBeenCalledTimes(3);
+      expect(summarise).toHaveBeenCalledExactlyOnceWith([stats]);
+      expect(result).toEqual({ id: 1, outcome: 'measured', ...summary });
+    });
+
+    it('tells the progress when each piece is measured', async () => {
+      slicing(piece(), piece(), piece());
+      const progress = vi.fn();
+
+      await measure({ progress });
+
+      expect(progress).toHaveBeenCalledTimes(3);
+    });
+
+    it('measures a piece without the start that only gave the decoder what it needed, as many seconds as the piece says', async () => {
+      slicing(piece(1.5));
+
+      await measure();
+
+      const [channels] = meter.push.mock.calls[0];
+      expect(channels).toHaveLength(2);
+      expect(channels[0]).toHaveLength(0.5 * measurementRate);
+      expect(channels[0][0]).toBe(1.5 * measurementRate);
+    });
+
+    it('measures the end of a piece that tells how much of its end to keep, whatever the decoder gave in front of it', async () => {
+      slicing(piece(0, { keep: 0.5 }));
+
+      await measure();
+
+      const [channels] = meter.push.mock.calls[0];
+      expect(channels[1]).toHaveLength(0.5 * measurementRate);
+      expect(channels[1][0]).toBe(1.5 * measurementRate);
+    });
+
+    it('prefers what to keep over what to skip, and measures all of a piece that is shorter than what it keeps', async () => {
+      slicing(piece(1, { keep: 10 }));
+
+      await measure();
+
+      expect(meter.push.mock.calls[0][0][0]).toHaveLength(2 * measurementRate);
+    });
   });
 
-  it('is too large for a file of a format that is cut in a variant that is not, like an Ogg file of FLAC', async () => {
-    serve(page(1, 0, 0, Uint8Array.from([0x7f, ...ascii('FLAC'), 0, 0, 0]), 0x02));
+  describe('what it is when it ends', () => {
+    it('is too large for a format that has no slicer', async () => {
+      vi.mocked(slicerOf).mockResolvedValue(undefined);
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode, vi.fn())).toEqual({ id: 1, outcome: 'too-large' });
-  });
+      expect(await measure()).toEqual({ id: 1, outcome: 'too-large' });
+    });
 
-  it('is undecodable for a file that is not what its format says', async () => {
-    serve(Uint8Array.from([...ascii('OggS'), ...new Array(100).fill(0)]));
+    it('is too large when the slicer says the variant of its format is not cut', async () => {
+      slicingWith(async function* () {
+        yield* [];
+        throw new NotSliceable('an Ogg file of FLAC');
+      });
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode, vi.fn())).toEqual({ id: 1, outcome: 'undecodable' });
-  });
+      expect(await measure()).toEqual({ id: 1, outcome: 'too-large' });
+    });
 
-  it('is unreadable when the file cannot be fetched', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    it('is undecodable when the slicer says the file is not what its header says', async () => {
+      slicingWith(async function* () {
+        yield* [];
+        throw new SliceError('no frame');
+      });
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode, vi.fn())).toEqual({ id: 1, outcome: 'unreadable' });
-  });
+      expect(await measure()).toEqual({ id: 1, outcome: 'undecodable' });
+    });
 
-  it('is unreadable when the answer is not a range', async () => {
-    serve(file, 200);
+    it('does not hide an error that is not the one of the slicer', async () => {
+      slicingWith(async function* () {
+        yield* [];
+        throw new RangeError('a bug');
+      });
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode, vi.fn())).toEqual({ id: 1, outcome: 'unreadable' });
-  });
+      await expect(measure()).rejects.toThrow('a bug');
+    });
 
-  it('is undecodable when a piece cannot be decoded', async () => {
-    serve(file);
+    it('is unreadable when the file cannot be fetched', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, async () => undefined, vi.fn())).toEqual({ id: 1, outcome: 'undecodable' });
-  });
+      expect(await measure()).toEqual({ id: 1, outcome: 'unreadable' });
+      expect(slicerOf).not.toHaveBeenCalled();
+    });
 
-  it('is silent for a file without a block above the gate', async () => {
-    serve(wavOf(new Int16Array(seconds * measurementRate * 2)));
+    it.each([
+      ['the answer is not a range', () => answer(3_800_000, 200)],
+      ['the answer does not tell the size', () => answer(undefined)],
+    ])('is unreadable when %s', async (_, setUp) => {
+      setUp();
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode, vi.fn())).toEqual({ id: 1, outcome: 'silent' });
+      expect(await measure()).toEqual({ id: 1, outcome: 'unreadable' });
+    });
+
+    it('is unreadable when a range was read badly, even if the slicer then fails', async () => {
+      vi.mocked(readBody).mockResolvedValue(undefined);
+      slicingWith(async function* (read) {
+        await read(0, 10);
+        throw new SliceError('could not be read');
+      });
+
+      expect(await measure()).toEqual({ id: 1, outcome: 'unreadable' });
+    });
+
+    it('is undecodable when a piece cannot be decoded, and goes no further', async () => {
+      const slicer = slicing(piece(), piece());
+      const decode = vi.fn<Decode>(async () => undefined);
+
+      expect(await measure({ decode })).toEqual({ id: 1, outcome: 'undecodable' });
+      expect(decode).toHaveBeenCalledTimes(1);
+      expect(slicer).toHaveBeenCalledTimes(1);
+    });
+
+    it('is undecodable when the meter leaves a piece out, as it has another number of channels than the file', async () => {
+      slicing(piece(), piece());
+      meter.push.mockReturnValueOnce(true).mockReturnValueOnce(false);
+
+      expect(await measure()).toEqual({ id: 1, outcome: 'undecodable' });
+      expect(summarise).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['a file without a piece', [] as Slice[]],
+      ['a file without a block above the gate', [piece()]],
+    ])('is silent for %s', async (_, slices) => {
+      slicing(...slices);
+      vi.mocked(summarise).mockReturnValue(undefined);
+
+      expect(await measure()).toEqual({ id: 1, outcome: 'silent' });
+    });
   });
 });
