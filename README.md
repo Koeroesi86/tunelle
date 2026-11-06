@@ -29,3 +29,4 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [The AppImage launcher entry](docs/app/appimage-launcher.md)
 - [The Flatpak repository](docs/release/flatpak-repository.md)
 - [The performance summary](docs/development/performance-summary.md)
+- [MPRIS spike](docs/development/mpris-spike.md)

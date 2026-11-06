@@ -19,6 +19,7 @@ import { createRadioArt } from './electron/services/radio-art';
 import { createRadioLogos } from './electron/services/radio-logos';
 import { getAppUserModelId, setsAppUserModelId } from './electron/app-user-model-id';
 import { holdSingleInstance } from './electron/windows/single-instance';
+import { startMprisSpike, stopMprisSpike } from './electron/services/mpris-spike';
 import { registerDevDesktopEntry, removeDevDesktopEntry } from './electron/services/dev-desktop-entry';
 import closeDatabase from './electron/database/close-database';
 import { sendIfAlive } from './electron/utils/send-if-alive';
@@ -66,6 +67,19 @@ if (isDev && process.platform === 'linux') {
 // the entry the AppImage launcher installs (electron/services/app-image-launcher.ts), or the one the Flatpak installs under its id, so the running window gets its icon in the dock and taskbar
 if (!isDev && process.platform === 'linux') {
   app.setDesktopName(`${process.env.FLATPAK_ID ?? 'tunelle'}.desktop`);
+}
+
+// spike of #258 (docs/development/mpris-spike.md): our own MPRIS service, and the Chromium features that TUNELLE_MPRIS_DISABLE_FEATURES lists switched off
+const mprisSpike = process.platform === 'linux' && process.env.TUNELLE_MPRIS_SPIKE === '1';
+
+if (process.env.TUNELLE_MPRIS_DISABLE_FEATURES) app.commandLine.appendSwitch('disable-features', process.env.TUNELLE_MPRIS_DISABLE_FEATURES);
+
+if (mprisSpike) {
+  app
+    .whenReady()
+    .then(startMprisSpike)
+    .catch((error) => console.error('[mpris-spike] failed', error));
+  app.on('will-quit', stopMprisSpike);
 }
 
 const isMockUpdate = !app.isPackaged && process.env.MOCK_UPDATE === '1';
