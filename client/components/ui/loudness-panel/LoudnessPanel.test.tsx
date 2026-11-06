@@ -1,0 +1,57 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import type { LoudnessAnalysis } from '@shared/types/loudness';
+import { fetchLoudnessAnalysis } from '../../../services/library-api';
+import LoudnessPanel from './LoudnessPanel';
+
+vi.mock('../../../services/library-api', () => ({ fetchLoudnessAnalysis: vi.fn() }));
+
+const analysis: LoudnessAnalysis = {
+  v: 1,
+  sampleRate: 48000,
+  channels: 2,
+  integratedLufs: -9.24,
+  loudnessRange: 12.3,
+  // 1.037 of the full scale is +0.3 dBFS
+  samplePeak: 1.037,
+  shortTerm: [-92],
+  histogram: { bin: 0.1, counts: { '-120': 4, '-95': 2 } },
+};
+
+describe('LoudnessPanel', () => {
+  beforeEach(() => vi.mocked(fetchLoudnessAnalysis).mockReset());
+
+  it('shows the loudness, the range and the peak of the track, and its histogram', async () => {
+    vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
+
+    render(<LoudnessPanel path="/music/a.flac" />);
+
+    expect(await screen.findByText('-9.2 LUFS')).toBeTruthy();
+    expect(screen.getByText('12.3 LU')).toBeTruthy();
+    expect(screen.getByText('0.3 dBFS')).toBeTruthy();
+    expect(screen.getByRole('img').getAttribute('aria-label')).toBe('How the loudness of the track is spread, from -12 to -9 LUFS');
+    expect(fetchLoudnessAnalysis).toHaveBeenCalledWith('/music/a.flac');
+  });
+
+  it('shows nothing for a track that was not measured', async () => {
+    vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(undefined);
+
+    const { container } = render(<LoudnessPanel path="/music/a.flac" />);
+    await vi.waitFor(() => expect(fetchLoudnessAnalysis).toHaveBeenCalled());
+
+    expect(container.textContent).toBe('');
+  });
+
+  it('reads the track again when another one plays, and drops what it had until the answer comes', async () => {
+    vi.mocked(fetchLoudnessAnalysis)
+      .mockResolvedValueOnce(analysis)
+      .mockReturnValueOnce(new Promise(() => {}));
+    const { rerender } = render(<LoudnessPanel path="/music/a.flac" />);
+    await screen.findByText('-9.2 LUFS');
+
+    rerender(<LoudnessPanel path="/music/b.flac" />);
+
+    expect(screen.queryByText('-9.2 LUFS')).toBeNull();
+    expect(fetchLoudnessAnalysis).toHaveBeenLastCalledWith('/music/b.flac');
+  });
+});

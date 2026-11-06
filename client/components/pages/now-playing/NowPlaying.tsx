@@ -5,6 +5,7 @@ import slugify from 'slugify';
 import { MdClose as RemoveIcon, MdMusicNote as NoteIcon, MdPlayArrow as PlayIcon } from 'react-icons/md';
 import type { Track } from '@shared/types/library';
 import { toNowPlaying } from '../../../domain/now-playing';
+import { radioUuidOf } from '../../../domain/radio-track';
 import type { RadioStation } from '@shared/types/radio';
 import { useTranslation } from '../../../i18n';
 import { useDragReorder } from '../../../hooks/use-drag-reorder';
@@ -13,6 +14,7 @@ import style from './NowPlaying.scss';
 import AudioFormatBadge from '../../ui/audio-format-badge';
 import CoverFade from '../../ui/cover-fade';
 import FavouriteButton from '../../ui/favourite-button';
+import LoudnessPanel from '../../ui/loudness-panel';
 import Time from '../../ui/time';
 
 interface NowPlayingProps {
@@ -111,6 +113,7 @@ const NowPlaying = ({
                 <AudioFormatBadge track={shown.track} />
                 <FavouriteButton item={trackFavourite(currentSong, station)} className={style.favourite} />
               </div>
+              {radioUuidOf(currentSong.path) === undefined && <LoudnessPanel path={currentSong.path} />}
             </div>
           </div>
         )}

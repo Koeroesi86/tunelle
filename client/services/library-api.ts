@@ -1,4 +1,5 @@
 import type { Album, AlbumSummary, AudioFormat, GroupSummary, LibraryPage, Loudness, Track } from '@shared/types/library';
+import type { LoudnessAnalysis } from '@shared/types/loudness';
 import type { AlbumQuery, AlbumSort, GroupKind, GroupQuery, GroupSort, LibraryQuery, TrackSort } from '@shared/types/library-query';
 import { localUrl } from './local-url';
 import { pageSize } from '../constants/library';
@@ -60,3 +61,6 @@ export const fetchAlbum = ({ trackCount: _trackCount, ...album }: AlbumSummary):
 
 /** The format and the loudness of a track as the player takes them, undefined for a track the library does not have or when the answer fails: a track plays as it is then */
 export const fetchTrackFormat = (path: string) => getJson<AudioFormat & Loudness>(`/library/track?path=${encodeURIComponent(path)}`).catch(() => undefined);
+
+/** The analysis of the loudness of a track, undefined for a track that was not measured or when the answer fails: the view shows nothing then */
+export const fetchLoudnessAnalysis = (path: string) => getJson<LoudnessAnalysis>(`/library/loudness?path=${encodeURIComponent(path)}`).catch(() => undefined);

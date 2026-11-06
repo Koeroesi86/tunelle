@@ -46,6 +46,20 @@ test('measures a track without gain tags in the background and levels it by the 
   await expect.poll(async () => (await levelNow(page)) / full).toBeCloseTo(cut, 1);
 });
 
+test('shows the histogram of the loudness of the song that plays on the now playing page', async ({ start }) => {
+  const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
+  await addFolder(page, folderOfTracks(1), 1);
+  const [{ path }] = await libraryTracks(page);
+  await expect.poll(async () => (await gainsOf(page, path)).trackGain, { message: 'the measured gain of the track', timeout: 90_000 }).not.toBeNull();
+
+  await player(page).playAlbum('Pitch Perfect');
+  await navigate(page, 'Now playing');
+
+  // a sine of half the full scale in both channels is at -6.7 LUFS, and its peak is -6.0 dBFS
+  await expect(page.getByRole('region', { name: 'Loudness of the track' }).getByText('-6.7 LUFS')).toBeVisible();
+  await expect(page.getByRole('img', { name: /^How the loudness of the track is spread/ })).toBeVisible();
+});
+
 test('measures a track that is too long to decode as a whole, in pieces', async ({ start }) => {
   const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
   const folder = mkdtempSync(join(tmpdir(), 'tunelle-loudness-'));

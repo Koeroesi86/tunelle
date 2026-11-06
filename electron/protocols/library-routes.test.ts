@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'sqlite3';
 import addTrack from '../library/scan/add-track';
 import { libraryRoutes } from './library-routes';
+import { saveTrackLoudness } from '../repositories/loudness-repository';
+import { analysisVersion } from '@shared/constants/loudness';
+import type { LoudnessAnalysis } from '@shared/types/loudness';
 import { createTestDatabase } from '../test-database';
 import type { Track } from '@shared/types/library';
 
@@ -59,6 +62,41 @@ describe('library routes for browsing', () => {
     expect(await found.json()).toMatchObject({ trackGain: null, albumGain: null });
     expect((await answer('/library/track', 'path=%2Fm%2Fnone.flac')).status).toBe(404);
     expect((await answer('/library/track', '')).status).toBe(400);
+  });
+
+  it('gives the analysis of a track that was measured, and not found for one that was not', async () => {
+    const analysis: LoudnessAnalysis = {
+      v: analysisVersion,
+      sampleRate: 48000,
+      channels: 2,
+      integratedLufs: -12,
+      loudnessRange: 5,
+      samplePeak: 0.9,
+      shortTerm: [-120],
+      histogram: { bin: 0.1, counts: { '-121': 3 } },
+    };
+    await addTrack(database, track('/m/c/1.flac', { fileModified: 100, fileSize: 1000 }));
+    await saveTrackLoudness(database, {
+      path: '/m/c/1.flac',
+      status: 'measured',
+      trackGain: null,
+      trackPeak: null,
+      albumGain: null,
+      albumPeak: null,
+      albumTracks: null,
+      fileModified: 100,
+      fileSize: 1000,
+      analysisVersion,
+      reason: null,
+      analysis,
+    });
+
+    const found = await answer('/library/loudness', `path=${encodeURIComponent('/m/c/1.flac')}`);
+
+    expect(found.status).toBe(200);
+    expect(await found.json()).toEqual(analysis);
+    expect((await answer('/library/loudness', `path=${encodeURIComponent('/m/b/1.flac')}`)).status).toBe(404);
+    expect((await answer('/library/loudness', '')).status).toBe(400);
   });
 
   it('serves nothing before the database is connected', async () => {

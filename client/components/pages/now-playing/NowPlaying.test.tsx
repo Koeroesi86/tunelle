@@ -4,6 +4,7 @@ import type { Track } from '@shared/types/library';
 import NowPlaying from './NowPlaying';
 
 vi.mock('../../ui/favourite-button', () => ({ default: () => null }));
+vi.mock('../../ui/loudness-panel', () => ({ default: ({ path }: { path: string }) => <div data-testid="loudness">{path}</div> }));
 
 const flac: Track = {
   path: '/music/1.flac',
@@ -285,5 +286,19 @@ describe('NowPlaying', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open library' }));
 
     expect(openLibrary).toHaveBeenCalledTimes(1);
+  });
+
+  describe('the loudness of the song', () => {
+    it('is shown for the track that plays', () => {
+      renderPage();
+
+      expect(screen.getByTestId('loudness').textContent).toBe('/music/1.flac');
+    });
+
+    it('is not shown for a radio station, which is not measured', () => {
+      renderPage({ currentSong: { ...flac, path: 'radio:abc' } });
+
+      expect(screen.queryByTestId('loudness')).toBeNull();
+    });
   });
 });
