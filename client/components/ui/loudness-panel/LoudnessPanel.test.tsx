@@ -55,20 +55,29 @@ describe('LoudnessPanel', () => {
     expect(fetchLoudnessAnalysis).toHaveBeenLastCalledWith('/music/b.flac');
   });
 
-  describe('the moment that plays', () => {
-    // the histogram runs from -12 to -9 LUFS: the curve is at -12.0 and then at -9.5
-    const curve = { ...analysis, shortTerm: [-120, -95] };
+  describe('how far the song is played', () => {
     const positionOf = (container: HTMLElement) => container.querySelector<HTMLElement>('b[aria-hidden]')?.style.left;
 
-    it('has a bar where the loudness of the second that plays is across the histogram, which moves on as the song plays', async () => {
-      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(curve);
-      const { container, rerender } = render(<LoudnessPanel path="/music/a.flac" duration={100} currentTime={10} />);
+    it('has a bar that is where the song is across the histogram, and moves on as it plays', async () => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
+      const { container, rerender } = render(<LoudnessPanel path="/music/a.flac" duration={310} currentTime={6} />);
       await screen.findByText('-9.2 LUFS');
+      expect(Number.parseFloat(positionOf(container) ?? '')).toBeCloseTo((6 / 310) * 100, 5);
+
+      rerender(<LoudnessPanel path="/music/a.flac" duration={310} currentTime={155} />);
+
+      expect(positionOf(container)).toBe('50%');
+    });
+
+    it('keeps the bar in the histogram when the position is outside the track', async () => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
+      const { container, rerender } = render(<LoudnessPanel path="/music/a.flac" duration={100} currentTime={120} />);
+      await screen.findByText('-9.2 LUFS');
+      expect(positionOf(container)).toBe('100%');
+
+      rerender(<LoudnessPanel path="/music/a.flac" duration={100} currentTime={-3} />);
+
       expect(positionOf(container)).toBe('0%');
-
-      rerender(<LoudnessPanel path="/music/a.flac" duration={100} currentTime={90} />);
-
-      expect(Number.parseFloat(positionOf(container) ?? '')).toBeCloseTo((2.5 / 3) * 100, 5);
     });
 
     it.each([
@@ -76,7 +85,7 @@ describe('LoudnessPanel', () => {
       ['the track has no length', 0, 10],
       ['the position is not known', 100, undefined],
     ])('has no bar when %s', async (_, duration, currentTime) => {
-      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(curve);
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
 
       const { container } = render(<LoudnessPanel path="/music/a.flac" duration={duration} currentTime={currentTime} />);
       await screen.findByText('-9.2 LUFS');
