@@ -15,7 +15,7 @@ const measureTimeout = 300_000;
 /** The page has this long to load and say it is ready */
 const pageTimeout = 30_000;
 
-const outcomes = ['measured', 'silent', 'undecodable', 'unreadable'];
+const outcomes = ['measured', 'silent', 'undecodable', 'unreadable', 'too-large'];
 
 const isMeasureResult = (value: unknown): value is MeasureResult =>
   typeof value === 'object' &&
@@ -102,7 +102,7 @@ export const createLoudnessWindow = (pageUrl: string) => {
     return created;
   };
 
-  const ask = (current: BrowserWindow, id: number, path: string) =>
+  const ask = (current: BrowserWindow, id: number, path: string, duration: number | undefined) =>
     new Promise<Measurement>((resolveAsk) => {
       const timer = setTimeout(() => resolveAsk({ outcome: 'timeout' }), measureTimeout);
       const settle = (measurement: Measurement) => {
@@ -110,12 +110,12 @@ export const createLoudnessWindow = (pageUrl: string) => {
         resolveAsk(measurement);
       };
       pending = { id, settle };
-      current.webContents.send('LOUDNESS_MEASURE', { id, path });
+      current.webContents.send('LOUDNESS_MEASURE', { id, path, duration });
     });
 
   return {
     /** Measure a track of the library; answers with why there is no result when the window crashes or does not answer */
-    measure: async (path: string): Promise<Measurement> => {
+    measure: async (path: string, duration?: number): Promise<Measurement> => {
       if (measured >= filesPerWindow) close();
       const current = window ?? open();
       if (!(await ready)) {
@@ -124,7 +124,7 @@ export const createLoudnessWindow = (pageUrl: string) => {
       }
       measured += 1;
 
-      const result = await ask(current, nextId++, path);
+      const result = await ask(current, nextId++, path, duration);
       pending = undefined;
       // a window that crashed or did not answer is not used again
       if (result.outcome === 'timeout' || result.outcome === 'crashed') close();

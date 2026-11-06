@@ -13,7 +13,7 @@ import { findOfflineFolders } from '../watch/folder-availability';
 import { setPlaying } from './playback-state';
 import { createLoudnessWindow, type Measurement } from './loudness-window';
 import { poolAlbumGains } from './album-gains';
-import { maxSeconds, registerLoudness } from './loudness-source';
+import { registerLoudness } from './loudness-source';
 import type { Task } from '../tasks/task-queue';
 
 // everything the source reads or does outside of itself is replaced: the database and what is read from it, the drives, the window, the system and the queue
@@ -58,7 +58,7 @@ const byPath = (a: TrackToMeasure, b: TrackToMeasure) => a.path.localeCompare(b.
 
 describe('the measurement of the loudness as a source of the background queue', () => {
   const database = new Database(':memory:');
-  let measure: Mock<(path: string) => Promise<Measurement>>;
+  let measure: Mock<(path: string, duration?: number) => Promise<Measurement>>;
   let close: Mock<() => void>;
   let onStatus: Mock<(status: LoudnessProgress) => void>;
   let removeSource: Mock<() => boolean>;
@@ -88,7 +88,7 @@ describe('the measurement of the loudness as a source of the background queue', 
     delete process.env.TUNELLE_LOUDNESS_IDLE_SECONDS;
     library = [];
     stored = [];
-    measure = vi.fn<(path: string) => Promise<Measurement>>().mockResolvedValue(measured);
+    measure = vi.fn<(path: string, duration?: number) => Promise<Measurement>>().mockResolvedValue(measured);
     close = vi.fn<() => void>();
     removeSource = vi.fn<() => boolean>().mockReturnValue(true);
     onStatus = vi.fn<(status: LoudnessProgress) => void>();
@@ -144,7 +144,7 @@ describe('the measurement of the loudness as a source of the background queue', 
       register();
       await drain();
 
-      expect(measure).toHaveBeenCalledWith('/music/a.flac');
+      expect(measure).toHaveBeenCalledWith('/music/a.flac', 200);
       expect(saveTrackLoudness).toHaveBeenCalledWith(database, {
         path: '/music/a.flac',
         status: 'measured',
@@ -322,6 +322,7 @@ describe('the measurement of the loudness as a source of the background queue', 
     it.each<[string, Measurement]>([
       ['silent', { id: 1, outcome: 'silent' }],
       ['crashed', { outcome: 'crashed' }],
+      ['too-large', { id: 1, outcome: 'too-large' }],
     ])('stores a track that is %s as failed with the reason', async (reason, result) => {
       library = [track('/music/a.flac')];
       measure.mockResolvedValue(result);
@@ -348,13 +349,12 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(stored).toEqual([expect.objectContaining({ status: 'measured' })]);
     });
 
-    it('does not decode a track that is too long, and stores it as failed', async () => {
-      library = [track('/music/mix.flac', { duration: maxSeconds + 1 })];
+    it('gives the window the length of the track, which decodes a long one in pieces', async () => {
+      library = [track('/music/mix.flac', { duration: 7200 })];
       register();
       await drain();
 
-      expect(measure).not.toHaveBeenCalled();
-      expect(stored).toEqual([expect.objectContaining({ status: 'failed', reason: 'too-large' })]);
+      expect(measure).toHaveBeenCalledWith('/music/mix.flac', 7200);
     });
 
     it('stores the stat of the file as the library had it, so a file that changes meanwhile is measured again', async () => {
@@ -376,7 +376,7 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(await canRun()).toBe(true);
       await drain();
 
-      expect(measure).toHaveBeenCalledWith('/music/new.flac');
+      expect(measure).toHaveBeenCalledWith('/music/new.flac', 200);
     });
 
     it('finds the tracks that a scan adds later, after the rest', async () => {
@@ -389,7 +389,7 @@ describe('the measurement of the loudness as a source of the background queue', 
       elapse(rest + 1);
       await drain();
 
-      expect(measure).toHaveBeenCalledWith('/music/new.flac');
+      expect(measure).toHaveBeenCalledWith('/music/new.flac', 200);
     });
   });
 

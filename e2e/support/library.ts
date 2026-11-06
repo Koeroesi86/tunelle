@@ -85,3 +85,24 @@ export const writeTrack = (folder: string, album: FixtureAlbum, index: number, s
 /** Writes the albums, a folder each, in the folder */
 export const writeLibrary = (folder: string) =>
   albums.forEach((album) => album.tracks.forEach((_, index) => writeTrack(join(folder, album.title.toLowerCase().replace(/ /g, '-')), album, index)));
+
+/** A mono WAV file of 8 bit samples, a sine of 440 Hz at half of the full scale, which is long and small (8 000 bytes a second) */
+export const writeLongWav = (folder: string, seconds: number) => {
+  const rate = 8000;
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + seconds * rate, 4);
+  header.write('WAVEfmt ', 8);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(rate, 24);
+  header.writeUInt32LE(rate, 28);
+  header.writeUInt16LE(1, 32);
+  header.writeUInt16LE(8, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(seconds * rate, 40);
+  const sound = Buffer.from(Array.from({ length: seconds * rate }, (_, index) => 128 + Math.round(64 * Math.sin((2 * Math.PI * 440 * index) / rate))));
+  mkdirSync(folder, { recursive: true });
+  writeFileSync(join(folder, 'Long Mix.wav'), Buffer.concat([header, sound]));
+};
