@@ -10,7 +10,8 @@ import { quitSignal } from './scan-cancellation';
 import { findMissingTracks } from './missing-tracks';
 import isSupported, { isSupportedCodec } from '../../utils/is-supported';
 import { folderColumns } from '../../constants/library';
-import { backgroundQueue, scanKind } from '../tasks/background-queue';
+import { scanKind } from '../tasks/background-queue';
+import { queueTask, scanPriority } from '../tasks/queue-task';
 
 const readModifiedTimes = async (folders: Folder[]) => {
   const times = await Promise.all(folders.map(async (folder) => [folder.path, await withTimeout(fs.promises.stat(folder.path), undefined)] as const));
@@ -32,11 +33,10 @@ const removeMissingTracks = async (database: Database, offline: string[]) => {
 };
 
 /** Scan the changed folders, and remove the tracks that are gone */
-async function rescanLibrary(sender: WebContents, forced = false) {
+async function scanLibrary(sender: WebContents, forced: boolean) {
   const database = global._database;
   if (!database) return;
   console.log(`Scanning library ${forced ? 'completely' : 'wisely'}...`);
-  const endActivity = backgroundQueue.begin(scanKind);
 
   try {
     const all = await getFolders(database, folderColumns);
@@ -61,9 +61,21 @@ async function rescanLibrary(sender: WebContents, forced = false) {
     sender.send('RESCAN_COMPLETE', {});
   } catch (e) {
     (quitSignal.aborted ? console.log : console.error)(quitSignal.aborted ? 'Scan stopped, the app is quitting' : e);
-  } finally {
-    endActivity();
   }
+}
+
+let forcedWaiting: { forced: boolean } | undefined;
+
+/** Queue a scan of the changed folders as the first work of the background queue; a scan that waits is shared, and is complete when any of the callers asked for it. See docs/app/task-queue.md */
+function rescanLibrary(sender: WebContents, forced = false) {
+  if (forcedWaiting) forcedWaiting.forced ||= forced;
+  const entry = forcedWaiting ?? { forced };
+  forcedWaiting = entry;
+
+  return queueTask(scanKind, 'rescan-library', scanPriority, () => {
+    forcedWaiting = undefined;
+    return scanLibrary(sender, entry.forced);
+  });
 }
 
 export default rescanLibrary;

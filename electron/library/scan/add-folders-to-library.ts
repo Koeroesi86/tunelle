@@ -5,6 +5,10 @@ import { deleteFolders, getFolders, getFoldersInside, saveFolders } from '../../
 import scanFolders from './scan-folders';
 import { refreshLibraryWatching } from '../watch/library-watching';
 import { folderColumns } from '../../constants/library';
+import { scanKind } from '../tasks/background-queue';
+import { queueTask, scanPriority } from '../tasks/queue-task';
+
+let added = 0;
 
 interface AddedFile {
   path: string;
@@ -38,13 +42,15 @@ async function addFoldersToLibrary(database: Database, payload: unknown, sender:
   sender.send('FOLDERS_ADDED_TO_LIBRARY', { folders });
 
   await refreshLibraryWatching();
-  const incomplete = await scanFolders(folders, sender);
-  // time zero is older than any folder, so the next wise scan looks at it again for the files that did not answer
-  await saveFolders(
-    database,
-    incomplete.map((folder) => ({ path: folder.path, lastModified: 0 }))
-  );
-  sender.send('TRACKS_ADDED_TO_LIBRARY', {});
+  await queueTask(scanKind, `add-folders-${added++}`, scanPriority, async () => {
+    const incomplete = await scanFolders(folders, sender);
+    // time zero is older than any folder, so the next wise scan looks at it again for the files that did not answer
+    await saveFolders(
+      database,
+      incomplete.map((folder) => ({ path: folder.path, lastModified: 0 }))
+    );
+    sender.send('TRACKS_ADDED_TO_LIBRARY', {});
+  });
 }
 
 export default addFoldersToLibrary;

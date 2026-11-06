@@ -30,6 +30,7 @@ describe('rescanLibrary', () => {
   };
 
   beforeEach(async () => {
+    backgroundQueue.start();
     vi.mocked(scanFolders).mockReset().mockResolvedValue([]);
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-rescan-'));
     database = await createTestDatabase();
@@ -84,6 +85,15 @@ describe('rescanLibrary', () => {
 
     expect(during).toBe(true);
     await vi.waitFor(() => expect(backgroundQueue.isBusy(scanKind)).toBe(false));
+  });
+
+  it('scans once for the callers that wait, completely when one of them asked for it', async () => {
+    await addFolder(root, mtime(root));
+
+    await Promise.all([rescanLibrary(sender, false), rescanLibrary(sender, true)]);
+
+    expect(scanFolders).toHaveBeenCalledOnce();
+    expect(scanFolders).toHaveBeenCalledWith([expect.objectContaining({ path: root })], sender);
   });
 
   it('skips a folder that did not change', async () => {
