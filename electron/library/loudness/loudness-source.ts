@@ -15,7 +15,6 @@ import { poolAlbumGains } from './album-gains';
 import { mountGuard } from '../mounts/mount-guard';
 import { createLoudnessWindow } from './loudness-window';
 import type { Measurement } from './loudness-window';
-import { isPlaying } from './playback-state';
 
 const loudnessKind = 'loudness';
 /** Below the scans: what is measured waits for them, and for the user */
@@ -93,8 +92,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   const mayRun = async () => {
     // a scan that ended since the rest began may have added tracks, so the rest is over then
     const resting = Date.now() < restUntil && backgroundQueue.idleFor(scanKind) >= Date.now() - (restUntil - restPause);
-    if (resting || Date.now() < coolUntil || backgroundQueue.isBusy(scanKind) || backgroundQueue.idleFor(scanKind) < readIdleTime() || isPlaying())
-      return false;
+    if (resting || Date.now() < coolUntil || backgroundQueue.isBusy(scanKind) || backgroundQueue.idleFor(scanKind) < readIdleTime()) return false;
     return !powerMonitor.isOnBatteryPower() && !isOff(await getSettings(database));
   };
 

@@ -9,7 +9,6 @@ import { findTracksToMeasure, getLoudnessProgress, saveTrackLoudness } from '../
 import type { TrackToMeasure } from '../../repositories/loudness-repository';
 import { getFolders } from '../../repositories/library-repository';
 import { getSettings } from '../../repositories/settings-repository';
-import { setPlaying } from './playback-state';
 import { createLoudnessWindow, type Measurement } from './loudness-window';
 import { poolAlbumGains } from './album-gains';
 import { mountGuard } from '../mounts/mount-guard';
@@ -132,7 +131,6 @@ describe('the measurement of the loudness as a source of the background queue', 
       }));
     vi.mocked(getFolders).mockReset().mockResolvedValue([]);
     vi.mocked(getSettings).mockReset().mockResolvedValue(undefined);
-    setPlaying(false);
   });
 
   afterEach(() => {
@@ -283,15 +281,6 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(await canRun()).toBe(false);
       process.env.TUNELLE_LOUDNESS_IDLE_SECONDS = ' ';
       expect(await canRun()).toBe(false);
-    });
-
-    it('waits while a track plays, and goes on when it stops', async () => {
-      register();
-      setPlaying(true);
-      expect(await canRun()).toBe(false);
-
-      setPlaying(false);
-      expect(await canRun()).toBe(true);
     });
 
     describe('after a track', () => {
