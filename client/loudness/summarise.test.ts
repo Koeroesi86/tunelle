@@ -63,8 +63,8 @@ describe('summarise', () => {
   });
 
   it('weighs a surround channel 1.41 times and leaves out the LFE channel', () => {
-    const tone = sine(-20, 10);
-    const none = silence(10);
+    const tone = sine(-20, 4);
+    const none = silence(4);
     const front = analyse(tone, none, none, none, none, none)?.analysis.integratedLufs ?? 0;
     const surround = analyse(none, none, none, none, tone, none)?.analysis.integratedLufs ?? 0;
 
