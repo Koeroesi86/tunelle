@@ -16,6 +16,7 @@ import type { Track } from '@shared/types/library';
 import { toNowPlaying } from '../../../domain/now-playing';
 import { radioUuidOf } from '../../../domain/radio-track';
 import { useMediaSession, useMediaSessionActions } from '../../../hooks/use-media-session';
+import { useMpris, useMprisCommands } from '../../../hooks/use-mpris';
 import { useAudioListener } from '../../../hooks/use-audio-listener';
 import { useUpdateEffect } from '../../../hooks/use-update-effect';
 import { useTranslation } from '../../../i18n';
@@ -197,6 +198,18 @@ const PlayerControls = (props: PlayerControlsProps) => {
   const { currentSong, currentTime, isPlaying, seek, play, pause, setCurrentTime, setPlaying, addPlayStatusListener, addTimeChangeListener } = props;
 
   useMediaSessionActions({ play, pause, previousSong: props.previousSong, nextSong: props.nextSong });
+  useMprisCommands({ play, pause, isPlaying, previousSong: props.previousSong, nextSong: props.nextSong, setCurrentTime });
+  const shown = currentSong ? toNowPlaying(currentSong, props.streamTitle, props.streamArt) : undefined;
+  useMpris(
+    shown && {
+      title: shown.track.title,
+      artist: shown.track.artist,
+      album: shown.track.album,
+      cover: shown.cover,
+      duration: radioUuidOf(shown.track.path) ? 0 : (shown.track.duration ?? 0),
+    },
+    { isPlaying, currentTime }
+  );
 
   useAudioListener(addPlayStatusListener, (playing) => {
     if (isPlaying !== playing) setPlaying(playing);

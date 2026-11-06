@@ -68,6 +68,9 @@ if (!isDev && process.platform === 'linux') {
   app.setDesktopName(`${process.env.FLATPAK_ID ?? 'tunelle'}.desktop`);
 }
 
+// the app has its own MPRIS service (electron/listeners/register-mpris-listeners.ts), so the one of Chromium would be a second player in the media controls
+if (process.platform === 'linux') app.commandLine.appendSwitch('disable-features', 'MediaSessionService');
+
 const isMockUpdate = !app.isPackaged && process.env.MOCK_UPDATE === '1';
 
 const argv = minimist(process.argv.slice(2));

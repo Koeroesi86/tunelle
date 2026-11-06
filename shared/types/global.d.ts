@@ -8,6 +8,8 @@ export interface ElectronApi {
   getPathForFile: (file: File) => string;
   /** Something blurs behind the translucent parts of the window (see window-backdrop.ts) */
   blurred: boolean;
+  /** The main process shows the player in the media controls of the desktop (MPRIS, Linux), so the page does not use navigator.mediaSession */
+  mpris: boolean;
 }
 
 export interface AppWindows {

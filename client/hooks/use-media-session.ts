@@ -10,7 +10,7 @@ interface MediaSessionInfo {
 /** Tells the OS media controls what plays */
 export const useMediaSession = (info: MediaSessionInfo | undefined) => {
   useEffect(() => {
-    if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
+    if (window.electronAPI?.mpris || !('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
 
     if (!info) {
       navigator.mediaSession.metadata = null;
@@ -56,7 +56,7 @@ interface MediaSessionActions {
 /** Lets the media keys and the OS media controls drive the player, as without a handler they have nothing to call */
 export const useMediaSessionActions = ({ play, pause, previousSong, nextSong }: MediaSessionActions) => {
   useEffect(() => {
-    if (!('mediaSession' in navigator)) return;
+    if (window.electronAPI?.mpris || !('mediaSession' in navigator)) return;
 
     const handlers: [MediaSessionAction, () => void][] = [
       ['play', play],

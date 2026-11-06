@@ -137,12 +137,13 @@
         "--socket=pulseaudio",
         "--share=network",
         "--filesystem=xdg-music:ro",
-        "--own-name=org.mpris.MediaPlayer2.chromium.*"
+        "--own-name=org.mpris.MediaPlayer2.io.github.koeroesi86.Tunelle"
       ]
     }
   },
   "license": "MIT",
   "dependencies": {
+    "@homebridge/dbus-native": "^0.7.9",
     "electron-updater": "^6.8.9",
     "electron-window-state": "^5.0.3",
     "mime-types": "^3.0.2",
