@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { isRecord } from '@shared/utils/is-record';
+import { z } from 'zod';
 import { wait } from '@shared/utils/wait';
 import { fetchOk } from './http';
 
@@ -79,16 +79,23 @@ export const getImage = async (url: string, cancel?: AbortSignal): Promise<Radio
 
 const isHttpUrl = (value: string | undefined): value is string => value !== undefined && URL.canParse(value) && /^https?:$/.test(new URL(value).protocol);
 
-const recordsOf = (value: unknown) => (Array.isArray(value) ? value.filter(isRecord) : []);
+const musicBrainzId = z.string().regex(idPattern).optional().catch(undefined);
 
-const pathOf = (kind: string, id: unknown) => (typeof id === 'string' && idPattern.test(id) ? `${kind}/${id}` : undefined);
+const releaseSchema = z.object({ id: musicBrainzId, 'release-group': z.object({ id: musicBrainzId }).optional().catch(undefined) });
+
+const recordingSchema = z.object({ score: z.number().catch(0), releases: z.array(z.unknown()).catch([]) });
+
+const answerSchema = z.object({ recordings: z.array(z.unknown()).catch([]) });
+
+const pathOf = (kind: string, id: string | undefined) => (id === undefined ? undefined : `${kind}/${id}`);
 
 /** The cover addresses of the release groups (the community picks a front cover for them more often), then of the releases, of the recordings that match well, best match first */
 const coverUrlsOf = (answer: unknown) => {
-  const releases = recordsOf(isRecord(answer) ? answer.recordings : undefined)
-    .filter(({ score }) => typeof score === 'number' && score >= minScore)
-    .flatMap(({ releases: found }) => recordsOf(found));
-  const groups = releases.map(({ 'release-group': group }) => (isRecord(group) ? group.id : undefined));
+  const releases = (answerSchema.safeParse(answer).data?.recordings ?? [])
+    .flatMap((recording) => recordingSchema.safeParse(recording).data ?? [])
+    .filter(({ score }) => score >= minScore)
+    .flatMap(({ releases: found }) => found.flatMap((release) => releaseSchema.safeParse(release).data ?? []));
+  const groups = releases.map((release) => release['release-group']?.id);
 
   return [...new Set([...groups.map((id) => pathOf('release-group', id)), ...releases.map(({ id }) => pathOf('release', id))])]
     .filter((path) => path !== undefined)

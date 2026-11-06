@@ -3,25 +3,12 @@ import type { Database } from 'sqlite3';
 import type { WebContents } from 'electron';
 import { deleteFolders, getFolders, getFoldersInside, saveFolders } from '../../repositories/library-repository';
 import scanFolders from './scan-folders';
+import { addedFilesSchema } from '@shared/schemas/requests';
 import { refreshLibraryWatching } from '../watch/library-watching';
-import { folderColumns } from '../../constants/library';
 import { scanKind } from '../tasks/background-queue';
 import { queueTask, scanPriority } from '../tasks/queue-task';
 
 let added = 0;
-
-interface AddedFile {
-  path: string;
-  lastModified: number;
-}
-
-const isAddedFile = (item: unknown): item is AddedFile =>
-  typeof item === 'object' &&
-  item !== null &&
-  'path' in item &&
-  typeof item.path === 'string' &&
-  'lastModified' in item &&
-  typeof item.lastModified === 'number';
 
 const isDirectory = (filePath: string) => {
   try {
@@ -33,12 +20,12 @@ const isDirectory = (filePath: string) => {
 
 /** Add the directories among the dropped files to the library, replacing the folders inside them, and scan them */
 async function addFoldersToLibrary(database: Database, payload: unknown, sender: WebContents) {
-  const folders = (Array.isArray(payload) ? payload : []).filter(isAddedFile).filter((file) => isDirectory(file.path));
+  const folders = addedFilesSchema.parse(payload).filter((file) => isDirectory(file.path));
 
   const nested = await Promise.all(folders.map((folder) => getFoldersInside(database, folder.path)));
   await deleteFolders(database, nested.flat());
   await saveFolders(database, folders);
-  sender.send('STORE_FOLDERS', { folders: await getFolders(database, folderColumns) });
+  sender.send('STORE_FOLDERS', { folders: await getFolders(database) });
   sender.send('FOLDERS_ADDED_TO_LIBRARY', { folders });
 
   await refreshLibraryWatching();

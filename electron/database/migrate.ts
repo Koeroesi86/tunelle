@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { z } from 'zod';
 import path from 'path';
 import type { Database } from 'sqlite3';
 import executeQuery from './execute-query';
@@ -62,7 +63,7 @@ const apply = async (database: Database, folder: string, { file, version }: Migr
  * See docs/app/migrations.md
  */
 export const migrate = async (database: Database, folder: string, { beforeApply }: MigrateOptions = {}) => {
-  const [{ user_version: current }] = await executeQuery<{ user_version: number }>(database, { query: 'PRAGMA user_version', variables: [] });
+  const [{ user_version: current }] = await executeQuery(database, { query: 'PRAGMA user_version', variables: [] }, z.object({ user_version: z.number() }));
   const migrations = listMigrations(folder);
 
   if (current > migrations.length) throw new NewerLibraryError(current, migrations.length);

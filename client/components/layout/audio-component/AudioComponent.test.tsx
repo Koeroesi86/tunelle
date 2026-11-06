@@ -760,7 +760,23 @@ describe('AudioComponent gapless', () => {
     it('levels a track from the loudness the library gives, as the lists do not carry it', async () => {
       vi.stubGlobal(
         'fetch',
-        vi.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ trackGain: -6, albumGain: -6, trackPeak: 0.5, albumPeak: 0.5 }) })
+        vi.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              codec: 'FLAC',
+              bitDepth: 16,
+              sampleRate: 44100,
+              bitrate: null,
+              vbr: null,
+              lossless: 1,
+              trackGain: -6,
+              albumGain: -6,
+              trackPeak: 0.5,
+              albumPeak: 0.5,
+            }),
+        })
       );
       const view = render(props(null, null));
       view.rerender(props(first, null));

@@ -8,9 +8,8 @@ import openLibraryPath from '../utils/open-library-path';
 import checkFolders from '../library/scan/check-folders';
 import pickFolders from '../utils/pick-folders';
 import { getMainTranslator } from '../language';
+import { rescanRequestSchema } from '@shared/schemas/requests';
 import { logError } from '../utils/log-error';
-
-const isForced = (payload: unknown) => typeof payload === 'object' && payload !== null && 'forced' in payload && payload.forced === true;
 
 const registerLibraryListeners = ({ database }: ListenerContext) => {
   ipcMain.on('ADD_FOLDERS_TO_LIBRARY', (event, files: unknown) => {
@@ -22,7 +21,7 @@ const registerLibraryListeners = ({ database }: ListenerContext) => {
   });
 
   ipcMain.on('RESCAN_LIBRARY', (event, payload: unknown) => {
-    rescanLibrary(event.sender, isForced(payload));
+    rescanLibrary(event.sender, rescanRequestSchema.parse(payload));
   });
 
   ipcMain.on('CHECK_FOLDERS', (event) => {

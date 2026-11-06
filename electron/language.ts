@@ -1,3 +1,4 @@
+import { readMainSettings } from '@shared/schemas/settings';
 import { app } from 'electron';
 import { getTranslator } from '@shared/locales';
 import type { Translator } from '@shared/locales/translate';
@@ -12,8 +13,7 @@ export const getMainTranslator = (): Translator => getTranslator(picked, [app.ge
 export const onLanguageChange = (listener: () => void) => listeners.add(listener);
 
 /** The language of the saved settings, undefined where none was picked */
-export const languageOf = (settings: unknown) =>
-  typeof settings === 'object' && settings !== null && 'language' in settings && typeof settings.language === 'string' ? settings.language : undefined;
+export const languageOf = (settings: unknown) => readMainSettings(settings).language;
 
 export const setPickedLanguage = (settings: unknown) => {
   const language = languageOf(settings);

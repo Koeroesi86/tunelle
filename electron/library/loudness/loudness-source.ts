@@ -1,9 +1,10 @@
+import { secondsSchema } from '../../schemas/environment';
 import path from 'path';
 import { powerMonitor } from 'electron';
 import type { Database } from 'sqlite3';
 import type { LoudnessProgress, TrackLoudness } from '@shared/types/loudness';
 import { analysisVersion } from '@shared/constants/loudness';
-import { isRecord } from '@shared/utils/is-record';
+import { readMainSettings } from '@shared/schemas/settings';
 import { findTracksToMeasure, getLoudnessProgress, saveTrackLoudness } from '../../repositories/loudness-repository';
 import type { TrackToMeasure } from '../../repositories/loudness-repository';
 import { getFolders } from '../../repositories/library-repository';
@@ -35,13 +36,10 @@ const maxCoolDown = 30_000;
 const statusPause = 2000;
 
 /** How long no folder must have been scanned before a measurement starts, from `TUNELLE_LOUDNESS_IDLE_SECONDS`; what is not a number of seconds is the default */
-const readIdleTime = (value = process.env.TUNELLE_LOUDNESS_IDLE_SECONDS) => {
-  const seconds = value === undefined || value.trim() === '' ? Number.NaN : Number(value);
-  return (Number.isFinite(seconds) && seconds >= 0 ? seconds : defaultIdleSeconds) * 1000;
-};
+const readIdleTime = (value = process.env.TUNELLE_LOUDNESS_IDLE_SECONDS) => secondsSchema(defaultIdleSeconds).parse(value) * 1000;
 
 // only a saved off turns the measurement off
-const isOff = (settings: unknown) => isRecord(settings) && settings.measureLoudness === false;
+const isOff = (settings: unknown) => readMainSettings(settings).measureLoudness === false;
 
 type Failure = 'crashed' | 'too-large' | 'silent' | 'undecodable' | 'timeout';
 
@@ -169,7 +167,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       return undefined;
     }
     cursor = batch[batch.length - 1].path;
-    folders = (await getFolders(database, ['path'])).map((folder) => folder.path);
+    folders = (await getFolders(database)).map((folder) => folder.path);
     reached = batch;
     return next();
   };

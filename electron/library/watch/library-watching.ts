@@ -1,3 +1,4 @@
+import { readMainSettings } from '@shared/schemas/settings';
 import type { Database } from 'sqlite3';
 import type { WebContents } from 'electron';
 import { createFolderWatcher } from './folder-watcher';
@@ -22,7 +23,7 @@ let watching: Watching | undefined;
 let enabled = true;
 
 // only a saved off turns the watching off
-const isOff = (settings: unknown) => typeof settings === 'object' && settings !== null && 'watchFolders' in settings && settings.watchFolders === false;
+const isOff = (settings: unknown) => readMainSettings(settings).watchFolders === false;
 
 const stop = () => {
   watching?.watcher.close();
@@ -35,7 +36,7 @@ export const refreshLibraryWatching = async (offline?: string[]) => {
   const current = watching;
   if (!current) return;
 
-  const stored = await getFolders(current.database, ['path']);
+  const stored = await getFolders(current.database);
   const folders = stored.map((folder) => folder.path);
   const unreadable = offline ?? (await findOfflineFolders(current.database, stored));
   // the window can close while the folders are looked at

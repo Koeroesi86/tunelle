@@ -9,7 +9,6 @@ import { queueAlbumArtAccents } from '../art/album-art-accents';
 import { quitSignal } from './scan-cancellation';
 import { findMissingTracks } from './missing-tracks';
 import isSupported, { isSupportedCodec } from '../../utils/is-supported';
-import { folderColumns } from '../../constants/library';
 import { scanKind } from '../tasks/background-queue';
 import { queueTask, scanPriority } from '../tasks/queue-task';
 
@@ -20,7 +19,7 @@ const readModifiedTimes = async (folders: Folder[]) => {
 
 /** The tracks below an offline folder are kept, its files cannot be told from missing ones; the tracks of a format or codec that is not played go too */
 const removeMissingTracks = async (database: Database, offline: string[], folders: string[]) => {
-  const tracks = (await getLibrary(database, { sort: undefined, folders: [] }, ['path', 'codec'])).filter(
+  const tracks = (await getLibrary(database, { sort: undefined, folders: [] })).filter(
     (track) => !offline.some((folderPath) => isInsideFolder(folderPath, track.path))
   );
   const missing = await findMissingTracks(tracks, folders);
@@ -39,7 +38,7 @@ async function scanLibrary(sender: WebContents, forced: boolean) {
   console.log(`Scanning library ${forced ? 'completely' : 'wisely'}...`);
 
   try {
-    const all = await getFolders(database, folderColumns);
+    const all = await getFolders(database);
     const { offline } = await reportOfflineFolders(database, sender, all);
     const folders = all.filter((folder) => !offline.includes(folder.path));
     const modified = await readModifiedTimes(folders);
@@ -47,7 +46,7 @@ async function scanLibrary(sender: WebContents, forced: boolean) {
 
     const incomplete = new Set((await scanFolders(changed, sender)).map((folder) => folder.path));
     // a folder that was removed while it was scanned is not stored again
-    const remaining = new Set((await getFolders(database, ['path'])).map((folder) => folder.path));
+    const remaining = new Set((await getFolders(database)).map((folder) => folder.path));
     // stored after the scan, with the time seen before it, so a failed or interrupted scan is retried, and so is one that left files unread
     await saveFolders(
       database,

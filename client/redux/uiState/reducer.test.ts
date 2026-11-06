@@ -321,14 +321,13 @@ describe('uiState reducer', () => {
       });
     });
 
-    it('restores a saved query and ignores what is not valid', () => {
+    it('restores a saved query', () => {
       const saved = { ...initial, radioQuery: { name: 'a' } };
 
       expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { radioQuery: { codec: 'AAC', bitrateMin: 320 } } } }, saved).radioQuery).toEqual({
         codec: 'AAC',
         bitrateMin: 320,
       });
-      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { radioQuery: { sort: 'x', bitrateMin: 5 } as never } } }, saved).radioQuery).toEqual({});
       expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { volume: 0.1 } } }, saved).radioQuery).toEqual({ name: 'a' });
     });
   });
@@ -363,18 +362,13 @@ describe('uiState reducer', () => {
       expect(run({ type: 'SET_GROUP_SORT', payload: { sort: undefined } }, withSort).groupSort).toBeUndefined();
     });
 
-    it('restores the saved sort of the groups, and drops one that is not valid', () => {
+    it('restores the saved sort of the groups', () => {
       const saved = run({ type: 'SET_GROUP_SORT', payload: { sort: { field: 'name', direction: 'desc' } } });
 
-      expect(
-        run({ type: 'RESTORE_SETTINGS', payload: { settings: { groupSort: { field: 'albumCount', direction: 'asc', extra: 1 } as never } } }).groupSort
-      ).toEqual({
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { groupSort: { field: 'albumCount', direction: 'asc' } } } }).groupSort).toEqual({
         field: 'albumCount',
         direction: 'asc',
       });
-      expect(
-        run({ type: 'RESTORE_SETTINGS', payload: { settings: { groupSort: { field: 'path', direction: 'asc' } as never } } }, saved).groupSort
-      ).toBeUndefined();
       expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { volume: 0.1 } } }, saved).groupSort).toEqual({ field: 'name', direction: 'desc' });
     });
 
@@ -384,7 +378,6 @@ describe('uiState reducer', () => {
       expect(initial.normalization).toBe('album');
       expect(track.normalization).toBe('track');
       expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { normalization: 'off' } } }).normalization).toBe('off');
-      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { normalization: 'loud' as never } } }, track).normalization).toBe('album');
       expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { volume: 0.1 } } }, track).normalization).toBe('track');
     });
 
@@ -492,18 +485,6 @@ describe('uiState reducer', () => {
       };
 
       expect(run({ type: 'RESTORE_SETTINGS', payload: { settings } })).toMatchObject(settings);
-    });
-
-    it('falls back to the default order and all folders for a saved value that is not valid', () => {
-      const saved = {
-        ...initial,
-        trackSort: { field: 'title', direction: 'asc' } as const,
-        albumSort: { field: 'title', direction: 'asc' } as const,
-        libraryFolders: ['/a'],
-      };
-      const settings = { trackSort: { field: 'path; DROP', direction: 'asc' }, albumSort: 'title', libraryFolders: 'all' } as never;
-
-      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings } }, saved)).toMatchObject({ trackSort: undefined, albumSort: undefined, libraryFolders: [] });
     });
 
     it('keeps the sort and the selection when the saved settings have none', () => {

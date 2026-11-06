@@ -14,12 +14,7 @@ export interface Playlist {
   entries: PlaylistEntry[];
 }
 
-/** A playlist as the main process stores it, the snapshots are as they were saved */
-export interface StoredPlaylist {
-  id: number;
-  name: string;
-  entries: { id: number; path: string; snapshot: unknown }[];
-}
+export type { StoredPlaylist } from '../schemas/playlists';
 
 /** A playlist as the main process sends it, the track is as it was saved and the window checks it before it shows it */
 export interface PlaylistMessage {

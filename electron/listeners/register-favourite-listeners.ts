@@ -3,8 +3,8 @@ import type { WebContents } from 'electron';
 import type { ListenerContext } from './listener-context';
 import { addFavourite, getFavourites, removeFavourite } from '../repositories/favourites-repository';
 import { withAvailability } from '../library/watch/favourite-availability';
-import { isRecord } from '@shared/utils/is-record';
-import { toKey } from '../utils/key-payload';
+import { favouriteKeySchema, snapshotPayloadSchema } from '@shared/schemas/favourites';
+import { parsePayload } from '../utils/parse-payload';
 import { sendIfAlive } from '../utils/send-if-alive';
 import { logError } from '../utils/log-error';
 
@@ -21,14 +21,15 @@ const registerFavouriteListeners = (context: ListenerContext) => {
   });
 
   ipcMain.on('FAVOURITE_ADD', (event, payload: unknown) => {
-    const key = toKey(payload);
-    if (!key || !isRecord(payload) || !isRecord(payload.snapshot)) return;
+    const parsed = parsePayload(snapshotPayloadSchema, payload);
+    if (!parsed) return;
 
-    reply(event.sender, addFavourite(context.database, key, payload.snapshot));
+    const { snapshot, ...key } = parsed;
+    reply(event.sender, addFavourite(context.database, key, snapshot));
   });
 
   ipcMain.on('FAVOURITE_REMOVE', (event, payload: unknown) => {
-    const key = toKey(payload);
+    const key = parsePayload(favouriteKeySchema, payload);
     if (!key) return;
 
     reply(event.sender, removeFavourite(context.database, key));

@@ -1,15 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Folder } from '@shared/types/library';
-import {
-  cycleSort,
-  knownFolders,
-  parseAlbumSort,
-  parseFolders,
-  parseTrackSort,
-  restoreAlbumSort,
-  restoreTrackSort,
-  trackSortFields,
-} from '@shared/types/library-query';
+import { cycleSort, knownFolders, parseAlbumSort, parseFolders, parseTrackSort, trackSortFields } from '@shared/types/library-query';
 import type { TrackSort } from '@shared/types/library-query';
 import reducers from '../redux/reducers';
 import { selectAlbumQuery, selectedFolders, selectGroupAlbumQuery, selectGroupQuery, selectTrackQuery } from './library-query';
@@ -51,12 +42,6 @@ describe('parsing a sort', () => {
     ['toString', 'asc'],
   ])('gives no sort for %s %s', (field, direction) => {
     expect(parseTrackSort(field, direction)).toBeUndefined();
-  });
-
-  it('restores a saved sort and gives no sort for anything else', () => {
-    expect(restoreTrackSort({ field: 'artist', direction: 'asc' })).toEqual({ field: 'artist', direction: 'asc' });
-    expect(restoreAlbumSort({ field: 'year', direction: 'desc', extra: 1 })).toEqual({ field: 'year', direction: 'desc' });
-    expect([null, 'title', 5, {}, { field: 'x', direction: 'asc' }, { field: 'title' }].map(restoreTrackSort)).toEqual(Array(6).fill(undefined));
   });
 });
 

@@ -3,8 +3,8 @@ import type { WebContents } from 'electron';
 import type { ListenerContext } from './listener-context';
 import { clearHistory, getHistory, recordPlayed } from '../repositories/history-repository';
 import { withAvailability } from '../library/watch/favourite-availability';
-import { isRecord } from '@shared/utils/is-record';
-import { toKey } from '../utils/key-payload';
+import { snapshotPayloadSchema } from '@shared/schemas/favourites';
+import { parsePayload } from '../utils/parse-payload';
 import { sendIfAlive } from '../utils/send-if-alive';
 import { logError } from '../utils/log-error';
 
@@ -21,10 +21,11 @@ const registerHistoryListeners = (context: ListenerContext) => {
   });
 
   ipcMain.on('HISTORY_RECORD', (event, payload: unknown) => {
-    const key = toKey(payload);
-    if (!key || !isRecord(payload) || !isRecord(payload.snapshot)) return;
+    const parsed = parsePayload(snapshotPayloadSchema, payload);
+    if (!parsed) return;
 
-    reply(event.sender, recordPlayed(context.database, key, payload.snapshot));
+    const { snapshot, ...key } = parsed;
+    reply(event.sender, recordPlayed(context.database, key, snapshot));
   });
 
   ipcMain.on('HISTORY_CLEAR', (event) => {

@@ -1,5 +1,4 @@
-import type { RadioQuery } from './radio';
-import { isRecord } from '@shared/utils/is-record';
+import { z } from 'zod';
 
 const maxQueryLength = 100;
 const maxOffset = 10000;
@@ -14,47 +13,55 @@ export const radioSortOrders = {
   country: 'country',
 } as const;
 
+export type RadioQuery = z.infer<typeof radioSearchSchema>;
+
 export type RadioSortField = keyof typeof radioSortOrders;
 
-export const radioSortFields = Object.keys(radioSortOrders).filter((field): field is RadioSortField => field in radioSortOrders);
+export const radioSortFields = ['popularity', 'name', 'bitrate', 'trending', 'votes', 'country'] as const satisfies readonly RadioSortField[];
 
 /** The minimum bitrates the filter offers, none is any bitrate */
 export const radioBitrates = [128, 192, 320] as const;
 
-const clean = (value: unknown) => (typeof value === 'string' ? value.trim().slice(0, maxQueryLength) : '');
-
-const findOf = <T>(allowed: readonly T[], value: unknown) => allowed.find((item) => item === value);
+const text = z
+  .string()
+  .transform((value) => value.trim().slice(0, maxQueryLength) || undefined)
+  .optional()
+  .catch(undefined);
 
 /** The default order (popularity, descending) is left out so that a query has one spelling */
-const toSort = (value: unknown) => {
-  const sort = findOf(radioSortFields, value);
+const sortSchema = z
+  .enum(radioSortFields)
+  .transform((sort) => (sort === 'popularity' ? undefined : sort))
+  .optional()
+  .catch(undefined);
 
-  return sort === 'popularity' ? undefined : sort;
-};
+const offsetSchema = z
+  .number()
+  .int()
+  .positive()
+  .transform((offset) => Math.min(offset, maxOffset))
+  .optional()
+  .catch(undefined);
 
-const toOffset = (value: unknown) => (typeof value === 'number' && Number.isInteger(value) && value > 0 ? Math.min(value, maxOffset) : undefined);
+export const radioQuerySchema = z.object({
+  name: text,
+  tag: text,
+  country: text,
+  language: text,
+  codec: text,
+  bitrateMin: z.literal(radioBitrates).optional().catch(undefined),
+  sort: sortSchema,
+  descending: z.literal(false).optional().catch(undefined),
+});
+
+/** An empty query lists the most popular stations; the fields combine, the sort is popularity descending unless set */
+export const radioSearchSchema = radioQuerySchema.extend({ offset: offsetSchema });
 
 /** The filters and the sort of a saved or requested query: text is trimmed and limited, the sort and the bitrate are checked against what is offered, anything else is dropped */
-export const parseRadioQuery = (payload: unknown): RadioQuery => {
-  const { name, tag, country, language, codec, bitrateMin, sort, descending } = isRecord(payload) ? payload : {};
-
-  return {
-    name: clean(name) || undefined,
-    tag: clean(tag) || undefined,
-    country: clean(country) || undefined,
-    language: clean(language) || undefined,
-    codec: clean(codec) || undefined,
-    bitrateMin: findOf(radioBitrates, bitrateMin),
-    sort: toSort(sort),
-    descending: descending === false ? false : undefined,
-  };
-};
+export const parseRadioQuery = (payload: unknown): RadioQuery => radioQuerySchema.safeParse(payload).data ?? radioQuerySchema.parse({});
 
 /** The query of a renderer message: the filters, and the offset of the page that is asked for */
-export const parseRadioSearch = (payload: unknown): RadioQuery => ({
-  ...parseRadioQuery(payload),
-  offset: toOffset(isRecord(payload) ? payload.offset : undefined),
-});
+export const parseRadioSearch = (payload: unknown): RadioQuery => radioSearchSchema.safeParse(payload).data ?? radioSearchSchema.parse({});
 
 /** The filters that narrow the list, the name and the tag among them; the sort is not one */
 export const countRadioFilters = ({ name, tag, country, language, codec, bitrateMin }: RadioQuery) =>

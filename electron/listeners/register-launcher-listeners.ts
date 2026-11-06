@@ -11,6 +11,8 @@ import {
   wasLauncherOffered,
 } from '../services/app-image-launcher';
 import type { LauncherOptions } from '../services/app-image-launcher';
+import { enabledRequestSchema } from '@shared/schemas/requests';
+import { parsePayload } from '../utils/parse-payload';
 import { logError } from '../utils/log-error';
 
 // the menu entry is only offered from an AppImage, it has no install step of its own
@@ -27,9 +29,6 @@ const sendState = (sender: WebContents, appImage: string) =>
     ([enabled, offered, other]) => sender.send('LAUNCHER_STATE', { available: true, enabled, offered, external: other && !enabled })
   );
 
-const isEnabledRequest = (payload: unknown): payload is { enabled: boolean } =>
-  typeof payload === 'object' && payload !== null && 'enabled' in payload && typeof payload.enabled === 'boolean';
-
 const registerLauncherListeners = (_context?: unknown, appImage = findAppImage()) => {
   if (!appImage) return;
 
@@ -41,12 +40,13 @@ const registerLauncherListeners = (_context?: unknown, appImage = findAppImage()
 
   // an answer to the offer on the first run and the toggle in the settings are the same request, either way the user was asked
   ipcMain.on('SET_LAUNCHER', (event, payload: unknown) => {
-    if (!isEnabledRequest(payload)) return;
+    const request = parsePayload(enabledRequestSchema, payload);
+    if (!request) return;
 
-    const change = () => (payload.enabled ? enableLauncher(appImage, getOptions()) : disableLauncher(getOptions()));
+    const change = () => (request.enabled ? enableLauncher(appImage, getOptions()) : disableLauncher(getOptions()));
 
     // the other tool's entry stays the only one; turning the app's own off is always possible
-    (payload.enabled ? hasOtherLauncher(appImage, getOptions()) : Promise.resolve(false))
+    (request.enabled ? hasOtherLauncher(appImage, getOptions()) : Promise.resolve(false))
       .then((other) => (other ? undefined : change()))
       .catch(logError)
       .then(() => markLauncherOffered(app.getPath('userData')))

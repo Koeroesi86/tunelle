@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'sqlite3';
 import type { Track } from '@shared/types/library';
 import type { LoudnessAnalysis, TrackLoudness } from '@shared/types/loudness';
-import { deleteTracks, deleteTracksInside, findTrackFormat, getAlbumTracks, getLibrary, getTrackPage, trackColumns } from './library-repository';
+import { deleteTracks, deleteTracksInside, findTrackFormat, getAlbumTrackList, getTrackList, getTrackPage } from './library-repository';
 import { findLoudnessAnalysis, findTracksToMeasure, saveTrackLoudness } from './loudness-repository';
 import addTrack from '../library/scan/add-track';
 import executeQuery from '../database/execute-query';
@@ -55,7 +55,13 @@ const measured = (path: string, extra: Partial<TrackLoudness> = {}): TrackLoudne
 
 describe('loudnessRepository', () => {
   let database: Database;
-  const gains = () => getLibrary(database, unsorted, ['path', 'trackGain', 'albumGain', 'trackPeak', 'albumPeak']);
+  const gains = (paths = ['/music/a.flac']) =>
+    Promise.all(
+      paths.map(async (path) => {
+        const { trackGain, albumGain, trackPeak, albumPeak } = (await findTrackFormat(database, path)) ?? {};
+        return { path, trackGain, albumGain, trackPeak, albumPeak };
+      })
+    );
   const rows = () =>
     executeQuery<{ path: string }>(database, { query: 'SELECT path FROM track_loudness ORDER BY path', variables: [] }).then((found) =>
       found.map((row) => row.path)
@@ -73,7 +79,6 @@ describe('loudnessRepository', () => {
 
       expect(await findTrackFormat(database, '/music/a.flac')).toEqual(expect.objectContaining(expected));
       expect(await gains()).toEqual([{ path: '/music/a.flac', ...expected }]);
-      expect((await getAlbumTracks(database, '/music', 'Album', ['trackGain', 'trackPeak']))[0]).toEqual({ trackGain: -6, trackPeak: 1.2 });
     });
 
     it('is not in the lists of tracks, which the player does not read it from', async () => {
@@ -81,8 +86,8 @@ describe('loudnessRepository', () => {
       await saveTrackLoudness(database, measured('/music/a.flac'));
 
       expect(Object.keys((await getTrackPage(database, 0, 10, unsorted)).items[0])).not.toContain('trackGain');
-      expect(Object.keys((await getAlbumTracks(database, '/music', 'Album', trackColumns))[0])).not.toContain('albumGain');
-      expect(Object.keys((await getLibrary(database, unsorted, trackColumns))[0])).not.toContain('trackPeak');
+      expect(Object.keys((await getAlbumTrackList(database, '/music', 'Album'))[0])).not.toContain('albumGain');
+      expect(Object.keys((await getTrackList(database, unsorted))[0])).not.toContain('trackPeak');
     });
 
     it('is the one of the tags when the tags have it, and the measured one for what they lack', async () => {
@@ -104,7 +109,7 @@ describe('loudnessRepository', () => {
       await addTrack(database, track('/music/b.flac', { fileSize: 2000 }));
       await Promise.all(['/music/a.flac', '/music/b.flac'].map((path) => saveTrackLoudness(database, measured(path))));
 
-      expect((await gains()).map((item) => item.trackGain)).toEqual([null, null]);
+      expect((await gains(['/music/a.flac', '/music/b.flac'])).map((item) => item.trackGain)).toEqual([null, null]);
     });
 
     it('keeps the measurement when the scan stores the track again with the same file', async () => {

@@ -1,13 +1,13 @@
 import type { Reducer } from 'redux';
 import type { Track } from '@shared/types/library';
 import { restoreCoverSize } from '../../utils/cover-size';
-import { knownFolders, parseFolders, restoreAlbumSort, restoreGroupSort, restoreTrackSort } from '@shared/types/library-query';
+import { knownFolders, parseFolders } from '@shared/types/library-query';
 import { parseRadioQuery } from '@shared/types/radio-query';
 import { isAppAction } from '../types';
 import type { OnlineView, UiState } from '../types';
 import { radioUuidOf } from '../../domain/radio-track';
 import { defaultTheme, parseAccent, restoreTheme } from '../../theme';
-import { defaultNormalization, restoreNormalization } from '../../audio/loudness';
+import { defaultNormalization } from '../../audio/loudness';
 import { restoreOutputDevice } from '../../audio/output-device';
 import { clampGain, defaultGains, restoreGains } from '../../audio/equalizer';
 import { autoAccent } from '../../constants/theme';
@@ -302,6 +302,7 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return {
         ...state,
         ...settings,
+        // a value of the wrong type is already left out of the settings (client/redux/persisted-settings.ts)
         // a tab saved by an earlier version does not decide where the app opens
         tab: state.tab,
         ...(settings.onlineView && { onlineView: restoreOnlineView() }),
@@ -309,12 +310,8 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
         ...('libraryOpen' in settings && { libraryOpen: settings.libraryOpen !== false }),
         ...('playlistsOpen' in settings && { playlistsOpen: settings.playlistsOpen !== false }),
         ...(settings.equalizer && { equalizer: restoreGains(settings.equalizer) }),
-        ...('normalization' in settings && { normalization: restoreNormalization(settings.normalization) }),
         ...('outputDevice' in settings && { outputDevice: restoreOutputDevice(settings.outputDevice) }),
         ...(settings.theme && { theme: restoreTheme(settings.theme) }),
-        // a saved value that is not valid gives the default order and all folders
-        ...('trackSort' in settings && { trackSort: restoreTrackSort(settings.trackSort) }),
-        ...('albumSort' in settings && { albumSort: restoreAlbumSort(settings.albumSort) }),
         ...('coverSize' in settings && { coverSize: restoreCoverSize(settings.coverSize) }),
         // only a saved off turns the photos off
         ...('artistPhotos' in settings && { artistPhotos: settings.artistPhotos !== false }),
@@ -322,10 +319,7 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
         ...('watchFolders' in settings && { watchFolders: settings.watchFolders !== false }),
         // only a saved off turns the measurement off
         ...('measureLoudness' in settings && { measureLoudness: settings.measureLoudness !== false }),
-        ...('groupSort' in settings && { groupSort: restoreGroupSort(settings.groupSort) }),
         ...('libraryFolders' in settings && { libraryFolders: parseFolders(settings.libraryFolders) }),
-        // a saved filter or sort that is not valid is dropped
-        ...('radioQuery' in settings && { radioQuery: parseRadioQuery(settings.radioQuery) }),
       };
     }
     default:

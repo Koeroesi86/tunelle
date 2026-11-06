@@ -1,6 +1,6 @@
 import path from 'path';
 import type { Database } from 'sqlite3';
-import type { AlbumSummary, AudioFormat, Folder, GroupSummary, LibraryPage, Loudness, Track } from '@shared/types/library';
+import type { AlbumSummary, Folder, GroupSummary, LibraryPage, Query, Track } from '@shared/types/library';
 import type {
   AlbumGroup,
   AlbumQuery,
@@ -13,7 +13,11 @@ import type {
   TrackSort,
   TrackSortField,
 } from '@shared/types/library-query';
+import { z } from 'zod';
 import executeQuery from '../database/execute-query';
+import { albumSummarySchema, groupSummarySchema, text, textOrNumber } from '@shared/schemas/library';
+import { libraryRowSchema } from '../schemas/database/library';
+import { folderRowSchema } from '../schemas/rows';
 import executeQueries from '../database/execute-queries';
 import { toSortKey } from '../database/sort-key';
 import { getAlbumArtAccents } from '../library/art/album-art-accents';
@@ -22,7 +26,7 @@ import { getAlbumArtAccents } from '../library/art/album-art-accents';
 const escapeLike = (value: string) => value.replace(/[!%_]/g, '!$&');
 
 /** The columns of a track that a list shows. The loudness is not among them: a lookup for each of thousands of rows is cost for nothing, the player asks for the one track (`findTrackFormat`) */
-export const trackColumns = [
+const trackColumns = [
   'path',
   'artist',
   'album',
@@ -42,6 +46,46 @@ export const trackColumns = [
   'lossless',
 ] as const satisfies readonly (keyof Track)[];
 
+// the columns come from the table, the text of a track that has none (NULL) is taken as empty
+const trackListSchema = libraryRowSchema
+  .pick({
+    path: true,
+    artist: true,
+    album: true,
+    title: true,
+    year: true,
+    track: true,
+    disk: true,
+    genre: true,
+    picture: true,
+    duration: true,
+    albumArtist: true,
+    codec: true,
+    bitDepth: true,
+    sampleRate: true,
+    bitrate: true,
+    vbr: true,
+    lossless: true,
+  })
+  .extend({ artist: text, album: text, title: text, genre: text, year: textOrNumber, track: textOrNumber, disk: textOrNumber });
+
+const formatRowSchema = libraryRowSchema.pick({
+  codec: true,
+  bitDepth: true,
+  sampleRate: true,
+  bitrate: true,
+  vbr: true,
+  lossless: true,
+  trackGain: true,
+  albumGain: true,
+  trackPeak: true,
+  albumPeak: true,
+});
+
+const groupRowSchema = groupSummarySchema.omit({ accent: true, covers: true }).extend({ covers: z.string().nullable() });
+
+const albumRowSchema = albumSummarySchema.omit({ id: true, path: true, accent: true }).extend({ firstPath: z.string() });
+
 const loudnessColumns = ['trackGain', 'albumGain', 'trackPeak', 'albumPeak'];
 
 const isLoudnessColumn = (column: string) => loudnessColumns.includes(column);
@@ -53,16 +97,17 @@ const effectiveLoudness = (column: string) =>
 /** The columns of a query as a list; the names come from the keys of a type, never from the incoming text */
 const columnList = (columns: readonly string[]) => columns.map((column) => (isLoudnessColumn(column) ? effectiveLoudness(column) : column)).join(', ');
 
-/** The folders in the order of their paths, with the columns asked for */
-export const getFolders = <K extends keyof Folder>(database: Database, columns: readonly K[]) =>
-  executeQuery<Pick<Folder, K>>(database, { query: `SELECT ${columnList(columns)} FROM folders ORDER BY path ASC`, variables: [] });
+/** The folders in the order of their paths */
+export const getFolders = (database: Database) =>
+  executeQuery(database, { query: `SELECT path, lastModified FROM folders ORDER BY path ASC`, variables: [] }, folderRowSchema);
 
 /** The folders below a folder, the folder itself is not among them */
 export const getFoldersInside = (database: Database, folderPath: string) =>
-  executeQuery<Pick<Folder, 'path'>>(database, {
-    query: `SELECT path FROM folders WHERE path LIKE ? ESCAPE '!'`,
-    variables: [`${escapeLike(folderPath.replace(/[\\/]+$/, '') + path.sep)}%`],
-  });
+  executeQuery(
+    database,
+    { query: `SELECT path FROM folders WHERE path LIKE ? ESCAPE '!'`, variables: [`${escapeLike(folderPath.replace(/[\\/]+$/, '') + path.sep)}%`] },
+    folderRowSchema.pick({ path: true })
+  );
 
 export const saveFolders = (database: Database, folders: Folder[]) =>
   executeQueries(
@@ -82,10 +127,14 @@ export const deleteFolders = (database: Database, folders: Pick<Folder, 'path'>[
 /** Remove the tracks below a folder from the library, the files stay on disk */
 /** The format and the loudness of a track as the player takes them (the tags first, else what was measured), undefined for a track the library does not have */
 export const findTrackFormat = (database: Database, trackPath: string) =>
-  executeQuery<AudioFormat & Loudness>(database, {
-    query: `SELECT codec, bitDepth, sampleRate, bitrate, vbr, lossless, ${columnList(loudnessColumns)} FROM library WHERE path = ?`,
-    variables: [trackPath],
-  }).then(([format]): (AudioFormat & Loudness) | undefined => format);
+  executeQuery(
+    database,
+    {
+      query: `SELECT codec, bitDepth, sampleRate, bitrate, vbr, lossless, ${columnList(loudnessColumns)} FROM library WHERE path = ?`,
+      variables: [trackPath],
+    },
+    formatRowSchema
+  ).then(([format]): z.output<typeof formatRowSchema> | undefined => format);
 
 // the scan stores the paths of tracks with forward slashes (scan-folder.ts), the folder keeps the ones it was picked with
 const insidePatterns = (folderPath: string) => {
@@ -102,26 +151,28 @@ export const deleteTracksInside = (database: Database, folderPath: string) =>
     { query: `DELETE FROM library WHERE ${insideCondition(insidePatterns(folderPath))}`, variables: insidePatterns(folderPath) },
   ]);
 
-/** The tracks below a folder, with the columns asked for */
-export const getTracksInside = <K extends keyof Track>(database: Database, folderPath: string, columns: readonly K[]) =>
-  executeQuery<Pick<Track, K>>(database, {
-    query: `SELECT ${columnList(columns)} FROM library WHERE ${insideCondition(insidePatterns(folderPath))}`,
-    variables: insidePatterns(folderPath),
-  });
+/** The tracks below a folder, with the path and the stat of the file they were read from */
+export const getTracksInside = (database: Database, folderPath: string) =>
+  executeQuery(
+    database,
+    { query: `SELECT path, fileModified, fileSize FROM library WHERE ${insideCondition(insidePatterns(folderPath))}`, variables: insidePatterns(folderPath) },
+    libraryRowSchema.pick({ path: true, fileModified: true, fileSize: true })
+  );
 
 /** Whether the library has a track below a folder */
 export const hasTracksInside = (database: Database, folderPath: string) =>
-  executeQuery<{ found: number }>(database, {
-    query: `SELECT 1 AS found FROM library WHERE ${insideCondition(insidePatterns(folderPath))} LIMIT 1`,
-    variables: insidePatterns(folderPath),
-  }).then((rows) => rows.length > 0);
+  executeQuery(
+    database,
+    { query: `SELECT 1 AS found FROM library WHERE ${insideCondition(insidePatterns(folderPath))} LIMIT 1`, variables: insidePatterns(folderPath) },
+    z.object({ found: z.number() })
+  ).then((rows) => rows.length > 0);
 
 // the folder of a track including the trailing separator, for both separators: rtrim drops the characters after the last one
 export const folderOfColumn = (column: string) => `rtrim(${column}, replace(replace(${column}, '/', ''), '\\', ''))`;
 const folderOf = folderOfColumn('path');
 
 const countTotal = (database: Database, query: string, variables: unknown[]) =>
-  executeQuery<{ total: number }>(database, { query, variables }).then(([row]) => row.total);
+  executeQuery(database, { query, variables }, z.object({ total: z.number() })).then(([row]) => row.total);
 
 /** How a field is ordered: when its value is empty (empty values come last in both directions) and the value itself */
 interface FieldOrder {
@@ -200,24 +251,36 @@ const toTrackFilter = ({ folders, search }: Pick<LibraryQuery<unknown>, 'folders
 };
 
 /** The tracks in the order of the sort, in the default order (by path) when there is none, limited to the tracks below the folders when there are any; with the columns asked for */
-export const getLibrary = <K extends keyof Track>(database: Database, query: LibraryQuery<TrackSort>, columns: readonly K[]) => {
+const toLibraryQuery = (query: LibraryQuery<TrackSort>, columns: readonly string[]): Query => {
   const filter = toTrackFilter(query);
 
-  return executeQuery<Pick<Track, K>>(database, {
+  return {
     query: `SELECT ${columnList(columns)} FROM library ${filter.where} ORDER BY ${toOrderBy(trackOrders, query.sort, 'path')}`,
     variables: filter.variables,
-  });
+  };
 };
+
+/** The path and the codec of the tracks of a query, for the work inside the main process that does not need a whole track */
+export const getLibrary = (database: Database, query: LibraryQuery<TrackSort>) =>
+  executeQuery(database, toLibraryQuery(query, ['path', 'codec']), libraryRowSchema.pick({ path: true, codec: true }));
+
+/** The whole library as the lists show it, every row read by the schema of the list (about 2.6 ms for 1000 rows) */
+export const getTrackList = (database: Database, query: LibraryQuery<TrackSort>) =>
+  executeQuery(database, toLibraryQuery(query, trackColumns), trackListSchema);
 
 /** A page of the tracks in the order of getLibrary, with the number of tracks it has */
 export const getTrackPage = (database: Database, offset: number, limit: number, query: LibraryQuery<TrackSort>): Promise<LibraryPage<Track>> => {
   const filter = toTrackFilter(query);
 
   return Promise.all([
-    executeQuery<Track>(database, {
-      query: `SELECT ${columnList(trackColumns)} FROM library ${filter.where} ORDER BY ${toOrderBy(trackOrders, query.sort, 'path')} LIMIT ? OFFSET ?`,
-      variables: [...filter.variables, limit, offset],
-    }),
+    executeQuery(
+      database,
+      {
+        query: `SELECT ${columnList(trackColumns)} FROM library ${filter.where} ORDER BY ${toOrderBy(trackOrders, query.sort, 'path')} LIMIT ? OFFSET ?`,
+        variables: [...filter.variables, limit, offset],
+      },
+      trackListSchema
+    ),
     countTotal(database, `SELECT COUNT(*) AS total FROM library ${filter.where}`, filter.variables),
   ]).then(([items, total]) => ({ items, total }));
 };
@@ -267,11 +330,15 @@ export const getGroupPage = (
   const variables = [...folderFilter.variables, `%${escapeLike(toSortKey(filter))}%`];
 
   return Promise.all([
-    executeQuery<Omit<GroupSummary, 'covers'> & { covers: string | null }>(database, {
-      query: `${scoped} SELECT ${key} AS "key", MIN(TRIM(COALESCE(${name}, ''))) AS name, COUNT(DISTINCT ${albumIdentity}) AS albumCount, COUNT(*) AS trackCount, ${cover(key)} AS cover, ${covers(key)} AS covers
+    executeQuery(
+      database,
+      {
+        query: `${scoped} SELECT ${key} AS "key", MIN(TRIM(COALESCE(${name}, ''))) AS name, COUNT(DISTINCT ${albumIdentity}) AS albumCount, COUNT(*) AS trackCount, ${cover(key)} AS cover, ${covers(key)} AS covers
         ${source} GROUP BY ${key} ORDER BY ${toOrderBy(groupOrders(key), sort, `(${key} = '') ASC, ${key}`)} LIMIT ? OFFSET ?`,
-      variables: [...variables, limit, offset],
-    }),
+        variables: [...variables, limit, offset],
+      },
+      groupRowSchema
+    ),
     countTotal(database, `${scoped} SELECT COUNT(*) AS total FROM (SELECT 1 ${source} GROUP BY ${key})`, variables),
   ]).then(async ([items, total]) => {
     const accents = await getAlbumArtAccents(
@@ -338,13 +405,17 @@ export const getAlbumPage = (
   const variables = [...folder.variables, ...groupFilter.variables, ...match.variables];
 
   return Promise.all([
-    executeQuery<Omit<AlbumSummary, 'id' | 'path'> & { firstPath: string }>(database, {
-      // the bare columns come from the row of MIN(path), the first track of the album
-      query: `SELECT COALESCE(album, '') AS title, artist, picture AS cover, year, SUM(duration) AS duration, COUNT(*) AS trackCount, codec, bitDepth, sampleRate, bitrate, vbr, lossless, MIN(path) AS firstPath
+    executeQuery(
+      database,
+      {
+        // the bare columns come from the row of MIN(path), the first track of the album
+        query: `SELECT COALESCE(album, '') AS title, artist, picture AS cover, year, SUM(duration) AS duration, COUNT(*) AS trackCount, codec, bitDepth, sampleRate, bitrate, vbr, lossless, MIN(path) AS firstPath
         FROM (SELECT ${albumSourceColumns}, ${folderOf} AS folder FROM library ${where}) ${groupFilter.where} GROUP BY folder, COALESCE(album, '') ${having}
         ORDER BY ${toOrderBy(albumOrders, sort, 'MIN(path)')} LIMIT ? OFFSET ?`,
-      variables: [...variables, limit, offset],
-    }),
+        variables: [...variables, limit, offset],
+      },
+      albumRowSchema
+    ),
     countTotal(
       database,
       `SELECT COUNT(*) AS total FROM (SELECT 1 FROM (SELECT ${albumCountColumns}, ${folderOf} AS folder FROM library ${where}) ${groupFilter.where} GROUP BY folder, COALESCE(album, '') ${having})`,
@@ -369,14 +440,23 @@ export const getAlbumPage = (
 };
 
 /** The tracks of an album, folder is the directory of the album */
-export const getAlbumTracks = <K extends keyof Track>(database: Database, folder: string, album: string, columns: readonly K[]) =>
-  executeQuery<Pick<Track, K>>(database, {
-    query: `SELECT ${columnList(columns)} FROM library WHERE ${folderOf} IN (?, ?, ?) AND COALESCE(album, '') = ? ORDER BY path ASC`,
-    variables: [folder, `${folder}/`, `${folder}\\`, album],
-  });
+const toAlbumTracksQuery = (folder: string, album: string, columns: readonly string[]): Query => ({
+  query: `SELECT ${columnList(columns)} FROM library WHERE ${folderOf} IN (?, ?, ?) AND COALESCE(album, '') = ? ORDER BY path ASC`,
+  variables: [folder, `${folder}/`, `${folder}\\`, album],
+});
+
+/** The paths of the tracks of an album, for the work inside the main process that does not need a whole track */
+export const getAlbumTracks = (database: Database, folder: string, album: string) =>
+  executeQuery(database, toAlbumTracksQuery(folder, album, ['path']), libraryRowSchema.pick({ path: true }));
+
+/** The tracks of an album as the lists show them, every row read by the schema of the list */
+export const getAlbumTrackList = (database: Database, folder: string, album: string) =>
+  executeQuery(database, toAlbumTracksQuery(folder, album, trackColumns), trackListSchema);
 
 export const findTrackPath = (database: Database, trackPath: string) =>
-  executeQuery<Pick<Track, 'path'>>(database, { query: `SELECT path FROM library WHERE path = ?`, variables: [trackPath] }).then(([track]) => track?.path);
+  executeQuery(database, { query: `SELECT path FROM library WHERE path = ?`, variables: [trackPath] }, libraryRowSchema.pick({ path: true })).then(
+    ([track]) => track?.path
+  );
 
 export const deleteTracks = (database: Database, tracks: Pick<Track, 'path'>[]) =>
   executeQueries(
