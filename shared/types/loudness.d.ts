@@ -31,3 +31,25 @@ export interface TrackLoudness {
   reason: string | null;
   analysis: LoudnessAnalysis | null;
 }
+
+/** What the main process asks the measuring page for */
+export interface MeasureRequest {
+  id: number;
+  /** The path of a track of the library, which the page fetches from `tunelle://app/track` */
+  path: string;
+}
+
+/**
+ * What the measuring page answers. Undecodable is a file the browser cannot decode, unreadable one that could not be fetched (a drive that went away),
+ * which is tried again later; silent has no block above the absolute gate
+ */
+export type MeasureResult =
+  | { id: number; outcome: 'measured'; analysis: LoudnessAnalysis; trackGain: number; trackPeak: number }
+  | { id: number; outcome: 'silent' | 'undecodable' | 'unreadable' };
+
+export interface LoudnessApi {
+  onMeasure: (listener: (request: MeasureRequest) => void) => void;
+  report: (result: MeasureResult) => void;
+  /** The page can take a request: the listener is set */
+  ready: () => void;
+}

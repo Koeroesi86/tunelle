@@ -1,5 +1,6 @@
 import type { Database } from 'sqlite3';
 import type { BrowserWindow } from 'electron';
+import type { LoudnessApi } from './loudness';
 
 export interface ElectronApi {
   send: (channel: string, payload?: unknown) => void;
@@ -17,6 +18,7 @@ export interface AppWindows {
 declare global {
   interface Window {
     electronAPI: ElectronApi;
+    loudnessAPI: LoudnessApi;
   }
 
   // main process state shared between modules

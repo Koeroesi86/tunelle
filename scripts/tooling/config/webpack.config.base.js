@@ -100,6 +100,13 @@ const config = [
     resolveFallback: { path: require.resolve('path-browserify') },
     plugins: []
   }),
+  // the page of the hidden window that measures the loudness of the library (electron/library/loudness)
+  createConfig({
+    name: 'loudness',
+    entry: path.resolve(__dirname, '../../../client/loudness/page.ts'),
+    target: 'web',
+    plugins: []
+  }),
   createConfig({
     name: 'htmlGenerator',
     entry: path.resolve(__dirname, '../../../client/htmlGenerator.tsx'),

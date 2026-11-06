@@ -26,7 +26,7 @@ interface Fixtures {
   /** A folder of the generated albums, outside of the profile of the app */
   music: string;
   /** Starts the app on the profile of the test: a second start finds what the first one left; `measureStart` reads the paint times of the first load, before the page is reloaded for the init scripts */
-  start: (options?: { measureStart?: boolean }) => Promise<Session>;
+  start: (options?: { measureStart?: boolean; env?: Record<string, string> }) => Promise<Session>;
   /** The app started on a profile whose library holds the albums of `music` */
   session: Session;
   /** The fake station directory the app is pointed to; the first station plays silence and announces a song */
@@ -101,8 +101,8 @@ export const test = base.extend<Fixtures>({
     const home = mkdtempSync(join(tmpdir(), 'tunelle-e2e-'));
     const running: ElectronApplication[] = [];
 
-    await use(async ({ measureStart } = {}) => {
-      const session = await launchApp({ home, radioDirectory: directory.origin, initScripts: [installActiveAudio, installAudioProbe], measureStart });
+    await use(async ({ measureStart, env } = {}) => {
+      const session = await launchApp({ home, radioDirectory: directory.origin, initScripts: [installActiveAudio, installAudioProbe], measureStart, env });
       running.push(session.app);
       return session;
     });
@@ -129,6 +129,8 @@ interface LaunchOptions {
   offline?: boolean;
   /** Reads the paint times of the first load of the page into `startTimes` (it costs about a tenth of a second) */
   measureStart?: boolean;
+  /** More variables for the app, such as the ones of docs/development/building.md */
+  env?: Record<string, string>;
 }
 
 /** The language of the app in the run: English, or another file of shared/locales/ with SCREENSHOTS_LANG=hu (the pictures of the Store listing) */
@@ -151,7 +153,7 @@ export const ui = (english: string) => {
 };
 
 /** Starts the built app (npm run build first, PERF_APP_OUT=<folder> for the build of another checkout, which the perf runs compare with) on a profile, and answers when its window shows the page */
-export const launchApp = async ({ home, radioDirectory, initScripts, offline = false, measureStart = false }: LaunchOptions): Promise<Session> => {
+export const launchApp = async ({ home, radioDirectory, initScripts, offline = false, measureStart = false, env = {} }: LaunchOptions): Promise<Session> => {
   const { ELECTRON_RUN_AS_NODE, ...inherited } = process.env;
   // Windows keeps its profile folders (chromium needs them, and the app data folder does not follow the variables there)
   const profile: Record<string, string> =
@@ -180,6 +182,7 @@ export const launchApp = async ({ home, radioDirectory, initScripts, offline = f
       // the library is in the profile of the run on every system, not in the app data folder of the user (macOS and Windows do not follow HOME there)
       TUNELLE_APP_DATA: home,
       TUNELLE_RADIO_DIRECTORY: radioDirectory,
+      ...env,
     },
   });
   await Promise.all([installNoNotifications, ...initScripts].map((script) => app.context().addInitScript(script)));

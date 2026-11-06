@@ -3,6 +3,7 @@ export interface PageLocals {
   doctype: string;
   assets: {
     client: string;
+    loudness: string;
   };
 }
 

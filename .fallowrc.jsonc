@@ -8,6 +8,9 @@
     "index.ts",
     "electron/preload.ts",
     "electron/splash-preload.ts",
+    // the preload and the page of the hidden window that measures the loudness (webpack entry and window option, not imports)
+    "electron/loudness-preload.ts",
+    "client/loudness/page.ts",
     "client/app.tsx",
     // webpack entry that renders the loading splash html
     "client/htmlGenerator.tsx",

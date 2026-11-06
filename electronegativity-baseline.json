@@ -6,6 +6,7 @@
   "CSP_GLOBAL_CHECK file:///",
   "OPEN_EXTERNAL_JS_CHECK listeners/register-update-listeners.ts",
   "PERMISSION_REQUEST_HANDLER_GLOBAL_CHECK file:///",
+  "PRELOAD_JS_CHECK library/loudness/loudness-window.ts",
   "PRELOAD_JS_CHECK windows/create-window.ts",
   "PRELOAD_JS_CHECK windows/get-loading-window.ts",
   "SANDBOX_JS_CHECK windows/create-window.ts",

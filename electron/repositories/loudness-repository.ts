@@ -1,4 +1,5 @@
 import type { Database } from 'sqlite3';
+import type { Track } from '@shared/types/library';
 import type { LoudnessAnalysis, TrackLoudness } from '@shared/types/loudness';
 import executeQuery from '../database/execute-query';
 
@@ -33,3 +34,19 @@ export const findLoudnessAnalysis = (database: Database, trackPath: string, vers
       AND track_loudness.fileModified = library.fileModified AND track_loudness.fileSize = library.fileSize`,
     variables: [trackPath, version],
   }).then(([row]) => (row?.analysis ? parseAnalysis(row.analysis) : undefined));
+
+export type TrackToMeasure = Pick<Track, 'path' | 'duration' | 'fileModified' | 'fileSize' | 'trackGain' | 'trackPeak'>;
+
+/**
+ * The tracks after a path, in the order of their paths, that have no measurement to go by: none, one of another file than the library has now (a changed
+ * file), or one of an older version. A failed measurement is not tried again until the file changes or the version rises
+ */
+export const findTracksToMeasure = (database: Database, afterPath: string, limit: number, version: number) =>
+  executeQuery<TrackToMeasure>(database, {
+    query: `SELECT library.path, library.duration, library.fileModified, library.fileSize, library.trackGain, library.trackPeak
+      FROM library LEFT JOIN track_loudness ON track_loudness.path = library.path
+      WHERE library.path > ? AND (track_loudness.path IS NULL OR track_loudness.analysisVersion != ?
+        OR track_loudness.fileModified IS NOT library.fileModified OR track_loudness.fileSize IS NOT library.fileSize)
+      ORDER BY library.path ASC LIMIT ?`,
+    variables: [afterPath, version, limit],
+  });

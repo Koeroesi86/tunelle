@@ -23,6 +23,7 @@ import { registerDevDesktopEntry, removeDevDesktopEntry } from './electron/servi
 import closeDatabase from './electron/database/close-database';
 import { cancelScans } from './electron/library/scan/scan-cancellation';
 import { backgroundQueue } from './electron/library/tasks/background-queue';
+import { registerLoudness } from './electron/library/loudness/loudness-source';
 import closeSplash from './electron/windows/close-splash';
 import releaseWindows from './electron/windows/release-windows';
 import { getMainTranslator, setPickedLanguage } from './electron/language';
@@ -97,6 +98,7 @@ const devOrigin = argv.webpackPort ? `http://localhost:${argv.webpackPort}` : un
 const pageOrigin = devOrigin ?? tunelleOrigin;
 const windowLocation = `${pageOrigin}/index.html`;
 const loadingLocation = `${pageOrigin}/loading.html`;
+const loudnessLocation = `${pageOrigin}/loudness.html`;
 
 // before the app is ready
 registerTunelleScheme();
@@ -252,6 +254,10 @@ app
     setupListeners(d, windows, radio, updates);
     backgroundQueue.start();
 
+    // the hidden window of the measurement is a window too: the app does not quit while it is open
+    const loudness = registerLoudness(d, loudnessLocation);
+    windows.main?.on('closed', loudness.stop);
+
     // the native sqlite3 addon aborts the process when it is torn down with the database open, so it is closed before the app exits
     let databaseClosed = false;
     app.on('will-quit', (event) => {
@@ -266,6 +272,7 @@ app
     // the database closes after its queued statements, which a running scan keeps adding to, so the scan stops first
     app.on('before-quit', () => {
       backgroundQueue.stop();
+      loudness.stop();
       cancelScans();
       closeSplash(windows);
     });
