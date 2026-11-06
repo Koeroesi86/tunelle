@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   appListeners: new Map<string, () => void>(),
   quit: vi.fn(),
   startMpris: vi.fn(),
+  coverFolder: vi.fn(),
   write: vi.fn(),
   clear: vi.fn(),
 }));
@@ -23,7 +24,7 @@ vi.mock('electron', () => ({
   ipcMain: { on: (channel: string, listener: (...args: unknown[]) => void) => mocks.listeners.set(channel, listener) },
 }));
 vi.mock('../services/mpris', async (importOriginal) => ({ ...(await importOriginal<typeof import('../services/mpris')>()), startMpris: mocks.startMpris }));
-vi.mock('../services/mpris-cover', () => ({ coverFolder: () => '/covers', createCoverFiles: () => ({ write: mocks.write, clear: mocks.clear }) }));
+vi.mock('../services/mpris-cover', () => ({ coverFolder: mocks.coverFolder, createCoverFiles: () => ({ write: mocks.write, clear: mocks.clear }) }));
 
 const event = {} as IpcMainEvent;
 const track = { title: 'Song', artist: 'Artist', album: 'Album', duration: 200, coverUrl: undefined };
@@ -53,6 +54,7 @@ describe('registerMprisListeners', () => {
       onCommand = handler;
       return service;
     });
+    mocks.coverFolder.mockReturnValue('/covers');
     mocks.write.mockResolvedValue('file:///covers/cover-1.png');
     mocks.clear.mockResolvedValue(undefined);
   });
@@ -102,6 +104,16 @@ describe('registerMprisListeners', () => {
     send('MPRIS_COVER', { bytes: new Uint8Array([1]), type: 'image/png' });
 
     await vi.waitFor(() => expect(console.error).toHaveBeenCalled());
+  });
+
+  it('shows the track without a cover where there is no private folder to write it to', async () => {
+    mocks.coverFolder.mockReturnValue(undefined);
+    await register();
+    send('MPRIS_STATE', playing);
+    send('MPRIS_COVER', { bytes: new Uint8Array([1]), type: 'image/png' });
+
+    expect(mocks.write).not.toHaveBeenCalled();
+    expect(service.update).toHaveBeenLastCalledWith(playing);
   });
 
   it('ignores a cover that is not bytes with a type', async () => {

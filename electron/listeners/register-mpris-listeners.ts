@@ -24,7 +24,8 @@ const isCover = (payload: unknown): payload is CoverPayload =>
 const registerMprisListeners = ({ windows }: ListenerContext) => {
   if (process.platform !== 'linux') return;
 
-  const covers = createCoverFiles(coverFolder(process.env.XDG_RUNTIME_DIR, process.env.FLATPAK_ID));
+  const folder = coverFolder(process.env.XDG_RUNTIME_DIR, process.env.FLATPAK_ID);
+  const covers = folder ? createCoverFiles(folder) : undefined;
   let service: MprisService | undefined;
   let state: MprisState = idleState;
   let coverUrl: string | undefined;
@@ -56,11 +57,11 @@ const registerMprisListeners = ({ windows }: ListenerContext) => {
   ipcMain.on('MPRIS_COVER', (_event: IpcMainEvent, payload: unknown) => {
     if (!isCover(payload)) {
       coverUrl = undefined;
-      covers.clear().catch(() => undefined);
+      covers?.clear().catch(() => undefined);
       return push();
     }
 
-    covers.write(payload.bytes, payload.type).then(
+    covers?.write(payload.bytes, payload.type).then(
       (url) => {
         coverUrl = url;
         push();
@@ -71,7 +72,7 @@ const registerMprisListeners = ({ windows }: ListenerContext) => {
 
   app.on('will-quit', () => {
     service?.close();
-    covers.clear().catch(() => undefined);
+    covers?.clear().catch(() => undefined);
   });
 };
 

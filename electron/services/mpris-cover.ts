@@ -1,12 +1,11 @@
 import { mkdir, rm, writeFile } from 'fs/promises';
-import { tmpdir } from 'os';
 import { join } from 'path';
 import { pathToFileURL } from 'url';
 import { extension } from 'mime-types';
 
-/** The shell reads the cover from outside the sandbox: the Flatpak shares `$XDG_RUNTIME_DIR/app/<id>` with the host. See docs/app/mpris.md */
+/** The shell reads the cover from outside the sandbox: the Flatpak shares `$XDG_RUNTIME_DIR/app/<id>` with the host. Without that folder, which only the user can open, there is no cover (not the temp folder, which others can). See docs/app/mpris.md */
 export const coverFolder = (runtimeDir: string | undefined, flatpakId: string | undefined) =>
-  runtimeDir ? join(runtimeDir, flatpakId ? `app/${flatpakId}` : 'tunelle') : join(tmpdir(), 'tunelle-mpris');
+  runtimeDir ? join(runtimeDir, flatpakId ? `app/${flatpakId}` : 'tunelle') : undefined;
 
 /** One file at a time, under a new name for each cover (the shell keeps what it read under the old name), removed with the next one */
 export const createCoverFiles = (folder: string) => {

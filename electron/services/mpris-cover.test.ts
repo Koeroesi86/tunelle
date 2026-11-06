@@ -6,10 +6,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { coverFolder, createCoverFiles } from './mpris-cover';
 
 describe('coverFolder', () => {
-  it('is the folder the Flatpak shares with the host, or one of the app', () => {
+  it('is the folder the Flatpak shares with the host, or one of the app, and none without the runtime folder of the user', () => {
     expect(coverFolder('/run/user/1000', 'io.github.koeroesi86.Tunelle')).toBe(join('/run/user/1000', 'app/io.github.koeroesi86.Tunelle'));
     expect(coverFolder('/run/user/1000', undefined)).toBe(join('/run/user/1000', 'tunelle'));
-    expect(coverFolder(undefined, undefined)).toBe(join(tmpdir(), 'tunelle-mpris'));
+    expect(coverFolder(undefined, undefined)).toBeUndefined();
   });
 });
 
