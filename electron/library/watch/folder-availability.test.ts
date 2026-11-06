@@ -5,7 +5,8 @@ import path from 'path';
 import type { WebContents } from 'electron';
 import type { Database } from 'sqlite3';
 import addTrack from '../scan/add-track';
-import { findOfflineFolders, isDirectlyInside, isInsideFolder, reportOfflineFolders, withTimeout } from './folder-availability';
+import { findOfflineFolders, isDirectlyInside, isInsideFolder, reportOfflineFolders } from './folder-availability';
+import { mountGuard } from '../mounts/mount-guard';
 import { createTestDatabase } from '../../test-database';
 
 describe('folderAvailability', () => {
@@ -52,13 +53,14 @@ describe('folderAvailability', () => {
     expect(await findOfflineFolders(database, [folder(root)])).toEqual([root]);
   });
 
-  it('answers the fallback for a call that does not finish in time', async () => {
-    vi.useFakeTimers();
-    const answer = withTimeout(new Promise<string>(() => undefined), 'late', 100);
-    await vi.advanceTimersByTimeAsync(100);
-    vi.useRealTimers();
+  it('asks the process of the mount and not the main process, so a folder that does not answer holds no thread of it', async () => {
+    const opendir = vi.spyOn(fs.promises, 'opendir');
+    const isEmpty = vi.spyOn(mountGuard(), 'isEmpty').mockResolvedValue(undefined);
 
-    expect(await answer).toBe('late');
+    expect(await findOfflineFolders(database, [folder(root)])).toEqual([root]);
+    expect(isEmpty).toHaveBeenCalledWith(root, root);
+    expect(opendir).toHaveBeenCalledTimes(0);
+    vi.restoreAllMocks();
   });
 
   it('reports the folders that came back since the last report', async () => {
