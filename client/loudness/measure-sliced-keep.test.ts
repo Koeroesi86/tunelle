@@ -21,7 +21,7 @@ const measureWith = async (slice: Slice) => {
     yield slice;
   });
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(new Uint8Array(1), { status: 206, headers: { 'Content-Range': 'bytes 0-0/1000000' } })));
-  return measureSliced(1, 'tunelle://app/track?path=a', 7200, async () => decoded);
+  return measureSliced(1, 'tunelle://app/track?path=a', 7200, async () => decoded, vi.fn());
 };
 
 const integrated = (result: Awaited<ReturnType<typeof measureSliced>>) => (result.outcome === 'measured' ? result.analysis.integratedLufs : undefined);

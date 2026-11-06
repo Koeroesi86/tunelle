@@ -96,13 +96,13 @@ describe('measureSliced', () => {
   it('is too large for a file of a format that is cut in a variant that is not, like an Ogg file of FLAC', async () => {
     serve(page(1, 0, 0, Uint8Array.from([0x7f, ...ascii('FLAC'), 0, 0, 0]), 0x02));
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode)).toEqual({ id: 1, outcome: 'too-large' });
+    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode, vi.fn())).toEqual({ id: 1, outcome: 'too-large' });
   });
 
   it('is undecodable for a file that is not what its format says', async () => {
     serve(Uint8Array.from([...ascii('OggS'), ...new Array(100).fill(0)]));
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode)).toEqual({ id: 1, outcome: 'undecodable' });
+    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode, vi.fn())).toEqual({ id: 1, outcome: 'undecodable' });
   });
 
   it('is unreadable when the file cannot be fetched', async () => {
