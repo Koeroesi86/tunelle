@@ -17,7 +17,7 @@ Chromium registers `org.mpris.MediaPlayer2.chromium.instance<pid>` and never set
 
 ## The dependency
 
-`dbus-next` has an optional native dependency, `usocket`, which it needs only for a session bus address of the form `unix:abstract=...` (older or non-systemd setups) and for passing file descriptors. It is left out of the package (`!node_modules/usocket/**` in `build.files`), so there the connection fails, the error is logged and the app has no media controls; the usual `unix:path=/run/user/<uid>/bus` of systemd works with a plain socket. `xml2js`, which it brings, is overridden to 0.6 (the 0.4 one has a known vulnerability, GHSA-776f-qx25-q3cc). `@homebridge/dbus-native` is the maintained alternative with a lower level API, if `dbus-next` ever stops working.
+`dbus-next` has an optional native dependency, `usocket`, which it needs only for a session bus address of the form `unix:abstract=...` (older or non-systemd setups) and for passing file descriptors. It builds with node-gyp, fails on a runner without a C++ toolchain and brings `request` with a vulnerable `form-data`, so `package.json` replaces it with the empty package in `scripts/stubs/usocket` (a `dependencies` entry that `overrides` points to). There the connection fails, the error is logged and the app has no media controls; the usual `unix:path=/run/user/<uid>/bus` of systemd works with a plain socket. `xml2js`, which it brings, is overridden to 0.6 (the 0.4 one has a known vulnerability, GHSA-776f-qx25-q3cc). `@homebridge/dbus-native` is the maintained alternative with a lower level API, if `dbus-next` ever stops working.
 
 ## Tests
 

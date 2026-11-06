@@ -54,8 +54,7 @@
       "!**/*.map",
       "!**/*.d.ts",
       "!**/*.{spec,test}.*",
-      "!node_modules/sqlite3/deps/**",
-      "!node_modules/usocket/**"
+      "!node_modules/sqlite3/deps/**"
     ],
     "asarUnpack": [
       "**/node_modules/@img/**"
@@ -154,6 +153,7 @@
     "sharp": "^0.35.5",
     "slugify": "^1.6.9",
     "sqlite3": "^6.0.1",
+    "usocket": "file:scripts/stubs/usocket",
     "windows-shortcuts-appid": "^0.3.2"
   },
   "devDependencies": {
@@ -206,6 +206,7 @@
     "xmldom": "npm:@xmldom/xmldom@^0.9.12",
     "glob@13": "^14.0.2",
     "minimatch@10": "^11.0.1",
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
+    "usocket": "$usocket"
   }
 }
