@@ -37,10 +37,8 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 3px;
-    margin-left: -1px;
+    width: 1px;
     background: var(--text);
-    border-radius: 2px;
     transition: left 0.25s linear;
   }
 
