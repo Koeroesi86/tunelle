@@ -93,21 +93,21 @@ export const registerLoudness = (database: Database, pageUrl: string) => {
 
   /** The next track to measure; the end of the library starts the rest, and the next one starts again from the first track */
   const next = async (): Promise<Pick<Task, 'key' | 'run'> | undefined> => {
-    if (reached.length === 0) {
-      const batch = await findTracksToMeasure(database, cursor, batchSize, analysisVersion);
-      if (batch.length === 0) {
-        cursor = '';
-        restUntil = Date.now() + restPause;
-        return undefined;
-      }
-      cursor = batch[batch.length - 1].path;
-      reached = await reachable(database, batch);
-      return next();
+    const [track, ...rest] = reached;
+    if (track) {
+      reached = rest;
+      return { key: track.path, run: measure(track) };
     }
 
-    const [track, ...rest] = reached;
-    reached = rest;
-    return { key: track.path, run: measure(track) };
+    const batch = await findTracksToMeasure(database, cursor, batchSize, analysisVersion);
+    if (batch.length === 0) {
+      cursor = '';
+      restUntil = Date.now() + restPause;
+      return undefined;
+    }
+    cursor = batch[batch.length - 1].path;
+    reached = await reachable(database, batch);
+    return next();
   };
 
   const removeSource = backgroundQueue.addSource({ kind: loudnessKind, priority, canRun: mayRun, next });
