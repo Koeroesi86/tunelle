@@ -394,13 +394,15 @@ describe('the measurement of the loudness as a source of the background queue', 
       measure.mockResolvedValueOnce({ id: 1, outcome: 'unreadable' });
       register();
       await drain();
-      expect(pooling()).toHaveLength(1);
+      // the start and the end of the pass, none for the track
+      expect(pooling()).toHaveLength(2);
 
       measure.mockResolvedValue(measured);
       elapse(rest + 1);
       await drain();
 
-      expect(pooling()).toHaveLength(2);
+      // the track, and the end of the pass
+      expect(pooling()).toHaveLength(4);
     });
 
     it('are pooled at the end of a pass, for the tracks a scan added or took away', async () => {

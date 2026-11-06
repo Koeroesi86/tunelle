@@ -19,11 +19,10 @@ const settleAlbum = async (database: Database, album: AlbumToPool) => {
  */
 export const poolAlbumGains = async (database: Database, signal: AbortSignal) => {
   const albums = await findAlbumsToPool(database, analysisVersion);
-  let settled = 0;
-  for (const album of albums) {
-    if (signal.aborted) break;
-    await settleAlbum(database, album);
-    settled += 1;
-  }
-  return settled;
+  const settleFrom = async (index: number): Promise<number> => {
+    if (index >= albums.length || signal.aborted) return index;
+    await settleAlbum(database, albums[index]);
+    return settleFrom(index + 1);
+  };
+  return settleFrom(0);
 };
