@@ -55,6 +55,43 @@ describe('LoudnessPanel', () => {
     expect(fetchLoudnessAnalysis).toHaveBeenLastCalledWith('/music/b.flac');
   });
 
+  describe('a track that is measured while it plays', () => {
+    const status = (measured: number) => ({ total: 3, measured, failed: 0 });
+
+    it('is asked for again when the measurement goes on, and shown once it is there', async () => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValueOnce(undefined).mockResolvedValueOnce(analysis);
+      const { container, rerender } = render(<LoudnessPanel path="/music/a.flac" status={status(0)} />);
+      await vi.waitFor(() => expect(fetchLoudnessAnalysis).toHaveBeenCalledTimes(1));
+      expect(container.textContent).toBe('');
+
+      rerender(<LoudnessPanel path="/music/a.flac" status={status(1)} />);
+
+      expect(await screen.findByText('-9.2 LUFS')).toBeTruthy();
+    });
+
+    it('is not asked for again once it is shown, as the analysis of a file does not change', async () => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
+      const { rerender } = render(<LoudnessPanel path="/music/a.flac" status={status(0)} />);
+      await screen.findByText('-9.2 LUFS');
+
+      rerender(<LoudnessPanel path="/music/a.flac" status={status(1)} />);
+      rerender(<LoudnessPanel path="/music/a.flac" status={status(2)} />);
+
+      expect(fetchLoudnessAnalysis).toHaveBeenCalledTimes(1);
+    });
+
+    it('is asked for again for another track even when one was shown', async () => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValueOnce(analysis).mockResolvedValueOnce(undefined);
+      const { container, rerender } = render(<LoudnessPanel path="/music/a.flac" status={status(1)} />);
+      await screen.findByText('-9.2 LUFS');
+
+      rerender(<LoudnessPanel path="/music/b.flac" status={status(1)} />);
+
+      await vi.waitFor(() => expect(fetchLoudnessAnalysis).toHaveBeenLastCalledWith('/music/b.flac'));
+      expect(container.textContent).toBe('');
+    });
+  });
+
   describe('how far the song is played', () => {
     const positionOf = (container: HTMLElement) => container.querySelector<HTMLElement>('b[aria-hidden]')?.style.left;
 

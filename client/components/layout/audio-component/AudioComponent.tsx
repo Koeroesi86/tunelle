@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Track } from '@shared/types/library';
+import type { LoudnessProgress } from '@shared/types/loudness';
 import { useUpdateEffect } from '../../../hooks/use-update-effect';
 import { radioUuidOf } from '../../../domain/radio-track';
 import { sourceOf } from '../../../audio/track-source';
@@ -22,6 +23,8 @@ interface AudioComponentProps {
   devices: OutputDevice[];
   /** The track that follows the current one, the second element loads it while the current one plays */
   upNext: Track | null;
+  /** How far the measurement of the loudness is: it changes when a track was measured, which may be the one that plays */
+  loudnessStatus?: LoudnessProgress;
   trackEnded: () => void;
   connectNode: (node: HTMLAudioElement | null) => void;
   connectStandbyNode: (node: HTMLAudioElement | null) => void;
@@ -45,6 +48,7 @@ const AudioComponent = ({
   outputDevice,
   devices,
   upNext,
+  loudnessStatus,
   trackEnded,
   connectNode,
   connectStandbyNode,
@@ -173,7 +177,7 @@ const AudioComponent = ({
       .catch((err) => console.error(err));
   }, [isPlaying]);
 
-  const withLoudness = useTrackLoudness([currentSong, upNext]);
+  const withLoudness = useTrackLoudness([currentSong, upNext], loudnessStatus);
 
   // each element is levelled for the track it holds, the one that loads the next track too, so the hand-off needs no change; a station has no tags and plays as it is
   useEffect(

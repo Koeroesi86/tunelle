@@ -520,6 +520,27 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(poolAlbumGains).toHaveBeenCalledWith(database, signal);
     });
 
+    it('tell the window how far the measurement is when they are pooled, as the page asks again for the song that plays', async () => {
+      library = [track('/music/a.flac')];
+      register();
+      onStatus.mockClear();
+
+      await lastPooling().run(signal);
+
+      expect(onStatus).toHaveBeenCalledExactlyOnceWith({ total: 1, measured: 0, failed: 0 });
+    });
+
+    it('still tell it when the pooling fails, which is logged', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      vi.mocked(poolAlbumGains).mockRejectedValue(new Error('locked'));
+      register();
+      onStatus.mockClear();
+
+      await lastPooling().run(signal);
+
+      expect(onStatus).toHaveBeenCalledTimes(1);
+    });
+
     it('are pooled again when a track was measured, and not when nothing was stored', async () => {
       library = [track('/music/a.flac')];
       measure.mockResolvedValueOnce({ id: 1, outcome: 'unreadable' });

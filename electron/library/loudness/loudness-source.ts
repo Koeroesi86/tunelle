@@ -118,6 +118,8 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       run: async (signal) => {
         nextPoolAt = Date.now() + poolPause;
         await poolAlbumGains(database, signal).catch((error) => console.error('Pooling the gains of the albums failed', error));
+        // the counts do not change with it, but the page asks again for what it shows when it is told, and the album gain of the song that plays is new
+        await reportStatus();
       },
     });
 

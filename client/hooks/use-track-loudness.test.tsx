@@ -67,4 +67,32 @@ describe('useTrackLoudness', () => {
     await waitFor(() => expect(result.current(c)?.trackGain).toBe(-1));
     expect(result.current(a)?.trackGain).toBeUndefined();
   });
+
+  it('reads the tracks again when what it is told to refresh on changes, so a song that was measured while it plays gets its level', async () => {
+    const a = track('/m/a.flac');
+    answers({ '/m/a.flac': loudness(null) });
+    const { result, rerender } = renderHook(({ status }) => useTrackLoudness([a], status), { initialProps: { status: { total: 1, measured: 0, failed: 0 } } });
+    await waitFor(() => expect(result.current(a)?.trackGain).toBeNull());
+
+    answers({ '/m/a.flac': loudness(-6) });
+    rerender({ status: { total: 1, measured: 1, failed: 0 } });
+
+    await waitFor(() => expect(result.current(a)?.trackGain).toBe(-6));
+  });
+
+  it('does not read the tracks again for the same status, and gives the same function when what was read has not changed', async () => {
+    const a = track('/m/a.flac');
+    answers({ '/m/a.flac': loudness(-6) });
+    const status = { total: 1, measured: 1, failed: 0 };
+    const { result, rerender } = renderHook(({ progress }) => useTrackLoudness([a], progress), { initialProps: { progress: status } });
+    await waitFor(() => expect(result.current(a)?.trackGain).toBe(-6));
+    const before = result.current;
+
+    rerender({ progress: status });
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    rerender({ progress: { ...status } });
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(result.current).toBe(before);
+  });
 });

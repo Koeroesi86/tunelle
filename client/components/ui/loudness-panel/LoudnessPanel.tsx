@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { LoudnessAnalysis } from '@shared/types/loudness';
+import type { LoudnessAnalysis, LoudnessProgress } from '@shared/types/loudness';
 import { useTranslation } from '../../../i18n';
 import { fetchLoudnessAnalysis } from '../../../services/library-api';
 import { toHistogramBars } from './histogram-bars';
@@ -13,20 +13,25 @@ interface LoudnessPanelProps {
   /** The length of the track and how far it is played, in seconds: a bar moves across the histogram with the song when both are known */
   duration?: number;
   currentTime?: number;
+  /** How far the measurement is: it changes when a track was measured, which may be the one that plays, so it is asked for again */
+  status?: LoudnessProgress;
 }
 
-const LoudnessPanel = ({ path, duration, currentTime }: LoudnessPanelProps) => {
+const LoudnessPanel = ({ path, duration, currentTime, status }: LoudnessPanelProps) => {
   const { t, formatNumber } = useTranslation();
-  const [analysis, setAnalysis] = useState<LoudnessAnalysis | undefined>(undefined);
+  const [found, setFound] = useState<{ path: string; analysis: LoudnessAnalysis } | undefined>(undefined);
+  const analysis = found?.path === path ? found.analysis : undefined;
 
+  // a track that is not measured yet is asked for again when the measurement goes on; the analysis of a file does not change, so a found one is kept
   useEffect(() => {
+    if (analysis) return undefined;
+
     let current = true;
-    setAnalysis(undefined);
-    fetchLoudnessAnalysis(path).then((found) => current && setAnalysis(found));
+    fetchLoudnessAnalysis(path).then((answer) => current && answer && setFound({ path, analysis: answer }));
     return () => {
       current = false;
     };
-  }, [path]);
+  }, [path, status, analysis]);
 
   const histogram = analysis && toHistogramBars(analysis);
   if (!analysis || !histogram) return null;
