@@ -1,7 +1,6 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { setTimeout as sleep } from 'timers/promises';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import type { Database } from 'sqlite3';
 import { powerMonitor } from 'electron';
@@ -62,11 +61,14 @@ describe('the measurement of the loudness on the background queue', () => {
   const register = () => {
     source = registerLoudness(database, 'tunelle://app/loudness.html');
   };
-  // the database answers on the real clock, so each step of the queue is given a little real time between the steps of the fake one
+  // the database and the folders answer on the real clock, so each step of the queue waits until they have nothing left to answer, and not a set time
+  const databaseIdle = () => new Promise<void>((resolve) => database.wait(() => resolve()));
+  const nextTurn = () => new Promise<void>((resolve) => setImmediate(resolve));
   const settle = async () => {
     for (let turn = 0; turn < 5; turn++) {
-      await sleep(2);
       await vi.advanceTimersByTimeAsync(0);
+      await databaseIdle();
+      await nextTurn();
     }
   };
   // the queue rests between two looks and the source after a pass, so time is let pass in steps
@@ -229,6 +231,8 @@ describe('the measurement of the loudness on the background queue', () => {
       register();
       await elapse(10_000);
 
+      // the folders are read on the real clock: the track that can be reached is waited for, and the one that cannot is never asked for
+      await vi.waitFor(() => expect(measure).toHaveBeenCalledWith(there), { timeout: 5000 });
       expect(measure.mock.calls.map(([file]) => file)).toEqual([there]);
       fs.rmSync(away, { recursive: true, force: true });
       fs.rmSync(here, { recursive: true, force: true });
