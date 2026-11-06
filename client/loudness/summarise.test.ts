@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { measureBlocks } from './block-energies';
 import { measurementRate } from './k-weighting';
-import { analysisVersion } from '@shared/constants/loudness';
-import { summarise, targetLufs } from './summarise';
+import { analysisVersion, targetLufs } from '@shared/constants/loudness';
+import { summarise } from './summarise';
 
 const dbToAmplitude = (db: number) => 10 ** (db / 20);
 

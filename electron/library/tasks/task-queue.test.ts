@@ -102,6 +102,19 @@ describe('createTaskQueue', () => {
     });
   });
 
+  it('takes the waiting task of a key out of the queue', async () => {
+    const queue = createTaskQueue(pause);
+    queue.enqueue(task('a', 1, record('a')));
+    queue.enqueue(task('b', 1, record('b')));
+    queue.dequeue('a');
+    queue.dequeue('none');
+    queue.start();
+    await settle();
+
+    expect(order).toEqual(['b']);
+    await queue.stop();
+  });
+
   describe('what may run', () => {
     it('lets the tasks behind a task that may not run go, and runs it when it may', async () => {
       const queue = createTaskQueue(pause);

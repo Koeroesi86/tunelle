@@ -117,7 +117,8 @@ export const hasTracksInside = (database: Database, folderPath: string) =>
   }).then((rows) => rows.length > 0);
 
 // the folder of a track including the trailing separator, for both separators: rtrim drops the characters after the last one
-const folderOf = `rtrim(path, replace(replace(path, '/', ''), '\\', ''))`;
+export const folderOfColumn = (column: string) => `rtrim(${column}, replace(replace(${column}, '/', ''), '\\', ''))`;
+const folderOf = folderOfColumn('path');
 
 const countTotal = (database: Database, query: string, variables: unknown[]) =>
   executeQuery<{ total: number }>(database, { query, variables }).then(([row]) => row.total);

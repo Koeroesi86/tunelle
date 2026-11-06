@@ -44,6 +44,15 @@ ITU-R BS.1770 / EBU R128 at 48 kHz, the rate `decodeAudioData` resamples to:
 - **The decoder** is a hidden window (`loudness-window.ts`) that loads `loudness.html` (`client/loudness/page.ts`, built by webpack like the main page) with a small preload. It fetches the track from `tunelle://app/track`, decodes it with `decodeAudioData` and measures it, so every format the player plays works and nothing native is packaged. It runs at a low priority (`os.setPriority`), one file at a time, and is made again after 50 files to give back the memory of the decoded sound. A window that crashes, or does not answer in five minutes, is closed.
 - **Results:** `measured`, or `failed` with `undecodable` (the browser cannot decode it), `silent` (no block above the gate), `crashed` (the window died) or `too-large`: a file longer than 45 minutes (`maxSeconds`) is not decoded as a whole, as the decoded sound of 60 minutes of stereo took 2.9 GB of the window. A file that cannot be fetched (a drive that went away) or that does not answer is not stored and is tried again after the rest.
 
+## The gain of an album
+
+`poolAlbumGains` (`electron/library/loudness/album-gains.ts`) gives the tracks of an album the gain pooled from the stored histograms, so no file is decoded: the blocks of all the tracks are gated together again (`poolAlbum` in `shared/utils/pool-loudness.ts`), as the blocks of one long track are, which is not the average of the gains of the tracks. A block counts as the middle of its bin of 0.1 LU, so the loudness is off by 0.05 dB at most. The peak is the highest of the tracks.
+
+- An album is a folder and a title, as everywhere in the library; the tracks of a folder without an album title are no album.
+- Only an album whose tracks **all** have their analysis (a measurement of the file as it is, of the version) gets a gain. A track that failed, or that was not measured yet, leaves the album on the track gains of its tracks, which is what album mode does for a file without album tags (`normalizationGain`).
+- The gain is stored on the row of each track (`albumGain`, `albumPeak`) with the number of tracks it was pooled from (`albumTracks`, migration `015`). `findAlbumsToPool` finds the albums whose tracks do not all have the number of tracks the album has now (new, a track added or taken away, a file measured again), and the ones that have a pooled gain and lost a track's analysis, which lose the gain. An album with no block above the gate is marked as pooled without a gain.
+- The queue task runs when a track is measured (at most every 5 s), at the end of each pass over the library and when the app starts, as a scan can have changed the library while it was closed; it waits while a scan runs. The tags win here too: a track with album tags keeps them, the others take the pooled gain.
+
 ## Not built yet
 
-The album gain from the histograms, the settings screen and the progress, the route for the JSON, and the decoding of long files in pieces follow in the pull requests listed in #173.
+The settings screen and the progress, the route for the JSON, and the decoding of long files in pieces follow in the pull requests listed in #173.

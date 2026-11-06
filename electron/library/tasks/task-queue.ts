@@ -132,6 +132,11 @@ export const createTaskQueue = (pause = 2000) => {
       else queued[waiting] = task;
       wake();
     },
+    /** Take the waiting task of a key out of the queue; a task that runs is not stopped */
+    dequeue: (key: string) => {
+      const waiting = queued.findIndex((candidate) => candidate.key === key);
+      if (waiting !== -1) queued.splice(waiting, 1);
+    },
     /** Add a supply of tasks; the function that comes back takes it away */
     addSource: (source: TaskSource) => {
       sources.add(source);
