@@ -4,6 +4,7 @@ import type { Track } from '@shared/types/library';
 import TitleBar from './TitleBar';
 
 vi.mock('../audio-spectrum', () => ({ default: () => <canvas data-testid="spectrum" /> }));
+vi.mock('../queue-indicator', () => ({ default: () => <div data-testid="queue-indicator" /> }));
 vi.mock('../window-controls', () => ({ default: () => <div data-testid="window-controls" /> }));
 
 const track: Track = {

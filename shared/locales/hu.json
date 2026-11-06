@@ -326,5 +326,15 @@
   "about.unavailable.managed": "A frissítések a csomagkezelőn keresztül érkeznek",
   "about.unavailable.readonly": "Ez az AppImage olyan mappában van, amelybe nem írhatsz, ezért nem tudja lecserélni önmagát",
   "about.unavailable.store": "A frissítések a Microsoft Store-on keresztül érkeznek",
-  "about.releases": "A kiadások oldalának megnyitása"
+  "about.releases": "A kiadások oldalának megnyitása",
+  "backgroundTasks.title": "Háttérfeladatok",
+  "backgroundTasks.scan": "{name} átvizsgálása",
+  "backgroundTasks.watch": "{name} figyelése",
+  "backgroundTasks.loudness": "Hangerő",
+  "backgroundTasks.albumArt": "Albumborító színei",
+  "backgroundTasks.running": "Fut",
+  "backgroundTasks.waiting_one": "{count} vár",
+  "backgroundTasks.waiting_other": "{count} vár",
+  "backgroundTasks.summary_one": "{count} feladat",
+  "backgroundTasks.summary_other": "{count} feladat"
 }

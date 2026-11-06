@@ -4,6 +4,7 @@ import { useTranslation } from '../../../i18n';
 import appIcon from '../../../../assets/icon.svg';
 import style from './TitleBar.scss';
 import AudioSpectrum from '../audio-spectrum';
+import QueueIndicator from '../queue-indicator';
 import WindowControls from '../window-controls';
 import Wordmark from '../wordmark/Wordmark';
 import CoverFade from '../../ui/cover-fade';
@@ -38,7 +39,10 @@ function TitleBar({ currentSong = null, streamTitle = null, streamArt = null, op
       ) : (
         <span />
       )}
-      <WindowControls />
+      <div className={style.actions}>
+        <QueueIndicator />
+        <WindowControls />
+      </div>
     </div>
   );
 }

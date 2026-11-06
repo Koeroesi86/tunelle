@@ -14,6 +14,14 @@
     color: var(--text);
   }
 
+  .actions {
+    grid-column: 3;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
   .wordmark {
     height: 22px;
     width: auto;

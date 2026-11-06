@@ -327,5 +327,15 @@
   "about.unavailable.managed": "Updates come through the package manager",
   "about.unavailable.readonly": "This AppImage is in a folder that you can not write to, so it can not replace itself",
   "about.unavailable.store": "Updates come through the Microsoft Store",
-  "about.releases": "Open the releases page"
+  "about.releases": "Open the releases page",
+  "backgroundTasks.title": "Background tasks",
+  "backgroundTasks.scan": "Scanning {name}",
+  "backgroundTasks.watch": "Watching {name}",
+  "backgroundTasks.loudness": "Loudness",
+  "backgroundTasks.albumArt": "Album art colours",
+  "backgroundTasks.running": "Running",
+  "backgroundTasks.waiting_one": "{count} waiting",
+  "backgroundTasks.waiting_other": "{count} waiting",
+  "backgroundTasks.summary_one": "{count} task",
+  "backgroundTasks.summary_other": "{count} tasks"
 }
