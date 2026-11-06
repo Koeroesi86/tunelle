@@ -1,6 +1,6 @@
 import { mkdtemp, readdir, readFile, rm } from 'fs/promises';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { basename, join } from 'path';
 import { fileURLToPath } from 'url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { coverFolder, createCoverFiles } from './mpris-cover';
@@ -36,7 +36,7 @@ describe('createCoverFiles', () => {
     const second = await covers.write(new Uint8Array([2]), 'image/jpeg');
 
     expect(second).not.toBe(first);
-    expect(await readdir(folder)).toEqual([fileURLToPath(second).split('/').pop()]);
+    expect(await readdir(folder)).toEqual([basename(fileURLToPath(second))]);
   });
 
   it('removes the file on clear, also when there is none', async () => {

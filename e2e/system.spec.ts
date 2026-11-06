@@ -5,7 +5,7 @@ import { expect, libraryTracks, navigate, quit, test } from './support/app';
 import { player } from './support/player';
 
 // where the app meets the system around it: the window, the media controls of the desktop, the protocol that serves the files
-test('tells the desktop what plays', async ({ session: { page } }) => {
+test('tells the desktop what plays', async ({ session: { app, page } }) => {
   const controls = player(page);
   const mediaSession = () =>
     page.evaluate(() => ({
@@ -13,12 +13,30 @@ test('tells the desktop what plays', async ({ session: { page } }) => {
       artist: navigator.mediaSession.metadata?.artist,
       album: navigator.mediaSession.metadata?.album,
     }));
+  // Linux has the MPRIS service of the main process instead of navigator.mediaSession, and the session bus is not there in CI,
+  // so what the page sends to the service is read at the main process (the D-Bus side is tried by hand, see docs/app/mpris.md)
+  const mprisTrack = () =>
+    app.evaluate(() => {
+      const states: unknown[] = Reflect.get(globalThis, 'mprisStates');
+      const last: unknown = states.at(-1);
+      const track = typeof last === 'object' && last !== null && 'track' in last ? last.track : undefined;
 
+      return typeof track === 'object' && track !== null && 'title' in track && 'artist' in track && 'album' in track
+        ? { title: track.title, artist: track.artist, album: track.album }
+        : { title: undefined, artist: undefined, album: undefined };
+    });
+  const shown = process.platform === 'linux' ? mprisTrack : mediaSession;
+
+  await app.evaluate(({ ipcMain }) => {
+    const states: unknown[] = [];
+    Reflect.set(globalThis, 'mprisStates', states);
+    ipcMain.on('MPRIS_STATE', (_event, state: unknown) => states.push(state));
+  });
   await controls.playAlbum('Pitch Perfect');
-  await expect.poll(mediaSession).toEqual({ title: 'Concert A', artist: 'The Sine Waves', album: 'Pitch Perfect' });
+  await expect.poll(shown).toEqual({ title: 'Concert A', artist: 'The Sine Waves', album: 'Pitch Perfect' });
 
   await controls.next();
-  await expect.poll(async () => (await mediaSession()).title).toBe('Octave Up');
+  await expect.poll(async () => (await shown()).title).toBe('Octave Up');
 });
 
 test('a second start of the same profile leaves and keeps the window of the first', async ({ session: { app, page } }) => {

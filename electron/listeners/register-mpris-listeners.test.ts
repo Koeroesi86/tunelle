@@ -46,6 +46,7 @@ describe('registerMprisListeners', () => {
   };
 
   beforeEach(() => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('linux');
     mocks.listeners.clear();
     mocks.appListeners.clear();
     mocks.startMpris.mockImplementation(async (_name: string, _id: string | undefined, handler: (command: MprisCommand) => void) => {
