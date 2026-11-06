@@ -1,7 +1,0 @@
-{
-  "name": "usocket",
-  "version": "0.3.0",
-  "description": "Stands in for the native usocket of dbus-next, which only abstract socket addresses need. See docs/app/mpris.md",
-  "private": true,
-  "main": "index.js"
-}
