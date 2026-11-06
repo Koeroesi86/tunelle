@@ -66,7 +66,7 @@ test('measures the start of the app on an empty library and on a big one', async
   // the lists of the library are shown once the first page of tracks came
   const listedStarted = Date.now();
   await navigate(warm.page, 'Songs');
-  await expect(warm.page.getByText(`${expected} tracks`)).toBeVisible({ timeout: 60_000 });
+  await expect(warm.page.getByText(`${expected} tracks`, { exact: true })).toBeVisible({ timeout: 60_000 });
   report.bigLibrary = {
     toPageMs: warmMs,
     ...warm.startTimes,
