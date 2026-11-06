@@ -1,55 +1,57 @@
 import { describe, expect, it } from 'vitest';
 import type { LoudnessAnalysis } from '@shared/types/loudness';
-import { measureBlocks } from '../../client/loudness/block-energies';
-import { measurementRate } from '../../client/loudness/k-weighting';
-import { summarise } from '../../client/loudness/summarise';
+import { targetLufs } from '../constants/loudness';
 import { poolAlbum } from './pool-loudness';
 
-/** A stereo sine of 997 Hz, `seconds` long at the level in dBFS */
-const tone = (db: number, seconds: number) => {
-  const samples = Float32Array.from({ length: seconds * measurementRate }, (_, i) => 10 ** (db / 20) * Math.sin((2 * Math.PI * 997 * i) / measurementRate));
-  return [samples, samples];
-};
+const energyOf = (lufs: number) => 10 ** ((lufs + 0.691) / 10);
+const lufsOf = (energy: number) => -0.691 + 10 * Math.log10(energy);
 
-const analyse = (...parts: Float32Array[][]) => summarise(parts.map(measureBlocks));
-
-const analysisOf = (db: number, seconds: number): LoudnessAnalysis => {
-  const summary = analyse(tone(db, seconds));
-  if (!summary) throw new Error('A tone has a loudness');
-  return summary.analysis;
-};
+/** The analysis of a track as its histogram: how many blocks it has in each bin of 0.1 LU, keyed by the bin (`-200` is -20.0 to -19.9, which counts as -19.95) */
+const analysis = (counts: Record<string, number>, samplePeak = 0.5): LoudnessAnalysis => ({
+  v: 1,
+  sampleRate: 48000,
+  channels: 2,
+  integratedLufs: 0,
+  loudnessRange: 0,
+  samplePeak,
+  shortTerm: [],
+  histogram: { bin: 0.1, counts },
+});
 
 describe('poolAlbum', () => {
-  it('gives the gain of a single track as the gain of the track, within the width of a bin', () => {
-    const summary = analyse(tone(-20, 10));
-
-    expect(poolAlbum([analysisOf(-20, 10)])?.albumGain).toBeCloseTo(summary?.trackGain ?? 0, 1);
+  it('gives the gain of a single track from the middle of the bin of its blocks', () => {
+    expect(poolAlbum([analysis({ '-200': 100 })])?.albumGain).toBeCloseTo(targetLufs + 19.95, 6);
   });
 
-  it('gates the blocks of all the tracks together, like the blocks of one long track, and not as the average of their gains', () => {
-    const loud = tone(-14, 5);
-    const quiet = tone(-26, 5);
-    const asOneTrack = analyse(loud, quiet);
-    const loudAnalysis = analysisOf(-14, 5);
-    const quietAnalysis = analysisOf(-26, 5);
-    const pooled = poolAlbum([loudAnalysis, quietAnalysis]);
+  it('adds the blocks of the same bin of the tracks', () => {
+    const pooled = poolAlbum([analysis({ '-200': 10 }), analysis({ '-200': 30 })]);
 
-    expect(pooled?.albumGain).toBeCloseTo(asOneTrack?.trackGain ?? 0, 0);
-    // the energy of the loud track weighs more, so the album is not at the average of the two gains
-    expect(Math.abs((pooled?.albumGain ?? 0) - ((loudAnalysis.integratedLufs + quietAnalysis.integratedLufs) / -2 - 18))).toBeGreaterThan(1);
+    expect(pooled?.albumGain).toBeCloseTo(targetLufs + 19.95, 6);
+  });
+
+  it('takes the mean of the energy of the blocks of all the tracks, which is not the average of their loudness', () => {
+    const pooled = poolAlbum([analysis({ '-140': 50 }), analysis({ '-260': 50 })]);
+    const mean = lufsOf((energyOf(-13.95) + energyOf(-25.95)) / 2);
+
+    expect(pooled?.albumGain).toBeCloseTo(targetLufs - mean, 6);
+    expect(Math.abs((pooled?.albumGain ?? 0) - (targetLufs - (-13.95 + -25.95) / 2))).toBeGreaterThan(1);
+  });
+
+  it('gates out the blocks 10 LU below the loudness of all of them, and keeps the ones above', () => {
+    expect(poolAlbum([analysis({ '-200': 100 }), analysis({ '-400': 100 })])?.albumGain).toBeCloseTo(targetLufs + 19.95, 6);
+    expect(poolAlbum([analysis({ '-200': 100 }), analysis({ '-260': 100 })])?.albumGain).toBeGreaterThan(targetLufs + 19.95 + 1);
   });
 
   it('keeps the highest peak of the tracks', () => {
-    const tracks = [
-      { ...analysisOf(-20, 5), samplePeak: 0.4 },
-      { ...analysisOf(-20, 5), samplePeak: 1.3 },
-    ];
+    const pooled = poolAlbum([analysis({ '-200': 5 }, 0.4), analysis({ '-200': 5 }, 1.3), analysis({ '-200': 5 }, 0.9)]);
 
-    expect(poolAlbum(tracks)?.albumPeak).toBe(1.3);
+    expect(pooled?.albumPeak).toBe(1.3);
   });
 
-  it('has no gain for no analyses and for analyses without a block', () => {
-    expect(poolAlbum([])).toBeUndefined();
-    expect(poolAlbum([{ ...analysisOf(-20, 5), histogram: { bin: 0.1, counts: {} } }])).toBeUndefined();
+  it.each([
+    ['no analyses', []],
+    ['analyses without a block', [analysis({}), analysis({})]],
+  ])('has no gain for %s', (_, analyses) => {
+    expect(poolAlbum(analyses)).toBeUndefined();
   });
 });

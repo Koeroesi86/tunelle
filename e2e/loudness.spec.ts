@@ -119,8 +119,11 @@ test('shows how far the measurement is in the settings, turns it off and clears 
   await measure.click();
   await expect(measure).toHaveAttribute('aria-checked', 'false');
   await page.getByRole('button', { name: 'Clear measured values' }).click();
+  // the page shows 0 as soon as the button is pressed, before the main process has deleted the rows
   await expect(page.getByRole('status').getByText('0 of 2 tracks measured')).toBeVisible();
-  expect(await Promise.all(paths.map(async (path) => (await gainsOf(page, path)).trackGain))).toEqual([null, null]);
+  await expect
+    .poll(async () => Promise.all(paths.map(async (path) => (await gainsOf(page, path)).trackGain)), { message: 'the gains are gone' })
+    .toEqual([null, null]);
 
   await measure.click();
 

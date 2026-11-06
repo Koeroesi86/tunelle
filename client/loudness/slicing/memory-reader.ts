@@ -12,4 +12,11 @@ export const collect = async (slicer: Slicer, file: Uint8Array, sliceBytes: numb
   return slices;
 };
 
-export const join = (...parts: Uint8Array[]) => Uint8Array.from(parts.flatMap((part) => Array.from(part)));
+export const join = (...parts: Uint8Array[]) => {
+  const bytes = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
+  parts.reduce((offset, part) => {
+    bytes.set(part, offset);
+    return offset + part.length;
+  }, 0);
+  return bytes;
+};

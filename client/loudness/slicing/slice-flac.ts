@@ -1,5 +1,5 @@
 import { cutsOf } from './find-cut';
-import { SliceError, mustRead } from './types';
+import { SliceError, mustRead, withHeader } from './types';
 import type { ReadRange, Slicer } from './types';
 
 const maxMetadata = 16 * 1024 * 1024;
@@ -61,9 +61,6 @@ export const sliceFlac: Slicer = async function* (read, size, sliceBytes) {
 
   for (let index = 0; index < cuts.length - 1; index++) {
     const frames = await mustRead(read, cuts[index], cuts[index + 1], 'A piece of a FLAC file');
-    const bytes = new Uint8Array(header.length + frames.length);
-    bytes.set(header);
-    bytes.set(frames, header.length);
-    yield { bytes, skip: 0 };
+    yield { bytes: withHeader(header, frames), skip: 0 };
   }
 };
