@@ -3,7 +3,7 @@ import { createBlockMeter } from './block-energies';
 import { measurementRate } from './k-weighting';
 import { readBody } from './read-body';
 import { slicerOf } from './slicing/slice-file';
-import { SliceError } from './slicing/types';
+import { NotSliceable, SliceError } from './slicing/types';
 import type { ReadRange, Slice } from './slicing/types';
 import { summarise } from './summarise';
 
@@ -45,14 +45,19 @@ const rangeReader = (url: string, progress: () => void) => {
   return { read, size, state };
 };
 
-/** The samples of a decoded piece without its start, which only gave the decoder what it needed of the piece before */
-const withoutSkip = (audio: Decoded, skip: number) =>
-  Array.from({ length: audio.numberOfChannels }, (_, channel) => audio.getChannelData(channel).subarray(Math.round(skip * measurementRate)));
+/** The samples of a decoded piece without its start, which only gave the decoder what it needed of the piece before: how much of it is left out, or how much of its end is kept */
+const withoutLead = (audio: Decoded, { skip, keep }: Slice) =>
+  Array.from({ length: audio.numberOfChannels }, (_, channel) => {
+    const samples = audio.getChannelData(channel);
+    return samples.subarray(keep === undefined ? Math.round(skip * measurementRate) : Math.max(samples.length - Math.round(keep * measurementRate), 0));
+  });
 
 // a copy, as decoding takes the buffer it is given
 const toArrayBuffer = ({ bytes }: Slice) => new Uint8Array(bytes).buffer;
 
 type Meter = ReturnType<typeof createBlockMeter>;
+
+const tooLarge = 'too-large';
 
 /** A piece that cannot be decoded or measured with the others, or a file that is not what its header says */
 const failed = 'undecodable';
@@ -69,12 +74,13 @@ const measurePieces = async (
 
   const audio = await decode(toArrayBuffer(value));
   const current = audio && (meter ?? createBlockMeter(audio.numberOfChannels));
-  const measured = audio && current?.push(withoutSkip(audio, value.skip));
+  const measured = audio && current?.push(withoutLead(audio, value));
   progress();
   return measured ? measurePieces(pieces, decode, progress, current) : failed;
 };
 
-const toFailure = (error: unknown): typeof failed => {
+const toFailure = (error: unknown): typeof failed | typeof tooLarge => {
+  if (error instanceof NotSliceable) return tooLarge;
   if (error instanceof SliceError) return failed;
   throw error;
 };
@@ -91,6 +97,7 @@ export const measureSliced = async (id: number, url: string, duration: number | 
 
   const sliceBytes = duration ? Math.min(Math.max(Math.ceil((total / duration) * sliceSeconds), minSliceBytes), maxSliceBytes) : unknownSliceBytes;
   const meter = await measurePieces(slicer(read, total, sliceBytes), decode, progress).catch(toFailure);
+  if (meter === tooLarge) return { id, outcome: tooLarge };
   if (meter === failed) return { id, outcome: state.unreadable ? 'unreadable' : failed };
 
   const summary = meter && summarise([meter.finish()]);
