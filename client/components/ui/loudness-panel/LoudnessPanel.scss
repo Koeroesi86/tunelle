@@ -29,8 +29,19 @@
     top: 0;
     bottom: 0;
     width: 2px;
-    background: var(--text);
+    background: var(--text-muted);
     border-radius: 1px;
+  }
+
+  .position {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    margin-left: -1px;
+    background: var(--text);
+    border-radius: 2px;
+    transition: left 0.25s linear;
   }
 
   .scale {

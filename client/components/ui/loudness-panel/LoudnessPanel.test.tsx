@@ -54,4 +54,34 @@ describe('LoudnessPanel', () => {
     expect(screen.queryByText('-9.2 LUFS')).toBeNull();
     expect(fetchLoudnessAnalysis).toHaveBeenLastCalledWith('/music/b.flac');
   });
+
+  describe('the moment that plays', () => {
+    // the histogram runs from -12 to -9 LUFS: the curve is at -12.0 and then at -9.5
+    const curve = { ...analysis, shortTerm: [-120, -95] };
+    const positionOf = (container: HTMLElement) => container.querySelector<HTMLElement>('b[aria-hidden]')?.style.left;
+
+    it('has a bar where the loudness of the second that plays is across the histogram, which moves on as the song plays', async () => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(curve);
+      const { container, rerender } = render(<LoudnessPanel path="/music/a.flac" duration={100} currentTime={10} />);
+      await screen.findByText('-9.2 LUFS');
+      expect(positionOf(container)).toBe('0%');
+
+      rerender(<LoudnessPanel path="/music/a.flac" duration={100} currentTime={90} />);
+
+      expect(Number.parseFloat(positionOf(container) ?? '')).toBeCloseTo((2.5 / 3) * 100, 5);
+    });
+
+    it.each([
+      ['the length of the track is not known', undefined, 10],
+      ['the track has no length', 0, 10],
+      ['the position is not known', 100, undefined],
+    ])('has no bar when %s', async (_, duration, currentTime) => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(curve);
+
+      const { container } = render(<LoudnessPanel path="/music/a.flac" duration={duration} currentTime={currentTime} />);
+      await screen.findByText('-9.2 LUFS');
+
+      expect(positionOf(container)).toBeUndefined();
+    });
+  });
 });

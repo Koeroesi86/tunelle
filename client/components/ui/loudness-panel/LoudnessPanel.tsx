@@ -2,13 +2,20 @@ import { useEffect, useState } from 'react';
 import type { LoudnessAnalysis } from '@shared/types/loudness';
 import { useTranslation } from '../../../i18n';
 import { fetchLoudnessAnalysis } from '../../../services/library-api';
-import { toHistogramBars } from './histogram-bars';
+import { toHistogramBars, toPlaybackMarker } from './histogram-bars';
 import style from './LoudnessPanel.scss';
 
 const toDecibels = (ratio: number) => 20 * Math.log10(ratio);
 
 /** The loudness of the track that plays as it was measured: its histogram and its numbers. Nothing for a track that was not measured */
-const LoudnessPanel = ({ path }: { path: string }) => {
+interface LoudnessPanelProps {
+  path: string;
+  /** The length of the track and how far it is played, in seconds: the histogram shows the loudness of the moment that plays when both are known */
+  duration?: number;
+  currentTime?: number;
+}
+
+const LoudnessPanel = ({ path, duration, currentTime }: LoudnessPanelProps) => {
   const { t, formatNumber } = useTranslation();
   const [analysis, setAnalysis] = useState<LoudnessAnalysis | undefined>(undefined);
 
@@ -24,6 +31,7 @@ const LoudnessPanel = ({ path }: { path: string }) => {
   const histogram = analysis && toHistogramBars(analysis);
   if (!analysis || !histogram) return null;
 
+  const position = duration && currentTime !== undefined ? toPlaybackMarker(analysis, histogram, currentTime / duration) : undefined;
   const oneDecimal = (value: number) => formatNumber(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const figures = [
     { label: t('loudness.integrated'), value: `${oneDecimal(analysis.integratedLufs)} LUFS` },
@@ -37,6 +45,7 @@ const LoudnessPanel = ({ path }: { path: string }) => {
         {histogram.bars.map((share, index) => (
           <i key={`bar-${histogram.from + index}`} className={style.bar} style={{ height: `${Math.max(share * 100, 4)}%` }} />
         ))}
+        {position !== undefined && <b className={style.position} style={{ left: `${position * 100}%` }} aria-hidden="true" />}
         <b className={style.marker} style={{ left: `${histogram.marker * 100}%` }} />
       </div>
       <div className={style.scale} aria-hidden="true">

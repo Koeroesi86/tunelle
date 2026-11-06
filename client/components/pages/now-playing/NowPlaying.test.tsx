@@ -4,7 +4,13 @@ import type { Track } from '@shared/types/library';
 import NowPlaying from './NowPlaying';
 
 vi.mock('../../ui/favourite-button', () => ({ default: () => null }));
-vi.mock('../../ui/loudness-panel', () => ({ default: ({ path }: { path: string }) => <div data-testid="loudness">{path}</div> }));
+vi.mock('../../ui/loudness-panel', () => ({
+  default: ({ path, duration }: { path: string; duration?: number }) => (
+    <div data-testid="loudness" data-duration={duration}>
+      {path}
+    </div>
+  ),
+}));
 
 const flac: Track = {
   path: '/music/1.flac',
@@ -293,6 +299,18 @@ describe('NowPlaying', () => {
       renderPage();
 
       expect(screen.getByTestId('loudness').textContent).toBe('/music/1.flac');
+    });
+
+    it('is given the length of the track, for the moment that plays', () => {
+      renderPage();
+
+      expect(screen.getByTestId('loudness').getAttribute('data-duration')).toBe('60');
+    });
+
+    it('is given no length for a track the library has none of', () => {
+      renderPage({ currentSong: { ...flac, duration: null } });
+
+      expect(screen.getByTestId('loudness').hasAttribute('data-duration')).toBe(false);
     });
 
     it('is not shown for a radio station, which is not measured', () => {

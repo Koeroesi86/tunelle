@@ -113,7 +113,7 @@ const NowPlaying = ({
                 <AudioFormatBadge track={shown.track} />
                 <FavouriteButton item={trackFavourite(currentSong, station)} className={style.favourite} />
               </div>
-              {radioUuidOf(currentSong.path) === undefined && <LoudnessPanel path={currentSong.path} />}
+              {radioUuidOf(currentSong.path) === undefined && <LoudnessPanel path={currentSong.path} duration={currentSong.duration ?? undefined} />}
             </div>
           </div>
         )}
