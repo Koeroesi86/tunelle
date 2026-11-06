@@ -55,3 +55,10 @@ export interface LoudnessApi {
   /** The page can take a request: the listener is set */
   ready: () => void;
 }
+
+/** How far the measurement of the library is: the tracks, those with a measurement and those that could not be measured. The rest wait for it */
+export interface LoudnessProgress {
+  total: number;
+  measured: number;
+  failed: number;
+}

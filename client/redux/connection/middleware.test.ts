@@ -430,6 +430,40 @@ describe('connection middleware', () => {
         expect(send).toHaveBeenCalledWith('SAVE_SETTINGS', expect.objectContaining({ watchFolders: false }));
       });
 
+      it('saves the setting that turns the measurement of the loudness off', async () => {
+        const { store, send } = await setup();
+
+        store.dispatch({ type: 'SET_MEASURE_LOUDNESS', payload: { enabled: false } });
+
+        expect(send).toHaveBeenCalledWith('SAVE_SETTINGS', expect.objectContaining({ measureLoudness: false }));
+      });
+
+      it('asks the main process how far the measurement is, and to clear it, and keeps what it says', async () => {
+        const { store, send, listen } = await setup();
+
+        store.dispatch({ type: 'LOAD_LOUDNESS_STATUS', payload: {} });
+        store.dispatch({ type: 'CLEAR_MEASURED_LOUDNESS', payload: {} });
+        listen('LOUDNESS_STATUS', { total: 3, measured: 1, failed: 0 });
+
+        expect(send).toHaveBeenCalledWith('LOUDNESS_STATUS_LOAD');
+        expect(send).toHaveBeenCalledWith('LOUDNESS_CLEAR');
+        expect(store.getState().uiState.loudnessStatus).toEqual({ total: 3, measured: 1, failed: 0 });
+      });
+
+      it('tells the main process when the player starts and stops, and only then', async () => {
+        const { store, send } = await setup();
+        send.mockClear();
+
+        store.dispatch({ type: 'SET_PLAYING', payload: { isPlaying: true } });
+        store.dispatch({ type: 'SET_PLAYING', payload: { isPlaying: true } });
+        store.dispatch({ type: 'SET_PLAYING', payload: { isPlaying: false } });
+
+        expect(send.mock.calls.filter(([channel]) => channel === 'PLAYBACK_STATE')).toEqual([
+          ['PLAYBACK_STATE', { isPlaying: true }],
+          ['PLAYBACK_STATE', { isPlaying: false }],
+        ]);
+      });
+
       it('fetches the covers again when the main process has stored photos', async () => {
         const { store, listen } = await setup();
         store.dispatch(page('artist'));

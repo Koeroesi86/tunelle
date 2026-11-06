@@ -1,6 +1,6 @@
 import type { Database } from 'sqlite3';
 import type { Track } from '@shared/types/library';
-import type { LoudnessAnalysis, TrackLoudness } from '@shared/types/loudness';
+import type { LoudnessAnalysis, LoudnessProgress, TrackLoudness } from '@shared/types/loudness';
 import executeQuery from '../database/execute-query';
 import executeQueries from '../database/execute-queries';
 import { folderOfColumn } from './library-repository';
@@ -102,3 +102,17 @@ export const saveAlbumGain = (database: Database, paths: string[], gain: { album
       variables: [gain?.albumGain ?? null, gain?.albumPeak ?? null, tracks, path],
     }))
   );
+
+/** How many tracks have a measurement of their file as it is, and how many could not be measured (a failure counts until the file changes or the version rises) */
+export const getLoudnessProgress = (database: Database, version: number) =>
+  executeQuery<LoudnessProgress>(database, {
+    query: `SELECT COUNT(*) AS total,
+        COALESCE(SUM(CASE WHEN track_loudness.status = 'measured' THEN 1 ELSE 0 END), 0) AS measured,
+        COALESCE(SUM(CASE WHEN track_loudness.status = 'failed' THEN 1 ELSE 0 END), 0) AS failed
+      FROM library LEFT JOIN track_loudness ON track_loudness.path = library.path
+        AND track_loudness.analysisVersion = ? AND track_loudness.fileModified IS library.fileModified AND track_loudness.fileSize IS library.fileSize`,
+    variables: [version],
+  }).then(([status]) => status);
+
+/** Forget every measurement: the tracks are measured again, and play at their tag gains until they are */
+export const clearTrackLoudness = (database: Database) => executeQuery(database, { query: `DELETE FROM track_loudness`, variables: [] });

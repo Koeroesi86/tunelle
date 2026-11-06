@@ -1,6 +1,7 @@
 import type { Album, AlbumSummary, Folder, GroupSummary, Track } from '@shared/types/library';
 import type { Favourite, FavouriteKey, HistoryItem, NewFavourite } from '@shared/types/favourites';
 import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
+import type { LoudnessProgress } from '@shared/types/loudness';
 import type { Playlist } from '@shared/types/playlists';
 import type { ThemeMode, ThemeSettings } from '@shared/types/theme';
 import type { NormalizationMode } from '../audio/loudness';
@@ -74,6 +75,8 @@ export interface PersistedSettings {
   artistPhotos: boolean;
   /** Whether the library folders are watched, so a file that is added, changed or removed is picked up without a rescan */
   watchFolders: boolean;
+  /** Whether the loudness of the tracks without ReplayGain tags is measured in the background (the main process reads it) */
+  measureLoudness: boolean;
   /** The library folders the local collection is limited to, none is all of them */
   libraryFolders: string[];
   /** The search of the radio stations: the filters and the sort, the page is not saved */
@@ -86,6 +89,8 @@ export interface UiState extends PersistedSettings {
   /** The artist, album artist or genre that is open, and the text the artists, album artists and genres are filtered by; neither is saved */
   openGroup: OpenGroup | undefined;
   groupFilter: string;
+  /** How far the measurement of the loudness of the library is, undefined until the main process tells; not saved */
+  loudnessStatus: LoudnessProgress | undefined;
   /** The app opens on the home screen, the tab is not saved */
   tab: Tab;
   /** The side and the order of the favourites, and whether the equalizer shows its faders; they are kept while the app is open and not saved */
@@ -182,6 +187,10 @@ export type AppAction =
   | PayloadAction<'STORE_GROUP_ALBUM_PAGE', { page: number; items: AlbumSummary[]; total: number }>
   | PayloadAction<'SET_ARTIST_PHOTOS', { enabled: boolean }>
   | PayloadAction<'SET_WATCH_FOLDERS', { enabled: boolean }>
+  | PayloadAction<'SET_MEASURE_LOUDNESS', { enabled: boolean }>
+  | EmptyAction<'LOAD_LOUDNESS_STATUS'>
+  | PayloadAction<'LOUDNESS_STATUS', LoudnessProgress>
+  | EmptyAction<'CLEAR_MEASURED_LOUDNESS'>
   | EmptyAction<'ARTIST_PHOTOS_READY'>
   | PayloadAction<'SET_GROUP_SORT', { sort: GroupSort | undefined }>
   | PayloadAction<'SET_GROUP_FILTER', { filter: string }>

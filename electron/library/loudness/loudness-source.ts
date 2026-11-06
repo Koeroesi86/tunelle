@@ -1,9 +1,9 @@
 import { powerMonitor } from 'electron';
 import type { Database } from 'sqlite3';
-import type { TrackLoudness } from '@shared/types/loudness';
+import type { LoudnessProgress, TrackLoudness } from '@shared/types/loudness';
 import { analysisVersion } from '@shared/constants/loudness';
 import { isRecord } from '@shared/utils/is-record';
-import { findTracksToMeasure, saveTrackLoudness } from '../../repositories/loudness-repository';
+import { findTracksToMeasure, getLoudnessProgress, saveTrackLoudness } from '../../repositories/loudness-repository';
 import type { TrackToMeasure } from '../../repositories/loudness-repository';
 import { getFolders } from '../../repositories/library-repository';
 import { getSettings } from '../../repositories/settings-repository';
@@ -28,6 +28,8 @@ const defaultIdleSeconds = 30;
 /** The albums are pooled at most this often while tracks are measured, as the look for them goes over the library */
 const poolPause = 5000;
 const poolKey = 'album-gains';
+/** The window is told how far the measurement is at most this often */
+const statusPause = 2000;
 
 /** How long no folder must have been scanned before a measurement starts, from `TUNELLE_LOUDNESS_IDLE_SECONDS`; what is not a number of seconds is the default */
 const readIdleTime = (value = process.env.TUNELLE_LOUDNESS_IDLE_SECONDS) => {
@@ -78,18 +80,28 @@ const reachable = async (database: Database, tracks: TrackToMeasure[]) => {
 };
 
 /** Puts the measurement of the loudness of the library on the background queue as a source of tasks, one track a task. See docs/app/loudness-measurement.md */
-export const registerLoudness = (database: Database, pageUrl: string) => {
+export const registerLoudness = (database: Database, pageUrl: string, onStatus: (status: LoudnessProgress) => void) => {
   const window = createLoudnessWindow(pageUrl);
   let cursor = '';
   let reached: TrackToMeasure[] = [];
   let restUntil = 0;
 
   const mayRun = async () => {
-    if (Date.now() < restUntil || backgroundQueue.isBusy(scanKind) || backgroundQueue.idleFor(scanKind) < readIdleTime() || isPlaying()) return false;
+    // a scan that ended since the rest began may have added tracks, so the rest is over then
+    const resting = Date.now() < restUntil && backgroundQueue.idleFor(scanKind) >= Date.now() - (restUntil - restPause);
+    if (resting || backgroundQueue.isBusy(scanKind) || backgroundQueue.idleFor(scanKind) < readIdleTime() || isPlaying()) return false;
     return !powerMonitor.isOnBatteryPower() && !isOff(await getSettings(database));
   };
 
   let nextPoolAt = 0;
+  let statusAt = 0;
+
+  const status = () => getLoudnessProgress(database, analysisVersion);
+
+  const reportStatus = () => {
+    statusAt = Date.now();
+    return status().then(onStatus, (error) => console.error('Reading how far the loudness measurement is failed', error));
+  };
 
   /** The gains of the albums follow what was stored: when a track is measured, and at the end of a pass for the tracks a scan added or took away */
   const poolSoon = () =>
@@ -112,6 +124,7 @@ export const registerLoudness = (database: Database, pageUrl: string) => {
 
       await saveTrackLoudness(database, result);
       poolSoon();
+      if (Date.now() - statusAt >= statusPause) await reportStatus();
     };
 
   /** The next track to measure; the end of the library starts the rest, and the next one starts again from the first track */
@@ -128,6 +141,7 @@ export const registerLoudness = (database: Database, pageUrl: string) => {
       restUntil = Date.now() + restPause;
       nextPoolAt = 0;
       poolSoon();
+      await reportStatus();
       return undefined;
     }
     cursor = batch[batch.length - 1].path;
@@ -140,6 +154,16 @@ export const registerLoudness = (database: Database, pageUrl: string) => {
   poolSoon();
 
   return {
+    status,
+    /** Starts over from the first track after the measurements were cleared */
+    restart: () => {
+      cursor = '';
+      reached = [];
+      restUntil = 0;
+      nextPoolAt = 0;
+      poolSoon();
+      return reportStatus();
+    },
     stop: () => {
       removeSource();
       backgroundQueue.dequeue(poolKey);

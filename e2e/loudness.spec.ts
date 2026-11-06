@@ -74,3 +74,28 @@ test('gives the tracks of an album the gain pooled from all of them once each is
 
   await expect.poll(async () => (await levelNow(page)) / full).toBeCloseTo(cut, 1);
 });
+
+test('shows how far the measurement is in the settings, turns it off and clears what it measured', async ({ start }) => {
+  const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
+  await addFolder(page, folderOfTracks(2), 2);
+  const paths = (await libraryTracks(page)).map((track) => track.path);
+  await expect
+    .poll(async () => Promise.all(paths.map(async (path) => (await gainsOf(page, path)).trackGain)), { message: 'both tracks measured', timeout: 90_000 })
+    .not.toContain(null);
+
+  await navigate(page, 'Settings');
+  await expect(page.getByRole('status').getByText('All tracks are measured.')).toBeVisible({ timeout: 30_000 });
+
+  // off, so what is cleared stays cleared
+  const measure = page.getByRole('switch', { name: 'Measure loudness' });
+  await measure.click();
+  await expect(measure).toHaveAttribute('aria-checked', 'false');
+  await page.getByRole('button', { name: 'Clear measured values' }).click();
+  await expect(page.getByRole('status').getByText('0 of 2 tracks measured')).toBeVisible();
+  expect(await Promise.all(paths.map(async (path) => (await gainsOf(page, path)).trackGain))).toEqual([null, null]);
+
+  await measure.click();
+
+  await expect(page.getByRole('status').getByText('All tracks are measured.')).toBeVisible({ timeout: 60_000 });
+  expect(await Promise.all(paths.map(async (path) => (await gainsOf(page, path)).trackGain))).not.toContain(null);
+});

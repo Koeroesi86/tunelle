@@ -17,6 +17,7 @@ import { radioUuidOf } from '../../domain/radio-track';
 import { fetchAlbumPage, fetchGroupPage, fetchTrackPage } from '../../services/library-api';
 import { selectAlbumQuery, selectGroupAlbumQuery, selectGroupQuery, selectTrackQuery } from '../../domain/library-query';
 import { actionMiddleware, onAction } from '../on-action';
+import type { LoudnessProgress } from '@shared/types/loudness';
 import type { Store } from '../on-action';
 import type { PageKind, PersistedSettings, PlaylistItem, UiState } from '../types';
 
@@ -24,6 +25,7 @@ type EmptyPayload = Record<string, never>;
 
 function addListeners(store: Store) {
   electronAPI.on<{ folders: Folder[] }>('STORE_FOLDERS', (payload) => store.dispatch({ type: 'STORE_FOLDERS', payload }));
+  electronAPI.on<LoudnessProgress>('LOUDNESS_STATUS', (payload) => store.dispatch({ type: 'LOUDNESS_STATUS', payload }));
   electronAPI.on<{ folders: string[] }>('OFFLINE_FOLDERS', (payload) => store.dispatch({ type: 'OFFLINE_FOLDERS', payload }));
   electronAPI.on<EmptyPayload>('RESCAN_COMPLETE', (payload) => store.dispatch({ type: 'RESCAN_COMPLETE', payload }));
   electronAPI.on<{ folders: Folder[] }>('FOLDERS_ADDED_TO_LIBRARY', (payload) => store.dispatch({ type: 'FOLDERS_ADDED_TO_LIBRARY', payload }));
@@ -162,6 +164,7 @@ const persistedKeys = [
   'groupSort',
   'artistPhotos',
   'watchFolders',
+  'measureLoudness',
   'libraryFolders',
   'radioQuery',
 ] satisfies (keyof PersistedSettings)[];
@@ -242,6 +245,9 @@ const handleActions = actionMiddleware((store) => [
     photoKinds.forEach((kind) => Object.values(library.groups[kind].pages).forEach(requestPhotos));
   }),
   onAction('SET_WATCH_FOLDERS', ({ payload }) => saveSettings({ ...store.getState().uiState, watchFolders: payload.enabled })),
+  onAction('SET_MEASURE_LOUDNESS', ({ payload }) => saveSettings({ ...store.getState().uiState, measureLoudness: payload.enabled })),
+  onAction('LOAD_LOUDNESS_STATUS', () => electronAPI.send('LOUDNESS_STATUS_LOAD')),
+  onAction('CLEAR_MEASURED_LOUDNESS', () => electronAPI.send('LOUDNESS_CLEAR')),
   onAction('LOAD_LIBRARY_PAGE', ({ payload }) => void loadPage(store, payload.kind, payload.page)),
   // tracks stored while a scan runs: the list on the screen shows them, the favourites and the rest wait for the end of the scan
   onAction('LIBRARY_UPDATED', () => {

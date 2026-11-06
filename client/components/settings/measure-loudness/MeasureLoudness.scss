@@ -1,0 +1,39 @@
+@use '../../../styles/settings-tile' as *;
+
+.measureLoudness {
+  @include tile;
+
+  .sectionTitle {
+    @include tile-title;
+  }
+
+  .description {
+    @include tile-hint;
+  }
+
+  .progress {
+    @include tile-hint;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .bar {
+    height: 4px;
+    overflow: hidden;
+    border-radius: 2px;
+    background-color: var(--overlay);
+  }
+
+  .fill {
+    height: 100%;
+    border-radius: 2px;
+    background-color: var(--accent);
+    transition: width 0.4s ease;
+  }
+
+  .clear {
+    @include tile-quiet-button;
+    align-self: flex-start;
+  }
+}
