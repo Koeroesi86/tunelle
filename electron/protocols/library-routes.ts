@@ -1,4 +1,6 @@
 import type { Database } from 'sqlite3';
+import { analysisVersion } from '@shared/constants/loudness';
+import { findLoudnessAnalysis } from '../repositories/loudness-repository';
 import { findTrackFormat, getAlbumPage, getAlbumTracks, getGroupPage, getLibrary, getTrackPage, trackColumns } from '../repositories/library-repository';
 import { parseAlbumSort, parseFolders, parseGroupKind, parseGroupSort, parseSearch, parseTrackSort } from '@shared/types/library-query';
 import type { AlbumGroup, LibraryQuery } from '@shared/types/library-query';
@@ -57,6 +59,11 @@ export const libraryRoutes: Record<string, ReturnType<typeof fromLibrary>> = {
   '/library/track': fromLibrary((database, params) => {
     const trackPath = params.get('path');
     return trackPath === null ? undefined : findTrackFormat(database, trackPath);
+  }),
+  // the stored analysis of one track (the histogram of its loudness), 404 for a track that has none
+  '/library/loudness': fromLibrary((database, params) => {
+    const trackPath = params.get('path');
+    return trackPath === null ? undefined : findLoudnessAnalysis(database, trackPath, analysisVersion);
   }),
   '/library/tracks': fromLibrary((database, params) => {
     const { offset, limit } = toWindow(params);
