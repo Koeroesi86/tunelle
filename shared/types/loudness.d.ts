@@ -54,6 +54,8 @@ export type MeasureResult =
 export interface LoudnessApi {
   onMeasure: (listener: (request: MeasureRequest) => void) => void;
   report: (result: MeasureResult) => void;
+  /** The measurement of the request made progress: a piece of the file was read or decoded. A measurement without it for a while is stalled */
+  progress: (id: number) => void;
   /** The page can take a request: the listener is set */
   ready: () => void;
 }

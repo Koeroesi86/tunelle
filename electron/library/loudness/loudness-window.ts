@@ -4,13 +4,15 @@ import { BrowserWindow, ipcMain } from 'electron';
 import type { IpcMainEvent } from 'electron';
 import type { MeasureResult } from '@shared/types/loudness';
 import lockNavigation from '../../windows/lock-navigation';
-import { measureTimeout } from './measure-timeout';
+import { createStallTimer } from './stall-timer';
 
 /** What a measurement gives: the answer of the page, or why there is none: the window crashed, the track did not answer in time, or the page did not load */
 export type Measurement = MeasureResult | { outcome: 'crashed' | 'timeout' | 'unavailable' };
 
 /** The window is made again after this many files, which gives back the memory that decoding took */
 const filesPerWindow = 50;
+/** A measurement that makes no progress for this long has a drive that does not answer: its window is closed, and the track is tried again later. The page tells its progress */
+const stallTimeout = 300_000;
 /** The page has this long to load and say it is ready */
 const pageTimeout = 30_000;
 
@@ -36,6 +38,8 @@ const lowerPriority = (window: BrowserWindow) => {
 interface Pending {
   id: number;
   settle: (measurement: Measurement) => void;
+  /** The page made progress: the time to a stall starts again */
+  touch: () => void;
 }
 
 /**
@@ -67,11 +71,17 @@ export const createLoudnessWindow = (pageUrl: string) => {
     const result = (event: IpcMainEvent, payload: unknown) => {
       if (fromWindow(event) && isMeasureResult(payload) && payload.id === pending?.id) pending.settle(payload);
     };
+    const progress = (event: IpcMainEvent, id: unknown) => {
+      const active = pending;
+      if (fromWindow(event) && active && id === active.id) active.touch();
+    };
     ipcMain.on('LOUDNESS_READY', onWindowReady);
     ipcMain.on('LOUDNESS_RESULT', result);
+    ipcMain.on('LOUDNESS_PROGRESS', progress);
     return () => {
       ipcMain.off('LOUDNESS_READY', onWindowReady);
       ipcMain.off('LOUDNESS_RESULT', result);
+      ipcMain.off('LOUDNESS_PROGRESS', progress);
     };
   };
 
@@ -103,12 +113,12 @@ export const createLoudnessWindow = (pageUrl: string) => {
 
   const ask = (current: BrowserWindow, id: number, path: string, duration: number | undefined) =>
     new Promise<Measurement>((resolveAsk) => {
-      const timer = setTimeout(() => resolveAsk({ outcome: 'timeout' }), measureTimeout(duration));
+      const stall = createStallTimer(stallTimeout, () => resolveAsk({ outcome: 'timeout' }));
       const settle = (measurement: Measurement) => {
-        clearTimeout(timer);
+        stall.stop();
         resolveAsk(measurement);
       };
-      pending = { id, settle };
+      pending = { id, settle, touch: stall.touch };
       current.webContents.send('LOUDNESS_MEASURE', { id, path, duration });
     });
 

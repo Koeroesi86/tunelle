@@ -1,3 +1,4 @@
+import path from 'path';
 import { powerMonitor } from 'electron';
 import type { Database } from 'sqlite3';
 import type { LoudnessProgress, TrackLoudness } from '@shared/types/loudness';
@@ -7,10 +8,11 @@ import { findTracksToMeasure, getLoudnessProgress, saveTrackLoudness } from '../
 import type { TrackToMeasure } from '../../repositories/loudness-repository';
 import { getFolders } from '../../repositories/library-repository';
 import { getSettings } from '../../repositories/settings-repository';
-import { findOfflineFolders, isInsideFolder } from '../watch/folder-availability';
+import { isInsideFolder } from '../watch/folder-availability';
 import { backgroundQueue, scanKind } from '../tasks/background-queue';
 import type { Task } from '../tasks/task-queue';
 import { poolAlbumGains } from './album-gains';
+import { createMountGuard } from './mount-guard';
 import { createLoudnessWindow } from './loudness-window';
 import type { Measurement } from './loudness-window';
 import { isPlaying } from './playback-state';
@@ -75,15 +77,12 @@ const toRow = (track: TrackToMeasure, measurement: Measurement): TrackLoudness |
   return isFailure(measurement.outcome) ? failed(track, measurement.outcome) : undefined;
 };
 
-/** The tracks of the batch that are not in a folder that is away */
-const reachable = async (database: Database, tracks: TrackToMeasure[]) => {
-  const offline = await findOfflineFolders(database, await getFolders(database, ['path']));
-  return tracks.filter((track) => !offline.some((folder) => isInsideFolder(folder, track.path)));
-};
-
 /** Puts the measurement of the loudness of the library on the background queue as a source of tasks, one track a task. See docs/app/loudness-measurement.md */
 export const registerLoudness = (database: Database, pageUrl: string, onStatus: (status: LoudnessProgress) => void) => {
   const window = createLoudnessWindow(pageUrl);
+  const guard = createMountGuard();
+  // the library folders, which are the mounts a track can be on: looked at with each batch of tracks
+  let folders: string[] = [];
   let cursor = '';
   let reached: TrackToMeasure[] = [];
   let restUntil = 0;
@@ -133,6 +132,10 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   const measure =
     (track: TrackToMeasure): Task['run'] =>
     async (signal) => {
+      // a drive that does not answer is left alone: the track is tried again after the rest, and counts nothing against it
+      const mount = folders.find((folder) => isInsideFolder(folder, track.path)) ?? path.dirname(track.path);
+      if (!(await guard.isReadable(mount, track.path)) || signal.aborted) return;
+
       const result = toStored(track, await window.measure(track.path, track.duration ?? undefined));
       if (!result || signal.aborted) return;
 
@@ -159,7 +162,8 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       return undefined;
     }
     cursor = batch[batch.length - 1].path;
-    reached = await reachable(database, batch);
+    folders = (await getFolders(database, ['path'])).map((folder) => folder.path);
+    reached = batch;
     return next();
   };
 
@@ -182,6 +186,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       removeSource();
       backgroundQueue.dequeue(poolKey);
       window.close();
+      guard.close();
     },
   };
 };

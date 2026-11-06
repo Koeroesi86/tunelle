@@ -66,7 +66,7 @@ describe('measureSliced', () => {
 
     // a file of 3.8 MB for the 1000 s that are given is cut in pieces of 1.15 MB
     const decoder = vi.fn(decode);
-    const result = await measureSliced(1, 'tunelle://app/track?path=a', 1000, decoder);
+    const result = await measureSliced(1, 'tunelle://app/track?path=a', 1000, decoder, vi.fn());
 
     expect(decoder).toHaveBeenCalledTimes(4);
     expect(result).toMatchObject({ outcome: 'measured' });
@@ -76,33 +76,43 @@ describe('measureSliced', () => {
     expect(result.trackPeak).toBe(whole.trackPeak);
   });
 
+  it('tells that it makes progress while it reads and decodes the pieces', async () => {
+    serve(file);
+    const progress = vi.fn();
+
+    await measureSliced(1, 'tunelle://app/track?path=a', 1000, decode, progress);
+
+    // a chunk is told as it is read, and each of the 4 pieces as it is measured
+    expect(progress.mock.calls.length).toBeGreaterThanOrEqual(4 + 4);
+  });
+
   it('is too large for a format that is not cut', async () => {
     serve(Uint8Array.from([...ascii('OggS'), ...new Array(100).fill(0)]));
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode)).toEqual({ id: 1, outcome: 'too-large' });
+    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode, vi.fn())).toEqual({ id: 1, outcome: 'too-large' });
   });
 
   it('is unreadable when the file cannot be fetched', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode)).toEqual({ id: 1, outcome: 'unreadable' });
+    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode, vi.fn())).toEqual({ id: 1, outcome: 'unreadable' });
   });
 
   it('is unreadable when the answer is not a range', async () => {
     serve(file, 200);
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode)).toEqual({ id: 1, outcome: 'unreadable' });
+    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode, vi.fn())).toEqual({ id: 1, outcome: 'unreadable' });
   });
 
   it('is undecodable when a piece cannot be decoded', async () => {
     serve(file);
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, async () => undefined)).toEqual({ id: 1, outcome: 'undecodable' });
+    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, async () => undefined, vi.fn())).toEqual({ id: 1, outcome: 'undecodable' });
   });
 
   it('is silent for a file without a block above the gate', async () => {
     serve(wavOf(new Int16Array(seconds * measurementRate * 2)));
 
-    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode)).toEqual({ id: 1, outcome: 'silent' });
+    expect(await measureSliced(1, 'tunelle://app/track?path=a', 7200, decode, vi.fn())).toEqual({ id: 1, outcome: 'silent' });
   });
 });

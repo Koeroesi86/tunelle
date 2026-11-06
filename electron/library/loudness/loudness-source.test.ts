@@ -9,10 +9,10 @@ import { findTracksToMeasure, getLoudnessProgress, saveTrackLoudness } from '../
 import type { TrackToMeasure } from '../../repositories/loudness-repository';
 import { getFolders } from '../../repositories/library-repository';
 import { getSettings } from '../../repositories/settings-repository';
-import { findOfflineFolders } from '../watch/folder-availability';
 import { setPlaying } from './playback-state';
 import { createLoudnessWindow, type Measurement } from './loudness-window';
 import { poolAlbumGains } from './album-gains';
+import { createMountGuard } from './mount-guard';
 import { registerLoudness } from './loudness-source';
 import type { Task } from '../tasks/task-queue';
 
@@ -24,7 +24,7 @@ vi.mock('./loudness-window', () => ({ createLoudnessWindow: vi.fn() }));
 vi.mock('../../repositories/loudness-repository', () => ({ findTracksToMeasure: vi.fn(), getLoudnessProgress: vi.fn(), saveTrackLoudness: vi.fn() }));
 vi.mock('../../repositories/library-repository', () => ({ getFolders: vi.fn() }));
 vi.mock('../../repositories/settings-repository', () => ({ getSettings: vi.fn() }));
-vi.mock('../watch/folder-availability', async (importOriginal) => ({ ...(await importOriginal<object>()), findOfflineFolders: vi.fn() }));
+vi.mock('./mount-guard', () => ({ createMountGuard: vi.fn() }));
 // the queue is the one of the app, which the source is put on; the tests ask the source what it would do, and what its tasks do
 vi.mock('../tasks/background-queue', () => ({
   scanKind: 'scan',
@@ -60,6 +60,8 @@ describe('the measurement of the loudness as a source of the background queue', 
   const database = new Database(':memory:');
   let measure: Mock<(path: string, duration?: number) => Promise<Measurement>>;
   let close: Mock<() => void>;
+  let isReadable: Mock<(mount: string, file: string) => Promise<boolean>>;
+  let guardClose: Mock<() => void>;
   let onStatus: Mock<(status: LoudnessProgress) => void>;
   let removeSource: Mock<() => boolean>;
   let source: TaskSource;
@@ -93,6 +95,9 @@ describe('the measurement of the loudness as a source of the background queue', 
     removeSource = vi.fn<() => boolean>().mockReturnValue(true);
     onStatus = vi.fn<(status: LoudnessProgress) => void>();
     vi.mocked(createLoudnessWindow).mockReturnValue({ measure, close });
+    isReadable = vi.fn<(mount: string, file: string) => Promise<boolean>>().mockResolvedValue(true);
+    guardClose = vi.fn<() => void>();
+    vi.mocked(createMountGuard).mockReturnValue({ isReadable, close: guardClose });
     vi.mocked(backgroundQueue.addSource).mockReset().mockReturnValue(removeSource);
     vi.mocked(backgroundQueue.isBusy).mockReset().mockReturnValue(false);
     vi.mocked(backgroundQueue.idleFor).mockReset().mockReturnValue(idle);
@@ -123,7 +128,6 @@ describe('the measurement of the loudness as a source of the background queue', 
       }));
     vi.mocked(getFolders).mockReset().mockResolvedValue([]);
     vi.mocked(getSettings).mockReset().mockResolvedValue(undefined);
-    vi.mocked(findOfflineFolders).mockReset().mockResolvedValue([]);
     setPlaying(false);
   });
 
@@ -221,17 +225,22 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(saveTrackLoudness).not.toHaveBeenCalled();
     });
 
-    it('leaves the tracks of a folder that is away, and measures the others', async () => {
+    it('leaves the tracks on a drive that does not answer, asking each mount about its own files, and measures the others', async () => {
       vi.mocked(getFolders).mockResolvedValue([
         { path: '/mnt/away', lastModified: 0 },
         { path: '/mnt/here', lastModified: 0 },
       ]);
-      vi.mocked(findOfflineFolders).mockResolvedValue(['/mnt/away']);
+      isReadable.mockImplementation(async (mount) => mount !== '/mnt/away');
       library = [track('/mnt/away/a.flac'), track('/mnt/here/b.flac')];
       register();
       await drain();
 
+      expect(isReadable.mock.calls).toEqual([
+        ['/mnt/away', '/mnt/away/a.flac'],
+        ['/mnt/here', '/mnt/here/b.flac'],
+      ]);
       expect(measure.mock.calls.map(([file]) => file)).toEqual(['/mnt/here/b.flac']);
+      expect(stored).toEqual([expect.objectContaining({ path: '/mnt/here/b.flac' })]);
     });
   });
 
@@ -352,25 +361,31 @@ describe('the measurement of the loudness as a source of the background queue', 
     describe('a measurement that times out', () => {
       const timeout: Measurement = { outcome: 'timeout' };
 
+      /** One pass over the library, after the rest that follows the one before */
+      const pass = async () => {
+        elapse(rest + 1);
+        await drain();
+      };
+
       it('is tried again after the rest, and stored as failed when it timed out three times in a row', async () => {
-        await addTrack(database, track('/music/a.flac'));
+        library = [track('/music/a.flac')];
         measure.mockResolvedValue(timeout);
         register();
 
-        await elapse(5000);
-        await elapse(65_000);
+        await drain();
+        await pass();
         expect(measure).toHaveBeenCalledTimes(2);
-        expect(await rows()).toEqual([]);
-        await elapse(65_000);
+        expect(stored).toEqual([]);
+        await pass();
 
         expect(measure).toHaveBeenCalledTimes(3);
-        expect(await rows()).toEqual([expect.objectContaining({ status: 'failed', reason: 'timeout', analysis: null })]);
-        await elapse(65_000);
+        expect(stored).toEqual([expect.objectContaining({ status: 'failed', reason: 'timeout', analysis: null })]);
+        await pass();
         expect(measure).toHaveBeenCalledTimes(3);
       });
 
       it('starts the count again after a measurement that went through', async () => {
-        await addTrack(database, track('/music/a.flac'));
+        library = [track('/music/a.flac')];
         measure
           .mockResolvedValueOnce(timeout)
           .mockResolvedValueOnce(timeout)
@@ -379,28 +394,23 @@ describe('the measurement of the loudness as a source of the background queue', 
         register();
 
         // two timeouts, an unreadable file, and two more timeouts: never three in a row
-        await elapse(5000);
-        await elapse(65_000);
-        await elapse(65_000);
-        await elapse(65_000);
-        await elapse(65_000);
+        await drain();
+        for (let more = 0; more < 4; more++) await pass();
 
         expect(measure).toHaveBeenCalledTimes(5);
-        expect(await rows()).toEqual([]);
+        expect(stored).toEqual([]);
       });
 
       it('does not count a page that did not load', async () => {
-        await addTrack(database, track('/music/a.flac'));
+        library = [track('/music/a.flac')];
         measure.mockResolvedValue({ outcome: 'unavailable' });
         register();
 
-        await elapse(5000);
-        await elapse(65_000);
-        await elapse(65_000);
-        await elapse(65_000);
+        await drain();
+        for (let more = 0; more < 3; more++) await pass();
 
-        expect(measure.mock.calls.length).toBeGreaterThanOrEqual(3);
-        expect(await rows()).toEqual([]);
+        expect(measure).toHaveBeenCalledTimes(4);
+        expect(stored).toEqual([]);
       });
     });
 
@@ -566,12 +576,13 @@ describe('the measurement of the loudness as a source of the background queue', 
     });
   });
 
-  it('takes itself off the queue, takes its pooling off it and closes its window when it stops', () => {
+  it('takes itself off the queue, takes its pooling off it and closes its window and the checks of the drives when it stops', () => {
     register();
     loudness.stop();
 
     expect(removeSource).toHaveBeenCalledTimes(1);
     expect(backgroundQueue.dequeue).toHaveBeenCalledWith('album-gains');
     expect(close).toHaveBeenCalledTimes(1);
+    expect(guardClose).toHaveBeenCalledTimes(1);
   });
 });
