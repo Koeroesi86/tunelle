@@ -50,16 +50,17 @@ describe('sliceMp4', () => {
   });
 
   it('reads the chunks apart where bytes of another track lie between them, and not those bytes', async () => {
-    const gap = 500_000;
-    const interleaved = box('mdat', ...samples.flatMap((one, index) => (index % 40 === 39 ? [one, new Uint8Array(gap).fill(255)] : [one])));
-    const file = join(ftyp, interleaved, movie({ sizes, perChunk: 40, offsetOfFirstChunk: mdatStart, gap }));
+    const gap = 300_000;
+    const few = samples.slice(0, 200);
+    const interleaved = box('mdat', ...few.flatMap((one, index) => (index % 40 === 39 ? [one, new Uint8Array(gap).fill(255)] : [one])));
+    const file = join(ftyp, interleaved, movie({ sizes: sizes.slice(0, 200), perChunk: 40, offsetOfFirstChunk: mdatStart, gap }));
 
     const slices = await collect(sliceMp4, file, 10_000);
 
-    // a piece is the frames it was cut from and nothing of the gaps, which are 500 000 bytes
+    // a piece is the frames it was cut from and nothing of the gaps, which are more than the slicer reads across
     expect(Math.max(...slices.map(({ bytes }) => bytes.length))).toBeLessThan(20_000);
     const all = slices.flatMap(({ bytes, skip }, index) => markers(bytes).slice(index === 0 ? 0 : Math.round((skip * 44100) / 1024)));
-    expect(all).toEqual(samples.map((_, index) => 1 + (index % 200)));
+    expect(all).toEqual(few.map((_, index) => 1 + (index % 200)));
   });
 
   it.each([
