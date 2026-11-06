@@ -450,20 +450,6 @@ describe('connection middleware', () => {
         expect(store.getState().uiState.loudnessStatus).toEqual({ total: 3, measured: 1, failed: 0 });
       });
 
-      it('tells the main process when the player starts and stops, and only then', async () => {
-        const { store, send } = await setup();
-        send.mockClear();
-
-        store.dispatch({ type: 'SET_PLAYING', payload: { isPlaying: true } });
-        store.dispatch({ type: 'SET_PLAYING', payload: { isPlaying: true } });
-        store.dispatch({ type: 'SET_PLAYING', payload: { isPlaying: false } });
-
-        expect(send.mock.calls.filter(([channel]) => channel === 'PLAYBACK_STATE')).toEqual([
-          ['PLAYBACK_STATE', { isPlaying: true }],
-          ['PLAYBACK_STATE', { isPlaying: false }],
-        ]);
-      });
-
       it('fetches the covers again when the main process has stored photos', async () => {
         const { store, listen } = await setup();
         store.dispatch(page('artist'));

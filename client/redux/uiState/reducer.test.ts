@@ -678,9 +678,59 @@ describe('uiState reducer, the state the views keep while the app is open', () =
     expect(run({ type: 'STORE_FOLDERS', payload: { folders: [{ path: '/music' } as never] } }, state).selectedTracks).toEqual({});
   });
 
-  it('drops the tracks of a removed folder, and only those', () => {
-    const state = run({ type: 'REMOVE_FOLDER', payload: { path: '/music' } }, selected('/music/a.flac', '/music2/b.flac', '/other/c.flac'));
+  describe('a folder that is removed from the library', () => {
+    const remove = (state: UiState, path = '/music') => run({ type: 'REMOVE_FOLDER', payload: { path } }, state);
+    const paths = (tracks: Track[]) => tracks.map(({ path }) => path);
+    const queued = (current: string | null, extra: Partial<UiState> = {}): UiState => ({
+      ...initial,
+      nowPlaying: ['/music/a.flac', '/music2/b.flac', '/other/c.flac'].map(track),
+      played: ['/music/old.flac', '/other/old.flac'].map(track),
+      playNext: ['/music/a.flac', '/other/c.flac'],
+      currentSong: current ? track(current) : null,
+      currentTime: 42,
+      isPlaying: true,
+      ...extra,
+    });
 
-    expect(Object.keys(state.selectedTracks)).toEqual(['/music2/b.flac', '/other/c.flac']);
+    it('drops its tracks from the selection, and only those', () => {
+      const state = remove(selected('/music/a.flac', '/music2/b.flac', '/other/c.flac'));
+
+      expect(Object.keys(state.selectedTracks)).toEqual(['/music2/b.flac', '/other/c.flac']);
+    });
+
+    it('drops its tracks from the queue, the ones played and the ones put next, and only those', () => {
+      const state = remove(queued('/other/c.flac'));
+
+      expect(paths(state.nowPlaying)).toEqual(['/music2/b.flac', '/other/c.flac']);
+      expect(paths(state.played)).toEqual(['/other/old.flac']);
+      expect(state.playNext).toEqual(['/other/c.flac']);
+    });
+
+    it('goes on with a song that is not of the folder', () => {
+      const state = remove(queued('/other/c.flac'));
+
+      expect(state).toMatchObject({ currentSong: track('/other/c.flac'), currentTime: 42, isPlaying: true });
+    });
+
+    it('stops the song that is of the folder, as it is not there to play', () => {
+      const state = remove(queued('/music/a.flac', { streamTitle: 'live', streamArt: 'art' }));
+
+      expect(state).toMatchObject({ currentSong: null, currentTime: 0, isPlaying: false, streamTitle: null, streamArt: null });
+      expect(paths(state.nowPlaying)).toEqual(['/music2/b.flac', '/other/c.flac']);
+    });
+
+    it('keeps the radio station that plays, which no folder has', () => {
+      const station = track('radio:abc');
+
+      expect(remove({ ...queued(null), nowPlaying: [station], currentSong: station }).currentSong).toEqual(station);
+    });
+
+    it('takes the tracks of the folder as they are stored, with forward slashes, when it was picked with backslashes or a slash at its end', () => {
+      expect(paths(remove(queued(null), String.raw`\music`).nowPlaying)).toEqual(['/music2/b.flac', '/other/c.flac']);
+      expect(paths(remove(queued(null), '/music/').nowPlaying)).toEqual(['/music2/b.flac', '/other/c.flac']);
+      expect(paths(remove({ ...queued(null), nowPlaying: [track('C:/Music/a.flac'), track('C:/Music2/b.flac')] }, String.raw`C:\Music`).nowPlaying)).toEqual([
+        'C:/Music2/b.flac',
+      ]);
+    });
   });
 });

@@ -9,7 +9,6 @@ import { findTracksToMeasure, getLoudnessProgress, saveTrackLoudness } from '../
 import type { TrackToMeasure } from '../../repositories/loudness-repository';
 import { getFolders } from '../../repositories/library-repository';
 import { getSettings } from '../../repositories/settings-repository';
-import { setPlaying } from './playback-state';
 import { createLoudnessWindow, type Measurement } from './loudness-window';
 import { poolAlbumGains } from './album-gains';
 import { mountGuard } from '../mounts/mount-guard';
@@ -132,7 +131,6 @@ describe('the measurement of the loudness as a source of the background queue', 
       }));
     vi.mocked(getFolders).mockReset().mockResolvedValue([]);
     vi.mocked(getSettings).mockReset().mockResolvedValue(undefined);
-    setPlaying(false);
   });
 
   afterEach(() => {
@@ -285,13 +283,53 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(await canRun()).toBe(false);
     });
 
-    it('waits while a track plays, and goes on when it stops', async () => {
-      register();
-      setPlaying(true);
-      expect(await canRun()).toBe(false);
+    describe('after a track', () => {
+      /** A measurement that takes this long on the clock of the test */
+      const takes = (ms: number) =>
+        measure.mockImplementation(async () => {
+          elapse(ms);
+          return measured;
+        });
 
-      setPlaying(false);
-      expect(await canRun()).toBe(true);
+      const measureOne = async () => {
+        library = [track('/music/a.flac')];
+        register();
+        const task = await source.next();
+        await task?.run(signal);
+      };
+
+      it('rests as long as the measurement took, and then goes on', async () => {
+        takes(4000);
+        await measureOne();
+
+        expect(await canRun()).toBe(false);
+        elapse(3999);
+        expect(await canRun()).toBe(false);
+        elapse(1);
+        expect(await canRun()).toBe(true);
+      });
+
+      it('rests at most 30 s, however long the measurement took', async () => {
+        takes(120_000);
+        await measureOne();
+
+        elapse(29_999);
+        expect(await canRun()).toBe(false);
+        elapse(1);
+        expect(await canRun()).toBe(true);
+      });
+
+      it('rests also after a measurement that gave no row, as the work was done', async () => {
+        measure.mockImplementation(async () => {
+          elapse(2000);
+          return { outcome: 'unavailable' };
+        });
+        await measureOne();
+
+        expect(await canRun()).toBe(false);
+        elapse(2000);
+        expect(await canRun()).toBe(true);
+      });
     });
 
     it('waits on battery', async () => {
@@ -480,6 +518,27 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(pooling()).toEqual([expect.objectContaining({ kind: 'loudness', key: 'album-gains', priority: 1 })]);
       await lastPooling().run(signal);
       expect(poolAlbumGains).toHaveBeenCalledWith(database, signal);
+    });
+
+    it('tell the window how far the measurement is when they are pooled, as the page asks again for the song that plays', async () => {
+      library = [track('/music/a.flac')];
+      register();
+      onStatus.mockClear();
+
+      await lastPooling().run(signal);
+
+      expect(onStatus).toHaveBeenCalledExactlyOnceWith({ total: 1, measured: 0, failed: 0 });
+    });
+
+    it('still tell it when the pooling fails, which is logged', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      vi.mocked(poolAlbumGains).mockRejectedValue(new Error('locked'));
+      register();
+      onStatus.mockClear();
+
+      await lastPooling().run(signal);
+
+      expect(onStatus).toHaveBeenCalledTimes(1);
     });
 
     it('are pooled again when a track was measured, and not when nothing was stored', async () => {

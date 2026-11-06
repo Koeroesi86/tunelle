@@ -5,7 +5,6 @@ import type { ListenerContext } from './listener-context';
 import registerLoudnessListeners from './register-loudness-listeners';
 import executeQuery from '../database/execute-query';
 import { createTestDatabase } from '../test-database';
-import { isPlaying, setPlaying } from '../library/loudness/playback-state';
 import { saveTrackLoudness } from '../repositories/loudness-repository';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
@@ -30,19 +29,6 @@ describe('registerLoudnessListeners', () => {
     loudness.restart.mockReset().mockResolvedValue(undefined);
     database = await createTestDatabase();
     registerLoudnessListeners({ database, loudness } as unknown as ListenerContext);
-    setPlaying(false);
-  });
-
-  it('keeps whether the player plays, and takes anything but a true as stopped', () => {
-    listeners.get('PLAYBACK_STATE')?.(event, { isPlaying: true });
-    expect(isPlaying()).toBe(true);
-
-    listeners.get('PLAYBACK_STATE')?.(event, { isPlaying: 'yes' });
-    expect(isPlaying()).toBe(false);
-
-    listeners.get('PLAYBACK_STATE')?.(event, { isPlaying: true });
-    listeners.get('PLAYBACK_STATE')?.(event, undefined);
-    expect(isPlaying()).toBe(false);
   });
 
   it('tells the window how far the measurement is when it asks', async () => {

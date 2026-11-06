@@ -19,9 +19,9 @@ const gainsOf = (page: Page, path: string) =>
     path
   );
 
-const folderOfTracks = (count: number) => {
+const folderOfTracks = (count: number, seconds = 10) => {
   const folder = mkdtempSync(join(tmpdir(), 'tunelle-loudness-'));
-  [...Array(count).keys()].forEach((index) => writeTrack(folder, albums[0], index, 10));
+  [...Array(count).keys()].forEach((index) => writeTrack(folder, albums[0], index, seconds));
   return folder;
 };
 
@@ -58,6 +58,31 @@ test('shows the histogram of the loudness of the song that plays on the now play
   // a sine of half the full scale in both channels is at -6.7 LUFS, and its peak is -6.0 dBFS
   await expect(page.getByRole('region', { name: 'Loudness of the track' }).getByText('-6.7 LUFS')).toBeVisible();
   await expect(page.getByRole('img', { name: /^How the loudness of the track is spread/ })).toBeVisible();
+});
+
+test('shows the histogram of a song that is measured while it plays, and levels it, without leaving the page', async ({ start }) => {
+  // the measurement waits 15 s after the scan, so the song is not measured when it starts to play, and it is long enough to still play then
+  const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '15' } });
+  await addFolder(page, folderOfTracks(1, 180), 1);
+  const [{ path }] = await libraryTracks(page);
+
+  const controls = player(page);
+  await controls.playAlbum('Pitch Perfect');
+  await controls.setVolume(1);
+  await expectTone(page, 440);
+  await navigate(page, 'Now playing');
+  const panel = page.getByRole('region', { name: 'Loudness of the track' });
+  await expect(panel).toBeHidden();
+  expect((await gainsOf(page, path)).trackGain).toBeNull();
+
+  await expect(panel.getByText('-6.7 LUFS')).toBeVisible({ timeout: 90_000 });
+
+  // the song that plays is levelled by what was measured while it played, the album by default
+  await navigate(page, 'Settings');
+  await page.getByRole('radio', { name: 'Off', exact: true }).click();
+  const full = await steadyLevel(page);
+  await page.getByRole('radio', { name: 'Album', exact: true }).click();
+  await expect.poll(async () => (await levelNow(page)) / full).toBeCloseTo(cut, 1);
 });
 
 test('measures a track that is too long to decode as a whole, in pieces', async ({ start }) => {

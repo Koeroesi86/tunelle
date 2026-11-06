@@ -15,7 +15,6 @@ import { poolAlbumGains } from './album-gains';
 import { mountGuard } from '../mounts/mount-guard';
 import { createLoudnessWindow } from './loudness-window';
 import type { Measurement } from './loudness-window';
-import { isPlaying } from './playback-state';
 
 const loudnessKind = 'loudness';
 /** Below the scans: what is measured waits for them, and for the user */
@@ -29,6 +28,9 @@ const defaultIdleSeconds = 30;
 /** The albums are pooled at most this often while tracks are measured, as the look for them goes over the library */
 const poolPause = 5000;
 const poolKey = 'album-gains';
+/** After a track the source waits as long as its measurement took, so the work is half of the time and the computer stays cool; but never longer than this */
+const coolDownRatio = 1;
+const maxCoolDown = 30_000;
 /** The window is told how far the measurement is at most this often */
 const statusPause = 2000;
 
@@ -85,11 +87,12 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   let cursor = '';
   let reached: TrackToMeasure[] = [];
   let restUntil = 0;
+  let coolUntil = 0;
 
   const mayRun = async () => {
     // a scan that ended since the rest began may have added tracks, so the rest is over then
     const resting = Date.now() < restUntil && backgroundQueue.idleFor(scanKind) >= Date.now() - (restUntil - restPause);
-    if (resting || backgroundQueue.isBusy(scanKind) || backgroundQueue.idleFor(scanKind) < readIdleTime() || isPlaying()) return false;
+    if (resting || Date.now() < coolUntil || backgroundQueue.isBusy(scanKind) || backgroundQueue.idleFor(scanKind) < readIdleTime()) return false;
     return !powerMonitor.isOnBatteryPower() && !isOff(await getSettings(database));
   };
 
@@ -115,6 +118,8 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       run: async (signal) => {
         nextPoolAt = Date.now() + poolPause;
         await poolAlbumGains(database, signal).catch((error) => console.error('Pooling the gains of the albums failed', error));
+        // the counts do not change with it, but the page asks again for what it shows when it is told, and the album gain of the song that plays is new
+        await reportStatus();
       },
     });
 
@@ -135,7 +140,10 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       const mount = folders.find((folder) => isInsideFolder(folder, track.path)) ?? path.dirname(track.path);
       if (!(await mountGuard().isReadable(mount, track.path)) || signal.aborted) return;
 
-      const result = toStored(track, await window.measure(track.path, track.duration ?? undefined));
+      const started = Date.now();
+      const measurement = await window.measure(track.path, track.duration ?? undefined);
+      coolUntil = Date.now() + Math.min((Date.now() - started) * coolDownRatio, maxCoolDown);
+      const result = toStored(track, measurement);
       if (!result || signal.aborted) return;
 
       await saveTrackLoudness(database, result);

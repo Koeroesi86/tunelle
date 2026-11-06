@@ -70,8 +70,13 @@ const restoreOnlineView = (): OnlineView => 'radio';
 
 const byPath = (tracks: Track[]) => Object.fromEntries(tracks.map((track) => [track.path, track]));
 
-/** Whether a file is in the folder, a folder with the same start in its name is another one */
-const isInside = (file: string, folder: string) => file.startsWith(folder) && /^[\\/]/.test(file.slice(folder.length));
+const slashes = (path: string) => path.replace(/\\/g, '/');
+
+/**
+ * Whether a file is in the folder, a folder with the same start in its name is another one. The library stores the paths of tracks with forward
+ * slashes and a folder keeps the ones it was picked with, so the two are compared with the same slash
+ */
+const isInside = (file: string, folder: string) => slashes(file).startsWith(`${slashes(folder).replace(/\/+$/, '')}/`);
 
 const toNumber = (value: number | string) => parseFloat(`${value || 0}`);
 
@@ -108,9 +113,19 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, selectedTracks: byPath(action.payload.tracks) };
     case 'CLEAR_TRACK_SELECTION':
       return { ...state, selectedTracks: {} };
-    // the tracks of a folder that leaves the library are not there to play any more
-    case 'REMOVE_FOLDER':
-      return { ...state, selectedTracks: byPath(Object.values(state.selectedTracks).filter(({ path }) => !isInside(path, action.payload.path))) };
+    // the tracks of a folder that leave the library are not there to play any more: they leave the selection and the queue, and the song stops
+    case 'REMOVE_FOLDER': {
+      const kept = ({ path }: Track) => !isInside(path, action.payload.path);
+      const stops = state.currentSong !== null && !kept(state.currentSong);
+      return {
+        ...state,
+        selectedTracks: byPath(Object.values(state.selectedTracks).filter(kept)),
+        nowPlaying: state.nowPlaying.filter(kept),
+        played: state.played.filter(kept),
+        playNext: state.playNext.filter((path) => !isInside(path, action.payload.path)),
+        ...(stops && { currentSong: null, currentTime: 0, isPlaying: false, streamTitle: null, streamArt: null }),
+      };
+    }
     case 'SET_TRACK_SORT':
       return { ...state, trackSort: action.payload.sort, selectedTracks: {} };
     case 'SET_ALBUM_SORT':

@@ -10,6 +10,7 @@ const mapState = (state: RootState) => ({
   currentSong: state.uiState.currentSong,
   isPlaying: state.uiState.isPlaying,
   upNext: state.uiState.upNext,
+  loudnessStatus: state.uiState.loudnessStatus,
   volume: state.uiState.volume,
   normalization: state.uiState.normalization,
   outputDevice: state.uiState.outputDevice,
