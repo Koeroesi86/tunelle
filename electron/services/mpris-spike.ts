@@ -165,7 +165,7 @@ const writeCover = () => {
   const file = join(folder, 'cover.png');
 
   mkdirSync(folder, { recursive: true });
-  copyFileSync(resolve(__dirname, '../../icons/png/512x512.png'), file);
+  copyFileSync(resolve(__dirname, '../../../icons/png/512x512.png'), file);
 
   return `file://${file}`;
 };
