@@ -15,6 +15,14 @@ Chromium registers `org.mpris.MediaPlayer2.chromium.instance<pid>` and never set
 - Chromium's own service is switched off on Linux (`--disable-features=MediaSessionService` in `index.ts`), or the AppImage, which has no sandbox that denies the name, would show two players. The Flatpak has `--own-name=org.mpris.MediaPlayer2.io.github.koeroesi86.Tunelle` and no `chromium.*`.
 - If there is no session bus or the name is taken, the error is logged and the app goes on without media controls.
 
+## The dependency
+
+`dbus-next` has an optional native dependency, `usocket`, which it needs only for a session bus address of the form `unix:abstract=...` (older or non-systemd setups) and for passing file descriptors. It is left out of the package (`!node_modules/usocket/**` in `build.files`), so there the connection fails, the error is logged and the app has no media controls; the usual `unix:path=/run/user/<uid>/bus` of systemd works with a plain socket. `xml2js`, which it brings, is overridden to 0.6 (the 0.4 one has a known vulnerability, GHSA-776f-qx25-q3cc). `@homebridge/dbus-native` is the maintained alternative with a lower level API, if `dbus-next` ever stops working.
+
+## Tests
+
+The service and the cover files have unit tests, and the end to end test of the media controls (`e2e/system.spec.ts`) reads on Linux what the page sends to the main process, as the CI runners have no session bus. What the desktop shows is tried by hand in a Flatpak of the build (`docs/development/try-flatpak.md`).
+
 ## Not done
 
 Volume, shuffle and loop are fixed values in the service (a client that sets them changes nothing), and `OpenUri` and the track list are not offered.
