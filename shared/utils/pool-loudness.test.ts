@@ -27,14 +27,16 @@ describe('poolAlbum', () => {
   });
 
   it('gates the blocks of all the tracks together, like the blocks of one long track, and not as the average of their gains', () => {
-    const loud = tone(-14, 20);
-    const quiet = tone(-26, 20);
+    const loud = tone(-14, 5);
+    const quiet = tone(-26, 5);
     const asOneTrack = analyse(loud, quiet);
-    const pooled = poolAlbum([analysisOf(-14, 20), analysisOf(-26, 20)]);
+    const loudAnalysis = analysisOf(-14, 5);
+    const quietAnalysis = analysisOf(-26, 5);
+    const pooled = poolAlbum([loudAnalysis, quietAnalysis]);
 
     expect(pooled?.albumGain).toBeCloseTo(asOneTrack?.trackGain ?? 0, 0);
     // the energy of the loud track weighs more, so the album is not at the average of the two gains
-    expect(Math.abs((pooled?.albumGain ?? 0) - ((analysisOf(-14, 20).integratedLufs + analysisOf(-26, 20).integratedLufs) / -2 - 18))).toBeGreaterThan(1);
+    expect(Math.abs((pooled?.albumGain ?? 0) - ((loudAnalysis.integratedLufs + quietAnalysis.integratedLufs) / -2 - 18))).toBeGreaterThan(1);
   });
 
   it('keeps the highest peak of the tracks', () => {
