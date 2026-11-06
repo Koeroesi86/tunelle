@@ -37,9 +37,16 @@ Play a track or a station in the window for 1, as the demo tracks only exist wit
 
 `dbus-next` 0.10.2 is in the spike: pure JavaScript (228 kB, no native build), has types, and exports the interfaces with methods, properties and signals. It works against the session bus in plain Node (a call to `Next` changed the metadata, `Position` and `DesktopEntry` answered). Its last release is from 2022, and it depends on `event-stream` 3.3.4 (a version from before the 2018 incident, but one that dependency review and OSV may flag). `@homebridge/dbus-native` 0.7.9 (released 2026-10-24) is maintained and lower level; it was not tried.
 
+## Results (tried by hand in the Flatpak on GNOME, 2026-11-06)
+
+- Run 2 (`--spike`, no `chromium.*`): GNOME shows one player, with the app icon from `DesktopEntry`, the title, the artist, the cover and working previous, pause and next buttons. The buttons and the media keys reach our service (the log shows them), but nothing reaches the player: the spike has no bridge.
+- The cover as `file://$XDG_RUNTIME_DIR/app/<id>/cover.png` is read by the shell from outside the sandbox.
+- Without `chromium.*` no Chromium service stayed on the bus beside ours, so the name request is denied silently and `--disable-features` is probably not needed. An `org.mpris.MediaPlayer2.chromium.instance3` that was listed once was most likely the real Tunelle, which was running then (not proven).
+- Runs 1, 3 and 4 were not made.
+
 ## Not verified
 
-- Every question in the table: the spike was built and the bundle checked (id, finish args), but not installed or run in a shell.
-- `npm run check:dist` and `fallow` with the dependency in the package.
-- The cover under the sandbox, KDE, and `playerctl`.
+- A second player while a track really plays in the spike build (only checked once, with the doubt above).
+- `npm run check:dist` and `fallow` with the dependency in the package (fallow passed on the branch).
+- KDE, `playerctl`, the AppImage, and the Flatpak of the real app id.
 - Windows and macOS (the spike is Linux only).
