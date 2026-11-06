@@ -62,7 +62,7 @@ describe('the measurement of the loudness as a source of the background queue', 
   let database: Database;
   let measure: Mock<(path: string) => Promise<Measurement>>;
   let close: Mock<() => void>;
-  let removeSource: Mock<() => void>;
+  let removeSource: Mock<() => boolean>;
   let source: TaskSource;
   let loudness: ReturnType<typeof registerLoudness>;
   const signal = new AbortController().signal;
@@ -87,7 +87,7 @@ describe('the measurement of the loudness as a source of the background queue', 
     database = await createTestDatabase();
     measure = vi.fn<(path: string) => Promise<Measurement>>().mockResolvedValue(measured);
     close = vi.fn<() => void>();
-    removeSource = vi.fn<() => void>();
+    removeSource = vi.fn<() => boolean>().mockReturnValue(true);
     vi.mocked(createLoudnessWindow).mockReturnValue({ measure, close });
     vi.mocked(backgroundQueue.addSource).mockReset().mockReturnValue(removeSource);
     vi.mocked(backgroundQueue.isBusy).mockReset().mockReturnValue(false);
