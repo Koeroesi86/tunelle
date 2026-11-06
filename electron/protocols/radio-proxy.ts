@@ -2,11 +2,14 @@ import http from 'http';
 import https from 'https';
 import { PassThrough, pipeline } from 'stream';
 import { IcyMetadataStripper } from './icy-metadata';
+import { SampleRateTap } from './sample-rate-tap';
 
 export interface RadioStreamDeps {
   /** The address of the stream of a station */
   resolveStream: (uuid: string) => Promise<string>;
   onTitle: (uuid: string, title: string, streamUrl?: string) => void;
+  /** The sample rate of the audio of a station, found in the start of its stream */
+  onSampleRate: (uuid: string, sampleRate: number) => void;
 }
 
 const maxRedirects = 5;
@@ -41,16 +44,17 @@ const openUpstream = (address: string, signal: AbortSignal, redirects = maxRedir
     });
   });
 
-/** The audio of a station without its ICY metadata, whose titles go to `onTitle`; aborting the signal closes the upstream connection */
-export const openRadioStream = async (uuid: string, signal: AbortSignal, { resolveStream, onTitle }: RadioStreamDeps) => {
+/** The audio of a station without its ICY metadata, whose titles go to `onTitle` and whose sample rate goes to `onSampleRate`; aborting the signal closes the upstream connection */
+export const openRadioStream = async (uuid: string, signal: AbortSignal, { resolveStream, onTitle, onSampleRate }: RadioStreamDeps) => {
   const upstream = await openUpstream(await resolveStream(uuid), signal);
 
   const metaint = Number(upstream.headers['icy-metaint']);
   const strippers = metaint > 0 ? [new IcyMetadataStripper(metaint, (title, streamUrl) => onTitle(uuid, title, streamUrl))] : [];
+  const rateTap = new SampleRateTap((sampleRate) => onSampleRate(uuid, sampleRate));
 
   // one pipeline: destroying the audio ends every stage, and the abort of the upstream is an end, not an unhandled error that opens an error dialog and holds the app
   const audio = new PassThrough();
-  pipeline([upstream, ...strippers, audio], () => undefined);
+  pipeline([upstream, ...strippers, rateTap, audio], () => undefined);
 
   return { contentType: upstream.headers['content-type'] ?? 'audio/mpeg', audio };
 };

@@ -35,6 +35,7 @@ describe('tunelle protocol', () => {
       radio: {
         resolveStream: () => Promise.reject(new Error('no radio')),
         onTitle: () => {},
+        onSampleRate: () => {},
         getLogo: async (uuid) => (uuid === 'abc-1' ? { type: 'image/png', data: Buffer.from('logo') } : undefined),
         getArt: (key) => (key === 'abcdef0123456789' ? { type: 'image/png', data: Buffer.from('cover') } : undefined),
       },
@@ -141,7 +142,7 @@ describe('tunelle protocol', () => {
       const response = await handleTunelleRequest({
         getDatabase: () => undefined,
         appRoot,
-        radio: { resolveStream: () => Promise.reject(new Error('no radio')), onTitle: () => {} },
+        radio: { resolveStream: () => Promise.reject(new Error('no radio')), onTitle: () => {}, onSampleRate: () => {} },
       })(new Request(`tunelle://app/track?path=${encodeURIComponent(libraryFile())}`));
 
       expect(response.status).toBe(404);
@@ -262,7 +263,7 @@ describe('tunelle protocol', () => {
       const response = await handleTunelleRequest({
         getDatabase: () => undefined,
         appRoot,
-        radio: { resolveStream: () => Promise.reject(new Error('no radio')), onTitle: () => {} },
+        radio: { resolveStream: () => Promise.reject(new Error('no radio')), onTitle: () => {}, onSampleRate: () => {} },
       })(new Request('tunelle://app/library'));
 
       expect(response.status).toBe(403);

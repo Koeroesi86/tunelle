@@ -25,7 +25,7 @@ const connector = connect(mapState, mapDispatch);
 
 const ContextualAudioComponent = (props: ConnectedProps<typeof connector>) => (
   <Audio.Consumer>
-    {({ connectNode, connectStandbyNode, activateNode, setNormalization, setOutputDevice }) => (
+    {({ connectNode, connectStandbyNode, activateNode, setNormalization, setOutputDevice, addOutputChangeListener, removeOutputChangeListener }) => (
       <AudioComponent
         {...props}
         connectNode={connectNode}
@@ -33,6 +33,8 @@ const ContextualAudioComponent = (props: ConnectedProps<typeof connector>) => (
         activateNode={activateNode}
         setNormalization={setNormalization}
         setOutputDevice={setOutputDevice}
+        addOutputChangeListener={addOutputChangeListener}
+        removeOutputChangeListener={removeOutputChangeListener}
       />
     )}
   </Audio.Consumer>

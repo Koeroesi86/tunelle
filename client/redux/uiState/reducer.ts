@@ -42,6 +42,7 @@ const initialState: UiState = {
   playNext: [],
   streamTitle: null,
   streamArt: null,
+  streamSampleRate: null,
   launcher: { available: false, enabled: false, offered: false, external: false },
   shuffle: false,
   repeat: false,
@@ -123,7 +124,7 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
         nowPlaying: state.nowPlaying.filter(kept),
         played: state.played.filter(kept),
         playNext: state.playNext.filter((path) => !isInside(path, action.payload.path)),
-        ...(stops && { currentSong: null, currentTime: 0, isPlaying: false, streamTitle: null, streamArt: null }),
+        ...(stops && { currentSong: null, currentTime: 0, isPlaying: false, streamTitle: null, streamArt: null, streamSampleRate: null }),
       };
     }
     case 'SET_TRACK_SORT':
@@ -169,7 +170,18 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, nowPlaying: action.payload.tracks, played: [], playNext: [] };
     // nothing is left to play, so the song stops with the queue
     case 'CLEAR_QUEUE':
-      return { ...state, nowPlaying: [], played: [], playNext: [], currentSong: null, currentTime: 0, isPlaying: false, streamTitle: null, streamArt: null };
+      return {
+        ...state,
+        nowPlaying: [],
+        played: [],
+        playNext: [],
+        currentSong: null,
+        currentTime: 0,
+        isPlaying: false,
+        streamTitle: null,
+        streamArt: null,
+        streamSampleRate: null,
+      };
     // the tracks go right after the song that plays and after the ones that were put next before, in the order they come, and
     // a track that is in the queue already moves there; the song that plays is not moved
     case 'PLAY_NEXT': {
@@ -220,6 +232,7 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
         isPlaying: true,
         streamTitle: null,
         streamArt: null,
+        streamSampleRate: null,
         playNext: state.playNext.filter((path) => path !== action.payload.track?.path),
       };
     case 'SET_VOLUME':
@@ -241,6 +254,11 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       const isCurrent = state.currentSong && radioUuidOf(state.currentSong.path) === uuid;
       // the art stays until the art of the new song arrives (or the answer that there is none), so the cover is never empty in between
       return isCurrent && title !== state.streamTitle ? { ...state, streamTitle: title } : state;
+    }
+    case 'RADIO_STREAM_RATE': {
+      const { uuid, sampleRate } = action.payload;
+      const isCurrent = state.currentSong && radioUuidOf(state.currentSong.path) === uuid;
+      return isCurrent && sampleRate !== state.streamSampleRate ? { ...state, streamSampleRate: sampleRate } : state;
     }
     case 'RADIO_STREAM_ART': {
       const { uuid, title, art } = action.payload;

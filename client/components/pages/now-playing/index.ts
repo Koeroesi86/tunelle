@@ -8,6 +8,7 @@ import NowPlaying from './NowPlaying';
 const mapState = (state: RootState) => ({
   streamTitle: state.uiState.streamTitle,
   streamArt: state.uiState.streamArt,
+  streamSampleRate: state.uiState.streamSampleRate,
   isPlaying: state.uiState.isPlaying,
   station: state.radio.playing,
   currentSong: state.uiState.currentSong,

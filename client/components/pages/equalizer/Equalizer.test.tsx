@@ -57,12 +57,12 @@ describe('Equalizer', () => {
     expect(filters.map((filter) => filter.type)).toEqual(['lowshelf', ...Array(8).fill('peaking'), 'highshelf']);
   });
 
-  it('builds the chain once however often the audio is mounted', () => {
+  it('builds a new chain each time the audio is mounted, as the nodes of an old audio context cannot join a new one', () => {
     const { filters, mount } = setup();
     mount();
     mount();
 
-    expect(filters).toHaveLength(equalizerBands.length);
+    expect(filters).toHaveLength(equalizerBands.length * 2);
   });
 
   it('applies the gains and follows changes', () => {

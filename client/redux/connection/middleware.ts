@@ -50,6 +50,7 @@ function addListeners(store: Store) {
   onMessage('RADIO_STATIONS', messageSchemas.RADIO_STATIONS, (payload) => store.dispatch({ type: 'RADIO_STATIONS', payload }));
   onMessage('RADIO_TAGS_LOADED', messageSchemas.RADIO_TAGS_LOADED, (payload) => store.dispatch({ type: 'RADIO_TAGS_LOADED', payload }));
   onMessage('RADIO_OPTIONS_LOADED', messageSchemas.RADIO_OPTIONS_LOADED, (payload) => store.dispatch({ type: 'RADIO_OPTIONS_LOADED', payload }));
+  onMessage('RADIO_STREAM_RATE', messageSchemas.RADIO_STREAM_RATE, (payload) => store.dispatch({ type: 'RADIO_STREAM_RATE', payload }));
   onMessage('RADIO_STREAM_TITLE', messageSchemas.RADIO_STREAM_TITLE, (payload) => store.dispatch({ type: 'RADIO_STREAM_TITLE', payload }));
   onMessage('RADIO_STREAM_ART', messageSchemas.RADIO_STREAM_ART, (payload) => store.dispatch({ type: 'RADIO_STREAM_ART', payload }));
   // a favourite of a source this version does not know is left out

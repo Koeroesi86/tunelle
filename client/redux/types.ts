@@ -69,6 +69,8 @@ export interface UiState extends PersistedSettings {
   streamTitle: string | null;
   /** The key of the art the main process found for the stream title, null while it is looked up or when there is none */
   streamArt: string | null;
+  /** The sample rate of the audio of the current radio station, found in its stream; null until it is */
+  streamSampleRate: number | null;
   /** Whether the app can add itself to the application menu (from an AppImage on Linux), and whether it did, and whether the user was asked */
   launcher: { available: boolean; enabled: boolean; offered: boolean; external: boolean };
 }
@@ -128,6 +130,7 @@ export type AppAction =
   | PayloadAction<'REMOVE_FAVOURITE', { key: FavouriteKey }>
   | PayloadAction<'PLAY_RADIO_STATION', { station: RadioStation }>
   | PayloadAction<'RADIO_STREAM_TITLE', { uuid: string; title: string }>
+  | PayloadAction<'RADIO_STREAM_RATE', { uuid: string; sampleRate: number }>
   | PayloadAction<'RADIO_STREAM_ART', { uuid: string; title: string; art?: string }>
   | PayloadAction<'FOLDERS_ADDED_TO_LIBRARY', { folders: Folder[] }>
   | PayloadAction<'STORE_FOLDERS', { folders: Folder[] }>

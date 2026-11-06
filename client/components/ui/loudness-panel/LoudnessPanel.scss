@@ -1,3 +1,9 @@
+@property --played {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
 .panel {
   display: flex;
   flex-direction: column;
@@ -8,12 +14,86 @@
   border: 1px solid var(--overlay);
   border-radius: 10px;
 
+  .signal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--overlay);
+    font-variant-numeric: tabular-nums;
+
+    &:only-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .signalRate {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 0;
+    }
+
+    .signalLabel {
+      color: var(--text-muted);
+      font-size: 10px;
+    }
+
+    .signalValue {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .signalState {
+      padding: 1px 8px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      background: var(--overlay-faint);
+      border: 1px solid var(--overlay);
+      border-radius: 999px;
+    }
+
+    &.resampled .signalState {
+      color: var(--text);
+    }
+  }
+
   .histogram {
     position: relative;
     display: flex;
     align-items: flex-end;
     gap: 2px;
     height: 48px;
+  }
+
+  .bars {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: flex-end;
+    gap: 2px;
+    height: 100%;
+    min-width: 0;
+  }
+
+  .dimmed {
+    opacity: 0.4;
+  }
+
+  // the same bars again, lit as far as the line: the edge moves as the line does
+  .lit {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: --played 0.25s linear;
+    mask-image: linear-gradient(to right, black var(--played), transparent var(--played));
+
+    .bar {
+      opacity: 1;
+    }
   }
 
   .bar {
@@ -39,31 +119,56 @@
     bottom: 0;
     width: 1px;
     background: var(--text);
+    box-shadow: 0 0 6px var(--accent);
     transition: left 0.25s linear;
-  }
-
-  .scale {
-    display: flex;
-    justify-content: space-between;
-    color: var(--text-muted);
-    font-size: 10px;
   }
 
   .figures {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
     margin: 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--overlay);
+
+    > div {
+      min-width: 0;
+      padding: 0 10px;
+
+      &:first-child {
+        padding-left: 0;
+      }
+
+      &:last-child {
+        padding-right: 0;
+      }
+
+      & + div {
+        border-left: 1px solid var(--overlay);
+      }
+    }
 
     dt {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 6px;
       color: var(--text-muted);
-      font-size: 10px;
+      font-size: 9px;
+      white-space: nowrap;
+
+      small {
+        font-size: 8px;
+        letter-spacing: 0.04em;
+        opacity: 0.8;
+      }
     }
 
     dd {
-      margin: 0;
+      margin: 1px 0 0;
       font-size: 12px;
+      font-variant-numeric: tabular-nums;
       font-weight: 600;
+      line-height: 1.3;
       white-space: nowrap;
     }
   }

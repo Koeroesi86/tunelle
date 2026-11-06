@@ -9,6 +9,10 @@ const fakeGain = () => ({
 });
 
 const setSinkId = vi.fn();
+/** The rate of the device with this id; the default device runs at 48 kHz */
+const deviceRates: Record<string, number> = {};
+/** The ids of the devices that cannot be opened */
+const brokenDevices = new Set<string>();
 
 /** A fresh module on a fake AudioContext, which records how the nodes are wired */
 const setup = async () => {
@@ -17,11 +21,25 @@ const setup = async () => {
   const gains: ReturnType<typeof fakeGain>[] = [];
   const analysers: ReturnType<typeof fakeNode>[] = [];
   const createMediaElementSource = vi.fn(() => source);
+  const contexts: { sinkId: string; sampleRate: number; close: ReturnType<typeof vi.fn>; resume: ReturnType<typeof vi.fn>; sinkchange: () => void }[] = [];
   vi.stubGlobal(
     'AudioContext',
     class {
       destination = {};
-      sinkId = '';
+      sinkId: string;
+      sampleRate: number;
+      close = vi.fn().mockResolvedValue(undefined);
+      resume = vi.fn().mockResolvedValue(undefined);
+      sinkchange: () => void = () => undefined;
+      addEventListener = (type: string, listener: () => void) => {
+        if (type === 'sinkchange') this.sinkchange = listener;
+      };
+      constructor(options?: { sinkId?: string }) {
+        if (brokenDevices.has(options?.sinkId ?? '')) throw new Error('unplugged');
+        this.sinkId = options?.sinkId ?? '';
+        this.sampleRate = deviceRates[this.sinkId] ?? 48000;
+        contexts.push(this);
+      }
       setSinkId = setSinkId;
       createMediaElementSource = createMediaElementSource;
       currentTime = 3;
@@ -41,7 +59,7 @@ const setup = async () => {
   // the first gain of the module is the input of the equalizer and the analyser, the next ones level an element each
   const input = gains[0];
   const { result } = renderHook(() => useContext(Audio));
-  return { audio: result.current, source, input, gains, analysers, createMediaElementSource };
+  return { audio: result.current, source, input, gains, analysers, createMediaElementSource, contexts };
 };
 
 describe('audio context', () => {
@@ -55,32 +73,208 @@ describe('audio context', () => {
   });
 
   describe('output device', () => {
-    beforeEach(() => setSinkId.mockReset().mockResolvedValue(undefined));
-
-    it('moves the sound of the context to the device', async () => {
-      const { audio } = await setup();
-
-      await audio.setOutputDevice('a1');
-
-      expect(setSinkId).toHaveBeenCalledExactlyOnceWith('a1');
+    beforeEach(() => {
+      setSinkId.mockReset().mockResolvedValue(undefined);
+      Object.keys(deviceRates).forEach((id) => delete deviceRates[id]);
+      brokenDevices.clear();
     });
 
-    it('falls back to the system default when the device cannot be opened', async () => {
-      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-      const { audio } = await setup();
-      setSinkId.mockRejectedValueOnce(new Error('unplugged'));
+    describe('at the rate of the context', () => {
+      it('moves the sound of the context to the device', async () => {
+        const { audio, contexts } = await setup();
 
-      await audio.setOutputDevice('a1');
+        await audio.setOutputDevice('a1');
 
-      expect(setSinkId.mock.calls).toEqual([['a1'], ['']]);
+        expect(setSinkId).toHaveBeenCalledExactlyOnceWith('a1');
+        expect(contexts[1].close).toHaveBeenCalledTimes(1);
+        expect(contexts[0].close).not.toHaveBeenCalled();
+      });
+
+      it('falls back to the system default when the device cannot be opened', async () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const { audio } = await setup();
+        setSinkId.mockRejectedValueOnce(new Error('unplugged'));
+
+        await audio.setOutputDevice('a1');
+
+        expect(setSinkId.mock.calls).toEqual([['a1'], ['']]);
+      });
+
+      it('leaves the default alone when it is asked for', async () => {
+        const { audio, contexts } = await setup();
+
+        await audio.setOutputDevice('');
+
+        expect(setSinkId).not.toHaveBeenCalled();
+        expect(contexts).toHaveLength(1);
+      });
+
+      it('does not tell the player, as nothing is made again', async () => {
+        const { audio } = await setup();
+        const listener = vi.fn();
+        audio.addOutputChangeListener(listener);
+
+        await audio.setOutputDevice('a1');
+
+        expect(listener).not.toHaveBeenCalled();
+      });
     });
 
-    it('leaves the default alone when it is asked for', async () => {
-      const { audio } = await setup();
+    describe('at another rate', () => {
+      beforeEach(() => {
+        deviceRates.dac = 96000;
+      });
 
-      await audio.setOutputDevice('');
+      it('replaces the context by one at the rate of the device, and closes the old one', async () => {
+        const { audio, contexts } = await setup();
 
-      expect(setSinkId).not.toHaveBeenCalled();
+        await audio.setOutputDevice('dac');
+
+        expect(audio.getSampleRate()).toBe(96000);
+        expect(setSinkId).not.toHaveBeenCalled();
+        expect(contexts[0].close).toHaveBeenCalledTimes(1);
+        expect(contexts[1].resume).toHaveBeenCalledTimes(1);
+      });
+
+      it('tells the player where the track was and whether it played, with the old elements paused and silent for the status of the player', async () => {
+        const { audio } = await setup();
+        const node = document.createElement('audio');
+        Object.defineProperty(node, 'paused', { value: false });
+        Object.defineProperty(node, 'currentTime', { value: 42.5 });
+        node.pause = vi.fn();
+        const status = vi.fn();
+        const listener = vi.fn();
+        audio.addPlayStatusListener(status);
+        audio.addOutputChangeListener(listener);
+        audio.connectNode(node);
+
+        await audio.setOutputDevice('dac');
+        node.dispatchEvent(new Event('pause'));
+
+        expect(listener).toHaveBeenCalledExactlyOnceWith({ position: 42.5, wasPlaying: true });
+        expect(node.pause).toHaveBeenCalledTimes(1);
+        expect(status).not.toHaveBeenCalled();
+      });
+
+      it('builds the graph on the new context: the elements can be wrapped again and the analyser is a new one', async () => {
+        const { audio, createMediaElementSource, analysers } = await setup();
+        const node = document.createElement('audio');
+        audio.connectNode(node);
+        audio.createAnalyser();
+
+        await audio.setOutputDevice('dac');
+        audio.connectNode(document.createElement('audio'));
+        audio.createAnalyser();
+
+        expect(createMediaElementSource).toHaveBeenCalledTimes(2);
+        expect(analysers).toHaveLength(2);
+      });
+
+      it('tells the listeners of the audio that it is mounted again, once the first element of the new context is connected', async () => {
+        const { audio } = await setup();
+        const mounted = vi.fn();
+        audio.onAudioMounted(mounted);
+        audio.connectNode(document.createElement('audio'));
+        await audio.setOutputDevice('dac');
+        expect(mounted).toHaveBeenCalledTimes(1);
+
+        audio.connectNode(document.createElement('audio'));
+
+        expect(mounted).toHaveBeenCalledTimes(2);
+      });
+
+      it('registers a listener of the audio once, as a component that mounts twice does', async () => {
+        const { audio } = await setup();
+        const mounted = vi.fn();
+        audio.onAudioMounted(mounted);
+        audio.onAudioMounted(mounted);
+
+        audio.connectNode(document.createElement('audio'));
+
+        expect(mounted).toHaveBeenCalledTimes(1);
+      });
+
+      it('plays on the default context when the device cannot be opened', async () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        brokenDevices.add('dac');
+        const { audio, contexts } = await setup();
+
+        await audio.setOutputDevice('dac');
+
+        expect(contexts).toHaveLength(2);
+        expect(contexts[1].sinkId).toBe('');
+        expect(audio.getSampleRate()).toBe(48000);
+      });
+
+      it('makes one context when the same device is asked for twice at once', async () => {
+        const { audio, contexts } = await setup();
+        const listener = vi.fn();
+        audio.addOutputChangeListener(listener);
+
+        await Promise.all([audio.setOutputDevice('dac'), audio.setOutputDevice('dac')]);
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(contexts.filter(({ sinkId }) => sinkId === 'dac')).toHaveLength(1);
+      });
+    });
+  });
+
+  describe('the default device changes', () => {
+    beforeEach(() => {
+      setSinkId.mockReset().mockResolvedValue(undefined);
+      Object.keys(deviceRates).forEach((id) => delete deviceRates[id]);
+      brokenDevices.clear();
+    });
+
+    it('replaces the context when the new default runs at another rate', async () => {
+      const { audio, contexts } = await setup();
+      const listener = vi.fn();
+      audio.addOutputChangeListener(listener);
+      deviceRates[''] = 96000;
+
+      contexts[0].sinkchange();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(audio.getSampleRate()).toBe(96000);
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(contexts[0].close).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the context when the new default runs at the same rate', async () => {
+      const { audio, contexts } = await setup();
+      const listener = vi.fn();
+      audio.addOutputChangeListener(listener);
+
+      contexts[0].sinkchange();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(listener).not.toHaveBeenCalled();
+      expect(contexts[1].close).toHaveBeenCalledTimes(1);
+      expect(contexts[0].close).not.toHaveBeenCalled();
+    });
+
+    it('leaves a device that was picked alone, as it is not the default that changed', async () => {
+      const { audio, contexts } = await setup();
+      await audio.setOutputDevice('a1');
+      contexts[0].sinkId = 'a1';
+
+      contexts[0].sinkchange();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(contexts).toHaveLength(2);
+    });
+
+    it('follows the default again on the new context', async () => {
+      const { audio, contexts } = await setup();
+      deviceRates[''] = 96000;
+      contexts[0].sinkchange();
+      await vi.advanceTimersByTimeAsync(0);
+      deviceRates[''] = 44100;
+
+      contexts[1].sinkchange();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(audio.getSampleRate()).toBe(44100);
     });
   });
 

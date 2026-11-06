@@ -99,6 +99,8 @@ const AudioSpectrum = ({
     };
 
     const drawMeter = () => {
+      // the analyser belongs to the audio context, which is replaced for a device at another rate
+      analyser.current = createAnalyser() ?? analyser.current;
       if (analyser.current && isSettled()) return settle();
       if (analyser.current) drawFrame(analyser.current);
 

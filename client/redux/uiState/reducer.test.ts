@@ -518,6 +518,19 @@ describe('uiState reducer', () => {
       expect(run({ type: 'RADIO_STREAM_TITLE', payload: { uuid: 'abc', title: 'Artist - Song' } })).toBe(initial);
     });
 
+    it('keeps the sample rate found in the stream of the station that plays', () => {
+      expect(run({ type: 'RADIO_STREAM_RATE', payload: { uuid: 'abc', sampleRate: 44100 } }, playing).streamSampleRate).toBe(44100);
+    });
+
+    it('ignores the sample rate of a station that is not playing', () => {
+      expect(run({ type: 'RADIO_STREAM_RATE', payload: { uuid: 'other', sampleRate: 44100 } }, playing)).toBe(playing);
+    });
+
+    it('forgets the sample rate when another track starts', () => {
+      const rated = { ...playing, streamSampleRate: 44100 };
+      expect(run({ type: 'PLAY_TRACK', payload: { track: track('/music/a.flac') } }, rated).streamSampleRate).toBeNull();
+    });
+
     it('forgets the title and the art when another track starts', () => {
       const titled = { ...playing, streamTitle: 'Artist - Song', streamArt: 'abcd' };
       expect(run({ type: 'PLAY_TRACK', payload: { track: track('/music/a.flac') } }, titled)).toMatchObject({ streamTitle: null, streamArt: null });

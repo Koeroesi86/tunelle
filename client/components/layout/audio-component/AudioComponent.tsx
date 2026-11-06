@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Track } from '@shared/types/library';
 import type { LoudnessProgress } from '@shared/types/loudness';
 import { useUpdateEffect } from '../../../hooks/use-update-effect';
@@ -9,6 +9,7 @@ import { useTrackLoudness } from '../../../hooks/use-track-loudness';
 import { liveEdgeTarget } from '../../../audio/gapless';
 import { normalizationGain } from '../../../audio/loudness';
 import type { NormalizationMode } from '../../../audio/loudness';
+import type { ContextResume } from '../../../audio/context';
 import { resolveOutputId } from '../../../audio/output-device';
 import type { OutputDevice } from '../../../audio/output-device';
 
@@ -31,6 +32,9 @@ interface AudioComponentProps {
   activateNode: (node: HTMLAudioElement) => void;
   setNormalization: (node: HTMLAudioElement, factor: number) => void;
   setOutputDevice: (id: string) => Promise<void>;
+  /** Called when the audio context is replaced by one at the rate of another device: the elements belong to the old context and are made again */
+  addOutputChangeListener: (listener: (resume: ContextResume) => void) => void;
+  removeOutputChangeListener: (listener: (resume: ContextResume) => void) => void;
 }
 
 /** After this many files in a row that cannot be played, the player stops instead of cycling through the whole queue */
@@ -55,7 +59,12 @@ const AudioComponent = ({
   activateNode,
   setNormalization,
   setOutputDevice,
+  addOutputChangeListener,
+  removeOutputChangeListener,
 }: AudioComponentProps) => {
+  // changes with every audio context, as an element can be wrapped by one context only
+  const [generation, setGeneration] = useState(0);
+  const resume = useRef<ContextResume | undefined>(undefined);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const attempts = useRef(0);
   const skipped = useRef(0);
@@ -138,18 +147,35 @@ const AudioComponent = ({
     if (!isPlaying) stopReconnecting();
   }, [isPlaying]);
 
-  useEffect(() => gapless.setVolume(volume), [volume]);
+  useEffect(() => {
+    const listener = (next: ContextResume) => {
+      resume.current = next;
+      gapless.reset();
+      setGeneration((previous) => previous + 1);
+    };
+    addOutputChangeListener(listener);
+    return () => removeOutputChangeListener(listener);
+  }, []);
+
+  useEffect(() => gapless.setVolume(volume), [volume, generation]);
 
   // the saved device is looked for again as devices come and go, so an unplugged one gives the default and a plugged in one takes the sound back
   useEffect(() => {
     setOutputDevice(resolveOutputId(outputDevice, devices)).catch((err) => console.error(err));
   }, [outputDevice, devices]);
 
+  // the elements live as long as the audio context; the ones of a new context continue where the old ones were, a station where it is live
   useEffect(() => {
     connectNode(gapless.elements.current[0]);
     connectStandbyNode(gapless.elements.current[1]);
-    // the audio elements live as long as the component
-  }, []);
+    const pending = resume.current;
+    resume.current = undefined;
+    const node = pending && currentSong ? gapless.load(sourceOf(currentSong)) : undefined;
+    if (!pending || !node) return;
+
+    if (!isRadio) node.currentTime = pending.position;
+    if (pending.wasPlaying) node.play().catch((err) => console.error(err));
+  }, [generation]);
 
   // the play command can arrive before the source is set, so a new source starts here; a restored track stays paused
   useUpdateEffect(() => {
@@ -163,7 +189,7 @@ const AudioComponent = ({
     if (node && currentSong && isPlaying) node.play().catch((err) => console.error(err));
   }, [currentSong]);
 
-  useEffect(gapless.preloadNext, [currentSong, upNext]);
+  useEffect(gapless.preloadNext, [currentSong, upNext, generation]);
 
   // a paused station keeps its connection open and buffers, so play would continue with old audio: a pause lets go of the stream and play connects to the live one
   useUpdateEffect(() => {
@@ -187,14 +213,14 @@ const AudioComponent = ({
         const track = [currentSong, upNext].find((candidate) => candidate && source !== undefined && sourceOf(candidate) === source);
         if (node) setNormalization(node, normalizationGain(withLoudness(track ?? undefined), normalization));
       }),
-    [currentSong, upNext, normalization, withLoudness]
+    [currentSong, upNext, normalization, withLoudness, generation]
   );
 
   return (
     <>
       {elementIndexes.map((index) => (
         <audio
-          key={index}
+          key={`${generation}-${index}`}
           style={{ display: 'none' }}
           ref={gapless.register(index)}
           crossOrigin="anonymous"

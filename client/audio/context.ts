@@ -4,6 +4,12 @@ import { needsSeek } from './equalizer';
 type PlayStatusListener = (isPlaying: boolean) => void;
 type TimeChangeListener = (currentTime: number) => void;
 
+/** Where the track was when the context was replaced: the new elements continue from there. See docs/app/audio-context.md */
+export interface ContextResume {
+  position: number;
+  wasPlaying: boolean;
+}
+
 const createListeners = <T>() => {
   const listeners = new Set<(value: T) => void>();
 
@@ -14,11 +20,12 @@ const createListeners = <T>() => {
   };
 };
 
-const audioContext = new window.AudioContext();
+let audioContext = new window.AudioContext();
+let switching: Promise<void> = Promise.resolve();
 let audioNode: HTMLAudioElement | null = null;
 // the sound of every element comes in here, so the equalizer and the analyser do not care which element plays; an element can only be wrapped once,
 // a second createMediaElementSource on it throws
-const input = audioContext.createGain();
+let input = audioContext.createGain();
 const wrappedElements = new Set<HTMLAudioElement>();
 // the loudness normalization of each element, as an element plays one track after the other
 const normalizers = new Map<HTMLAudioElement, GainNode>();
@@ -27,13 +34,14 @@ let analyser: AnalyserNode | undefined;
 let mounted = false;
 const playStatus = createListeners<boolean>();
 const timeChange = createListeners<number>();
-const audioMountListeners: (() => void)[] = [];
+const audioMountListeners = new Set<() => void>();
+const outputChange = createListeners<ContextResume>();
 let timeChangeTimer: ReturnType<typeof setInterval> | undefined;
 const currentTimeFPS = 5;
 let currentTime = 0;
 
 const onAudioMounted = (listener: () => void) => {
-  audioMountListeners.push(listener);
+  audioMountListeners.add(listener);
   if (mounted) listener();
 };
 
@@ -110,15 +118,83 @@ const setNormalization = (node: HTMLAudioElement, factor: number) => {
   else gain.setTargetAtTime(factor, audioContext.currentTime, normalizationRamp);
 };
 
-/** Plays on the output device with this id, '' is the system default; a device that cannot be opened (unplugged) leaves the sound on the default */
-const setOutputDevice = async (id: string) => {
+/** Replaces the context by one that runs at the rate of its device: the elements, the gains and the analyser belong to a context and are made again */
+const replaceContext = (next: AudioContext) => {
+  const previous = audioContext;
+  const resume = { position: audioNode?.currentTime ?? currentTime, wasPlaying: audioNode ? !audioNode.paused : false };
+  // no longer the element of the player, so the pause of the old elements is no pause of the listener
+  audioNode = null;
+  wrappedElements.forEach((node) => node.pause());
+  clearInterval(timeChangeTimer);
+  audioContext = next;
+  watchDefaultDevice(next);
+  input = next.createGain();
+  wrappedElements.clear();
+  normalizers.clear();
+  analyser = undefined;
+  mounted = false;
+  currentTime = resume.position;
+  next.resume().catch((err) => console.warn('audio context not resumed', err));
+  outputChange.notify(resume);
+  previous.close().catch((err) => console.warn('audio context not closed', err));
+};
+
+/** A context on the device with this id, or on the default when the device cannot be opened (unplugged) */
+const openContext = (id: string) =>
+  Promise.resolve()
+    .then(() => new window.AudioContext({ sinkId: id }))
+    .catch((err) => {
+      console.warn('output device unavailable', id, err);
+      return new window.AudioContext();
+    });
+
+/**
+ * Plays on the output device with this id, '' is the system default. A device that runs at the rate of the context takes the sound as it is,
+ * one at another rate gets a context of its own, as the context is fixed to a rate and the browser would resample between the two.
+ */
+const switchOutputDevice = async (id: string) => {
   if (audioContext.sinkId === id) return;
 
-  await audioContext.setSinkId(id).catch((err) => {
-    console.warn('output device unavailable', id, err);
-    return audioContext.setSinkId('');
-  });
+  const next = await openContext(id);
+  if (next.sampleRate === audioContext.sampleRate) {
+    await next.close();
+    await audioContext.setSinkId(id).catch((err) => {
+      console.warn('output device unavailable', id, err);
+      return audioContext.setSinkId('');
+    });
+    return;
+  }
+
+  replaceContext(next);
 };
+
+// the devices are looked for again as they come and go, so a switch waits for the one before it, and finds the device it asked for there already
+const queueSwitch = (run: () => Promise<void>) => {
+  const result = switching.then(run);
+  switching = result.catch(() => undefined);
+  return result;
+};
+
+const setOutputDevice = (id: string) => queueSwitch(() => switchOutputDevice(id));
+
+/** The system default changed under a context that plays on it: the context keeps its rate, so it is replaced when the new default runs at another one */
+const followDefaultDevice = async () => {
+  if (audioContext.sinkId !== '') return;
+
+  const next = await openContext('');
+  if (next.sampleRate === audioContext.sampleRate) return void (await next.close());
+
+  replaceContext(next);
+};
+
+const watchDefaultDevice = (context: AudioContext) =>
+  context.addEventListener('sinkchange', () => {
+    if (context === audioContext) queueSwitch(followDefaultDevice).catch((err) => console.warn('default device not followed', err));
+  });
+watchDefaultDevice(audioContext);
+
+/** The rate the context mixes and plays at, which is the rate of the device it was made for */
+const getSampleRate = () => audioContext.sampleRate;
 
 const connectToSource = (item: AudioNode) => {
   input.connect(item);
@@ -167,6 +243,9 @@ export const Audio = createContext({
   activateNode,
   setNormalization,
   setOutputDevice,
+  getSampleRate,
+  addOutputChangeListener: (listener: (resume: ContextResume) => void) => void outputChange.add(listener),
+  removeOutputChangeListener: (listener: (resume: ContextResume) => void) => void outputChange.remove(listener),
   connectToSource,
   connectDestination,
   createBiquadFilter,

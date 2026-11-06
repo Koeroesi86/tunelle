@@ -26,9 +26,9 @@ describe('LoudnessPanel', () => {
 
     render(<LoudnessPanel path="/music/a.flac" />);
 
-    expect(await screen.findByText('-9.2 LUFS')).toBeTruthy();
-    expect(screen.getByText('12.3 LU')).toBeTruthy();
-    expect(screen.getByText('0.3 dBFS')).toBeTruthy();
+    expect(await screen.findByText('-9.2')).toBeTruthy();
+    expect(screen.getByText('12.3')).toBeTruthy();
+    expect(screen.getByText('0.3')).toBeTruthy();
     expect(screen.getByRole('img').getAttribute('aria-label')).toBe('How the loudness of the track is spread, from -12 to -9 LUFS');
     expect(fetchLoudnessAnalysis).toHaveBeenCalledWith('/music/a.flac');
   });
@@ -47,11 +47,11 @@ describe('LoudnessPanel', () => {
       .mockResolvedValueOnce(analysis)
       .mockReturnValueOnce(new Promise(() => {}));
     const { rerender } = render(<LoudnessPanel path="/music/a.flac" />);
-    await screen.findByText('-9.2 LUFS');
+    await screen.findByText('-9.2');
 
     rerender(<LoudnessPanel path="/music/b.flac" />);
 
-    expect(screen.queryByText('-9.2 LUFS')).toBeNull();
+    expect(screen.queryByText('-9.2')).toBeNull();
     expect(fetchLoudnessAnalysis).toHaveBeenLastCalledWith('/music/b.flac');
   });
 
@@ -66,13 +66,13 @@ describe('LoudnessPanel', () => {
 
       rerender(<LoudnessPanel path="/music/a.flac" status={status(1)} />);
 
-      expect(await screen.findByText('-9.2 LUFS')).toBeTruthy();
+      expect(await screen.findByText('-9.2')).toBeTruthy();
     });
 
     it('is not asked for again once it is shown, as the analysis of a file does not change', async () => {
       vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
       const { rerender } = render(<LoudnessPanel path="/music/a.flac" status={status(0)} />);
-      await screen.findByText('-9.2 LUFS');
+      await screen.findByText('-9.2');
 
       rerender(<LoudnessPanel path="/music/a.flac" status={status(1)} />);
       rerender(<LoudnessPanel path="/music/a.flac" status={status(2)} />);
@@ -83,7 +83,7 @@ describe('LoudnessPanel', () => {
     it('is asked for again for another track even when one was shown', async () => {
       vi.mocked(fetchLoudnessAnalysis).mockResolvedValueOnce(analysis).mockResolvedValueOnce(undefined);
       const { container, rerender } = render(<LoudnessPanel path="/music/a.flac" status={status(1)} />);
-      await screen.findByText('-9.2 LUFS');
+      await screen.findByText('-9.2');
 
       rerender(<LoudnessPanel path="/music/b.flac" status={status(1)} />);
 
@@ -95,10 +95,10 @@ describe('LoudnessPanel', () => {
   describe('how far the song is played', () => {
     const positionOf = (container: HTMLElement) => container.querySelector<HTMLElement>('b[aria-hidden]')?.style.left;
 
-    it('has a bar that is where the song is across the histogram, and moves on as it plays', async () => {
+    it('has a line that is where the song is across the histogram, and moves on as it plays', async () => {
       vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
       const { container, rerender } = render(<LoudnessPanel path="/music/a.flac" duration={310} currentTime={6} />);
-      await screen.findByText('-9.2 LUFS');
+      await screen.findByText('-9.2');
       expect(Number.parseFloat(positionOf(container) ?? '')).toBeCloseTo((6 / 310) * 100, 5);
 
       rerender(<LoudnessPanel path="/music/a.flac" duration={310} currentTime={155} />);
@@ -106,10 +106,31 @@ describe('LoudnessPanel', () => {
       expect(positionOf(container)).toBe('50%');
     });
 
-    it('keeps the bar in the histogram when the position is outside the track', async () => {
+    it('lights the bars up to the line and dims the ones after it, as far as the song is played', async () => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
+      const { container, rerender } = render(<LoudnessPanel path="/music/a.flac" duration={100} currentTime={50} />);
+      await screen.findByText('-9.2');
+      const lit = () => container.querySelector<HTMLElement>('[class*="lit"]');
+      expect(lit()?.style.getPropertyValue('--played')).toBe('50%');
+      expect(lit()?.querySelectorAll('i').length).toBeGreaterThan(0);
+
+      rerender(<LoudnessPanel path="/music/a.flac" duration={100} currentTime={80} />);
+
+      expect(lit()?.style.getPropertyValue('--played')).toBe('80%');
+    });
+
+    it('does not dim the bars of a track whose position is not known', async () => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
+      const { container } = render(<LoudnessPanel path="/music/a.flac" />);
+      await screen.findByText('-9.2');
+
+      expect(container.querySelector('[class*="lit"], [class*="dimmed"]')).toBeNull();
+    });
+
+    it('keeps the line in the histogram when the position is outside the track', async () => {
       vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
       const { container, rerender } = render(<LoudnessPanel path="/music/a.flac" duration={100} currentTime={120} />);
-      await screen.findByText('-9.2 LUFS');
+      await screen.findByText('-9.2');
       expect(positionOf(container)).toBe('100%');
 
       rerender(<LoudnessPanel path="/music/a.flac" duration={100} currentTime={-3} />);
@@ -125,9 +146,63 @@ describe('LoudnessPanel', () => {
       vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
 
       const { container } = render(<LoudnessPanel path="/music/a.flac" duration={duration} currentTime={currentTime} />);
-      await screen.findByText('-9.2 LUFS');
+      await screen.findByText('-9.2');
 
       expect(positionOf(container)).toBeUndefined();
+    });
+  });
+
+  describe('the sample rate', () => {
+    it('shows the rate of the file when the output runs at the same one', async () => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
+
+      render(<LoudnessPanel path="/music/a.flac" sampleRate={96000} outputRate={96000} />);
+
+      expect(await screen.findByText('96 kHz')).toBeTruthy();
+      expect(screen.getByText('Native')).toBeTruthy();
+      expect(screen.queryByText('Resampled')).toBeNull();
+    });
+
+    it('tells from which rate to which one the sound is resampled', async () => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
+
+      render(<LoudnessPanel path="/music/a.flac" sampleRate={44100} outputRate={48000} />);
+
+      expect(await screen.findByLabelText('Resampled from 44.1 kHz to 48 kHz')).toBeTruthy();
+      expect(screen.getByText('Resampled')).toBeTruthy();
+      expect(screen.getByText('44.1 → 48 kHz')).toBeTruthy();
+    });
+
+    it('is shown for a track that was not measured, without the histogram', async () => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(undefined);
+
+      render(<LoudnessPanel path="/music/a.flac" sampleRate={44100} outputRate={44100} />);
+
+      expect(await screen.findByText('44.1 kHz')).toBeTruthy();
+      expect(screen.queryByRole('img')).toBeNull();
+    });
+
+    it('shows only the rate for a station, which has no file and no loudness, and asks for no analysis', () => {
+      const { container } = render(<LoudnessPanel sampleRate={44100} outputRate={48000} />);
+
+      expect(screen.getByText('44.1 → 48 kHz')).toBeTruthy();
+      expect(container.querySelector('dl')).toBeNull();
+      expect(fetchLoudnessAnalysis).not.toHaveBeenCalled();
+    });
+
+    it('shows nothing for a station whose rate is not known yet', () => {
+      const { container } = render(<LoudnessPanel />);
+
+      expect(container.textContent).toBe('');
+    });
+
+    it('shows nothing when the rate of the file is not known', async () => {
+      vi.mocked(fetchLoudnessAnalysis).mockResolvedValue(analysis);
+
+      render(<LoudnessPanel path="/music/a.flac" outputRate={48000} />);
+      await screen.findByText('-9.2');
+
+      expect(screen.queryByText('Sample rate')).toBeNull();
     });
   });
 });
