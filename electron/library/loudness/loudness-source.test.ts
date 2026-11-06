@@ -294,6 +294,55 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(await canRun()).toBe(true);
     });
 
+    describe('after a track', () => {
+      /** A measurement that takes this long on the clock of the test */
+      const takes = (ms: number) =>
+        measure.mockImplementation(async () => {
+          elapse(ms);
+          return measured;
+        });
+
+      const measureOne = async () => {
+        library = [track('/music/a.flac')];
+        register();
+        const task = await source.next();
+        await task?.run(signal);
+      };
+
+      it('rests as long as the measurement took, and then goes on', async () => {
+        takes(4000);
+        await measureOne();
+
+        expect(await canRun()).toBe(false);
+        elapse(3999);
+        expect(await canRun()).toBe(false);
+        elapse(1);
+        expect(await canRun()).toBe(true);
+      });
+
+      it('rests at most 30 s, however long the measurement took', async () => {
+        takes(120_000);
+        await measureOne();
+
+        elapse(29_999);
+        expect(await canRun()).toBe(false);
+        elapse(1);
+        expect(await canRun()).toBe(true);
+      });
+
+      it('rests also after a measurement that gave no row, as the work was done', async () => {
+        measure.mockImplementation(async () => {
+          elapse(2000);
+          return { outcome: 'unavailable' };
+        });
+        await measureOne();
+
+        expect(await canRun()).toBe(false);
+        elapse(2000);
+        expect(await canRun()).toBe(true);
+      });
+    });
+
     it('waits on battery', async () => {
       register();
       vi.mocked(powerMonitor.isOnBatteryPower).mockReturnValue(true);
