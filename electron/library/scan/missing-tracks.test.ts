@@ -34,29 +34,29 @@ describe('findMissingTracks', () => {
   it('finds the tracks whose file is gone, in a folder that is there and in one that is not', async () => {
     const tracks = [track(at('album', 'one.flac')), track(at('album', 'two.flac')), track(at('gone', 'three.flac'))];
 
-    expect((await findMissingTracks(tracks)).map((missing) => missing.path)).toEqual([at('album', 'two.flac'), at('gone', 'three.flac')]);
+    expect((await findMissingTracks(tracks, [root])).map((missing) => missing.path)).toEqual([at('album', 'two.flac'), at('gone', 'three.flac')]);
   });
 
   it('finds a track below a file, as that folder is gone', async () => {
-    expect(await findMissingTracks([track(at('album', 'one.flac', 'inside.flac'))])).toHaveLength(1);
+    expect(await findMissingTracks([track(at('album', 'one.flac', 'inside.flac'))], [root])).toHaveLength(1);
   });
 
   it('keeps the tracks of a folder that cannot be read for another reason than that it is gone', async () => {
     const readdir = vi.spyOn(fs.promises, 'readdir').mockRejectedValueOnce(Object.assign(new Error('denied'), { code: 'EACCES' }));
 
-    expect(await findMissingTracks([track(at('album', 'two.flac'))])).toEqual([]);
+    expect(await findMissingTracks([track(at('album', 'two.flac'))], [root])).toEqual([]);
     readdir.mockRestore();
   });
 
   it('reads a folder once for all its tracks', async () => {
     const readdir = vi.spyOn(fs.promises, 'readdir');
-    await findMissingTracks([track(at('album', 'one.flac')), track(at('album', 'two.flac')), track(at('album', 'three.flac'))]);
+    await findMissingTracks([track(at('album', 'one.flac')), track(at('album', 'two.flac')), track(at('album', 'three.flac'))], [root]);
 
     expect(readdir).toHaveBeenCalledTimes(1);
     readdir.mockRestore();
   });
 
   it('finds nothing among no tracks', async () => {
-    expect(await findMissingTracks([])).toEqual([]);
+    expect(await findMissingTracks([], [root])).toEqual([]);
   });
 });

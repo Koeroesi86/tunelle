@@ -18,7 +18,9 @@ class FakeProbe extends EventEmitter {
     return true;
   };
 
-  answer = (readable: boolean) => this.emit('message', { id: this.requests[this.requests.length - 1].id, readable } satisfies ProbeReply);
+  /** Answers the request that is asked for (the last one by default) */
+  answer = (readable: boolean, extra: Partial<ProbeReply> = {}, index = this.requests.length - 1) =>
+    this.emit('message', { id: this.requests[index].id, readable, ...extra } satisfies ProbeReply);
 
   /** The process ends, as one stuck on a share does when the share is back */
   end = () => this.emit('exit', 0);
@@ -54,7 +56,7 @@ describe('createMountGuard', () => {
     expect(await first).toBe(true);
     expect(await second).toBe(false);
     expect(probes).toHaveLength(1);
-    expect(probes[0].requests.map(({ fileName }) => fileName)).toEqual(['/mnt/nas/a.flac', '/mnt/nas/b.flac']);
+    expect(probes[0].requests.map(({ path: requested }) => requested)).toEqual(['/mnt/nas/a.flac', '/mnt/nas/b.flac']);
   });
 
   it('gives up on a file that does not answer in 10 s, and kills the process that waits on the drive', async () => {
@@ -105,6 +107,42 @@ describe('createMountGuard', () => {
     probes[1].answer(true);
 
     expect(await local).toBe(true);
+  });
+
+  it('lets calls on a mount wait at once, and answers each its own', async () => {
+    const guard = createMountGuard();
+
+    const first = guard.list('/mnt/nas', '/mnt/nas/a');
+    const second = guard.isEmpty('/mnt/nas', '/mnt/nas/b');
+    probes[0].answer(true, { empty: true }, 1);
+    probes[0].answer(true, { time: 5, names: ['x'], directories: [] }, 0);
+
+    expect(await second).toBe(true);
+    expect(await first).toEqual({ readable: true, time: 5, names: ['x'], directories: [] });
+    expect(probes).toHaveLength(1);
+  });
+
+  it('answers no to all the calls that wait when one gives up, and none reaches the drive after it', async () => {
+    const guard = createMountGuard();
+
+    const empty = guard.isEmpty('/mnt/nas', '/mnt/nas/a');
+    const time = guard.readTime('/mnt/nas', '/mnt/nas/b');
+    const listing = guard.list('/mnt/nas', '/mnt/nas/c');
+    vi.advanceTimersByTime(10_000);
+
+    expect([await empty, await time, await listing]).toEqual([undefined, undefined, { readable: false }]);
+    expect(await guard.isEmpty('/mnt/nas', '/mnt/nas/a')).toBeUndefined();
+    expect(probes[0].requests).toHaveLength(3);
+    expect(probes[0].killed).toBe(true);
+  });
+
+  it('gives the system error of a folder that cannot be read', async () => {
+    const guard = createMountGuard();
+
+    const listing = guard.list('/mnt/nas', '/mnt/nas/gone');
+    probes[0].answer(false, { code: 'ENOENT' });
+
+    expect(await listing).toEqual({ readable: false, code: 'ENOENT' });
   });
 
   it('kills the processes when it is closed', () => {

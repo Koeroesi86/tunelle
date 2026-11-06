@@ -12,7 +12,7 @@ import { isInsideFolder } from '../watch/folder-availability';
 import { backgroundQueue, scanKind } from '../tasks/background-queue';
 import type { Task } from '../tasks/task-queue';
 import { poolAlbumGains } from './album-gains';
-import { createMountGuard } from './mount-guard';
+import { mountGuard } from '../mounts/mount-guard';
 import { createLoudnessWindow } from './loudness-window';
 import type { Measurement } from './loudness-window';
 import { isPlaying } from './playback-state';
@@ -80,7 +80,6 @@ const toRow = (track: TrackToMeasure, measurement: Measurement): TrackLoudness |
 /** Puts the measurement of the loudness of the library on the background queue as a source of tasks, one track a task. See docs/app/loudness-measurement.md */
 export const registerLoudness = (database: Database, pageUrl: string, onStatus: (status: LoudnessProgress) => void) => {
   const window = createLoudnessWindow(pageUrl);
-  const guard = createMountGuard();
   // the library folders, which are the mounts a track can be on: looked at with each batch of tracks
   let folders: string[] = [];
   let cursor = '';
@@ -134,7 +133,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
     async (signal) => {
       // a drive that does not answer is left alone: the track is tried again after the rest, and counts nothing against it
       const mount = folders.find((folder) => isInsideFolder(folder, track.path)) ?? path.dirname(track.path);
-      if (!(await guard.isReadable(mount, track.path)) || signal.aborted) return;
+      if (!(await mountGuard().isReadable(mount, track.path)) || signal.aborted) return;
 
       const result = toStored(track, await window.measure(track.path, track.duration ?? undefined));
       if (!result || signal.aborted) return;
@@ -186,7 +185,6 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       removeSource();
       backgroundQueue.dequeue(poolKey);
       window.close();
-      guard.close();
     },
   };
 };

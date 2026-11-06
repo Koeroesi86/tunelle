@@ -12,7 +12,7 @@ import { getSettings } from '../../repositories/settings-repository';
 import { setPlaying } from './playback-state';
 import { createLoudnessWindow, type Measurement } from './loudness-window';
 import { poolAlbumGains } from './album-gains';
-import { createMountGuard } from './mount-guard';
+import { mountGuard } from '../mounts/mount-guard';
 import { registerLoudness } from './loudness-source';
 import type { Task } from '../tasks/task-queue';
 
@@ -24,7 +24,7 @@ vi.mock('./loudness-window', () => ({ createLoudnessWindow: vi.fn() }));
 vi.mock('../../repositories/loudness-repository', () => ({ findTracksToMeasure: vi.fn(), getLoudnessProgress: vi.fn(), saveTrackLoudness: vi.fn() }));
 vi.mock('../../repositories/library-repository', () => ({ getFolders: vi.fn() }));
 vi.mock('../../repositories/settings-repository', () => ({ getSettings: vi.fn() }));
-vi.mock('./mount-guard', () => ({ createMountGuard: vi.fn() }));
+vi.mock('../mounts/mount-guard', () => ({ mountGuard: vi.fn() }));
 // the queue is the one of the app, which the source is put on; the tests ask the source what it would do, and what its tasks do
 vi.mock('../tasks/background-queue', () => ({
   scanKind: 'scan',
@@ -61,7 +61,6 @@ describe('the measurement of the loudness as a source of the background queue', 
   let measure: Mock<(path: string, duration?: number) => Promise<Measurement>>;
   let close: Mock<() => void>;
   let isReadable: Mock<(mount: string, file: string) => Promise<boolean>>;
-  let guardClose: Mock<() => void>;
   let onStatus: Mock<(status: LoudnessProgress) => void>;
   let removeSource: Mock<() => boolean>;
   let source: TaskSource;
@@ -96,8 +95,13 @@ describe('the measurement of the loudness as a source of the background queue', 
     onStatus = vi.fn<(status: LoudnessProgress) => void>();
     vi.mocked(createLoudnessWindow).mockReturnValue({ measure, close });
     isReadable = vi.fn<(mount: string, file: string) => Promise<boolean>>().mockResolvedValue(true);
-    guardClose = vi.fn<() => void>();
-    vi.mocked(createMountGuard).mockReturnValue({ isReadable, close: guardClose });
+    vi.mocked(mountGuard).mockReturnValue({
+      isReadable,
+      isEmpty: async () => false,
+      readTime: async () => undefined,
+      list: async () => ({ readable: false }),
+      close: vi.fn<() => void>(),
+    });
     vi.mocked(backgroundQueue.addSource).mockReset().mockReturnValue(removeSource);
     vi.mocked(backgroundQueue.isBusy).mockReset().mockReturnValue(false);
     vi.mocked(backgroundQueue.idleFor).mockReset().mockReturnValue(idle);
@@ -583,6 +587,5 @@ describe('the measurement of the loudness as a source of the background queue', 
     expect(removeSource).toHaveBeenCalledTimes(1);
     expect(backgroundQueue.dequeue).toHaveBeenCalledWith('album-gains');
     expect(close).toHaveBeenCalledTimes(1);
-    expect(guardClose).toHaveBeenCalledTimes(1);
   });
 });

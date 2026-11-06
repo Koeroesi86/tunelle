@@ -29,7 +29,8 @@ async function scanChanges(sender: WebContents, changes: Change[]) {
   if (!database) return;
 
   try {
-    const { offline } = await reportOfflineFolders(database, sender, await getFolders(database, ['path']));
+    const folders = await getFolders(database, ['path']);
+    const { offline } = await reportOfflineFolders(database, sender, folders);
     const places = withoutCovered(changes).filter(
       (change) => !offline.some((folderPath) => change.path === folderPath || isInsideFolder(folderPath, change.path))
     );
@@ -40,7 +41,10 @@ async function scanChanges(sender: WebContents, changes: Change[]) {
     });
 
     const tracks = new Map<string, Pick<Track, 'path'>>((await Promise.all(places.map(tracksAt(database)))).flat().map((track) => [track.path, track]));
-    const missing = await findMissingTracks([...tracks.values()]);
+    const missing = await findMissingTracks(
+      [...tracks.values()],
+      folders.map((folder) => folder.path)
+    );
     missing.forEach((track) => console.log(`Removing non existent ${track.path}`));
     await deleteTracks(database, missing);
     sender.send('RESCAN_COMPLETE', {});

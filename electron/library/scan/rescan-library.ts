@@ -1,9 +1,9 @@
-import fs from 'fs';
 import type { WebContents } from 'electron';
 import type { Database } from 'sqlite3';
 import type { Folder } from '@shared/types/library';
 import { deleteTracks, getFolders, getLibrary, saveFolders } from '../../repositories/library-repository';
-import { isInsideFolder, reportOfflineFolders, withTimeout } from '../watch/folder-availability';
+import { isInsideFolder, reportOfflineFolders } from '../watch/folder-availability';
+import { mountGuard } from '../mounts/mount-guard';
 import scanFolders from './scan-folders';
 import { queueAlbumArtAccents } from '../art/album-art-accents';
 import { quitSignal } from './scan-cancellation';
@@ -14,16 +14,16 @@ import { scanKind } from '../tasks/background-queue';
 import { queueTask, scanPriority } from '../tasks/queue-task';
 
 const readModifiedTimes = async (folders: Folder[]) => {
-  const times = await Promise.all(folders.map(async (folder) => [folder.path, await withTimeout(fs.promises.stat(folder.path), undefined)] as const));
-  return new Map(times.flatMap(([folderPath, stat]) => (stat ? [[folderPath, Math.floor(stat.mtimeMs)] as const] : [])));
+  const times = await Promise.all(folders.map(async (folder) => [folder.path, await mountGuard().readTime(folder.path, folder.path)] as const));
+  return new Map(times.flatMap(([folderPath, time]) => (time === undefined ? [] : [[folderPath, time] as const])));
 };
 
 /** The tracks below an offline folder are kept, its files cannot be told from missing ones; the tracks of a format or codec that is not played go too */
-const removeMissingTracks = async (database: Database, offline: string[]) => {
+const removeMissingTracks = async (database: Database, offline: string[], folders: string[]) => {
   const tracks = (await getLibrary(database, { sort: undefined, folders: [] }, ['path', 'codec'])).filter(
     (track) => !offline.some((folderPath) => isInsideFolder(folderPath, track.path))
   );
-  const missing = await findMissingTracks(tracks);
+  const missing = await findMissingTracks(tracks, folders);
   const unsupported = tracks.filter((track) => !isSupported(track.path) || !isSupportedCodec(track.codec));
 
   missing.forEach((track) => console.log(`Removing non existent ${track.path}`));
@@ -55,7 +55,11 @@ async function scanLibrary(sender: WebContents, forced: boolean) {
         .filter((folder) => remaining.has(folder.path) && !incomplete.has(folder.path))
         .map((folder) => ({ path: folder.path, lastModified: modified.get(folder.path) ?? folder.lastModified }))
     );
-    await removeMissingTracks(database, offline);
+    await removeMissingTracks(
+      database,
+      offline,
+      all.map((folder) => folder.path)
+    );
     // the pictures of a library from before the colours were kept
     queueAlbumArtAccents(database);
     sender.send('RESCAN_COMPLETE', {});

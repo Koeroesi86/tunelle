@@ -1,6 +1,5 @@
-import fs from 'fs';
 import path from 'path';
-import { withTimeout } from './folder-availability';
+import { mountGuard } from '../mounts/mount-guard';
 import type { Change } from './library-change';
 import { clamp } from '@shared/utils/clamp';
 import { logError } from '../../utils/log-error';
@@ -10,15 +9,11 @@ type DirectoryTimes = Map<string, number>;
 
 const directoriesInFlight = 16;
 
-/** The modification time of a directory and the directories in it, undefined when it cannot be read or does not answer */
-const readDirectory = (directory: string) =>
-  withTimeout(
-    Promise.all([fs.promises.stat(directory), fs.promises.readdir(directory, { withFileTypes: true })]).then(([stat, entries]) => ({
-      time: Math.floor(stat.mtimeMs),
-      directories: entries.filter((entry) => entry.isDirectory()).map((entry) => path.join(directory, entry.name)),
-    })),
-    undefined
-  );
+/** The modification time of a directory and the directories in it, undefined when it cannot be read or does not answer; asked of the process of the mount */
+const readDirectory = async (mount: string, directory: string) => {
+  const { time, directories } = await mountGuard().list(mount, directory);
+  return time === undefined || directories === undefined ? undefined : { time, directories: directories.map((name) => path.join(directory, name)) };
+};
 
 /** The folder and the folders below it with their modification times, which change when a file in one is added, removed or renamed; a folder that cannot be read is left out, so none is returned for one that does not answer. A few folders are read at a time */
 export const readDirectoryTimes = async (folder: string): Promise<DirectoryTimes> => {
@@ -27,7 +22,7 @@ export const readDirectoryTimes = async (folder: string): Promise<DirectoryTimes
   const visit = async (level: string[]): Promise<void> => {
     if (level.length === 0) return;
 
-    const reads = await mapAsync(level, (directory) => readDirectory(directory), { concurrency: directoriesInFlight });
+    const reads = await mapAsync(level, (directory) => readDirectory(folder, directory), { concurrency: directoriesInFlight });
     reads.forEach((read, index) => read && times.set(level[index], read.time));
     await visit(reads.flatMap((read) => read?.directories ?? []));
   };
