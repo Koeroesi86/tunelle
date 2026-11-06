@@ -15,9 +15,6 @@ import { createLoudnessWindow } from './loudness-window';
 import type { Measurement } from './loudness-window';
 import { isPlaying } from './playback-state';
 
-/** A file longer than this is not decoded as a whole, which holds the decoded sound in memory (2.2 GB of the window for 45 minutes of stereo). See docs/app/loudness-measurement.md */
-export const maxSeconds = 2700;
-
 const loudnessKind = 'loudness';
 /** Below the scans: what is measured waits for them, and for the user */
 const priority = 1;
@@ -70,7 +67,7 @@ const toRow = (track: TrackToMeasure, measurement: Measurement): TrackLoudness |
     });
   }
   if (measurement.outcome === 'crashed') return failed(track, 'crashed');
-  return measurement.outcome === 'silent' || measurement.outcome === 'undecodable' ? failed(track, measurement.outcome) : undefined;
+  return measurement.outcome === 'unreadable' || measurement.outcome === 'timeout' ? undefined : failed(track, measurement.outcome);
 };
 
 /** The tracks of the batch that are not in a folder that is away */
@@ -119,7 +116,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   const measure =
     (track: TrackToMeasure): Task['run'] =>
     async (signal) => {
-      const result = (track.duration ?? 0) > maxSeconds ? failed(track, 'too-large') : toRow(track, await window.measure(track.path));
+      const result = toRow(track, await window.measure(track.path, track.duration ?? undefined));
       if (!result || signal.aborted) return;
 
       await saveTrackLoudness(database, result);

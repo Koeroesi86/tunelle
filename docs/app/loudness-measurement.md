@@ -29,9 +29,9 @@ The JSON is not in these answers: `findLoudnessAnalysis` reads it for one track.
 ITU-R BS.1770 / EBU R128 at 48 kHz, the rate `decodeAudioData` resamples to:
 
 - K-weighting (`k-weighting.ts`: a high shelf, then a high pass) and channel weights (`channel-weights.ts`: surround 1.41, the LFE channel left out, by the channel order of the decoder).
-- Blocks of 400 ms every 100 ms (`block-energies.ts`), run one hop at a time so a long file needs no copy of its samples.
+- Blocks of 400 ms every 100 ms (`block-energies.ts`), run one hop at a time so a long file needs no copy of its samples. `createBlockMeter` takes a file in pieces, one after the other: the filters and the hop that is being filled go on from one piece to the next, so the blocks are those of the whole file.
 - `summarise.ts` gates the blocks (-70 LUFS absolute, then 10 LU below the rest), gives the integrated loudness, the loudness range (3 s short term values, gates at -70 and -20 LU, the 10th to the 95th percentile), the curve, the histogram (bins of 0.1 LU keyed by the bin number) and the gain to -18 LUFS.
-- A file decoded in pieces gives one `BlockStats` per piece; the pieces are pooled by `summarise`, as the order of the blocks does not matter for the histogram, the gating or the peak.
+- `summarise` takes the `BlockStats` of one or more parts and pools their blocks for the gating, the histogram and the peak.
 - The peak is the highest sample after the resampling, not a true peak.
 
 ## Measuring in the background
@@ -42,7 +42,21 @@ ITU-R BS.1770 / EBU R128 at 48 kHz, the rate `decodeAudioData` resamples to:
 - **When it runs** (all must hold, asked before each track): no scan is running and none has run for 30 s (`TUNELLE_LOUDNESS_IDLE_SECONDS`, see [building.md](../development/building.md)), nothing plays (the player reports it with `PLAYBACK_STATE`), the computer is not on battery, and the setting `measureLoudness` is not `false` (on by default, the switch is in the settings). A scan that starts waits for the file in progress, which takes a few seconds, not for the whole queue.
 - **Folders that are away:** the tracks of a library folder that cannot be read are left for a later pass (`findOfflineFolders`).
 - **The decoder** is a hidden window (`loudness-window.ts`) that loads `loudness.html` (`client/loudness/page.ts`, built by webpack like the main page) with a small preload. It fetches the track from `tunelle://app/track`, decodes it with `decodeAudioData` and measures it, so every format the player plays works and nothing native is packaged. It runs at a low priority (`os.setPriority`), one file at a time, and is made again after 50 files to give back the memory of the decoded sound. A window that crashes, or does not answer in five minutes, is closed.
-- **Results:** `measured`, or `failed` with `undecodable` (the browser cannot decode it), `silent` (no block above the gate), `crashed` (the window died) or `too-large`: a file longer than 45 minutes (`maxSeconds`) is not decoded as a whole, as the decoded sound of 60 minutes of stereo took 2.9 GB of the window. A file that cannot be fetched (a drive that went away) or that does not answer is not stored and is tried again after the rest.
+- **Results:** `measured`, or `failed` with `undecodable` (the browser cannot decode it), `silent` (no block above the gate), `crashed` (the window died) or `too-large` (a file longer than 45 minutes in a format that is not cut, see below). A file that cannot be fetched (a drive that went away) or that does not answer is not stored and is tried again after the rest.
+
+## Long files
+
+A file longer than 45 minutes (`wholeFileSeconds` in `client/loudness/measure-track.ts`) is not decoded as a whole, as the decoded sound of 60 minutes of stereo took 2.9 GB of the window. The main process gives the page the length of the track (`MeasureRequest.duration`), and `measureSliced` (`client/loudness/measure-sliced.ts`) cuts the file into pieces of about five minutes of sound, fetches each with a range request of `tunelle://app/track`, decodes it, measures it with the one `createBlockMeter` and lets it go, so one piece is in memory at a time (115 MB of stereo).
+
+`client/loudness/slicing/` cuts by the format, found from the first bytes of the file (`slicerOf`):
+
+| Format | Cut | Left out of the piece |
+|---|---|---|
+| WAV | between two samples, with a header of its own for each piece and the format chunk of the file | nothing |
+| FLAC | at the start of a frame (the sync code, allowed fields and the CRC-8 of the header, as the sync code alone is in the sound too often), with the stream marker and the metadata of the file in front | nothing |
+| MP3 | at the start of a frame (three headers that follow each other by their lengths), a few frames early | the frames before the cut, which only give the decoder what the bit reservoir holds |
+
+A format that is not cut (Ogg, M4A, AAC) is stored as `too-large` and plays at its tags, or not levelled. The decoder resamples each piece to 48 kHz by itself, so a piece has a rounding of the first and last samples at its ends. Against the decoding of the whole file, on tracks of the library cut into pieces of 10 MB, the integrated loudness and the loudness range agreed to 0.0001 LU, and the peak to within 1 %.
 
 ## The gain of an album
 
@@ -62,4 +76,4 @@ The tile "Measure loudness" (`client/components/settings/measure-loudness/`) has
 
 ## Not built yet
 
-The route for the JSON and the histogram on the now playing view, and the decoding of long files in pieces follow in the pull requests listed in #173.
+The route for the JSON and the histogram on the now playing view, and the cutting of Ogg, Opus and M4A (which need their own containers read) follow in the pull requests listed in #173.

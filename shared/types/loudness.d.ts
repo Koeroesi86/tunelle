@@ -39,6 +39,8 @@ export interface MeasureRequest {
   id: number;
   /** The path of a track of the library, which the page fetches from `tunelle://app/track` */
   path: string;
+  /** The length of the track in seconds, when the library has it: a long one is decoded in pieces */
+  duration?: number;
 }
 
 /**
@@ -47,7 +49,7 @@ export interface MeasureRequest {
  */
 export type MeasureResult =
   | { id: number; outcome: 'measured'; analysis: LoudnessAnalysis; trackGain: number; trackPeak: number }
-  | { id: number; outcome: 'silent' | 'undecodable' | 'unreadable' };
+  | { id: number; outcome: 'silent' | 'undecodable' | 'unreadable' | 'too-large' };
 
 export interface LoudnessApi {
   onMeasure: (listener: (request: MeasureRequest) => void) => void;
