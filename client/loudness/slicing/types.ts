@@ -13,3 +13,10 @@ export type Slicer = (read: ReadRange, size: number, sliceBytes: number) => Asyn
 
 /** Thrown when the file is not what its header says, which is the end of its measurement */
 export class SliceError extends Error {}
+
+/** The bytes of a range, or the end of the measurement of a file that cannot be read whole */
+export const mustRead = async (read: ReadRange, start: number, end: number, what: string) => {
+  const bytes = await read(start, end);
+  if (!bytes) throw new SliceError(`${what} could not be read`);
+  return bytes;
+};

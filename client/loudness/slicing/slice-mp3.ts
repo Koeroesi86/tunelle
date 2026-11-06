@@ -1,5 +1,5 @@
 import { findCut, cutsOf } from './find-cut';
-import { SliceError } from './types';
+import { SliceError, mustRead } from './types';
 import type { ReadRange, Slicer } from './types';
 
 /** Bitrates of Layer III in kbit/s, for MPEG 1 and for MPEG 2 and 2.5, by the index of the header (0 is free, 15 is not allowed) */
@@ -27,16 +27,12 @@ const frameAt = (bytes: Uint8Array, offset: number) => {
 };
 
 /** Frames that follow each other: the header at `offset`, and the ones after it, are all headers where the length of the frame says */
-const startsFrames = (bytes: Uint8Array, offset: number) => {
-  let at = offset;
-  for (let count = 0; count < 3; count++) {
-    const frame = frameAt(bytes, at);
-    if (!frame) return false;
-    at += frame.length;
-    // a frame that ends past the window is taken to be one
-    if (at + headerBytes > bytes.length) return true;
-  }
-  return true;
+const startsFrames = (bytes: Uint8Array, offset: number, count = 3): boolean => {
+  const frame = frameAt(bytes, offset);
+  if (!frame) return false;
+  const next = offset + frame.length;
+  // a frame that ends past the window is taken to be one
+  return count === 1 || next + headerBytes > bytes.length || startsFrames(bytes, next, count - 1);
 };
 
 /** The size of the tag at the start (ID3v2: 10 bytes of header, its size in 7 bits of 4 bytes, and a footer if the flag says) */
@@ -50,18 +46,16 @@ const tagLength = async (read: ReadRange) => {
 /** About two frames of the largest size, which the decoder needs of the piece before */
 const leadInBytes = 3000;
 
+/** How long the frames play that follow each other from `offset` to the end of the bytes */
+const playTime = (bytes: Uint8Array, offset = 0): number => {
+  const frame = frameAt(bytes, offset);
+  return frame ? frame.seconds + playTime(bytes, offset + frame.length) : 0;
+};
+
 /** The start of the frames before a cut that are decoded and left out, and how long they play */
 const leadIn = async (read: ReadRange, cut: number, size: number) => {
   const start = (await findCut(read, Math.max(cut - leadInBytes, 0), size, startsFrames)) ?? cut;
-  const bytes = (await read(start, cut)) ?? new Uint8Array();
-  let seconds = 0;
-  for (let offset = 0; offset < bytes.length;) {
-    const frame = frameAt(bytes, offset);
-    if (!frame) break;
-    seconds += frame.seconds;
-    offset += frame.length;
-  }
-  return { start, seconds };
+  return { start, seconds: playTime(await mustRead(read, start, cut, 'The frames before a piece of an MP3 file')) };
 };
 
 /**
@@ -75,8 +69,7 @@ export const sliceMp3: Slicer = async function* (read, size, sliceBytes) {
 
   for (let index = 0; index < cuts.length - 1; index++) {
     const lead = index === 0 ? { start: cuts[0], seconds: 0 } : await leadIn(read, cuts[index], size);
-    const bytes = await read(lead.start, cuts[index + 1]);
-    if (!bytes) throw new SliceError('A piece of an MP3 file could not be read');
+    const bytes = await mustRead(read, lead.start, cuts[index + 1], 'A piece of an MP3 file');
     yield { bytes, skip: lead.seconds };
   }
 };

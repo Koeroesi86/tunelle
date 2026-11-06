@@ -1,5 +1,5 @@
 import { cutsOf } from './find-cut';
-import { SliceError } from './types';
+import { SliceError, mustRead } from './types';
 import type { ReadRange, Slicer } from './types';
 
 const maxMetadata = 16 * 1024 * 1024;
@@ -35,21 +35,23 @@ const startsFrame = (bytes: Uint8Array, offset: number) => {
   return number > 0 && offset + length < bytes.length && crc8(bytes.subarray(offset, offset + length)) === bytes[offset + length];
 };
 
+/** Where the metadata blocks end, which is where the first frame starts */
+const metadataEnd = async (read: ReadRange, offset: number): Promise<number> => {
+  const block = await read(offset, offset + 4);
+  if (!block || block.length < 4) throw new SliceError('A FLAC file with metadata that ends early');
+
+  const end = offset + 4 + ((block[1] << 16) | (block[2] << 8) | block[3]);
+  if (end > maxMetadata) throw new SliceError('A FLAC file with metadata of more than 16 MB');
+  const isLast = (block[0] & 0x80) !== 0;
+  return isLast ? end : metadataEnd(read, end);
+};
+
 /** The stream marker and the metadata blocks, which every piece starts with, and where the first frame is */
 const headerOf = async (read: ReadRange) => {
   const marker = await read(0, 4);
   if (!marker || String.fromCharCode(...marker) !== 'fLaC') throw new SliceError('A FLAC file without its marker');
-  let offset = 4;
-  for (let last = false; !last;) {
-    const block = await read(offset, offset + 4);
-    if (!block || block.length < 4) throw new SliceError('A FLAC file with metadata that ends early');
-    last = (block[0] & 0x80) !== 0;
-    offset += 4 + ((block[1] << 16) | (block[2] << 8) | block[3]);
-    if (offset > maxMetadata) throw new SliceError('A FLAC file with metadata of more than 16 MB');
-  }
-  const header = await read(0, offset);
-  if (!header) throw new SliceError('A FLAC file whose metadata could not be read');
-  return { header, firstFrame: offset };
+  const firstFrame = await metadataEnd(read, 4);
+  return { header: await mustRead(read, 0, firstFrame, 'The metadata of a FLAC file'), firstFrame };
 };
 
 /** A FLAC file is cut at the start of a frame, and each piece is given the metadata of the file in front, which the decoder takes as a file of its own */
@@ -58,8 +60,7 @@ export const sliceFlac: Slicer = async function* (read, size, sliceBytes) {
   const cuts = await cutsOf(read, firstFrame, size, sliceBytes, startsFrame);
 
   for (let index = 0; index < cuts.length - 1; index++) {
-    const frames = await read(cuts[index], cuts[index + 1]);
-    if (!frames) throw new SliceError('A piece of a FLAC file could not be read');
+    const frames = await mustRead(read, cuts[index], cuts[index + 1], 'A piece of a FLAC file');
     const bytes = new Uint8Array(header.length + frames.length);
     bytes.set(header);
     bytes.set(frames, header.length);
