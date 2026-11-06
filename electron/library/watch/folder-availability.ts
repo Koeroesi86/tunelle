@@ -31,7 +31,7 @@ let known: string[] = [];
 
 /** Look at the library folders, tell the window which are offline, and return the ones that were offline the last time and are not now */
 export const reportOfflineFolders = async (database: Database, sender: WebContents, folders?: Pick<Folder, 'path'>[]) => {
-  const offline = await findOfflineFolders(database, folders ?? (await getFolders(database, ['path'])));
+  const offline = await findOfflineFolders(database, folders ?? (await getFolders(database)));
   const recovered = known.filter((folderPath) => !offline.includes(folderPath));
   known = offline;
   sender.send('OFFLINE_FOLDERS', { folders: offline });

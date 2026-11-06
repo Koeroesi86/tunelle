@@ -20,7 +20,18 @@ const track = (path: string, extra: Partial<Track> = {}): Track => ({
 
 const station = toRadioTrack({ uuid: 'abc-1', name: 'Jazz FM', country: 'UK', tags: ['jazz'], codec: 'MP3', bitrate: 128 });
 
-const loudness = (trackGain: number | null) => ({ codec: 'FLAC', trackGain, albumGain: null, trackPeak: 0.5, albumPeak: null });
+const loudness = (trackGain: number | null) => ({
+  codec: 'FLAC',
+  bitDepth: 16,
+  sampleRate: 44100,
+  bitrate: null,
+  vbr: null,
+  lossless: 1,
+  trackGain,
+  albumGain: null,
+  trackPeak: 0.5,
+  albumPeak: null,
+});
 
 const answers = (byPath: Record<string, unknown>) =>
   vi.stubGlobal(

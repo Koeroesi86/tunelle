@@ -5,6 +5,7 @@ import fs from 'fs';
 import minimist from 'minimist';
 import ws from 'windows-shortcuts-appid';
 import type { AppWindows } from '@shared/types/global';
+import { directoryUrlSchema } from './electron/schemas/environment';
 import getAppDataPath from './electron/utils/app-data-path';
 import { readAutomaticUpdates, saveAutomaticUpdates } from './electron/services/update-preference';
 import { copyOldLibrary, copyOldUserData, getAppName } from './electron/utils/user-data';
@@ -154,7 +155,7 @@ if (!fs.existsSync(appDataPath)) {
 const libraryLocation = resolve(appDataPath, './library.sqlite');
 
 // a test run asks a directory of its own, the real one needs the network
-const radio = createRadioBrowser(`Tunelle/${app.getVersion()}`, process.env.TUNELLE_RADIO_DIRECTORY, {
+const radio = createRadioBrowser(`Tunelle/${app.getVersion()}`, directoryUrlSchema.parse(process.env.TUNELLE_RADIO_DIRECTORY), {
   cachePath: resolve(appDataPath, './radio-mirrors.json'),
   streamsPath: resolve(appDataPath, './radio-streams.json'),
 });

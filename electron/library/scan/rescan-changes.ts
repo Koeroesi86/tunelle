@@ -19,7 +19,7 @@ const isDirectory = (folderPath: string) =>
   );
 
 const tracksAt = (database: Database) => async (change: Change) => {
-  const tracks = await getTracksInside(database, change.path, ['path']);
+  const tracks = await getTracksInside(database, change.path);
   return change.deep ? tracks : tracks.filter((track) => isDirectlyInside(change.path, track.path));
 };
 
@@ -29,7 +29,7 @@ async function scanChanges(sender: WebContents, changes: Change[]) {
   if (!database) return;
 
   try {
-    const folders = await getFolders(database, ['path']);
+    const folders = await getFolders(database);
     const { offline } = await reportOfflineFolders(database, sender, folders);
     const places = withoutCovered(changes).filter(
       (change) => !offline.some((folderPath) => change.path === folderPath || isInsideFolder(folderPath, change.path))

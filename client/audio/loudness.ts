@@ -7,8 +7,6 @@ export const normalizationModes: NormalizationMode[] = ['off', 'track', 'album']
 
 export const defaultNormalization: NormalizationMode = 'album';
 
-export const restoreNormalization = (value: unknown): NormalizationMode => normalizationModes.find((mode) => mode === value) ?? defaultNormalization;
-
 /** The gain and the peak that apply: the album ones in album mode, falling back to the track ones for a file without album tags */
 const tagsFor = (loudness: Partial<Loudness>, mode: NormalizationMode) => {
   const album = mode === 'album' && typeof loudness.albumGain === 'number';

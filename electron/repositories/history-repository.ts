@@ -1,23 +1,18 @@
 import type { Database } from 'sqlite3';
-import type { FavouriteKey, StoredHistoryItem } from '@shared/types/favourites';
+import type { FavouriteKey } from '@shared/types/favourites';
+import { historyItemRowSchema } from '../schemas/rows';
 import executeQuery from '../database/execute-query';
 
 /** The history keeps this many items, the oldest are dropped when something is played */
 export const historyLimit = 100;
 
-interface HistoryRow extends FavouriteKey {
-  snapshot: string;
-  played_at: number;
-}
-
-const toStored = ({ played_at, snapshot, ...key }: HistoryRow): StoredHistoryItem => ({ ...key, snapshot: JSON.parse(snapshot), playedAt: played_at });
-
 /** What was played, of every source, the last played first */
 export const getHistory = (database: Database) =>
-  executeQuery<HistoryRow>(database, {
-    query: `SELECT source, kind, id, snapshot, played_at FROM history ORDER BY played_at DESC, rowid DESC LIMIT ?`,
-    variables: [historyLimit],
-  }).then((rows) => rows.map(toStored));
+  executeQuery(
+    database,
+    { query: `SELECT source, kind, id, snapshot, played_at FROM history ORDER BY played_at DESC, rowid DESC LIMIT ?`, variables: [historyLimit] },
+    historyItemRowSchema
+  );
 
 /** Playing an item again moves it to the top, with its snapshot as it is now */
 export const recordPlayed = async (database: Database, { source, kind, id }: FavouriteKey, snapshot: unknown) => {

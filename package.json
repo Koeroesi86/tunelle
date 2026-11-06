@@ -5,9 +5,19 @@
   "main": "out/index.js",
   "private": true,
   "scripts": {
-    "prebuild": "node scripts/tooling/prebuild.js",
-    "postinstall": "node scripts/tooling/postinstall.js",
-    "dev": "node scripts/tooling/prebuild.js && node scripts/tooling/tsc.js tsconfig.main.json out && node --max_old_space_size=2048 scripts/tooling/start.js",
+    "generate:schemas": "tsx scripts/tooling/generate-database-schemas.ts",
+    "prebuild": "npm run generate:schemas && node scripts/tooling/prebuild.js",
+    "postinstall": "node scripts/tooling/postinstall.js && npm run generate:schemas",
+    "prelint": "npm run generate:schemas",
+    "prelint:fix": "npm run generate:schemas",
+    "prefallow": "npm run generate:schemas",
+    "pretypecheck": "npm run generate:schemas",
+    "pretest": "npm run generate:schemas",
+    "pretest:watch": "npm run generate:schemas",
+    "pretest:backend": "npm run generate:schemas",
+    "pretest:frontend": "npm run generate:schemas",
+    "pretest:coverage": "npm run generate:schemas",
+    "dev": "npm run generate:schemas && node scripts/tooling/prebuild.js && node scripts/tooling/tsc.js tsconfig.main.json out && node --max_old_space_size=2048 scripts/tooling/start.js",
     "build": "node scripts/tooling/tsc.js tsconfig.main.json out && node scripts/tooling/build.js",
     "start": "electron out/index.js",
     "dist": "node scripts/release/dist.js",
@@ -153,7 +163,8 @@
     "sharp": "^0.35.5",
     "slugify": "^1.6.9",
     "sqlite3": "^6.0.1",
-    "windows-shortcuts-appid": "^0.3.2"
+    "windows-shortcuts-appid": "^0.3.2",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@doyensec/electronegativity": "^1.10.3",

@@ -17,7 +17,7 @@ const watching = vi.hoisted(() => ({ startLibraryWatching: vi.fn(async () => und
 
 vi.mock('../library/watch/library-watching', () => watching);
 
-vi.mock('../repositories/library-repository', () => ({ folderColumns: ['path', 'lastModified'], getFolders: async () => ['/music'] }));
+vi.mock('../repositories/library-repository', () => ({ getFolders: async () => ['/music'] }));
 
 const saveSettings = vi.fn(async () => undefined);
 

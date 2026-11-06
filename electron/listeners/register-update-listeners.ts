@@ -1,10 +1,9 @@
 import { ipcMain, shell } from 'electron';
 import type { ListenerContext } from './listener-context';
 import { sendIfAlive } from '../utils/send-if-alive';
+import { enabledRequestSchema } from '@shared/schemas/requests';
+import { parsePayload } from '../utils/parse-payload';
 import { logError } from '../utils/log-error';
-
-const isEnabledRequest = (payload: unknown): payload is { enabled: boolean } =>
-  typeof payload === 'object' && payload !== null && 'enabled' in payload && typeof payload.enabled === 'boolean';
 
 const releasesUrl = 'https://github.com/Koeroesi86/tunelle/releases';
 
@@ -17,9 +16,10 @@ const registerUpdateListeners = ({ updates }: ListenerContext) => {
     updates.check().catch(logError);
   });
   ipcMain.on('SET_AUTOMATIC_UPDATES', (_event, payload: unknown) => {
-    if (!isEnabledRequest(payload)) return;
+    const request = parsePayload(enabledRequestSchema, payload);
+    if (!request) return;
 
-    updates.setAutomatic(payload.enabled).catch(logError);
+    updates.setAutomatic(request.enabled).catch(logError);
   });
   // the renderer saved the settings just before, and the database closes after what it has queued
   ipcMain.on('INSTALL_UPDATE', () => updates.install());

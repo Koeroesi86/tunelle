@@ -1,3 +1,4 @@
+import { batchSizeSchema } from '../../schemas/environment';
 import type { Database } from 'sqlite3';
 import type { Track } from '@shared/types/library';
 import executeQuery from '../../database/execute-query';
@@ -18,10 +19,7 @@ export const maxBatchSize = Math.floor(32766 / columnCount);
 const defaultBatchSize = 100;
 
 /** How many tracks a scan stores in one write, from `TUNELLE_SCAN_BATCH_SIZE`; a value that is not a whole number from 1 up to what a statement takes is the default */
-export const readBatchSize = (value = process.env.TUNELLE_SCAN_BATCH_SIZE) => {
-  const size = Number(value);
-  return Number.isInteger(size) && size >= 1 && size <= maxBatchSize ? size : defaultBatchSize;
-};
+export const readBatchSize = (value = process.env.TUNELLE_SCAN_BATCH_SIZE) => batchSizeSchema(maxBatchSize, defaultBatchSize).parse(value);
 
 const toValues = (track: Track) => [
   track.path,

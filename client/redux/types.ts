@@ -3,13 +3,14 @@ import type { Favourite, FavouriteKey, HistoryItem, NewFavourite } from '@shared
 import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
 import type { LoudnessProgress } from '@shared/types/loudness';
 import type { Playlist } from '@shared/types/playlists';
-import type { ThemeMode, ThemeSettings } from '@shared/types/theme';
+import type { ThemeMode } from '@shared/types/theme';
 import type { NormalizationMode } from '../audio/loudness';
 import type { OutputDevice } from '../audio/output-device';
 import type { AlbumSort, GroupKind, GroupSort, TrackSort } from '@shared/types/library-query';
 import type { UpdateState } from '@shared/types/update';
+import type { LibraryView, OnlineView, PersistedSettings } from './persisted-settings';
 
-export type LibraryView = 'albums' | 'artists' | 'albumArtists' | 'genres' | 'tracks' | 'folders';
+export type { LibraryView, OnlineView, PersistedSettings };
 
 /** The lists of the library that are fetched a page at a time: the tracks, the albums, the artists, album artists or genres, and the albums of the open one of those */
 export type PageKind = 'tracks' | 'albums' | 'groupAlbums' | GroupKind;
@@ -22,7 +23,6 @@ export interface OpenGroup {
   /** The name as it is written, empty for the tracks that have none */
   name: string;
 }
-export type OnlineView = 'radio';
 
 /** The side of the favourites that is shown, and the order it is listed in */
 export type FavouritesSource = 'local' | 'online';
@@ -35,52 +35,6 @@ export type Tab = 'home' | 'now-playing' | 'local' | 'online-sources' | 'favouri
 export interface PlaylistItem {
   file: string;
   title?: string;
-}
-
-/** The part of the UI state that is persisted between sessions */
-export interface PersistedSettings {
-  view: LibraryView;
-  onlineView: OnlineView;
-  /** Whether the Library group of the sidebar shows its views, and whether the Playlists group shows the playlists, both start open */
-  libraryOpen: boolean;
-  playlistsOpen: boolean;
-  nowPlaying: Track[];
-  played: Track[];
-  currentSong: Track | null;
-  currentTime: number;
-  volume: number;
-  /** Whether the tracks are levelled by their ReplayGain tags, and by which of them */
-  normalization: NormalizationMode;
-  /** The output device picked in the settings, undefined follows the system default */
-  outputDevice: OutputDevice | undefined;
-  selectedAlbum: Album | null;
-  maximized: boolean;
-  shuffle: boolean;
-  repeat: boolean;
-  equalizer: number[];
-  /** The desktop blurs behind the window (Blur my Shell on GNOME), so the panels can be translucent */
-  desktopBlur: boolean;
-  /** The language picked in the settings, undefined follows the system language */
-  language: string | undefined;
-  /** The mode and the accent colour picked in the settings */
-  theme: ThemeSettings;
-  /** The sort of the tracks and of the albums, undefined is the default order */
-  trackSort: TrackSort | undefined;
-  albumSort: AlbumSort | undefined;
-  /** The least width of a cover of the album grid in px */
-  coverSize: number;
-  /** The sort of the artists, the album artists and the genres */
-  groupSort: GroupSort | undefined;
-  /** Whether the photos of the artists are looked up at Deezer, which gets the names of the artists */
-  artistPhotos: boolean;
-  /** Whether the library folders are watched, so a file that is added, changed or removed is picked up without a rescan */
-  watchFolders: boolean;
-  /** Whether the loudness of the tracks without ReplayGain tags is measured in the background (the main process reads it) */
-  measureLoudness: boolean;
-  /** The library folders the local collection is limited to, none is all of them */
-  libraryFolders: string[];
-  /** The search of the radio stations: the filters and the sort, the page is not saved */
-  radioQuery: RadioQuery;
 }
 
 export interface UiState extends PersistedSettings {

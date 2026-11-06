@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve4, resolve6, reverse } from 'node:dns/promises';
 import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
-import { isRecord, type JsonRecord } from '@shared/utils/is-record';
+import { z } from 'zod';
 import { fetchOk } from './http';
 import { parseRadioSearch, radioSortOrders } from '@shared/types/radio-query';
 import { radioPageSize } from '@shared/constants/radio';
@@ -18,38 +18,55 @@ const optionLimit = { countries: 300, languages: 300, codecs: 20 };
 const tagLimit = 40;
 const maxLogos = 2000;
 
-const text = (value: unknown) => (typeof value === 'string' ? value : '');
+const text = z
+  .unknown()
+  .optional()
+  .transform((value) => (typeof value === 'string' ? value : ''));
 
-const count = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
-
-// the audio element can not play an HLS playlist, and the directory filter for them does not catch all
-const isPlayable = (value: JsonRecord) => text(value.stationuuid) && text(value.name).trim() && value.hls !== 1;
+const count = z
+  .unknown()
+  .optional()
+  .transform((value) => (typeof value === 'number' && Number.isFinite(value) ? value : 0));
 
 /** The logo of a station when it is a plain http(s) address */
-const toLogoUrl = (value: JsonRecord) => {
-  const url = URL.canParse(text(value.favicon)) ? new URL(text(value.favicon)) : undefined;
+const logoUrl = text.transform((favicon) => {
+  const url = URL.canParse(favicon) ? new URL(favicon) : undefined;
 
   return url && /^https?:$/.test(url.protocol) ? url.href : undefined;
+});
+
+// the audio element can not play an HLS playlist, and the directory filter for them does not catch all
+const stationSchema = z
+  .object({ stationuuid: text, name: text, country: text, tags: text, codec: text, bitrate: count, favicon: logoUrl, hls: z.unknown().optional() })
+  .refine(({ stationuuid, name, hls }) => stationuuid && name.trim() && hls !== 1)
+  .transform(({ stationuuid, name, country, tags, codec, bitrate, favicon }) => ({
+    station: {
+      uuid: stationuuid,
+      name: name.trim(),
+      country,
+      tags: tags.split(',').filter(Boolean),
+      codec,
+      bitrate,
+      hasLogo: favicon !== undefined,
+    } satisfies RadioStation,
+    logo: favicon,
+  }));
+
+const tagSchema = z.object({ name: text, stationcount: count }).refine(({ name }) => name);
+
+const toTag = (value: unknown): RadioTag | undefined => {
+  const tag = tagSchema.safeParse(value).data;
+
+  return tag && { name: tag.name, stationCount: tag.stationcount };
 };
 
-const toStation = (value: unknown): RadioStation | undefined => {
-  if (!isRecord(value) || !isPlayable(value)) return undefined;
+const serverSchema = z.object({ name: text }).refine(({ name }) => name);
 
-  return {
-    uuid: text(value.stationuuid),
-    name: text(value.name).trim(),
-    country: text(value.country),
-    tags: text(value.tags).split(',').filter(Boolean),
-    codec: text(value.codec),
-    bitrate: count(value.bitrate),
-    hasLogo: toLogoUrl(value) !== undefined,
-  };
+const toServer = (value: unknown) => {
+  const server = serverSchema.safeParse(value).data;
+
+  return server && `https://${server.name}`;
 };
-
-const toTag = (value: unknown): RadioTag | undefined =>
-  isRecord(value) && text(value.name) ? { name: text(value.name), stationCount: count(value.stationcount) } : undefined;
-
-const toServer = (value: unknown) => (isRecord(value) && text(value.name) ? `https://${text(value.name)}` : undefined);
 
 const isMirrorHost = (name: string) => name.endsWith('.api.radio-browser.info');
 
@@ -69,9 +86,11 @@ const toList = <T>(value: unknown, convert: (item: unknown) => T | undefined) =>
   return value.map(convert).filter((item): item is T => item !== undefined);
 };
 
+const streamSchema = z.object({ url: text.transform((url) => (URL.canParse(url) ? new URL(url) : undefined)) });
+
 /** A stream is only played when it is a plain http(s) address */
 const toStreamUrl = (value: unknown) => {
-  const url = isRecord(value) && URL.canParse(text(value.url)) ? new URL(text(value.url)) : undefined;
+  const url = streamSchema.safeParse(value).data?.url;
   if (!url || !/^https?:$/.test(url.protocol)) throw new Error('The station has no playable stream');
 
   return url.href;
@@ -103,10 +122,14 @@ export const toSearchParameters = ({ name, tag, country, language, codec, bitrat
   return parameters;
 };
 
-const toOption = (value: unknown, valueKey: string): RadioOption | undefined =>
-  isRecord(value) && text(value.name) && text(value[valueKey])
-    ? { value: text(value[valueKey]), name: text(value.name), stationCount: count(value.stationcount) }
-    : undefined;
+const optionSchema = z.looseObject({ name: text, stationcount: count });
+
+const toOption = (value: unknown, valueKey: string): RadioOption | undefined => {
+  const option = optionSchema.safeParse(value).data;
+  const optionValue = text.parse(option?.[valueKey]);
+
+  return option?.name && optionValue ? { value: optionValue, name: option.name, stationCount: option.stationcount } : undefined;
+};
 
 // the directory names a country by its code, a language and a codec by their name
 const optionSources = {
@@ -140,7 +163,7 @@ export const createRadioBrowser = (
   const readCache = async () => {
     const list: unknown = await readFile(cachePath ?? '', 'utf8').then(JSON.parse, () => []);
 
-    return Array.isArray(list) ? list.filter((item): item is string => typeof item === 'string' && URL.canParse(item)) : [];
+    return (z.array(z.unknown()).safeParse(list).data ?? []).filter((item): item is string => typeof item === 'string' && URL.canParse(item));
   };
 
   const writeCache = (list: string[]) => (cachePath ? writeFile(cachePath, JSON.stringify(list)).catch(() => undefined) : undefined);
@@ -176,15 +199,15 @@ export const createRadioBrowser = (
   const logos = new Map<string, string>();
 
   const toStations = (answer: unknown) => {
-    const stations = toList(answer, toStation);
-    (Array.isArray(answer) ? answer : [])
-      .filter((value) => isRecord(value) && isPlayable(value) && toLogoUrl(value))
-      .forEach((value) => {
-        logos.set(text(value.stationuuid), toLogoUrl(value) ?? '');
+    const parsed = toList(answer, (value) => stationSchema.safeParse(value).data);
+    parsed
+      .flatMap(({ station, logo }) => (logo ? [[station.uuid, logo]] : []))
+      .forEach(([uuid, logo]) => {
+        logos.set(uuid, logo);
         if (logos.size > maxLogos) logos.delete(logos.keys().next().value ?? '');
       });
 
-    return stations;
+    return parsed.map(({ station }) => station);
   };
 
   /** A full page means that the directory may have more, the stations it lists but the app cannot play do not count */
@@ -230,7 +253,9 @@ export const createRadioBrowser = (
   const readStreams = async (): Promise<Record<string, string>> => {
     const streams: unknown = await readFile(streamsPath ?? '', 'utf8').then(JSON.parse, () => ({}));
 
-    return Object.fromEntries(Object.entries(isRecord(streams) ? streams : {}).flatMap(([uuid, url]) => (typeof url === 'string' ? [[uuid, url]] : [])));
+    return Object.fromEntries(
+      Object.entries(z.record(z.string(), z.unknown()).safeParse(streams).data ?? {}).flatMap(([uuid, url]) => (typeof url === 'string' ? [[uuid, url]] : []))
+    );
   };
 
   const storeStream = async (uuid: string, url: string) => {

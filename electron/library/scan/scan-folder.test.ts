@@ -134,7 +134,7 @@ describe('scanFolder', () => {
   });
 
   describe('storing in batches', () => {
-    const storedPaths = () => getTracksInside(database, root, ['path']).then((tracks) => tracks.map((track) => path.basename(track.path)).sort());
+    const storedPaths = () => getTracksInside(database, root).then((tracks) => tracks.map((track) => path.basename(track.path)).sort());
     const writeFiles = (count: number) => Array.from({ length: count }, (_, index) => fs.writeFileSync(path.join(root, `${index}.mp3`), 'not audio'));
 
     afterEach(() => {

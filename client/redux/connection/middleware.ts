@@ -1,11 +1,14 @@
 import type { Middleware } from 'redux';
-import type { Folder, Track } from '@shared/types/library';
-import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
+import type { Track } from '@shared/types/library';
+
 import type { GroupSummary } from '@shared/types/library';
 import type { GroupKind } from '@shared/types/library-query';
-import { parseRadioQuery } from '@shared/types/radio-query';
-import type { UpdateState } from '@shared/types/update';
+
 import { electronAPI } from '../../services/electron-api';
+import { z } from 'zod';
+import { restoredSettingsSchema } from '../persisted-settings';
+import { onMessage } from '../../services/on-message';
+import { emptyMessage, messageSchemas } from '@shared/schemas/messages';
 import { debounce } from '../../utils/debounce';
 import type { RootState } from '../reducers';
 import toAddedFiles from '../../domain/added-files';
@@ -17,56 +20,50 @@ import { radioUuidOf } from '../../domain/radio-track';
 import { fetchAlbumPage, fetchGroupPage, fetchTrackPage } from '../../services/library-api';
 import { selectAlbumQuery, selectGroupAlbumQuery, selectGroupQuery, selectTrackQuery } from '../../domain/library-query';
 import { actionMiddleware, onAction } from '../on-action';
-import type { LoudnessProgress } from '@shared/types/loudness';
+
 import type { Store } from '../on-action';
 import type { PageKind, PersistedSettings, PlaylistItem, UiState } from '../types';
 
-type EmptyPayload = Record<string, never>;
-
 function addListeners(store: Store) {
-  electronAPI.on<{ folders: Folder[] }>('STORE_FOLDERS', (payload) => store.dispatch({ type: 'STORE_FOLDERS', payload }));
-  electronAPI.on<LoudnessProgress>('LOUDNESS_STATUS', (payload) => store.dispatch({ type: 'LOUDNESS_STATUS', payload }));
-  electronAPI.on<{ folders: string[] }>('OFFLINE_FOLDERS', (payload) => store.dispatch({ type: 'OFFLINE_FOLDERS', payload }));
-  electronAPI.on<EmptyPayload>('RESCAN_COMPLETE', (payload) => store.dispatch({ type: 'RESCAN_COMPLETE', payload }));
-  electronAPI.on<{ folders: Folder[] }>('FOLDERS_ADDED_TO_LIBRARY', (payload) => store.dispatch({ type: 'FOLDERS_ADDED_TO_LIBRARY', payload }));
-  electronAPI.on<EmptyPayload>('FOLDER_REMOVED_FROM_LIBRARY', (payload) => store.dispatch({ type: 'FOLDER_REMOVED_FROM_LIBRARY', payload }));
-  electronAPI.on<EmptyPayload>('ARTIST_PHOTOS_READY', (payload) => store.dispatch({ type: 'ARTIST_PHOTOS_READY', payload }));
-  electronAPI.on<EmptyPayload>('LIBRARY_UPDATED', (payload) => store.dispatch({ type: 'LIBRARY_UPDATED', payload }));
-  electronAPI.on<EmptyPayload>('TRACKS_ADDED_TO_LIBRARY', (payload) => store.dispatch({ type: 'TRACKS_ADDED_TO_LIBRARY', payload }));
-  electronAPI.on<{ maximized: boolean }>('MAXIMIZED_APP', (payload) => store.dispatch({ type: 'MAXIMIZED_APP', payload }));
-  electronAPI.on<{ playlist: PlaylistItem[]; url: string }>('CLICKED_URL', (payload) => store.dispatch({ type: 'CLICKED_URL', payload }));
-  electronAPI.on<{ isPlaying: boolean }>('SET_PLAYING', (payload) => store.dispatch({ type: 'SET_PLAYING', payload }));
-  electronAPI.on<{ available: boolean; enabled: boolean; offered: boolean; external: boolean }>('LAUNCHER_STATE', (payload) =>
-    store.dispatch({ type: 'LAUNCHER_STATE', payload })
-  );
-  electronAPI.on<UpdateState>('UPDATE_STATE', (payload) => store.dispatch({ type: 'UPDATE_STATE', payload }));
-  electronAPI.on<{ settings: Partial<PersistedSettings> }>('RESTORE_SETTINGS', (payload) => {
+  onMessage('STORE_FOLDERS', messageSchemas.STORE_FOLDERS, (payload) => store.dispatch({ type: 'STORE_FOLDERS', payload }));
+  onMessage('LOUDNESS_STATUS', messageSchemas.LOUDNESS_STATUS, (payload) => store.dispatch({ type: 'LOUDNESS_STATUS', payload }));
+  onMessage('OFFLINE_FOLDERS', messageSchemas.OFFLINE_FOLDERS, (payload) => store.dispatch({ type: 'OFFLINE_FOLDERS', payload }));
+  onMessage('RESCAN_COMPLETE', emptyMessage, (payload) => store.dispatch({ type: 'RESCAN_COMPLETE', payload }));
+  onMessage('FOLDERS_ADDED_TO_LIBRARY', messageSchemas.FOLDERS_ADDED_TO_LIBRARY, (payload) => store.dispatch({ type: 'FOLDERS_ADDED_TO_LIBRARY', payload }));
+  onMessage('FOLDER_REMOVED_FROM_LIBRARY', emptyMessage, (payload) => store.dispatch({ type: 'FOLDER_REMOVED_FROM_LIBRARY', payload }));
+  onMessage('ARTIST_PHOTOS_READY', emptyMessage, (payload) => store.dispatch({ type: 'ARTIST_PHOTOS_READY', payload }));
+  onMessage('LIBRARY_UPDATED', emptyMessage, (payload) => store.dispatch({ type: 'LIBRARY_UPDATED', payload }));
+  onMessage('TRACKS_ADDED_TO_LIBRARY', emptyMessage, (payload) => store.dispatch({ type: 'TRACKS_ADDED_TO_LIBRARY', payload }));
+  onMessage('MAXIMIZED_APP', messageSchemas.MAXIMIZED_APP, (payload) => store.dispatch({ type: 'MAXIMIZED_APP', payload }));
+  onMessage('CLICKED_URL', messageSchemas.CLICKED_URL, (payload) => store.dispatch({ type: 'CLICKED_URL', payload }));
+  onMessage('SET_PLAYING', messageSchemas.SET_PLAYING, (payload) => store.dispatch({ type: 'SET_PLAYING', payload }));
+  onMessage('LAUNCHER_STATE', messageSchemas.LAUNCHER_STATE, (payload) => store.dispatch({ type: 'LAUNCHER_STATE', payload }));
+  onMessage('UPDATE_STATE', messageSchemas.UPDATE_STATE, (payload) => store.dispatch({ type: 'UPDATE_STATE', payload }));
+  // a key of the wrong type is left out, the others are restored (client/redux/persisted-settings.ts)
+  onMessage('RESTORE_SETTINGS', z.object({ settings: restoredSettingsSchema }), (payload) => {
     store.dispatch({ type: 'RESTORE_SETTINGS', payload });
     // the list that opened before the settings arrived was asked for without the saved filters, and its answer is dropped
-    if ('radioQuery' in payload.settings) store.dispatch({ type: 'SEARCH_RADIO', payload: { query: parseRadioQuery(payload.settings.radioQuery) } });
+    const { radioQuery } = payload.settings;
+    if (radioQuery) store.dispatch({ type: 'SEARCH_RADIO', payload: { query: radioQuery } });
   });
-  electronAPI.on<{ fileName: string; progress: number; totalCount: number }>('SCANNING_FILE', (payload) => store.dispatch({ type: 'SCANNING_FILE', payload }));
-  electronAPI.on<{ query: RadioQuery; stations: RadioStation[]; hasMore?: boolean; error?: string }>('RADIO_STATIONS', (payload) =>
-    store.dispatch({ type: 'RADIO_STATIONS', payload })
-  );
-  electronAPI.on<{ tags: RadioTag[] }>('RADIO_TAGS_LOADED', (payload) => store.dispatch({ type: 'RADIO_TAGS_LOADED', payload }));
-  electronAPI.on<{ kind: RadioOptionKind; options: RadioOption[] }>('RADIO_OPTIONS_LOADED', (payload) =>
-    store.dispatch({ type: 'RADIO_OPTIONS_LOADED', payload })
-  );
-  electronAPI.on<{ uuid: string; title: string }>('RADIO_STREAM_TITLE', (payload) => store.dispatch({ type: 'RADIO_STREAM_TITLE', payload }));
-  electronAPI.on<{ uuid: string; title: string; art?: string }>('RADIO_STREAM_ART', (payload) => store.dispatch({ type: 'RADIO_STREAM_ART', payload }));
+  onMessage('SCANNING_FILE', messageSchemas.SCANNING_FILE, (payload) => store.dispatch({ type: 'SCANNING_FILE', payload }));
+  onMessage('RADIO_STATIONS', messageSchemas.RADIO_STATIONS, (payload) => store.dispatch({ type: 'RADIO_STATIONS', payload }));
+  onMessage('RADIO_TAGS_LOADED', messageSchemas.RADIO_TAGS_LOADED, (payload) => store.dispatch({ type: 'RADIO_TAGS_LOADED', payload }));
+  onMessage('RADIO_OPTIONS_LOADED', messageSchemas.RADIO_OPTIONS_LOADED, (payload) => store.dispatch({ type: 'RADIO_OPTIONS_LOADED', payload }));
+  onMessage('RADIO_STREAM_TITLE', messageSchemas.RADIO_STREAM_TITLE, (payload) => store.dispatch({ type: 'RADIO_STREAM_TITLE', payload }));
+  onMessage('RADIO_STREAM_ART', messageSchemas.RADIO_STREAM_ART, (payload) => store.dispatch({ type: 'RADIO_STREAM_ART', payload }));
   // a favourite of a source this version does not know is left out
-  electronAPI.on<{ favourites: unknown[] }>('FAVOURITES', ({ favourites }) =>
+  onMessage('FAVOURITES', messageSchemas.FAVOURITES, ({ favourites }) =>
     store.dispatch({ type: 'FAVOURITES_LOADED', payload: { favourites: favourites.filter(isFavourite) } })
   );
-  electronAPI.on<{ history: unknown[] }>('HISTORY', ({ history }) =>
+  onMessage('HISTORY', messageSchemas.HISTORY, ({ history }) =>
     store.dispatch({ type: 'HISTORY_LOADED', payload: { history: history.filter(isHistoryItem) } })
   );
   // a track the player cannot show (saved by a newer version) is left out of its playlist
-  electronAPI.on<{ playlists: unknown[] }>('PLAYLISTS', ({ playlists }) =>
+  onMessage('PLAYLISTS', messageSchemas.PLAYLISTS, ({ playlists }) =>
     store.dispatch({ type: 'PLAYLISTS_LOADED', payload: { playlists: playlists.flatMap(toPlaylist) } })
   );
-  electronAPI.on<{ folder: string }>('SCANNING_FOLDER', (payload) => store.dispatch({ type: 'SCANNING_FOLDER', payload }));
+  onMessage('SCANNING_FOLDER', messageSchemas.SCANNING_FOLDER, (payload) => store.dispatch({ type: 'SCANNING_FOLDER', payload }));
 }
 
 function rescanLibrary(forced = false) {

@@ -3,6 +3,7 @@ import sharp from 'sharp';
 import type { Database } from 'sqlite3';
 import { pickAccent } from '@shared/utils/pick-accent';
 import executeQuery from '../../database/execute-query';
+import { albumArtRowSchema } from '../../schemas/database/album-art';
 import { sampleSize } from '@shared/constants/accent';
 import { getAlbumArtFolder } from '../../utils/album-art-folder';
 import { mapAsync } from '@shared/utils/map-async';
@@ -38,10 +39,11 @@ const storeChunk = async (database: Database, pictures: string[]) => {
 
 /** Picks and stores the colour of every album picture that has none yet: the pictures of a scan, and those of a library from before the colours were kept; nothing is done once every picture has one */
 export const storeAlbumArtAccents = async (database: Database) => {
-  const rows = await executeQuery<{ picture: string }>(database, {
-    query: `SELECT DISTINCT picture FROM library WHERE COALESCE(picture, '') <> '' AND picture NOT IN (SELECT picture FROM album_art)`,
-    variables: [],
-  });
+  const rows = await executeQuery(
+    database,
+    { query: `SELECT DISTINCT picture FROM library WHERE COALESCE(picture, '') <> '' AND picture NOT IN (SELECT picture FROM album_art)`, variables: [] },
+    albumArtRowSchema.pick({ picture: true })
+  );
   const pictures = rows.map((row) => row.picture);
 
   const chunks = Array.from({ length: Math.ceil(pictures.length / chunkSize) }, (_, index) => pictures.slice(index * chunkSize, (index + 1) * chunkSize));
@@ -63,19 +65,21 @@ export const getAlbumArtAccents = async (database: Database, pictures: (string |
   const names = Array.from(new Set(pictures.filter((picture): picture is string => !!picture)));
   if (names.length === 0) return new Map<string, string>();
 
-  const rows = await executeQuery<{ picture: string; accent: string }>(database, {
-    query: `SELECT picture, accent FROM album_art WHERE accent <> '' AND picture IN (${names.map(() => '?').join(', ')})`,
-    variables: names,
-  });
+  const rows = await executeQuery(
+    database,
+    { query: `SELECT picture, accent FROM album_art WHERE accent <> '' AND picture IN (${names.map(() => '?').join(', ')})`, variables: names },
+    albumArtRowSchema
+  );
   return new Map(rows.map((row) => [row.picture, row.accent]));
 };
 
 /** The colour stored for the picture an optimized cover was made from (`name-hash-optimized.png` of `name-hash.jpg`): empty when the picture has none, undefined when it is not looked at yet */
 export const getCoverAccent = async (database: Database, optimized: string) => {
   const name = optimized.replace(/-optimized\.[^.]*$/, '').replace(/[!%_]/g, '!$&');
-  const [row] = await executeQuery<{ accent: string }>(database, {
-    query: `SELECT accent FROM album_art WHERE picture LIKE ? ESCAPE '!' LIMIT 1`,
-    variables: [`${name}.%`],
-  });
+  const [row] = await executeQuery(
+    database,
+    { query: `SELECT accent FROM album_art WHERE picture LIKE ? ESCAPE '!' LIMIT 1`, variables: [`${name}.%`] },
+    albumArtRowSchema.pick({ accent: true })
+  );
   return row?.accent;
 };

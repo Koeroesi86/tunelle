@@ -1,3 +1,4 @@
+import { isFlagSet } from '../schemas/environment';
 import { EventEmitter } from 'events';
 import { accessSync, constants, existsSync } from 'fs';
 import { dirname, join } from 'path';
@@ -164,7 +165,7 @@ export const getUpdateUnavailableReason = (
   appImage?: AppImageInstall
 ): UpdateUnavailableReason | undefined => {
   if (!isPackaged) return 'development';
-  if (env.TUNELLE_NO_UPDATE === '1') return 'disabled';
+  if (isFlagSet(env.TUNELLE_NO_UPDATE)) return 'disabled';
   // the Store update the package itself, and its policy does not let an app update outside of it; an env variable cannot say this, the Store starts the app
   if (windowsStore) return 'store';
   if (platform !== 'linux') return undefined;

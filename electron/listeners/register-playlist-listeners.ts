@@ -13,21 +13,19 @@ import {
   renamePlaylist,
 } from '../repositories/playlist-repository';
 import { findTrackFormat } from '../repositories/library-repository';
+import {
+  playlistAddSchema,
+  playlistCreateSchema,
+  playlistEntrySchema,
+  playlistIdSchema,
+  playlistMoveEntrySchema,
+  playlistMoveSchema,
+  playlistRenameSchema,
+} from '@shared/schemas/playlists';
 import { isRecord } from '@shared/utils/is-record';
+import { parsePayload } from '../utils/parse-payload';
 import { sendIfAlive } from '../utils/send-if-alive';
 import { logError } from '../utils/log-error';
-
-const maxNameLength = 200;
-
-const toName = (value: unknown) => (typeof value === 'string' ? value.trim().slice(0, maxNameLength) : '');
-
-const isId = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value);
-
-/** The tracks of a renderer message, anything that is not a track with a path is dropped */
-const toTracks = (value: unknown) =>
-  (Array.isArray(value) ? value : []).flatMap((track: unknown) =>
-    isRecord(track) && typeof track.path === 'string' && track.path.length > 0 ? [{ path: track.path, snapshot: track }] : []
-  );
 
 const withAvailability = (database: ListenerContext['database'], playlists: StoredPlaylist[]) =>
   Promise.all(
@@ -62,55 +60,55 @@ const registerPlaylistListeners = (context: ListenerContext) => {
   });
 
   ipcMain.on('PLAYLIST_CREATE', (event, payload: unknown) => {
-    const { name, tracks } = isRecord(payload) ? payload : {};
-    if (!toName(name)) return;
+    const parsed = parsePayload(playlistCreateSchema, payload);
+    if (!parsed) return;
 
     reply(
       event.sender,
-      createPlaylist(database, toName(name)).then((id) => addEntries(database, id, toTracks(tracks)))
+      createPlaylist(database, parsed.name).then((id) => addEntries(database, id, parsed.tracks))
     );
   });
 
   ipcMain.on('PLAYLIST_RENAME', (event, payload: unknown) => {
-    const { id, name } = isRecord(payload) ? payload : {};
-    if (!isId(id) || !toName(name)) return;
+    const parsed = parsePayload(playlistRenameSchema, payload);
+    if (!parsed) return;
 
-    reply(event.sender, renamePlaylist(database, id, toName(name)));
+    reply(event.sender, renamePlaylist(database, parsed.id, parsed.name));
   });
 
   ipcMain.on('PLAYLIST_DELETE', (event, payload: unknown) => {
-    const { id } = isRecord(payload) ? payload : {};
-    if (!isId(id)) return;
+    const parsed = parsePayload(playlistIdSchema, payload);
+    if (!parsed) return;
 
-    reply(event.sender, deletePlaylist(database, id));
+    reply(event.sender, deletePlaylist(database, parsed.id));
   });
 
   ipcMain.on('PLAYLIST_MOVE', (event, payload: unknown) => {
-    const { id, toIndex } = isRecord(payload) ? payload : {};
-    if (!isId(id) || !isId(toIndex)) return;
+    const parsed = parsePayload(playlistMoveSchema, payload);
+    if (!parsed) return;
 
-    reply(event.sender, movePlaylist(database, id, toIndex));
+    reply(event.sender, movePlaylist(database, parsed.id, parsed.toIndex));
   });
 
   ipcMain.on('PLAYLIST_ADD', (event, payload: unknown) => {
-    const { id, tracks } = isRecord(payload) ? payload : {};
-    if (!isId(id)) return;
+    const parsed = parsePayload(playlistAddSchema, payload);
+    if (!parsed) return;
 
-    reply(event.sender, addEntries(database, id, toTracks(tracks)));
+    reply(event.sender, addEntries(database, parsed.id, parsed.tracks));
   });
 
   ipcMain.on('PLAYLIST_REMOVE_ENTRY', (event, payload: unknown) => {
-    const { id, entryId } = isRecord(payload) ? payload : {};
-    if (!isId(id) || !isId(entryId)) return;
+    const parsed = parsePayload(playlistEntrySchema, payload);
+    if (!parsed) return;
 
-    reply(event.sender, removeEntry(database, id, entryId));
+    reply(event.sender, removeEntry(database, parsed.id, parsed.entryId));
   });
 
   ipcMain.on('PLAYLIST_MOVE_ENTRY', (event, payload: unknown) => {
-    const { id, entryId, toIndex } = isRecord(payload) ? payload : {};
-    if (!isId(id) || !isId(entryId) || !isId(toIndex)) return;
+    const parsed = parsePayload(playlistMoveEntrySchema, payload);
+    if (!parsed) return;
 
-    reply(event.sender, moveEntry(database, id, entryId, toIndex));
+    reply(event.sender, moveEntry(database, parsed.id, parsed.entryId, parsed.toIndex));
   });
 };
 

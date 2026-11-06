@@ -1,10 +1,10 @@
 import { openRadioStream } from './radio-proxy';
 import type { RadioStreamDeps } from './radio-proxy';
-import { stationUuid } from '../constants/radio';
+import { stationUuidSchema } from '../schemas/routes';
 
 /** Plays a station: the audio as it arrives without the ICY metadata, and the connection to the station closes when the player cancels or aborts the request */
 export const serveRadio = async (uuid: string, signal: AbortSignal, deps: RadioStreamDeps) => {
-  if (!stationUuid.test(uuid)) return new Response(undefined, { status: 404 });
+  if (!stationUuidSchema.safeParse(uuid).success) return new Response(undefined, { status: 404 });
 
   const abort = new AbortController();
   signal.addEventListener('abort', () => abort.abort());

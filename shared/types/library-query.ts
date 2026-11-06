@@ -1,22 +1,30 @@
+import { z } from 'zod';
+
 /** The fields the tracks can be sorted by; a sort from outside is checked against these and never put into a query as it is */
-export const trackSortFields = ['title', 'artist', 'album', 'year', 'duration', 'track'] as const;
+const trackSortFieldSchema = z.enum(['title', 'artist', 'album', 'year', 'duration', 'track']);
 
 /** The fields the albums can be sorted by, artist and year are the ones of the first track of the album */
-export const albumSortFields = ['title', 'artist', 'year', 'trackCount', 'duration'] as const;
+const albumSortFieldSchema = z.enum(['title', 'artist', 'year', 'trackCount', 'duration']);
 
 /** What the library can be browsed by: the artist of the tracks, the album artist and the genre */
-export const groupKinds = ['artist', 'albumArtist', 'genre'] as const;
+const groupKindSchema = z.enum(['artist', 'albumArtist', 'genre']);
 
 /** The fields the artists, the album artists and the genres can be sorted by */
-export const groupSortFields = ['name', 'albumCount', 'trackCount'] as const;
+const groupSortFieldSchema = z.enum(['name', 'albumCount', 'trackCount']);
 
-export const sortDirections = ['asc', 'desc'] as const;
+const sortDirectionSchema = z.enum(['asc', 'desc']);
 
-export type TrackSortField = (typeof trackSortFields)[number];
-export type AlbumSortField = (typeof albumSortFields)[number];
-export type GroupKind = (typeof groupKinds)[number];
-export type GroupSortField = (typeof groupSortFields)[number];
-export type SortDirection = (typeof sortDirections)[number];
+export const trackSortFields = trackSortFieldSchema.options;
+export const albumSortFields = albumSortFieldSchema.options;
+export const groupKinds = groupKindSchema.options;
+export const groupSortFields = groupSortFieldSchema.options;
+export const sortDirections = sortDirectionSchema.options;
+
+export type TrackSortField = z.infer<typeof trackSortFieldSchema>;
+export type AlbumSortField = z.infer<typeof albumSortFieldSchema>;
+export type GroupKind = z.infer<typeof groupKindSchema>;
+export type GroupSortField = z.infer<typeof groupSortFieldSchema>;
+export type SortDirection = z.infer<typeof sortDirectionSchema>;
 
 export interface Sort<F extends string> {
   field: F;
@@ -51,42 +59,30 @@ export interface GroupQuery extends LibraryQuery<GroupSort> {
   filter: string;
 }
 
-const findOf = <T extends string>(allowed: readonly T[], value: unknown) => allowed.find((item) => item === value);
+const sortSchema = <F extends z.ZodType<string>>(field: F) => z.object({ field, direction: sortDirectionSchema });
 
-const parseSort = <F extends string>(fields: readonly F[], field: unknown, direction: unknown): Sort<F> | undefined => {
-  const parsedField = findOf(fields, field);
-  const parsedDirection = findOf(sortDirections, direction);
+export const trackSortSchema = sortSchema(trackSortFieldSchema);
+export const albumSortSchema = sortSchema(albumSortFieldSchema);
+export const groupSortSchema = sortSchema(groupSortFieldSchema);
 
-  return parsedField && parsedDirection ? { field: parsedField, direction: parsedDirection } : undefined;
-};
-
-const fromObject = (value: unknown) => (typeof value === 'object' && value !== null ? value : {});
-
-const parseSortObject = <F extends string>(fields: readonly F[], value: unknown) => {
-  const { field, direction } = { field: undefined, direction: undefined, ...fromObject(value) };
-
-  return parseSort(fields, field, direction);
-};
+const parseWith = <S extends z.ZodType>(schema: S, value: unknown) => schema.safeParse(value).data;
 
 /** A saved or requested track sort, undefined for anything that is not a known field with a known direction */
-export const parseTrackSort = (field: unknown, direction: unknown) => parseSort(trackSortFields, field, direction);
+export const parseTrackSort = (field: unknown, direction: unknown) => parseWith(trackSortSchema, { field, direction });
 
-export const parseAlbumSort = (field: unknown, direction: unknown) => parseSort(albumSortFields, field, direction);
+export const parseAlbumSort = (field: unknown, direction: unknown) => parseWith(albumSortSchema, { field, direction });
 
-export const parseGroupSort = (field: unknown, direction: unknown) => parseSort(groupSortFields, field, direction);
+export const parseGroupSort = (field: unknown, direction: unknown) => parseWith(groupSortSchema, { field, direction });
 
-export const parseGroupKind = (value: unknown) => findOf(groupKinds, value);
+export const parseGroupKind = (value: unknown) => parseWith(groupKindSchema, value);
 
-export const restoreTrackSort = (value: unknown) => parseSortObject(trackSortFields, value);
-
-export const restoreAlbumSort = (value: unknown) => parseSortObject(albumSortFields, value);
-
-export const restoreGroupSort = (value: unknown) => parseSortObject(groupSortFields, value);
+const foldersSchema = z
+  .array(z.unknown())
+  .catch([])
+  .transform((items) => [...new Set(items.filter((item) => typeof item === 'string'))]);
 
 /** The folders of a saved or requested selection: the strings in it, once each */
-export const parseFolders = (value: unknown): string[] => [
-  ...new Set(Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []),
-];
+export const parseFolders = (value: unknown): string[] => foldersSchema.parse(value);
 
 /** The sort after a click on a column: ascending, then descending, then back to the default order; another column starts ascending */
 export const cycleSort = <F extends string>(current: Sort<F> | undefined, field: F): Sort<F> | undefined => {
@@ -99,4 +95,4 @@ export const cycleSort = <F extends string>(current: Sort<F> | undefined, field:
 export const knownFolders = (selected: string[], known: string[]) => selected.filter((folder) => known.includes(folder));
 
 /** The text of a search, undefined when there is nothing to look for */
-export const parseSearch = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : undefined);
+export const parseSearch = (value: unknown) => parseWith(z.string().trim().min(1), value);

@@ -5,8 +5,9 @@ import type { Database } from 'sqlite3';
 import { wait } from '@shared/utils/wait';
 import { fetchOk } from './http';
 import executeQuery from '../database/execute-query';
+import { artistPhotosRowSchema } from '../schemas/database/artist-photos';
 import { toSortKey } from '../database/sort-key';
-import { isRecord } from '@shared/utils/is-record';
+import { z } from 'zod';
 
 export interface ArtistName {
   /** The name as the library compares it */
@@ -30,13 +31,27 @@ const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': '
 
 const searchUrl = (name: string) => `https://api.deezer.com/search/artist?${new URLSearchParams({ q: name, limit: '10' })}`;
 
+const deezerArtistSchema = z.object({ name: z.string(), picture_big: z.string() });
+
+const deezerAnswerSchema = z.object({
+  error: z.never().optional(),
+  data: z
+    .array(z.unknown())
+    .catch([])
+    .transform((items) =>
+      items.flatMap((item) => {
+        const parsed = deezerArtistSchema.safeParse(item);
+        return parsed.success ? [{ name: parsed.data.name, picture: parsed.data.picture_big }] : [];
+      })
+    ),
+});
+
 /** The artists of an answer of the search with the photo they have; Deezer answers a refusal (the quota) with a 200 and an error */
 const candidatesOf = (answer: unknown) => {
-  if (!isRecord(answer) || 'error' in answer) throw new Error('Deezer refused the search');
+  const parsed = deezerAnswerSchema.safeParse({ data: [], ...(typeof answer === 'object' ? answer : undefined) });
+  if (!parsed.success) throw new Error('Deezer refused the search');
 
-  return (Array.isArray(answer.data) ? answer.data : []).flatMap((item) =>
-    isRecord(item) && typeof item.name === 'string' && typeof item.picture_big === 'string' ? [{ name: item.name, picture: item.picture_big }] : []
-  );
+  return parsed.data.data;
 };
 
 // an artist without a photo has the URL of a photo without a name in it
@@ -75,19 +90,14 @@ const storePhoto = async (folder: string, key: string, { extension, data }: Phot
   return fileName;
 };
 
-interface PhotoRecord {
-  key: string;
-  picture: string | null;
-  checkedAt: number;
-}
-
 const getRecords = (database: Database, keys: string[]) =>
   keys.length === 0
     ? Promise.resolve([])
-    : executeQuery<PhotoRecord>(database, {
-        query: `SELECT key, picture, checkedAt FROM artist_photos WHERE key IN (${keys.map(() => '?').join(', ')})`,
-        variables: keys,
-      });
+    : executeQuery(
+        database,
+        { query: `SELECT key, picture, checkedAt FROM artist_photos WHERE key IN (${keys.map(() => '?').join(', ')})`, variables: keys },
+        artistPhotosRowSchema
+      );
 
 const saveRecord = (database: Database, key: string, picture: string | null, checkedAt: number) =>
   executeQuery(database, {

@@ -4,7 +4,7 @@ const prettierPlugin = require('eslint-plugin-prettier');
 
 module.exports = [
   {
-    ignores: ['**/dist/**', '**/build/**', '**/out/**', 'icons/**', '.idea/**', '.cache/**', 'coverage/**', '**/node_modules/**', '**/*.js'],
+    ignores: ['**/dist/**', '**/build/**', '**/out/**', 'icons/**', '.idea/**', '.cache/**', 'coverage/**', 'electron/schemas/database/**', '**/node_modules/**', '**/*.js'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

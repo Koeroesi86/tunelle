@@ -9,7 +9,7 @@ import { serveRadio } from './radio-protocol';
 import type { RadioStreamDeps } from './radio-proxy';
 import type { RadioArtImage } from '../services/radio-art';
 import { notFound, serveFile } from './serve-file';
-import { stationUuid } from '../constants/radio';
+import { artKeySchema, assetPathSchema, stationUuidSchema, trackPathSchema } from '../schemas/routes';
 
 const scheme = 'tunelle';
 const host = 'app';
@@ -30,8 +30,6 @@ interface TunelleDeps {
   devOrigin?: string;
 }
 
-const artKey = /^[0-9a-f]{16}$/;
-
 const pageFile = (appRoot: string, pathname: string) => {
   const file = path.resolve(appRoot, `.${pathname === '/' ? '/index.html' : decodeURIComponent(pathname)}`);
   return file.startsWith(appRoot + path.sep) ? file : undefined;
@@ -43,21 +41,20 @@ const route = async (request: Request, { getDatabase, radio, appRoot }: TunelleD
 
   if (pathname === '/track') {
     const database = getDatabase();
-    const filePath = searchParams.get('path');
+    const filePath = trackPathSchema.safeParse(searchParams.get('path')).data;
     // only files of the library are served, the path comes from the database and not from the request
     const trackPath = database && filePath ? await findTrackPath(database, filePath) : undefined;
     return trackPath ? serveFile(trackPath, request) : notFound();
   }
 
-  const [, kind, name] = pathname.match(/^\/(albumart|radio-art|radio-logo|radio)\/([^/]+)$/) ?? [];
-  const key = name && decodeURIComponent(name);
+  const { kind, key = '' } = assetPathSchema.safeParse(pathname).data ?? {};
   if (kind === 'radio') return serveRadio(key, request.signal, radio);
   if (kind === 'radio-art') {
-    const art = artKey.test(key) ? radio.getArt?.(key) : undefined;
+    const art = artKeySchema.safeParse(key).success ? radio.getArt?.(key) : undefined;
     return art ? new Response(new Uint8Array(art.data), { headers: { 'Content-Type': art.type, 'Cache-Control': 'max-age=3600' } }) : notFound();
   }
   if (kind === 'radio-logo') {
-    const logo = stationUuid.test(key) ? await radio.getLogo?.(key) : undefined;
+    const logo = stationUuidSchema.safeParse(key).success ? await radio.getLogo?.(key) : undefined;
     return logo ? new Response(new Uint8Array(logo.data), { headers: { 'Content-Type': logo.type, 'Cache-Control': 'max-age=86400' } }) : notFound();
   }
   if (kind === 'albumart') {

@@ -129,8 +129,20 @@ describe('library api', () => {
   });
 
   it('fetches the format and the loudness of a track by its path, and has none when the library answers with an error or not at all', async () => {
-    respond({ codec: 'FLAC', trackGain: -6 });
-    expect(await fetchTrackFormat('/m/a b.flac')).toEqual({ codec: 'FLAC', trackGain: -6 });
+    const format = {
+      codec: 'FLAC',
+      bitDepth: 16,
+      sampleRate: 44100,
+      bitrate: null,
+      vbr: null,
+      lossless: 1,
+      trackGain: -6,
+      albumGain: null,
+      trackPeak: null,
+      albumPeak: null,
+    };
+    respond(format);
+    expect(await fetchTrackFormat('/m/a b.flac')).toEqual(format);
     expect(fetch).toHaveBeenCalledWith('tunelle://app/library/track?path=%2Fm%2Fa%20b.flac');
 
     respond({}, false);

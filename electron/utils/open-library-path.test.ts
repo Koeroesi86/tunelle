@@ -25,7 +25,7 @@ describe('openLibraryPath', () => {
     await openLibraryPath(database, path.join(library, 'album'), open);
 
     expect(open.mock.calls).toEqual([[library], [path.join(library, 'album')]]);
-    expect(getFolders).toHaveBeenCalledWith(database, ['path']);
+    expect(getFolders).toHaveBeenCalledWith(database);
   });
 
   it.each([

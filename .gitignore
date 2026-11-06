@@ -13,3 +13,4 @@ out
 coverage
 test-results
 playwright-report
+electron/schemas/database

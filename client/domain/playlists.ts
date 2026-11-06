@@ -1,19 +1,28 @@
 import type { AlbumSummary, Album, Track } from '@shared/types/library';
 import type { Playlist } from '@shared/types/playlists';
 import { fetchAlbum } from '../services/library-api';
-import { isRecord } from '@shared/utils/is-record';
+import { z } from 'zod';
 
 /** What the player shows of a track of a playlist, the rest of a snapshot is not needed */
-const isTrack = (value: unknown): value is Track => isRecord(value) && typeof value.path === 'string' && typeof value.title === 'string';
+const trackSchema = z.custom<Track>((value) => z.looseObject({ path: z.string(), title: z.string() }).safeParse(value).success);
 
-const toEntry = (entry: unknown) =>
-  isRecord(entry) && typeof entry.id === 'number' && isTrack(entry.track) ? [{ id: entry.id, track: entry.track, available: entry.available === true }] : [];
+const entrySchema = z.object({
+  id: z.number(),
+  track: trackSchema,
+  available: z
+    .unknown()
+    .optional()
+    .transform((available) => available === true),
+});
+
+const playlistMessageSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  entries: z.array(z.unknown()).transform((entries) => entries.flatMap((entry) => entrySchema.safeParse(entry).data ?? [])),
+});
 
 /** The playlist of a message, without the entries whose track the player cannot show; none for a message that is not a playlist */
-export const toPlaylist = (message: unknown): Playlist[] =>
-  isRecord(message) && typeof message.id === 'number' && typeof message.name === 'string' && Array.isArray(message.entries)
-    ? [{ id: message.id, name: message.name, entries: message.entries.flatMap(toEntry) }]
-    : [];
+export const toPlaylist = (message: unknown): Playlist[] => [playlistMessageSchema.safeParse(message).data].filter((playlist) => playlist !== undefined);
 
 /** The tracks to play for a playlist: the ones the library still has, in the order of the playlist */
 export const getPlaylistTracks = ({ entries }: Playlist): Track[] => entries.filter(({ available }) => available).map(({ track }) => track);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizationGain, restoreNormalization } from './loudness';
+import { normalizationGain } from './loudness';
 
 const dB = (factor: number) => 20 * Math.log10(factor);
 
@@ -33,14 +33,5 @@ describe('normalizationGain', () => {
   it('does not boost without a peak, and still cuts', () => {
     expect(normalizationGain({ trackGain: 6 }, 'track')).toBe(1);
     expect(dB(normalizationGain({ trackGain: -6 }, 'track'))).toBeCloseTo(-6);
-  });
-});
-
-describe('restoreNormalization', () => {
-  it('keeps a known mode and gives the default for anything else', () => {
-    expect(restoreNormalization('track')).toBe('track');
-    expect(restoreNormalization('off')).toBe('off');
-    expect(restoreNormalization('loud')).toBe('album');
-    expect(restoreNormalization(undefined)).toBe('album');
   });
 });

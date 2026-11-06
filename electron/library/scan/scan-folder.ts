@@ -98,7 +98,7 @@ const scanFiles = async (folderPath: string, sender: WebContents, deep: boolean,
 
   const files = (await findFiles(folderPath, deep)).sort();
   signal.throwIfAborted();
-  const library = await getTracksInside(database, folderPath, ['path', 'fileModified', 'fileSize']);
+  const library = await getTracksInside(database, folderPath);
   const existingTracks = new Map(library.map((track) => [track.path, track]));
   const report = createProgressReporter(sender, folderPath, files.length);
   const reader = createTrackReader();
