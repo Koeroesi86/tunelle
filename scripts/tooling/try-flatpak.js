@@ -1,25 +1,24 @@
+const { mkdirSync, writeFileSync } = require('fs')
 const { resolve } = require('path')
-const cache = require('../tooling/config/cache')
+const cache = require('./config/cache')
 
 process.env.ELECTRON_CACHE = process.env.ELECTRON_CACHE || cache.electron
 process.env.ELECTRON_BUILDER_CACHE = process.env.ELECTRON_BUILDER_CACHE || cache.electronBuilder
 
-// usage: node scripts/spike/build-mpris-flatpak.js (after npm run build), see docs/development/mpris-spike.md
-// builds a Flatpak of its own id, so it installs beside the real app without touching its files or data, and with the finish arg of the target of #258:
-// the name of the app id instead of org.mpris.MediaPlayer2.chromium.*
-const appId = 'io.github.koeroesi86.TunelleSpike'
-const { mkdirSync, writeFileSync } = require('fs')
+// usage: node scripts/tooling/try-flatpak.js (after npm run build), see docs/development/try-flatpak.md
+// builds a Flatpak of an id of its own (io.github.koeroesi86.TunelleTry) from the current code, so it installs beside the real app without touching its files or data
+const appId = 'io.github.koeroesi86.TunelleTry'
 const { build } = require('electron-builder')
 const { build: base } = require('../../package.json')
 
-// electron-builder concatenates arrays of an object passed as the config with those of package.json, which would keep the chromium.* arg,
+// electron-builder concatenates arrays of an object passed as the config with those of package.json, which would keep the name of the real id,
 // so the whole configuration goes in as a file of its own
-const output = resolve(__dirname, '../../dist/mpris-spike')
+const output = resolve(__dirname, '../../dist/try-flatpak')
 const configFile = resolve(output, 'config.json')
 const config = {
   ...base,
   appId,
-  productName: 'Tunelle Spike',
+  productName: 'Tunelle Try',
   publish: null,
   directories: { ...base.directories, output },
   flatpak: {

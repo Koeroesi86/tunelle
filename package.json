@@ -137,7 +137,7 @@
         "--socket=pulseaudio",
         "--share=network",
         "--filesystem=xdg-music:ro",
-        "--own-name=org.mpris.MediaPlayer2.chromium.*"
+        "--own-name=org.mpris.MediaPlayer2.io.github.koeroesi86.Tunelle"
       ]
     }
   },
