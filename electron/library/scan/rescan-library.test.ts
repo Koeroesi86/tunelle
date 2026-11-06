@@ -11,9 +11,12 @@ import { getLibrary } from '../../repositories/library-repository';
 import rescanLibrary from './rescan-library';
 import scanFolders from './scan-folders';
 import { createTestDatabase } from '../../test-database';
-import { backgroundQueue, scanKind } from '../tasks/background-queue';
+import { backgroundQueue } from '../tasks/background-queue';
+import type { Task } from '../tasks/task-queue';
 
 vi.mock('./scan-folders', () => ({ default: vi.fn() }));
+// the queue is the one of the app: the scans are put on it, and the test runs what was put on it, so no queue runs and nothing waits
+vi.mock('../tasks/background-queue', () => ({ scanKind: 'scan', backgroundQueue: { enqueue: vi.fn() } }));
 
 describe('rescanLibrary', () => {
   let database: Database;
@@ -23,14 +26,22 @@ describe('rescanLibrary', () => {
   const storedFolders = () => executeQuery<Folder>(database, { query: 'SELECT * FROM folders ORDER BY path', variables: [] });
   const addFolder = (folder: string, lastModified: number) =>
     executeQuery(database, { query: 'INSERT INTO folders (path, lastModified) VALUES (?, ?)', variables: [folder, lastModified] });
-  const rescan = (forced = false) => {
-    const complete = new Promise<void>((resolve) => vi.mocked(sender.send).mockImplementation((channel) => channel === 'RESCAN_COMPLETE' && resolve()));
-    rescanLibrary(sender, forced);
-    return complete;
+  const queued = () => vi.mocked(backgroundQueue.enqueue).mock.calls.map(([task]): Task => task);
+  /** Runs the scans that were put on the queue, as the queue would, and answers when they are over */
+  const runQueued = async () => {
+    const tasks = queued();
+    vi.mocked(backgroundQueue.enqueue).mockClear();
+    await Promise.all(tasks.map((task) => task.run(new AbortController().signal)));
+  };
+  const rescan = async (forced = false) => {
+    const done = rescanLibrary(sender, forced);
+    await runQueued();
+    await done;
   };
 
   beforeEach(async () => {
-    backgroundQueue.start();
+    vi.mocked(backgroundQueue.enqueue).mockReset();
+    vi.mocked(sender.send).mockReset();
     vi.mocked(scanFolders).mockReset().mockResolvedValue([]);
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-rescan-'));
     database = await createTestDatabase();
@@ -71,26 +82,25 @@ describe('rescanLibrary', () => {
     expect(await storedFolders()).toEqual([]);
   });
 
-  it('tells the background queue that a scan is going on while it runs, also when it fails', async () => {
+  it('puts the scan on the background queue before any other work, and does not run it before the queue does', async () => {
     await addFolder(root, 0);
-    let during = false;
-    vi.mocked(scanFolders).mockImplementation(async () => {
-      during = backgroundQueue.isBusy(scanKind);
-      throw new Error('failed');
-    });
-    vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    rescanLibrary(sender, false);
-    await vi.waitFor(() => expect(console.error).toHaveBeenCalled());
+    const done = rescanLibrary(sender, false);
 
-    expect(during).toBe(true);
-    await vi.waitFor(() => expect(backgroundQueue.isBusy(scanKind)).toBe(false));
+    expect(queued()).toEqual([expect.objectContaining({ kind: 'scan', key: 'rescan-library', priority: 10 })]);
+    expect(scanFolders).not.toHaveBeenCalled();
+    await runQueued();
+    await done;
+    expect(scanFolders).toHaveBeenCalledTimes(1);
   });
 
   it('scans once for the callers that wait, completely when one of them asked for it', async () => {
     await addFolder(root, mtime(root));
 
-    await Promise.all([rescanLibrary(sender, false), rescanLibrary(sender, true)]);
+    const callers = Promise.all([rescanLibrary(sender, false), rescanLibrary(sender, true)]);
+    expect(queued()).toHaveLength(1);
+    await runQueued();
+    await callers;
 
     expect(scanFolders).toHaveBeenCalledOnce();
     expect(scanFolders).toHaveBeenCalledWith([expect.objectContaining({ path: root })], sender);
@@ -113,10 +123,10 @@ describe('rescanLibrary', () => {
   it('keeps the old modification time when the scan fails, so the folder is retried', async () => {
     await addFolder(root, 0);
     vi.mocked(scanFolders).mockRejectedValue(new Error('scan failed'));
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    rescanLibrary(sender, false);
-    await vi.waitFor(() => expect(console.error).toHaveBeenCalled());
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await rescan();
 
+    expect(error).toHaveBeenCalled();
     expect(await storedFolders()).toEqual([{ path: root, lastModified: 0 }]);
   });
 

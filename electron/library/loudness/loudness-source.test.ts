@@ -68,7 +68,9 @@ describe('the measurement of the loudness as a source of the background queue', 
   const elapse = (ms: number) => vi.setSystemTime(Date.now() + ms);
   const register = () => {
     loudness = registerLoudness(database, 'tunelle://app/loudness.html');
-    source = vi.mocked(backgroundQueue.addSource).mock.calls.at(-1)?.[0] as TaskSource;
+    const registered = vi.mocked(backgroundQueue.addSource).mock.calls.at(-1)?.[0];
+    if (!registered) throw new Error('The source was not put on the queue');
+    source = registered;
   };
   const canRun = async () => (await source.canRun?.()) ?? true;
   /** The tasks of a pass over the library, run one after the other as the queue does, until the source has none */

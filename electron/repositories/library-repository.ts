@@ -85,7 +85,7 @@ export const findTrackFormat = (database: Database, trackPath: string) =>
   executeQuery<AudioFormat & Loudness>(database, {
     query: `SELECT codec, bitDepth, sampleRate, bitrate, vbr, lossless, ${columnList(loudnessColumns)} FROM library WHERE path = ?`,
     variables: [trackPath],
-  }).then(([format]) => format);
+  }).then(([format]): (AudioFormat & Loudness) | undefined => format);
 
 // the scan stores the paths of tracks with forward slashes (scan-folder.ts), the folder keeps the ones it was picked with
 const insidePatterns = (folderPath: string) => {

@@ -1,19 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import path from 'path';
-import type { Database } from 'sqlite3';
-import executeQuery from '../database/execute-query';
+import { Database } from 'sqlite3';
+import { getFolders } from '../repositories/library-repository';
 import openLibraryPath from './open-library-path';
-import { createTestDatabase } from '../test-database';
+
+// the folders of the library come from a repository that is replaced, with the database it reads
+vi.mock('sqlite3', () => ({ Database: class {} }));
+vi.mock('../repositories/library-repository', () => ({ getFolders: vi.fn() }));
 
 describe('openLibraryPath', () => {
   const library = path.resolve('music');
   const open = vi.fn<(target: string) => Promise<string>>();
-  let database: Database;
+  const database = new Database(':memory:');
 
-  beforeEach(async () => {
+  beforeEach(() => {
     open.mockReset().mockResolvedValue('');
-    database = await createTestDatabase();
-    await executeQuery(database, { query: 'INSERT INTO folders (path, lastModified) VALUES (?, 1)', variables: [library] });
+    vi.mocked(getFolders)
+      .mockReset()
+      .mockResolvedValue([{ path: library, lastModified: 1 }]);
   });
 
   it('opens a library folder and the folders inside it', async () => {
@@ -21,6 +25,7 @@ describe('openLibraryPath', () => {
     await openLibraryPath(database, path.join(library, 'album'), open);
 
     expect(open.mock.calls).toEqual([[library], [path.join(library, 'album')]]);
+    expect(getFolders).toHaveBeenCalledWith(database, ['path']);
   });
 
   it.each([

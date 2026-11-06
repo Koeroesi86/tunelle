@@ -1,7 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mapAsync } from './map-async';
 
-const pause = () => new Promise((resolve) => setTimeout(resolve, 1));
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const pause = () => wait(1);
+
+/** The time goes by as the tasks ask for it, with no real wait */
+const settle = <T>(promise: Promise<T>) => vi.runAllTimersAsync().then(() => promise);
 
 const track = () => {
   let inFlight = 0;
@@ -18,6 +22,9 @@ const track = () => {
 };
 
 describe('mapAsync', () => {
+  beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout'] }));
+  afterEach(() => vi.useRealTimers());
+
   it('keeps the order of the items', async () => {
     expect(await mapAsync([1, 2, 3, 4, 5], async (item) => item * 2, { concurrency: 3 })).toEqual([2, 4, 6, 8, 10]);
   });
@@ -25,7 +32,7 @@ describe('mapAsync', () => {
   it('runs one task at a time by default', async () => {
     const { task, most } = track();
 
-    await mapAsync([1, 2, 3, 4], task);
+    await settle(mapAsync([1, 2, 3, 4], task));
 
     expect(most()).toBe(1);
   });
@@ -33,7 +40,7 @@ describe('mapAsync', () => {
   it('has no more tasks in flight than the concurrency', async () => {
     const { task, most } = track();
 
-    await mapAsync([1, 2, 3, 4, 5, 6, 7], task, { concurrency: 3 });
+    await settle(mapAsync([1, 2, 3, 4, 5, 6, 7], task, { concurrency: 3 }));
 
     expect(most()).toBe(3);
   });
@@ -41,7 +48,7 @@ describe('mapAsync', () => {
   it('does not run more tasks than there are items', async () => {
     const { task, most } = track();
 
-    await mapAsync([1, 2], task, { concurrency: 10 });
+    await settle(mapAsync([1, 2], task, { concurrency: 10 }));
 
     expect(most()).toBe(2);
   });
@@ -50,11 +57,11 @@ describe('mapAsync', () => {
     const events: string[] = [];
     const task = async (item: number) => {
       events.push(`start ${item}`);
-      await new Promise((resolve) => setTimeout(resolve, item === 1 ? 20 : 1));
+      await wait(item === 1 ? 20 : 1);
       events.push(`end ${item}`);
     };
 
-    await mapAsync([1, 2, 3], task, { concurrency: 2 });
+    await settle(mapAsync([1, 2, 3], task, { concurrency: 2 }));
 
     expect(events).toEqual(['start 1', 'start 2', 'end 2', 'end 1', 'start 3', 'end 3']);
   });
@@ -62,7 +69,7 @@ describe('mapAsync', () => {
   it('treats a concurrency below 1 as 1', async () => {
     const { task, most } = track();
 
-    await mapAsync([1, 2, 3], task, { concurrency: 0 });
+    await settle(mapAsync([1, 2, 3], task, { concurrency: 0 }));
 
     expect(most()).toBe(1);
   });
