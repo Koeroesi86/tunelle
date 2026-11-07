@@ -23,7 +23,7 @@ interface Decoded {
 type Decode = (bytes: ArrayBuffer) => Promise<Decoded | undefined>;
 
 /** The ranges of a track of the main process: its size comes from the first answer, as a range of one byte tells the size of the file */
-const rangeReader = (url: string, progress: () => void) => {
+export const rangeReader = (url: string, progress: () => void) => {
   const state = { unreadable: false };
   const fetchRange = (start: number, end: number) =>
     fetch(url, { headers: { Range: `bytes=${start}-${end - 1}` } }).then(

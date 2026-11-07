@@ -37,18 +37,39 @@ const specificInfo = (bytes: Uint8Array, esds: Box) => {
   return bytes.subarray(info.start, info.end);
 };
 
-/** The AAC of the sample description of a track: low complexity only, as the ones with SBR or PS (HE-AAC) say what they are in a way an ADTS stream cannot */
-export const aacConfigOf = (bytes: Uint8Array, description: Box): AacConfig => {
+/** The AudioSpecificConfig of the sample description of a track */
+const configBytesOf = (bytes: Uint8Array, description: Box) => {
   const entry = childrenOf(bytes, description, description.start + 8)[0];
   // the entry of a sound track: its fields take 28 bytes of the content, the boxes follow
   const esds = entry?.type === 'mp4a' && bytes[entry.start + 8] === 0 ? childOf(bytes, { ...entry, start: entry.start + 28 }, 'esds') : undefined;
   if (!esds) throw new NotSliceable('An MP4 file whose audio is not AAC');
+  return specificInfo(bytes, esds);
+};
 
-  const [first, second] = specificInfo(bytes, esds);
+/** The AAC of the sample description of a track: low complexity only, as the ones with SBR or PS (HE-AAC) say what they are in a way an ADTS stream cannot */
+export const aacConfigOf = (bytes: Uint8Array, description: Box): AacConfig => {
+  const [first, second] = configBytesOf(bytes, description);
   const config = { sampleRateIndex: ((first & 7) << 1) | (second >> 7), channels: (second >> 3) & 15 };
   const isSupported = first >> 3 === 2 && config.sampleRateIndex < aacSampleRates.length && config.channels >= 1 && config.channels <= 7;
   if (!isSupported) throw new NotSliceable('An MP4 file with AAC that is not low complexity, or whose layout is not told by a number');
   return config;
+};
+
+/** What a WebCodecs decoder is given of any AAC: its AudioSpecificConfig, the type of object (2 is low complexity, 5 has SBR) and the layout */
+export interface AacStream {
+  description: Uint8Array;
+  objectType: number;
+  sampleRate: number;
+  channels: number;
+}
+
+export const aacStreamOf = (bytes: Uint8Array, description: Box): AacStream => {
+  const info = configBytesOf(bytes, description);
+  const [first, second] = info;
+  const [objectType, index, channels] = [first >> 3, ((first & 7) << 1) | (second >> 7), (second >> 3) & 15];
+  if (objectType === 0 || objectType === 31 || index >= aacSampleRates.length || channels < 1)
+    throw new NotSliceable('An MP4 file with AAC that a decoder is not told about');
+  return { description: info, objectType, sampleRate: aacSampleRates[index], channels };
 };
 
 const handlerOf = (bytes: Uint8Array, track: Box) => {
