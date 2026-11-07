@@ -76,18 +76,21 @@ export const isSigned = (text: string, signature: string, publicKeys: string[]) 
 export const swapScript = `
 pid="$1"; app="$2"; fresh="$3"; backup="$4"; marker="$5"; version="$6"; failed="$7"; staging="$8"
 shift 8
+exec >> "$failed.log" 2>&1
+echo "$(date) updating to $version"
 count=$#
 while [ "$count" -gt 0 ]; do set -- "$@" --env "$1"; shift; count=$((count-1)); done
 set -- "$@" "$app"
 while kill -0 "$pid" 2>/dev/null; do sleep 0.2; done
 rm -rf "$backup"
 mv "$app" "$backup" || exit 1
-if ! mv "$fresh" "$app"; then mv "$backup" "$app"; echo "$version" > "$failed"; open "$@"; exit 1; fi
+if ! mv "$fresh" "$app"; then echo "the new app could not be moved in"; mv "$backup" "$app"; echo "$version" > "$failed"; open "$@"; exit 1; fi
 rm -f "$marker"
 open "$@"
 tries=0
-while [ ! -f "$marker" ] && [ "$tries" -lt 150 ]; do sleep 0.2; tries=$((tries+1)); done
-if [ -f "$marker" ]; then rm -rf "$backup" "$staging"; exit 0; fi
+while [ ! -f "$marker" ] && [ "$tries" -lt 600 ]; do sleep 0.2; tries=$((tries+1)); done
+if [ -f "$marker" ]; then echo "the new app started after $tries tries"; rm -rf "$backup" "$staging"; exit 0; fi
+echo "the new app did not start in two minutes, putting the old one back"
 pkill -f "$app/Contents/MacOS/"; sleep 1
 rm -rf "$app"; mv "$backup" "$app"; echo "$version" > "$failed"; rm -rf "$staging"; open "$@"
 `;
