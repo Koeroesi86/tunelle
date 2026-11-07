@@ -239,6 +239,43 @@ describe('AudioComponent', () => {
   });
 });
 
+describe('AudioComponent without a track', () => {
+  const props = (currentSong: Track | null) => (
+    <AudioComponent
+      devices={[]}
+      currentSong={currentSong}
+      isPlaying={false}
+      volume={1}
+      trackEnded={vi.fn()}
+      connectNode={vi.fn()}
+      connectStandbyNode={vi.fn()}
+      activateNode={vi.fn()}
+      normalization="album"
+      setNormalization={vi.fn()}
+      outputDevice={undefined}
+      setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+      addOutputChangeListener={vi.fn()}
+      removeOutputChangeListener={vi.fn()}
+      upNext={null}
+    />
+  );
+
+  it('empties the element when the track goes away, as an empty src makes it fail', () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    const load = vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+    const view = render(props(null));
+    const element = view.container.querySelector('audio');
+    view.rerender(props({ ...station, path: '/music/a.flac' }));
+    expect(element?.hasAttribute('src')).toBe(true);
+    load.mockClear();
+
+    view.rerender(props(null));
+
+    expect(element?.hasAttribute('src')).toBe(false);
+    expect(load).toHaveBeenCalled();
+  });
+});
+
 describe('AudioComponent end of a track', () => {
   const track: Track = { ...station, path: '/music/a.flac' };
   const other: Track = { ...station, path: '/music/b.flac' };

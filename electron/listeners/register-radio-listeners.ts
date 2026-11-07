@@ -2,7 +2,12 @@ import { ipcMain } from 'electron';
 import { errorMessage } from '@shared/utils/error-message';
 import type { ListenerContext } from './listener-context';
 import { toRadioQuery } from '../services/radio-browser';
-import { logError } from '../utils/log-error';
+
+/** A fetch that fails says only 'fetch failed', the reason (a reset connection, a name that does not resolve) is its cause */
+const reasonOf = (error: unknown) =>
+  error instanceof Error && error.cause instanceof Error ? `${error.message}: ${error.cause.message}` : errorMessage(error);
+
+const logUnavailable = (what: string) => (error: unknown) => console.warn(`The radio directory did not answer for the ${what}: ${reasonOf(error)}`);
 
 const registerRadioListeners = ({ radio }: ListenerContext) => {
   ipcMain.on('RADIO_SEARCH', (event, payload: unknown) => {
@@ -20,7 +25,7 @@ const registerRadioListeners = ({ radio }: ListenerContext) => {
       radio
         .getOptions(kind)
         .then((options) => event.sender.send('RADIO_OPTIONS_LOADED', { kind, options }))
-        .catch(logError)
+        .catch(logUnavailable(`list of ${kind}`))
     );
   });
 
@@ -28,7 +33,7 @@ const registerRadioListeners = ({ radio }: ListenerContext) => {
     radio
       .getTags()
       .then((tags) => event.sender.send('RADIO_TAGS_LOADED', { tags }))
-      .catch(logError);
+      .catch(logUnavailable('tags'));
   });
 };
 
