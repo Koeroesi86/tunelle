@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { measureBlocks } from './block-energies';
 import { measureSliced } from './measure-sliced';
+import { measureWebCodecs } from './measure-webcodecs';
 import { measureTrack, slicedFromSeconds, wholeFileSeconds } from './measure-track';
 import { readBody } from './read-body';
 import { summarise } from './summarise';
 
 vi.mock('./measure-sliced', () => ({ measureSliced: vi.fn() }));
+vi.mock('./measure-webcodecs', () => ({ measureWebCodecs: vi.fn() }));
 vi.mock('./read-body', () => ({ readBody: vi.fn() }));
 vi.mock('./block-energies', () => ({ measureBlocks: vi.fn() }));
 vi.mock('./summarise', () => ({ summarise: vi.fn() }));
@@ -44,6 +46,13 @@ describe('measureTrack', () => {
   it('decodes as a whole a file of a format that is not cut, up to the whole file length', async () => {
     vi.mocked(measureSliced).mockResolvedValue({ id: 1, outcome: 'too-large' });
     const result = await measureTrack(1, 'a', wholeFileSeconds, vi.fn());
+    expect(result.outcome).toBe('measured');
+  });
+
+  it('measures with the decoder of the page a long file that is not cut when it can', async () => {
+    vi.mocked(measureSliced).mockResolvedValue({ id: 1, outcome: 'too-large' });
+    vi.mocked(measureWebCodecs).mockResolvedValue({ id: 1, outcome: 'measured', ...summary } as never);
+    const result = await measureTrack(1, 'a', wholeFileSeconds + 1, vi.fn());
     expect(result.outcome).toBe('measured');
   });
 

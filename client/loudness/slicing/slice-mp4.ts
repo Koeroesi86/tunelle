@@ -86,7 +86,18 @@ const checkedSizes = (samples: Samples) => {
 const samplesOf = (bytes: Uint8Array, stbl: Box) => {
   const offsets = chunkOffsetsOf(bytes, childOf(bytes, stbl, 'stco') ?? mustChild(bytes, stbl, 'co64'));
   const sizes = sizesOf(bytes, mustChild(bytes, stbl, 'stsz'));
-  return checkedSizes(layoutOf(sizes, runsOf(bytes, mustChild(bytes, stbl, 'stsc')), offsets));
+  return layoutOf(sizes, runsOf(bytes, mustChild(bytes, stbl, 'stsc')), offsets);
+};
+
+/** The description of the sound and the place of its samples, as the table of the file says or the fragments add up; the sizes of the samples are not looked at */
+export const readMp4Track = async (read: ReadRange, size: number) => {
+  const { bytes, moov, end } = await readMovie(read, size);
+  const track = audioTrackOf(bytes, moov);
+  const stbl = sampleTableOf(bytes, track);
+  const isFragmented = childOf(bytes, moov, 'mvex') !== undefined;
+  const id = isFragmented ? trackIdOf(bytes, track) : 0;
+  const samples = isFragmented ? await fragmentSamples(read, size, end, id, defaultSizeOf(bytes, moov, id)) : samplesOf(bytes, stbl);
+  return { bytes, description: mustChild(bytes, stbl, 'stsd'), samples };
 };
 
 /** The sample at which each piece starts, a piece taking samples until it has about `sliceBytes` of them, and the end */
@@ -152,19 +163,28 @@ const framesOf = async (read: ReadRange, samples: Samples, config: AacConfig, fr
   return out;
 };
 
+/** The samples of a span, one by one, from the bytes that were read for it */
+const inSpan = (bytes: Uint8Array, span: Span, samples: Samples) =>
+  Array.from({ length: span.end - span.first }, (_, at) => {
+    const offset = samples.offsets[span.first + at] - span.start;
+    return bytes.subarray(offset, offset + samples.sizes[span.first + at]);
+  });
+
+/** The samples from one to another, one by one, as they are in the file */
+export async function* eachSample(read: ReadRange, samples: Samples, from: number, to: number) {
+  for (const span of spansOf(samples, from, to)) {
+    yield* inSpan(await mustRead(read, span.start, span.stop, 'The samples of an MP4 file'), span, samples);
+  }
+}
+
 /**
  * An MP4 file with AAC is cut between two samples, which are given to the decoder as the frames of an ADTS stream: the file is not read for its
  * `mdat` as a whole and no piece needs the table of the samples. Each piece but the first starts two frames early, which are left out
  */
 export const sliceMp4: Slicer = async function* (read, size, sliceBytes) {
-  const { bytes, moov, end } = await readMovie(read, size);
-  const track = audioTrackOf(bytes, moov);
-  const stbl = sampleTableOf(bytes, track);
-  const config = aacConfigOf(bytes, mustChild(bytes, stbl, 'stsd'));
-  const isFragmented = childOf(bytes, moov, 'mvex') !== undefined;
-  const samples = isFragmented
-    ? checkedSizes(await fragmentSamples(read, size, end, trackIdOf(bytes, track), defaultSizeOf(bytes, moov, trackIdOf(bytes, track))))
-    : samplesOf(bytes, stbl);
+  const { bytes, description, samples: found } = await readMp4Track(read, size);
+  const config = aacConfigOf(bytes, description);
+  const samples = checkedSizes(found);
   const cuts = cutPoints(samples.sizes, sliceBytes);
 
   for (let index = 0; index < cuts.length - 1; index++) {
