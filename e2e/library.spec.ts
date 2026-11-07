@@ -14,7 +14,7 @@ test('lists the albums and the songs of a scanned folder', async ({ session: { p
   await navigate(page, 'Songs');
   await expect(page.getByText('Concert A')).toBeVisible();
   await expect(page.getByText('Deep Bass')).toBeVisible();
-  await expect(page.getByText('4 tracks')).toBeVisible();
+  await expect(page.getByText('4 tracks', { exact: true })).toBeVisible();
 });
 
 test('filters the songs with the search', async ({ session: { page } }) => {
