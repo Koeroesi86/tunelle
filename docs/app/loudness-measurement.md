@@ -49,7 +49,7 @@ ITU-R BS.1770 / EBU R128 at 48 kHz, the rate `decodeAudioData` resamples to:
 
 ## Long files
 
-A file longer than 45 minutes (`wholeFileSeconds` in `client/loudness/measure-track.ts`) is not decoded as a whole, as the decoded sound of 60 minutes of stereo took 2.9 GB of the window. The main process gives the page the length of the track (`MeasureRequest.duration`), and `measureSliced` (`client/loudness/measure-sliced.ts`) cuts the file into pieces of about five minutes of sound, fetches each with a range request of `tunelle://app/track`, decodes it, measures it with the one `createBlockMeter` and lets it go, so one piece is in memory at a time (115 MB of stereo).
+A file longer than 10 minutes (`slicedFromSeconds` in `client/loudness/measure-track.ts`) is not decoded as a whole when its format can be cut, as the decoded sound of 45 minutes of stereo is 2.2 GB and 60 minutes took 2.9 GB of the window. A format that is not cut is still decoded as a whole up to 45 minutes (`wholeFileSeconds`), and stored as `too-large` above it. The 10 minutes were chosen from the size of the decoded sound (460 MB of stereo at 48 kHz), not from a measurement of the window. The main process gives the page the length of the track (`MeasureRequest.duration`), and `measureSliced` (`client/loudness/measure-sliced.ts`) cuts the file into pieces of about five minutes of sound, fetches each with a range request of `tunelle://app/track`, decodes it, measures it with the one `createBlockMeter` and lets it go, so one piece is in memory at a time (115 MB of stereo).
 
 `client/loudness/slicing/` cuts by the format, found from the first bytes of the file (`slicerOf`):
 
