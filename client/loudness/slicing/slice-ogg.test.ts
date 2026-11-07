@@ -59,15 +59,29 @@ describe('sliceOgg', () => {
     expect(first + slices.slice(1).reduce((total, { keep = 0 }) => total + keep, 0)).toBeCloseTo((300 * 2048) / 44100, 6);
   });
 
+  it('cuts an Ogg FLAC stream with no pages before a cut and nothing left out', async () => {
+    const flacHead = Uint8Array.from([0x7f, 0x46, 0x4c, 0x41, 0x43, 1, 0, 0]);
+    const flac = join(
+      page(3, 0, 0, flacHead, 0x02),
+      ...Array.from({ length: 300 }, (_, index) => page(3, 1 + index, 4096 * (index + 1), new Uint8Array(400).fill(5)))
+    );
+    const header = flac.length - 300 * (27 + 2 + 400);
+    const slices = await collect(sliceOgg, flac, 30_000);
+
+    expect(slices.length).toBeGreaterThan(3);
+    slices.forEach((slice) => expect([slice.skip, slice.keep]).toEqual([0, undefined]));
+    expect(slices.reduce((sum, { bytes }) => sum + bytes.length - header, 0)).toBe(300 * (27 + 2 + 400));
+  });
+
   it('does not cut the stream of another codec, or a file of more than one stream', async () => {
-    const flac = join(page(1, 0, 0, Uint8Array.from([0x7f, 0x46, 0x4c, 0x41, 0x43, 0, 0, 0]), 0x02), page(1, 1, 100, new Uint8Array(50)));
+    const speex = join(page(1, 0, 0, Uint8Array.from([0x53, 0x70, 0x65, 0x65, 0x78, 0x20, 0x20, 0x20]), 0x02), page(1, 1, 100, new Uint8Array(50)));
     const video = join(
       page(9, 0, 0, opusHead, 0x02),
       page(8, 0, 0, Uint8Array.from([0x80, 0x74, 0x68, 0x65, 0x6f, 0x72, 0x61]), 0x02),
       page(9, 1, 960, new Uint8Array(50))
     );
 
-    await expect(collect(sliceOgg, flac, 1000)).rejects.toThrow('not Vorbis or Opus');
+    await expect(collect(sliceOgg, speex, 1000)).rejects.toThrow('not Vorbis, Opus or FLAC');
     await expect(collect(sliceOgg, video, 1000)).rejects.toThrow('more than one stream');
   });
 
