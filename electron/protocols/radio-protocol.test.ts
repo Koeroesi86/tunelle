@@ -11,8 +11,12 @@ const metadata = (text: string) => {
   return Buffer.concat([Buffer.from([padded.length / 16]), padded]);
 };
 
+/** A frame of 128 kbit/s at 44.1 kHz, which is 417 bytes: 0xFFFB, bitrate 9, rate 0 */
+const mp3Frame = Buffer.concat([Buffer.from([0xff, 0xfb, 0x90, 0x00]), Buffer.alloc(413)]);
+
 describe('serveRadio', () => {
   const titles: [string, string][] = [];
+  const rates: [string, number][] = [];
   const resolved: Record<string, string> = {};
   const connections = { open: 0 };
   let station: http.Server;
@@ -21,6 +25,7 @@ describe('serveRadio', () => {
     serveRadio(uuid, signal, {
       resolveStream: (id) => (resolved[id] ? Promise.resolve(resolved[id]) : Promise.reject(new Error('unknown station'))),
       onTitle: (id, title) => titles.push([id, title]),
+      onSampleRate: (id, rate) => rates.push([id, rate]),
     });
 
   beforeAll(async () => {
@@ -33,6 +38,11 @@ describe('serveRadio', () => {
       if (request.url === '/plain') {
         response.writeHead(200, { 'content-type': 'audio/mpeg' });
         response.end(`asked for metadata: ${request.headers['icy-metadata']}`);
+        return;
+      }
+      if (request.url === '/mp3') {
+        response.writeHead(200, { 'content-type': 'audio/mpeg' });
+        response.end(Buffer.concat([mp3Frame, mp3Frame, mp3Frame]));
         return;
       }
       if (request.url === '/moved') {
@@ -73,6 +83,24 @@ describe('serveRadio', () => {
     expect(response.headers.get('cache-control')).toBe('no-store');
     expect(await response.text()).toBe('aaaabbbb');
     expect(titles).toContainEqual(['icy', 'Artist - Song']);
+  });
+
+  it('reports the sample rate found in the start of the stream, and serves the stream whole', async () => {
+    resolved.mp3 = `${stationUrl}/mp3`;
+
+    const response = await serve('mp3');
+
+    expect((await response.arrayBuffer()).byteLength).toBe(mp3Frame.length * 3);
+    expect(rates).toEqual([['mp3', 44100]]);
+  });
+
+  it('reports no sample rate for a stream that has none that is known', async () => {
+    resolved.plain = `${stationUrl}/plain`;
+    rates.length = 0;
+
+    await (await serve('plain')).text();
+
+    expect(rates).toEqual([]);
   });
 
   it('asks the station for metadata', async () => {

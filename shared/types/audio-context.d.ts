@@ -3,3 +3,8 @@ interface AudioContext {
   readonly sinkId: string | { type: string };
   setSinkId(sinkId: string): Promise<void>;
 }
+
+interface AudioContextOptions {
+  /** The output device the context is made for; its rate is the rate of that device */
+  sinkId?: string;
+}

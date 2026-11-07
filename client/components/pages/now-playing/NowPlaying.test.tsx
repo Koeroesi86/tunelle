@@ -5,8 +5,8 @@ import NowPlaying from './NowPlaying';
 
 vi.mock('../../ui/favourite-button', () => ({ default: () => null }));
 vi.mock('../../ui/loudness-panel', () => ({
-  default: ({ path, duration }: { path: string; duration?: number }) => (
-    <div data-testid="loudness" data-duration={duration}>
+  default: ({ path, duration, sampleRate }: { path?: string; duration?: number; sampleRate?: number }) => (
+    <div data-testid="loudness" data-duration={duration} data-rate={sampleRate}>
       {path}
     </div>
   ),
@@ -48,6 +48,7 @@ const renderPage = (props: Partial<Parameters<typeof NowPlaying>[0]> = {}) =>
       currentSong={flac}
       streamTitle={null}
       streamArt={null}
+      streamSampleRate={null}
       isPlaying
       playTrack={vi.fn()}
       moveTrack={vi.fn()}
@@ -118,6 +119,7 @@ describe('NowPlaying', () => {
         currentSong={flac}
         streamTitle={null}
         streamArt={null}
+        streamSampleRate={null}
         isPlaying
         playTrack={vi.fn()}
         moveTrack={vi.fn()}
@@ -209,6 +211,7 @@ describe('NowPlaying', () => {
         currentSong={flac}
         streamTitle={null}
         streamArt={null}
+        streamSampleRate={null}
         isPlaying
         playTrack={vi.fn()}
         moveTrack={moveTrack}
@@ -233,6 +236,7 @@ describe('NowPlaying', () => {
         currentSong={flac}
         streamTitle={null}
         streamArt={null}
+        streamSampleRate={null}
         isPlaying
         playTrack={vi.fn()}
         moveTrack={moveTrack}
@@ -313,10 +317,24 @@ describe('NowPlaying', () => {
       expect(screen.getByTestId('loudness').hasAttribute('data-duration')).toBe(false);
     });
 
-    it('is not shown for a radio station, which is not measured', () => {
+    it('is given the rate of the file', () => {
+      renderPage();
+
+      expect(screen.getByTestId('loudness').getAttribute('data-rate')).toBe('44100');
+    });
+
+    it('is given the rate found in the stream, and no file, for a radio station', () => {
+      renderPage({ currentSong: { ...flac, path: 'radio:abc' }, streamSampleRate: 48000 });
+
+      const panel = screen.getByTestId('loudness');
+      expect(panel.getAttribute('data-rate')).toBe('48000');
+      expect(panel.textContent).toBe('');
+    });
+
+    it('is given no rate for a station until the stream tells it', () => {
       renderPage({ currentSong: { ...flac, path: 'radio:abc' } });
 
-      expect(screen.queryByTestId('loudness')).toBeNull();
+      expect(screen.getByTestId('loudness').hasAttribute('data-rate')).toBe(false);
     });
   });
 });

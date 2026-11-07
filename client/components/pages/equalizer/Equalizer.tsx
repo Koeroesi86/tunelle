@@ -51,8 +51,6 @@ const Equalizer = ({
     });
 
   const setup = () => {
-    if (filters.current.length > 0) return;
-
     filters.current = equalizerBands.map(({ frequency }, index) => {
       const filter = createBiquadFilter();
       filter.type = bandType(index);
@@ -68,7 +66,7 @@ const Equalizer = ({
 
   useEffect(() => {
     onAudioMounted(setup);
-    // the audio context only adds listeners, so this registers once
+    // called again for the nodes of a new audio context, which the old filters cannot join; the same listener is registered once
   }, []);
 
   useEffect(applyGains, [gains]);

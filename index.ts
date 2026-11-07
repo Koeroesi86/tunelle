@@ -173,6 +173,7 @@ const serveApp = () =>
       resolveStream: radio.resolveStream,
       getArt: radioArt.get,
       getLogo: radioLogos.get,
+      onSampleRate: (uuid, sampleRate) => windows.main?.webContents.send('RADIO_STREAM_RATE', { uuid, sampleRate }),
       onTitle: (uuid, title, streamUrl) => {
         windows.main?.webContents.send('RADIO_STREAM_TITLE', { uuid, title });
         radioArt

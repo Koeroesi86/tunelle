@@ -137,6 +137,14 @@ export const useGaplessAudio = ({ currentSong, upNext, activateNode, onEnded, on
     if (shouldPlay) node.play().catch((err) => console.error(err));
   };
 
+  // the elements are made again with a new audio context: the first one plays, none holds a source
+  const reset = () => {
+    cancelHandoff();
+    active.current = 0;
+    loaded.current = [undefined, undefined];
+    swappedTo.current = undefined;
+  };
+
   useEffect(() => cancelHandoff, []);
 
   return {
@@ -145,6 +153,7 @@ export const useGaplessAudio = ({ currentSong, upNext, activateNode, onEnded, on
       elements.current[index] = node;
     },
     elements,
+    reset,
     /** To run after the effect that starts a new current song, as that one takes over a track that the standby element holds already */
     preloadNext,
     isActive,

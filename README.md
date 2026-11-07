@@ -21,6 +21,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [The app data folder](docs/app/user-data.md)
 - [The `tunelle://app` protocol](docs/app/tunelle-protocol.md)
 - [Database migrations](docs/app/migrations.md)
+- [The audio context and the sample rate](docs/app/audio-context.md)
 - [Library queries](docs/app/library-queries.md)
 - [Supported formats](docs/app/supported-formats.md)
 - [The background task queue](docs/app/task-queue.md)

@@ -22,6 +22,8 @@ interface NowPlayingProps {
   currentSong: Track | null;
   streamTitle: string | null;
   streamArt: string | null;
+  /** The sample rate found in the stream of the station that plays */
+  streamSampleRate: number | null;
   isPlaying: boolean;
   /** The station that was played last */
   station?: RadioStation;
@@ -40,6 +42,7 @@ const NowPlaying = ({
   currentSong,
   streamTitle,
   streamArt,
+  streamSampleRate,
   isPlaying,
   station,
   playTrack,
@@ -113,7 +116,11 @@ const NowPlaying = ({
                 <AudioFormatBadge track={shown.track} />
                 <FavouriteButton item={trackFavourite(currentSong, station)} className={style.favourite} />
               </div>
-              {radioUuidOf(currentSong.path) === undefined && <LoudnessPanel path={currentSong.path} duration={currentSong.duration ?? undefined} />}
+              {radioUuidOf(currentSong.path) === undefined ? (
+                <LoudnessPanel path={currentSong.path} duration={currentSong.duration ?? undefined} sampleRate={currentSong.sampleRate ?? undefined} />
+              ) : (
+                <LoudnessPanel sampleRate={streamSampleRate ?? undefined} />
+              )}
             </div>
           </div>
         )}

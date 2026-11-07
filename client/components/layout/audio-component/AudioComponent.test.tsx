@@ -22,6 +22,8 @@ const renderAudio = (currentSong: Track | null, isPlaying = false) =>
       setNormalization={vi.fn()}
       outputDevice={undefined}
       setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+      addOutputChangeListener={vi.fn()}
+      removeOutputChangeListener={vi.fn()}
       upNext={null}
     />
   );
@@ -54,6 +56,8 @@ describe('AudioComponent', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -77,6 +81,8 @@ describe('AudioComponent', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -101,6 +107,8 @@ describe('AudioComponent', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -134,6 +142,8 @@ describe('AudioComponent', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -159,6 +169,8 @@ describe('AudioComponent', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -187,6 +199,8 @@ describe('AudioComponent', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -215,6 +229,8 @@ describe('AudioComponent', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -243,6 +259,8 @@ describe('AudioComponent end of a track', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -275,6 +293,8 @@ describe('AudioComponent end of a track', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -323,6 +343,8 @@ describe('AudioComponent radio reconnect', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -395,6 +417,8 @@ describe('AudioComponent radio reconnect', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -413,6 +437,8 @@ describe('AudioComponent radio reconnect', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -440,6 +466,8 @@ describe('AudioComponent radio reconnect', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -466,6 +494,8 @@ describe('AudioComponent radio reconnect', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -492,6 +522,8 @@ describe('AudioComponent radio reconnect', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -518,6 +550,8 @@ describe('AudioComponent radio reconnect', () => {
         setNormalization={vi.fn()}
         outputDevice={undefined}
         setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
         upNext={null}
       />
     );
@@ -553,6 +587,8 @@ describe('AudioComponent gapless', () => {
       setNormalization={setNormalization}
       outputDevice={undefined}
       setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+      addOutputChangeListener={vi.fn()}
+      removeOutputChangeListener={vi.fn()}
     />
   );
 
@@ -818,6 +854,8 @@ describe('AudioComponent output device', () => {
       setNormalization={vi.fn()}
       outputDevice={dac}
       setOutputDevice={setOutputDevice}
+      addOutputChangeListener={vi.fn()}
+      removeOutputChangeListener={vi.fn()}
       upNext={null}
     />
   );
@@ -838,5 +876,87 @@ describe('AudioComponent output device', () => {
     renderOutput(() => Promise.reject(new Error('gone')));
 
     await waitFor(() => expect(error).toHaveBeenCalled());
+  });
+});
+
+describe('AudioComponent audio context replaced', () => {
+  const file: Track = { ...station, path: '/music/a.flac' };
+
+  const renderPlaying = (currentSong: Track, isPlaying: boolean) => {
+    const listeners = new Set<(resume: { position: number; wasPlaying: boolean }) => void>();
+    const connectNode = vi.fn();
+    const connectStandbyNode = vi.fn();
+    const view = render(
+      <AudioComponent
+        devices={[]}
+        currentSong={currentSong}
+        isPlaying={isPlaying}
+        volume={0.5}
+        trackEnded={vi.fn()}
+        connectNode={connectNode}
+        connectStandbyNode={connectStandbyNode}
+        activateNode={vi.fn()}
+        normalization="album"
+        setNormalization={vi.fn()}
+        outputDevice={undefined}
+        setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={(listener) => listeners.add(listener)}
+        removeOutputChangeListener={(listener) => listeners.delete(listener)}
+        upNext={null}
+      />
+    );
+    const elements = () => Array.from(view.container.querySelectorAll('audio'));
+    const replace = (resume: { position: number; wasPlaying: boolean }) => act(() => listeners.forEach((listener) => listener(resume)));
+    return { view, listeners, connectNode, connectStandbyNode, elements, replace };
+  };
+
+  beforeEach(() => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+  });
+
+  it('makes new elements for the new context, connects them and continues the track where it was', () => {
+    const { elements, replace, connectNode, connectStandbyNode } = renderPlaying(file, true);
+    const before = elements();
+    vi.mocked(HTMLMediaElement.prototype.play).mockClear();
+
+    replace({ position: 42.5, wasPlaying: true });
+
+    const after = elements();
+    expect(after).toHaveLength(2);
+    expect(after.some((node) => before.includes(node))).toBe(false);
+    expect(connectNode).toHaveBeenLastCalledWith(after[0]);
+    expect(connectStandbyNode).toHaveBeenLastCalledWith(after[1]);
+    expect(after[0].getAttribute('src')).toContain(encodeURIComponent('/music/a.flac'));
+    expect(after[0].currentTime).toBe(42.5);
+    expect(after[0].volume).toBe(0.5);
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays paused when it was paused', () => {
+    const { elements, replace } = renderPlaying(file, false);
+    vi.mocked(HTMLMediaElement.prototype.play).mockClear();
+
+    replace({ position: 10, wasPlaying: false });
+
+    expect(elements()[0].getAttribute('src')).toContain(encodeURIComponent('/music/a.flac'));
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+  });
+
+  it('plays a station from the live edge, with no position to go back to', () => {
+    const { elements, replace } = renderPlaying(station, true);
+
+    replace({ position: 300, wasPlaying: true });
+
+    expect(elements()[0].currentTime).toBe(0);
+    expect(elements()[0].getAttribute('src')).toContain('/radio/abc-1');
+  });
+
+  it('stops listening when it goes', () => {
+    const { view, listeners } = renderPlaying(file, false);
+    expect(listeners.size).toBe(1);
+
+    view.unmount();
+
+    expect(listeners.size).toBe(0);
   });
 });
