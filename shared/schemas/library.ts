@@ -7,7 +7,7 @@ export const text = z
   .string()
   .nullable()
   .transform((value) => value ?? '');
-export const textOrNumber = z
+const textOrNumber = z
   .union([z.string(), z.number()])
   .nullable()
   .transform((value) => value ?? '');

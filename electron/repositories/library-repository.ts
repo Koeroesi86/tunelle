@@ -15,7 +15,7 @@ import type {
 } from '@shared/types/library-query';
 import { z } from 'zod';
 import executeQuery from '../database/execute-query';
-import { albumSummarySchema, groupSummarySchema, text, textOrNumber } from '@shared/schemas/library';
+import { albumSummarySchema, groupSummarySchema, trackSchema } from '@shared/schemas/library';
 import { libraryRowSchema } from '../schemas/database/library';
 import { folderRowSchema } from '../schemas/rows';
 import executeQueries from '../database/execute-queries';
@@ -46,28 +46,8 @@ const trackColumns = [
   'lossless',
 ] as const satisfies readonly (keyof Track)[];
 
-// the columns come from the table, the text of a track that has none (NULL) is taken as empty
-const trackListSchema = libraryRowSchema
-  .pick({
-    path: true,
-    artist: true,
-    album: true,
-    title: true,
-    year: true,
-    track: true,
-    disk: true,
-    genre: true,
-    picture: true,
-    duration: true,
-    albumArtist: true,
-    codec: true,
-    bitDepth: true,
-    sampleRate: true,
-    bitrate: true,
-    vbr: true,
-    lossless: true,
-  })
-  .extend({ artist: text, album: text, title: text, genre: text, year: textOrNumber, track: textOrNumber, disk: textOrNumber });
+// a list shows the tags and the format of a track, not the loudness and the size of its file; NULL text is taken as empty
+const trackListSchema = trackSchema.omit({ fileModified: true, fileSize: true, trackGain: true, albumGain: true, trackPeak: true, albumPeak: true });
 
 const formatRowSchema = libraryRowSchema.pick({
   codec: true,
