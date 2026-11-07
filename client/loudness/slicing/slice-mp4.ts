@@ -163,14 +163,17 @@ const framesOf = async (read: ReadRange, samples: Samples, config: AacConfig, fr
   return out;
 };
 
+/** The samples of a span, one by one, from the bytes that were read for it */
+const inSpan = (bytes: Uint8Array, span: Span, samples: Samples) =>
+  Array.from({ length: span.end - span.first }, (_, at) => {
+    const offset = samples.offsets[span.first + at] - span.start;
+    return bytes.subarray(offset, offset + samples.sizes[span.first + at]);
+  });
+
 /** The samples from one to another, one by one, as they are in the file */
 export async function* eachSample(read: ReadRange, samples: Samples, from: number, to: number) {
   for (const span of spansOf(samples, from, to)) {
-    const bytes = await mustRead(read, span.start, span.stop, 'The samples of an MP4 file');
-    for (let index = span.first; index < span.end; index++) {
-      const offset = samples.offsets[index] - span.start;
-      yield bytes.subarray(offset, offset + samples.sizes[index]);
-    }
+    yield* inSpan(await mustRead(read, span.start, span.stop, 'The samples of an MP4 file'), span, samples);
   }
 }
 
