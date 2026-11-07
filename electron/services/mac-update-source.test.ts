@@ -1,7 +1,7 @@
 import { generateKeyPairSync, sign, createHash } from 'crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { spawnSync } from 'child_process';
 import { chmodSync } from 'fs';
@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   app: { getVersion: vi.fn(() => '26.11.1'), getPath: vi.fn(() => ''), quit: vi.fn() },
   commands: [] as { command: string; args: string[] }[],
   answers: { plist: {} as Record<string, string>, archs: 'arm64', failing: undefined as string | undefined },
-  spawn: vi.fn(() => ({ unref: vi.fn() })),
+  spawn: vi.fn((_command: string, _args: string[], _options: object) => ({ unref: vi.fn() })),
 }));
 
 vi.mock('electron', () => ({ app: mocks.app }));
@@ -126,7 +126,9 @@ describe('isSigned', () => {
 
 describe('bundleOf', () => {
   it('goes up from the executable to the bundle', () => {
-    expect(bundleOf('/Applications/Tunelle.app/Contents/MacOS/Tunelle')).toBe('/Applications/Tunelle.app');
+    const bundle = resolve('/Applications', 'Tunelle.app');
+
+    expect(bundleOf(join(bundle, 'Contents', 'MacOS', 'Tunelle'))).toBe(bundle);
   });
 });
 
@@ -265,25 +267,24 @@ describe('the macOS update source', () => {
     source.quitAndInstall();
 
     const installed = join(folder, 'Applications', 'Tunelle.app');
-    expect(mocks.spawn).toHaveBeenCalledWith(
-      '/bin/sh',
-      [
-        '-c',
-        expect.stringContaining('mv "$app" "$backup"'),
-        'sh',
-        `${process.pid}`,
-        installed,
-        join(folder, 'Applications', '.Tunelle-update', 'Tunelle.app'),
-        `${installed}.backup`,
-        join(folder, 'data', 'update-started'),
-        '26.11.2',
-        join(folder, 'data', 'update-failed'),
-        join(folder, 'Applications', '.Tunelle-update'),
-        'TUNELLE_UPDATE_URL=http://localhost:9999/feed/',
-        `TUNELLE_UPDATE_PUBLIC_KEY=${publicKeyBase64}`,
-      ],
-      { detached: true, stdio: 'ignore' }
-    );
+    const [command, args, options] = mocks.spawn.mock.calls[0];
+
+    expect(command).toBe('/bin/sh');
+    expect(options).toEqual({ detached: true, stdio: 'ignore' });
+    expect(args.slice(0, 2)).toEqual(['-c', expect.stringContaining('mv "$app" "$backup"')]);
+    expect(args.slice(2, 11)).toEqual([
+      'sh',
+      `${process.pid}`,
+      installed,
+      join(folder, 'Applications', '.Tunelle-update', 'Tunelle.app'),
+      `${installed}.backup`,
+      join(folder, 'data', 'update-started'),
+      '26.11.2',
+      join(folder, 'data', 'update-failed'),
+      join(folder, 'Applications', '.Tunelle-update'),
+    ]);
+    // the order of the environment depends on the system
+    expect(args.slice(11).sort()).toEqual(['TUNELLE_UPDATE_PUBLIC_KEY=' + publicKeyBase64, 'TUNELLE_UPDATE_URL=http://localhost:9999/feed/']);
     expect(mocks.app.quit).toHaveBeenCalled();
   });
 
