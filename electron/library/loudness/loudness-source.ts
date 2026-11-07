@@ -90,16 +90,21 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   let remaining = 0;
   let off = false;
 
+  /** Whether the measurement is turned off in the saved settings; the queue is told when that changed, as what waits is not counted then */
+  const readOff = async () => {
+    const turnedOff = isOff(await getSettings(database));
+    if (turnedOff === off) return off;
+
+    off = turnedOff;
+    backgroundQueue.refresh();
+    return off;
+  };
+
   const mayRun = async () => {
     // a scan that ended since the rest began may have added tracks, so the rest is over then
     const resting = Date.now() < restUntil && backgroundQueue.idleFor(scanKind) >= Date.now() - (restUntil - restPause);
     if (resting || Date.now() < coolUntil || backgroundQueue.isBusy(scanKind) || backgroundQueue.idleFor(scanKind) < readIdleTime()) return false;
-    const turnedOff = isOff(await getSettings(database));
-    if (turnedOff !== off) {
-      off = turnedOff;
-      backgroundQueue.refresh();
-    }
-    return !powerMonitor.isOnBatteryPower() && !off;
+    return !powerMonitor.isOnBatteryPower() && !(await readOff());
   };
 
   let nextPoolAt = 0;
@@ -198,6 +203,8 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
 
   return {
     status,
+    /** The settings were saved: the count that waits follows the switch at once, not when the source is next asked to run */
+    checkSetting: () => readOff().then(() => undefined),
     /** Starts over from the first track after the measurements were cleared */
     restart: () => {
       cursor = '';

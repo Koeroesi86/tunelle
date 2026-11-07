@@ -633,6 +633,19 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(getLoudnessProgress).not.toHaveBeenCalled();
     });
 
+    it('stops counting the pending tracks as soon as the settings are saved with the measurement off, not when it is next asked to run', async () => {
+      library = [track('/music/a.flac')];
+      register();
+      await loudness.restart();
+      vi.mocked(backgroundQueue.refresh).mockClear();
+
+      vi.mocked(getSettings).mockResolvedValue({ measureLoudness: false });
+      await loudness.checkSetting();
+
+      expect(source.pending?.()).toBe(0);
+      expect(backgroundQueue.refresh).toHaveBeenCalledOnce();
+    });
+
     it('answers on request with what the library holds', async () => {
       library = [track('/music/a.flac')];
       register();
