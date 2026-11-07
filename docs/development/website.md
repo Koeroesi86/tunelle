@@ -15,6 +15,8 @@ The pages are templates, `site/templates/index.html` and `privacy.html`, filled 
 
 To look at it, run `npm run site` and open <http://localhost:4173/> (`node scripts/tooling/serve-site.js <port>` for another port): it serves `site/` with the pages rendered and the latest release written in, and reads the files on every request, so an edit shows after a reload (<http://localhost:4173/hu/> is the Hungarian page).
 
+The install help under the download cards (macOS, Flatpak, AppImage) is a `<details>`; `download.js` opens the one marked `data-for` the visitor's system, closes the other ones and marks it (`.detected`), and a link to a closed one opens it. Without the script they are all open (the AppImage one stays closed).
+
 The install steps are written in [install.md](../install.md) and on the page (in every language), so change them all. Under Settings, Pages, the source has to be **GitHub Actions**.
 
 A change that adds, removes or visibly changes a feature (a page, the player bar, radio, platform support, install steps) updates the matching section of `site/templates/index.html` and the strings of every language in the same pull request, and the screenshots when what they show changed, see [screenshots.md](screenshots.md).

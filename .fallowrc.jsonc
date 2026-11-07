@@ -22,7 +22,8 @@
     "playwright.config.ts",
     "e2e/**/*.spec.ts",
     "e2e/**/*.shots.ts",
-    "e2e/**/*.perf.ts"
+    "e2e/**/*.perf.ts",
+    "e2e/**/*.updater.ts"
   ],
   "ignoreDependencies": [
     // webpack loaders, referenced by name in scripts/tooling/config/webpack.config.base.js

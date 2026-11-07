@@ -135,6 +135,11 @@ jobs:
       - name: Smoke test of the packaged app
         if: runner.os != 'Linux'
         run: npm run smoke:packaged
+      # the own updater of macOS replaces the bundle it runs from: it installs a signed update and refuses the others, on the packaged app of this runner
+      - name: Update test of the packaged app (macOS)
+        if: runner.os == 'macOS'
+        timeout-minutes: 30
+        run: npm run test:updater
       - name: Smoke test of the packaged app (Linux)
         if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum npm run smoke:packaged
