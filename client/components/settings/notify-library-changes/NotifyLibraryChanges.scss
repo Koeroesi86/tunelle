@@ -1,0 +1,13 @@
+@use '../../../styles/settings-tile' as *;
+
+.notifyLibraryChanges {
+  @include tile;
+
+  .sectionTitle {
+    @include tile-title;
+  }
+
+  .description {
+    @include tile-hint;
+  }
+}

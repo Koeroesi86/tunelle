@@ -59,6 +59,8 @@ const initialState: UiState = {
   watchFolders: true,
   measureLoudness: true,
   loudnessStatus: undefined,
+  backgroundTasks: [],
+  notifyLibraryChanges: true,
   openGroup: undefined,
   groupFilter: '',
   libraryFolders: [],
@@ -141,6 +143,10 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, watchFolders: action.payload.enabled };
     case 'SET_MEASURE_LOUDNESS':
       return { ...state, measureLoudness: action.payload.enabled };
+    case 'BACKGROUND_TASKS':
+      return { ...state, backgroundTasks: action.payload.tasks };
+    case 'SET_NOTIFY_LIBRARY_CHANGES':
+      return { ...state, notifyLibraryChanges: action.payload.enabled };
     case 'LOUDNESS_STATUS':
       return { ...state, loudnessStatus: action.payload };
     case 'CLEAR_MEASURED_LOUDNESS':
@@ -337,6 +343,8 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
         ...('watchFolders' in settings && { watchFolders: settings.watchFolders !== false }),
         // only a saved off turns the measurement off
         ...('measureLoudness' in settings && { measureLoudness: settings.measureLoudness !== false }),
+        // only a saved off turns the notifications off
+        ...('notifyLibraryChanges' in settings && { notifyLibraryChanges: settings.notifyLibraryChanges !== false }),
         ...('libraryFolders' in settings && { libraryFolders: parseFolders(settings.libraryFolders) }),
       };
     }

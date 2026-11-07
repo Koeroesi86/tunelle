@@ -55,6 +55,8 @@ const persistedShape = {
   watchFolders: z.boolean(),
   /** Whether the loudness of the tracks without ReplayGain tags is measured in the background (the main process reads it) */
   measureLoudness: z.boolean(),
+  /** Whether a notification tells what a scan changed in the library while the window is in the background (the main process reads it) */
+  notifyLibraryChanges: z.boolean(),
   /** The library folders the local collection is limited to, none is all of them */
   libraryFolders: z.array(z.string()),
   /** The search of the radio stations: the filters and the sort, the page is not saved */

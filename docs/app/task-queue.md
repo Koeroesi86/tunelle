@@ -20,6 +20,10 @@ A running task is not interrupted by a more important one: it ends, and the queu
 - The loudness measurement is a source (`loudness-source.ts`), at priority 1.
 - Picking the colours of the album pictures (`queueAlbumArtAccents`) is a task of the kind `album-art` at priority 2, queued at the end of a scan and run once no scan is going on. A scan no longer waits for it.
 
+## What the window shows
+
+The state of the queue and the notification of a scan that changed the library are in [library-notifications.md](library-notifications.md).
+
 ## Scans and the watching of the folders
 
 The work of the library is queued with `queueTask` (`queue-task.ts`), which answers when the task is over and shares the answer between callers of a key that waits:

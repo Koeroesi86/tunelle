@@ -1,0 +1,36 @@
+import { describe, expect, it } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import QueueIndicator from './QueueIndicator';
+
+describe('QueueIndicator', () => {
+  it('shows nothing while the queue is empty', () => {
+    const { container } = render(<QueueIndicator tasks={[]} />);
+
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('names the task when only one runs', () => {
+    render(<QueueIndicator tasks={[{ kind: 'scan', running: true, waiting: 0 }]} />);
+
+    expect(screen.getAllByText('Scanning the library')).toHaveLength(2);
+    expect(screen.getByText('Running')).toBeTruthy();
+  });
+
+  it('counts the tasks and lists what runs and what waits', () => {
+    render(
+      <QueueIndicator
+        tasks={[
+          { kind: 'scan', running: true, waiting: 0 },
+          { kind: 'loudness', running: true, waiting: 120 },
+          { kind: 'album-art', running: false, waiting: 1 },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('3 tasks')).toBeTruthy();
+    expect(screen.getByRole('tooltip').textContent).toContain('Loudness normalization');
+    expect(screen.getByRole('tooltip').textContent).toContain('Album art colours');
+    expect(screen.getByText('120 waiting')).toBeTruthy();
+    expect(screen.getAllByText('Running')).toHaveLength(2);
+  });
+});

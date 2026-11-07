@@ -18,6 +18,8 @@ import { createLoudnessWindow } from './loudness-window';
 import type { Measurement } from './loudness-window';
 
 const loudnessKind = 'loudness';
+/** The pooling of the gains of the albums is not a track to measure: of its own kind, it is not counted among the tracks that wait or run */
+const poolKind = 'loudness-pool';
 /** Below the scans: what is measured waits for them, and for the user */
 const priority = 1;
 const batchSize = 20;
@@ -86,12 +88,25 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   let reached: TrackToMeasure[] = [];
   let restUntil = 0;
   let coolUntil = 0;
+  // what is left to measure, the track that is measured included, and whether the measurement is turned off, for the state of the queue
+  let remaining = 0;
+  let off = false;
+
+  /** Whether the measurement is turned off in the saved settings; the queue is told when that changed, as what waits is not counted then */
+  const readOff = async () => {
+    const turnedOff = isOff(await getSettings(database));
+    if (turnedOff === off) return off;
+
+    off = turnedOff;
+    backgroundQueue.refresh();
+    return off;
+  };
 
   const mayRun = async () => {
     // a scan that ended since the rest began may have added tracks, so the rest is over then
     const resting = Date.now() < restUntil && backgroundQueue.idleFor(scanKind) >= Date.now() - (restUntil - restPause);
     if (resting || Date.now() < coolUntil || backgroundQueue.isBusy(scanKind) || backgroundQueue.idleFor(scanKind) < readIdleTime()) return false;
-    return !powerMonitor.isOnBatteryPower() && !isOff(await getSettings(database));
+    return !powerMonitor.isOnBatteryPower() && !(await readOff());
   };
 
   let nextPoolAt = 0;
@@ -103,13 +118,20 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
 
   const reportStatus = () => {
     statusAt = Date.now();
-    return status().then(onStatus, (error) => console.error('Reading how far the loudness measurement is failed', error));
+    return status().then(
+      (progress) => {
+        remaining = Math.max(0, progress.total - progress.measured - progress.failed);
+        backgroundQueue.refresh();
+        onStatus(progress);
+      },
+      (error) => console.error('Reading how far the loudness measurement is failed', error)
+    );
   };
 
   /** The gains of the albums follow what was stored: when a track is measured, and at the end of a pass for the tracks a scan added or took away */
   const poolSoon = () =>
     backgroundQueue.enqueue({
-      kind: loudnessKind,
+      kind: poolKind,
       key: poolKey,
       priority,
       canRun: () => !backgroundQueue.isBusy(scanKind) && Date.now() >= nextPoolAt,
@@ -145,6 +167,9 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       if (!result || signal.aborted) return;
 
       await saveTrackLoudness(database, result);
+      // counted down at once: the counts of the library are read at most every 2 s, and the queue shows this number
+      remaining = Math.max(0, remaining - 1);
+      backgroundQueue.refresh();
       poolSoon();
       if (Date.now() - statusAt >= statusPause) await reportStatus();
     };
@@ -172,12 +197,16 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
     return next();
   };
 
-  const removeSource = backgroundQueue.addSource({ kind: loudnessKind, priority, canRun: mayRun, next });
+  // the tracks of a drive that is away stay unmeasured, so nothing is left to wait for while the source rests or the measurement is off
+  const pending = () => (off || Date.now() < restUntil ? 0 : remaining);
+  const removeSource = backgroundQueue.addSource({ kind: loudnessKind, priority, canRun: mayRun, pending, next });
   // what was stored before this start may have changed on its own: a scan added or took away tracks while the app was closed
   poolSoon();
 
   return {
     status,
+    /** The settings were saved: the count that waits follows the switch at once, not when the source is next asked to run */
+    checkSetting: () => readOff().then(() => undefined),
     /** Starts over from the first track after the measurements were cleared */
     restart: () => {
       cursor = '';

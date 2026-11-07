@@ -32,6 +32,7 @@ const registerStateListeners = (context: ListenerContext) => {
     applyThemeMode(settings);
     applyWatchSetting(settings).catch(logError);
     saveSettings(context.database, settings)
+      .then(() => context.loudness.checkSetting())
       .then(() => sendIfAlive(event.sender, 'SETTINGS_SAVED', { settings }))
       .catch(logError);
   });

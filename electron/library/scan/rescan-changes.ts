@@ -8,6 +8,7 @@ import { withoutCovered } from '../watch/library-change';
 import type { Change } from '../watch/library-change';
 import { findMissingTracks } from './missing-tracks';
 import scanFolder from './scan-folder';
+import { recordLibraryChange } from '../changes/library-changes';
 import { mapAsync } from '@shared/utils/map-async';
 import { scanKind } from '../tasks/background-queue';
 import { queueTask, scanPriority } from '../tasks/queue-task';
@@ -47,6 +48,7 @@ async function scanChanges(sender: WebContents, changes: Change[]) {
     );
     missing.forEach((track) => console.log(`Removing non existent ${track.path}`));
     await deleteTracks(database, missing);
+    recordLibraryChange(sender, { removed: missing.length });
     sender.send('RESCAN_COMPLETE', {});
   } catch (e) {
     console.error(e);

@@ -413,6 +413,23 @@ describe('uiState reducer', () => {
       expect(run({ type: 'CLEAR_MEASURED_LOUDNESS', payload: {} }).loudnessStatus).toBeUndefined();
     });
 
+    it('keeps what the background queue runs, which is not saved', () => {
+      const tasks = [{ kind: 'scan' as const, running: true, waiting: 0 }];
+
+      expect(initial.backgroundTasks).toEqual([]);
+      expect(run({ type: 'BACKGROUND_TASKS', payload: { tasks } }).backgroundTasks).toEqual(tasks);
+    });
+
+    it('notifies about the library changes unless it is turned off, and keeps what was saved', () => {
+      const off = run({ type: 'SET_NOTIFY_LIBRARY_CHANGES', payload: { enabled: false } });
+
+      expect(initial.notifyLibraryChanges).toBe(true);
+      expect(off.notifyLibraryChanges).toBe(false);
+      expect(run({ type: 'SET_NOTIFY_LIBRARY_CHANGES', payload: { enabled: true } }, off).notifyLibraryChanges).toBe(true);
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { notifyLibraryChanges: false } } }).notifyLibraryChanges).toBe(false);
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { volume: 0.1 } } }, off).notifyLibraryChanges).toBe(false);
+    });
+
     it('watches the library folders unless it is turned off, and keeps what was saved', () => {
       const off = run({ type: 'SET_WATCH_FOLDERS', payload: { enabled: false } });
 

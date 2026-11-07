@@ -27,7 +27,7 @@ vi.mock('../repositories/settings-repository', () => ({
 }));
 
 describe('registerStateListeners', () => {
-  const context = { database: {} } as ListenerContext;
+  const context = { database: {}, loudness: { checkSetting: vi.fn().mockResolvedValue(undefined) } } as unknown as ListenerContext;
   const send = vi.fn();
   const destroyedSender = { send, isDestroyed: () => true };
 
