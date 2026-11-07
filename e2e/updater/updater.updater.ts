@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { execFileSync, spawn, type ChildProcess } from 'child_process';
 import { createHash, generateKeyPairSync, sign } from 'crypto';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { chmodSync, closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { createServer, type Server } from 'http';
 import type { AddressInfo } from 'net';
 import { tmpdir } from 'os';
@@ -19,7 +19,14 @@ const zipName = `Tunelle-${updateVersion}-${process.arch === 'arm64' ? 'arm64-' 
 const installedVersion = '1.0.0';
 
 const run = (command: string, args: string[]) => execFileSync(command, args, { encoding: 'utf8' }).trim();
-const plistVersion = (bundle: string) => run('plutil', ['-extract', 'CFBundleShortVersionString', 'raw', '-o', '-', join(bundle, 'Contents', 'Info.plist')]);
+// undefined while the bundle is being replaced
+const plistVersion = (bundle: string) => {
+  try {
+    return run('plutil', ['-extract', 'CFBundleShortVersionString', 'raw', '-o', '-', join(bundle, 'Contents', 'Info.plist')]);
+  } catch {
+    return undefined;
+  }
+};
 const executableHash = (bundle: string) =>
   createHash('sha256')
     .update(readFileSync(join(bundle, 'Contents', 'MacOS', 'Tunelle')))
@@ -95,7 +102,9 @@ test.describe('the macOS updater', () => {
     mkdirSync(join(folder, 'data'));
   });
 
-  test.afterEach(async () => {
+  test.afterEach(async ({}, testInfo) => {
+    if (testInfo.status !== testInfo.expectedStatus && existsSync(join(folder, 'app.log')))
+      console.log(`Log of the app:\n${readFileSync(join(folder, 'app.log'), 'utf8')}`);
     app?.kill('SIGKILL');
     // the apps that the swap script opened are not children of the test
     try {
@@ -125,23 +134,29 @@ test.describe('the macOS updater', () => {
 
   const start = (bundle: string) => {
     const { ELECTRON_RUN_AS_NODE, ...inherited } = process.env;
-    app = spawn(join(bundle, 'Contents', 'MacOS', 'Tunelle'), [], {
-      stdio: 'ignore',
+    const log = openSync(join(folder, 'app.log'), 'a');
+    // a profile of its own, or the instance lock of the user data folder of the runner is shared by the tests
+    app = spawn(join(bundle, 'Contents', 'MacOS', 'Tunelle'), [`--user-data-dir=${join(folder, 'user-data')}`], {
+      stdio: ['ignore', log, log],
       env: {
         ...inherited,
         HOME: folder,
-        TUNELLE_APP_DATA: join(folder, 'data'),
+        TUNELLE_APP_DATA: dataParent(),
         TUNELLE_NO_ARTIST_PHOTOS: '1',
         TUNELLE_UPDATE_URL: feed?.url ?? 'http://127.0.0.1:9/',
         TUNELLE_UPDATE_PUBLIC_KEY: publicKey,
       },
     });
+    closeSync(log);
     const exited = new Promise<void>((done) => app?.once('exit', () => done()));
 
     return exited;
   };
 
-  const marker = () => join(folder, 'data', 'update-started');
+  // TUNELLE_APP_DATA is the folder the app data folder (named after the package) is made in
+  const dataParent = () => join(folder, 'data');
+  const appData = (name: string) => join(dataParent(), 'tunelle', name);
+  const marker = () => appData('update-started');
 
   test('installs a signed update, starts it and drops the backup', async () => {
     const zip = makeUpdateBundle(folder);
@@ -163,7 +178,9 @@ test.describe('the macOS updater', () => {
     start(bundle);
 
     // the old app starts again after the script waited for the marker of the new one: it writes the marker, and the version is recorded as failed
-    await expect.poll(() => readFileSync(join(folder, 'data', 'update-failed'), 'utf8').trim(), { timeout: 150_000 }).toBe(updateVersion);
+    await expect
+      .poll(() => (existsSync(appData('update-failed')) ? readFileSync(appData('update-failed'), 'utf8').trim() : undefined), { timeout: 150_000 })
+      .toBe(updateVersion);
     await expect.poll(() => plistVersion(bundle) === installedVersion && existsSync(marker()), { timeout: 150_000 }).toBe(true);
     expect(existsSync(`${bundle}.backup`)).toBe(false);
   });
