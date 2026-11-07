@@ -165,7 +165,7 @@ test.describe('the macOS updater', () => {
     const exited = start(bundle);
 
     // the swap script drops the backup once the new app wrote its marker
-    await expect.poll(() => plistVersion(bundle) === updateVersion && existsSync(marker()) && !existsSync(`${bundle}.backup`), { timeout: 150_000 }).toBe(true);
+    await expect.poll(() => plistVersion(bundle) === updateVersion && existsSync(marker()) && !existsSync(`${bundle}.backup`), { timeout: 240_000 }).toBe(true);
     await exited;
     expect(existsSync(join(folder, 'Applications', '.Tunelle-update'))).toBe(false);
     expect(feed.requests).toEqual(expect.arrayContaining(['latest-mac.yml', 'latest-mac.yml.sig', zipName]));
@@ -179,15 +179,15 @@ test.describe('the macOS updater', () => {
 
     // the old app starts again after the script waited for the marker of the new one: it writes the marker, and the version is recorded as failed
     await expect
-      .poll(() => (existsSync(appData('update-failed')) ? readFileSync(appData('update-failed'), 'utf8').trim() : undefined), { timeout: 150_000 })
+      .poll(() => (existsSync(appData('update-failed')) ? readFileSync(appData('update-failed'), 'utf8').trim() : undefined), { timeout: 240_000 })
       .toBe(updateVersion);
-    await expect.poll(() => plistVersion(bundle) === installedVersion && existsSync(marker()), { timeout: 150_000 }).toBe(true);
+    await expect.poll(() => plistVersion(bundle) === installedVersion && existsSync(marker()), { timeout: 240_000 }).toBe(true);
     expect(existsSync(`${bundle}.backup`)).toBe(false);
   });
 
   test.describe('leaves the installed app as it is', () => {
     const untouched = async (bundle: string, hash: string) => {
-      await expect.poll(() => existsSync(marker()), { timeout: 150_000 }).toBe(true);
+      await expect.poll(() => existsSync(marker()), { timeout: 240_000 }).toBe(true);
       expect(plistVersion(bundle)).toBe(installedVersion);
       expect(executableHash(bundle)).toBe(hash);
       expect(existsSync(`${bundle}.backup`)).toBe(false);

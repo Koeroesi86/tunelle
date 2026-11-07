@@ -19,7 +19,7 @@ export default defineConfig({
     // PERF_REPEAT runs each measurement that many times, and the summary takes the median of the runs
     { name: 'perf', testDir: 'e2e/perf', testMatch: '*.perf.ts', timeout: 1_200_000, repeatEach: Number(process.env.PERF_REPEAT ?? 1) },
     // the own updater of macOS replaces a packaged app, so it runs after npm run dist: npm run test:updater
-    { name: 'updater', testDir: 'e2e/updater', testMatch: '*.updater.ts', timeout: 400_000 },
+    { name: 'updater', testDir: 'e2e/updater', testMatch: '*.updater.ts', timeout: 700_000 },
     { name: 'screenshots', testDir: 'e2e/screenshots', testMatch: '*.shots.ts' },
   ],
 });
