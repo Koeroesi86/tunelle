@@ -56,7 +56,10 @@ test('shows the histogram of the loudness of the song that plays on the now play
   await navigate(page, 'Now playing');
 
   // a sine of half the full scale in both channels is at -6.7 LUFS, and its peak is -6.0 dBFS
-  await expect(page.getByRole('region', { name: 'Loudness of the track' }).getByText('-6.7 LUFS')).toBeVisible();
+  const panel = page.getByRole('region', { name: 'Loudness of the track' });
+  // the number and its unit are shown apart, the unit in the line of the label
+  await expect(panel.getByText('-6.7', { exact: true })).toBeVisible();
+  await expect(panel.getByText('LUFS', { exact: true })).toBeVisible();
   await expect(page.getByRole('img', { name: /^How the loudness of the track is spread/ })).toBeVisible();
 });
 
@@ -75,7 +78,7 @@ test('shows the histogram of a song that is measured while it plays, and levels 
   await expect(panel).toBeHidden();
   expect((await gainsOf(page, path)).trackGain).toBeNull();
 
-  await expect(panel.getByText('-6.7 LUFS')).toBeVisible({ timeout: 90_000 });
+  await expect(panel.getByText('-6.7', { exact: true })).toBeVisible({ timeout: 90_000 });
 
   // the song that plays is levelled by what was measured while it played, the album by default
   await navigate(page, 'Settings');
