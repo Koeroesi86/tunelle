@@ -63,7 +63,9 @@ describe('scanFolder', () => {
   });
 
   it('does not wait between files', async () => {
-    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    // the report of a file reads the clock, which stands still: the files do not wait for one another, whatever the machine takes to read them
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout'] });
+    vi.setSystemTime(1_000_000);
     ['a.mp3', 'b.mp3', 'c.mp3'].forEach((name) => fs.writeFileSync(path.join(root, name), 'not audio'));
 
     try {
@@ -75,14 +77,19 @@ describe('scanFolder', () => {
     expect(scanningFiles().map((file) => file.progress)).toEqual([0, 2]);
   });
 
-  it('tells the window about the files a few times a second, with the first and the last always', async () => {
+  it('tells the window about the files at most every 100 ms, with the first and the last always', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(1_000_000);
     Array.from({ length: 50 }, (_, index) => fs.writeFileSync(path.join(root, `${index}.mp3`), 'not audio'));
 
-    await scanFolder(root, sender);
+    try {
+      await scanFolder(root, sender);
+    } finally {
+      vi.useRealTimers();
+    }
 
-    const progress = scanningFiles().map((file) => file.progress);
-    expect(progress.length).toBeLessThan(50);
-    expect([progress[0], progress.at(-1)]).toEqual([0, 49]);
+    // the clock stands still, so nothing is more than 100 ms after the first
+    expect(scanningFiles().map((file) => file.progress)).toEqual([0, 49]);
   });
 
   it('names the folder at once, before the files are listed', async () => {
