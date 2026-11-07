@@ -86,12 +86,20 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   let reached: TrackToMeasure[] = [];
   let restUntil = 0;
   let coolUntil = 0;
+  // what is left to measure and whether the measurement is turned off, for the state of the queue
+  let remaining = 0;
+  let off = false;
 
   const mayRun = async () => {
     // a scan that ended since the rest began may have added tracks, so the rest is over then
     const resting = Date.now() < restUntil && backgroundQueue.idleFor(scanKind) >= Date.now() - (restUntil - restPause);
     if (resting || Date.now() < coolUntil || backgroundQueue.isBusy(scanKind) || backgroundQueue.idleFor(scanKind) < readIdleTime()) return false;
-    return !powerMonitor.isOnBatteryPower() && !isOff(await getSettings(database));
+    const turnedOff = isOff(await getSettings(database));
+    if (turnedOff !== off) {
+      off = turnedOff;
+      backgroundQueue.refresh();
+    }
+    return !powerMonitor.isOnBatteryPower() && !off;
   };
 
   let nextPoolAt = 0;
@@ -103,7 +111,14 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
 
   const reportStatus = () => {
     statusAt = Date.now();
-    return status().then(onStatus, (error) => console.error('Reading how far the loudness measurement is failed', error));
+    return status().then(
+      (progress) => {
+        remaining = Math.max(0, progress.total - progress.measured - progress.failed);
+        backgroundQueue.refresh();
+        onStatus(progress);
+      },
+      (error) => console.error('Reading how far the loudness measurement is failed', error)
+    );
   };
 
   /** The gains of the albums follow what was stored: when a track is measured, and at the end of a pass for the tracks a scan added or took away */
@@ -172,7 +187,9 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
     return next();
   };
 
-  const removeSource = backgroundQueue.addSource({ kind: loudnessKind, priority, canRun: mayRun, next });
+  // the tracks of a drive that is away stay unmeasured, so nothing is left to wait for while the source rests or the measurement is off
+  const pending = () => (off || Date.now() < restUntil ? 0 : remaining);
+  const removeSource = backgroundQueue.addSource({ kind: loudnessKind, priority, canRun: mayRun, pending, next });
   // what was stored before this start may have changed on its own: a scan added or took away tracks while the app was closed
   poolSoon();
 

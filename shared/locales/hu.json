@@ -336,5 +336,14 @@
   "backgroundTasks.waiting_one": "{count} vár",
   "backgroundTasks.waiting_other": "{count} vár",
   "backgroundTasks.summary_one": "{count} feladat",
-  "backgroundTasks.summary_other": "{count} feladat"
+  "backgroundTasks.summary_other": "{count} feladat",
+  "libraryChanges.summary": "Könyvtár frissítve: {changes}",
+  "libraryChanges.added_one": "{count} szám hozzáadva",
+  "libraryChanges.added_other": "{count} szám hozzáadva",
+  "libraryChanges.updated_one": "{count} szám frissítve",
+  "libraryChanges.updated_other": "{count} szám frissítve",
+  "libraryChanges.removed": "{count} eltávolítva",
+  "notifyLibraryChanges.title": "Könyvtár értesítések",
+  "notifyLibraryChanges.on": "Értesítés jelzi, ha egy átvizsgálás számokat adott hozzá, frissített vagy eltávolított, amíg az ablak a háttérben van. Rákattintva megjelenik az ablak.",
+  "notifyLibraryChanges.off": "Nem kapsz értesítést, ha egy átvizsgálás megváltoztatta a könyvtárat."
 }

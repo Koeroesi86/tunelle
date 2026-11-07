@@ -2,6 +2,7 @@ import type { Album, AlbumSummary, Folder, GroupSummary, Track } from '@shared/t
 import type { Favourite, FavouriteKey, HistoryItem, NewFavourite } from '@shared/types/favourites';
 import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
 import type { LoudnessProgress } from '@shared/types/loudness';
+import type { BackgroundTask } from '@shared/schemas/background-tasks';
 import type { Playlist } from '@shared/types/playlists';
 import type { ThemeMode } from '@shared/types/theme';
 import type { NormalizationMode } from '../audio/loudness';
@@ -45,6 +46,9 @@ export interface UiState extends PersistedSettings {
   groupFilter: string;
   /** How far the measurement of the loudness of the library is, undefined until the main process tells; not saved */
   loudnessStatus: LoudnessProgress | undefined;
+  /** What the background queue of the main process runs and what waits */
+  backgroundTasks: BackgroundTask[];
+  notifyLibraryChanges: boolean;
   /** The app opens on the home screen, the tab is not saved */
   tab: Tab;
   /** The side and the order of the favourites, and whether the equalizer shows its faders; they are kept while the app is open and not saved */
@@ -146,6 +150,8 @@ export type AppAction =
   | PayloadAction<'SET_WATCH_FOLDERS', { enabled: boolean }>
   | PayloadAction<'SET_MEASURE_LOUDNESS', { enabled: boolean }>
   | EmptyAction<'LOAD_LOUDNESS_STATUS'>
+  | PayloadAction<'BACKGROUND_TASKS', { tasks: BackgroundTask[] }>
+  | PayloadAction<'SET_NOTIFY_LIBRARY_CHANGES', { enabled: boolean }>
   | PayloadAction<'LOUDNESS_STATUS', LoudnessProgress>
   | EmptyAction<'CLEAR_MEASURED_LOUDNESS'>
   | EmptyAction<'ARTIST_PHOTOS_READY'>

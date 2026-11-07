@@ -27,7 +27,7 @@ vi.mock('../mounts/mount-guard', () => ({ mountGuard: vi.fn() }));
 // the queue is the one of the app, which the source is put on; the tests ask the source what it would do, and what its tasks do
 vi.mock('../tasks/background-queue', () => ({
   scanKind: 'scan',
-  backgroundQueue: { addSource: vi.fn(), enqueue: vi.fn(), dequeue: vi.fn(), isBusy: vi.fn(), idleFor: vi.fn() },
+  backgroundQueue: { addSource: vi.fn(), enqueue: vi.fn(), dequeue: vi.fn(), isBusy: vi.fn(), idleFor: vi.fn(), refresh: vi.fn() },
 }));
 
 const analysis: LoudnessAnalysis = {
@@ -598,6 +598,24 @@ describe('the measurement of the loudness as a source of the background queue', 
 
       expect(onStatus).toHaveBeenLastCalledWith({ total: 3, measured: 2, failed: 1 });
       expect(onStatus).toHaveBeenCalledTimes(2);
+    });
+
+    it('has the tracks that are not measured pending for the queue, and none while it is off or rests', async () => {
+      library = ['a', 'b', 'c'].map((name) => track(`/music/${name}.flac`));
+      register();
+      await loudness.restart();
+      expect(source.pending?.()).toBe(3);
+      expect(backgroundQueue.refresh).toHaveBeenCalled();
+
+      vi.mocked(getSettings).mockResolvedValue({ measureLoudness: false });
+      await canRun();
+      expect(source.pending?.()).toBe(0);
+
+      vi.mocked(getSettings).mockResolvedValue({ measureLoudness: true });
+      await canRun();
+      expect(source.pending?.()).toBe(3);
+      await drain();
+      expect(source.pending?.()).toBe(0);
     });
 
     it('answers on request with what the library holds', async () => {

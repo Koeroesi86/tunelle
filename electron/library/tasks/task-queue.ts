@@ -19,6 +19,8 @@ export interface TaskSource {
   kind: string;
   priority: number;
   canRun?: () => boolean | Promise<boolean>;
+  /** How many tasks it has that wait, for the state of the queue; its running task is one of them */
+  pending?: () => number;
   /** The next task of the source, undefined when it has none for now */
   next: () => Promise<Pick<Task, 'key' | 'run'> | undefined>;
 }
@@ -39,6 +41,9 @@ export const createTaskQueue = (pause = 2000) => {
   const stopping = new AbortController();
   let running: Promise<void> | undefined;
   let wakeUp: (() => void) | undefined;
+  const listeners = new Set<() => void>();
+
+  const changed = () => listeners.forEach((listener) => listener());
 
   const wake = () => wakeUp?.();
 
@@ -53,11 +58,15 @@ export const createTaskQueue = (pause = 2000) => {
       };
     });
 
-  const enter = (kind: string) => busy.set(kind, (busy.get(kind) ?? 0) + 1);
+  const enter = (kind: string) => {
+    busy.set(kind, (busy.get(kind) ?? 0) + 1);
+    changed();
+  };
 
   const leave = (kind: string) => {
     busy.set(kind, (busy.get(kind) ?? 1) - 1);
     lastEnd.set(kind, Date.now());
+    changed();
   };
 
   const fromQueue = (task: Task): Candidate => ({
@@ -65,6 +74,7 @@ export const createTaskQueue = (pause = 2000) => {
     canRun: task.canRun,
     take: async () => {
       queued.splice(queued.indexOf(task), 1);
+      changed();
       return task;
     },
   });
@@ -130,18 +140,25 @@ export const createTaskQueue = (pause = 2000) => {
       const waiting = queued.findIndex((candidate) => candidate.key === task.key);
       if (waiting === -1) queued.push(task);
       else queued[waiting] = task;
+      changed();
       wake();
     },
     /** Take the waiting task of a key out of the queue; a task that runs is not stopped */
     dequeue: (key: string) => {
       const waiting = queued.findIndex((candidate) => candidate.key === key);
-      if (waiting !== -1) queued.splice(waiting, 1);
+      if (waiting === -1) return;
+      queued.splice(waiting, 1);
+      changed();
     },
     /** Add a supply of tasks; the function that comes back takes it away */
     addSource: (source: TaskSource) => {
       sources.add(source);
+      changed();
       wake();
-      return () => sources.delete(source);
+      return () => {
+        sources.delete(source);
+        changed();
+      };
     },
     /** Work outside the queue has begun (a scan): the kind is busy until the function that comes back is called */
     begin: (kind: string) => {
@@ -153,6 +170,27 @@ export const createTaskQueue = (pause = 2000) => {
         leave(kind);
       };
     },
+    /** The kinds of work that run or wait, running ones first: the tasks that wait and what the sources have left (a source's running task is not counted as waiting) */
+    snapshot: () => {
+      const waitingOf = (kind: string) =>
+        queued.filter((task) => task.kind === kind).length +
+        [...sources]
+          .filter((source) => source.kind === kind)
+          .reduce((sum, source) => sum + Math.max(0, (source.pending?.() ?? 0) - ((busy.get(kind) ?? 0) > 0 ? 1 : 0)), 0);
+      const kinds = [...new Set([...busy.keys(), ...queued.map((task) => task.kind), ...[...sources].map((source) => source.kind)])];
+
+      return kinds
+        .map((kind) => ({ kind, running: (busy.get(kind) ?? 0) > 0, waiting: waitingOf(kind) }))
+        .filter((entry) => entry.running || entry.waiting > 0)
+        .sort((a, b) => Number(b.running) - Number(a.running));
+    },
+    /** Calls the listener when what runs or waits changed; the function that comes back takes it away */
+    onChange: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    /** Tells the listeners that a source has more or less left than before */
+    refresh: changed,
     isBusy: (kind: string) => (busy.get(kind) ?? 0) > 0,
     /** How long the kind has not been busy, 0 while it is; counted from the start of the queue when it has not been */
     idleFor: (kind: string) => ((busy.get(kind) ?? 0) > 0 ? 0 : Date.now() - (lastEnd.get(kind) ?? createdAt)),

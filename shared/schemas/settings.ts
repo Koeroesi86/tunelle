@@ -11,6 +11,7 @@ const mainSettingsSchema = z.object({
     .catch(undefined),
   watchFolders: flag,
   measureLoudness: flag,
+  notifyLibraryChanges: flag,
 });
 
 /** The settings as the main process reads them, every key undefined for anything that is not a settings object */

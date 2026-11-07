@@ -5,6 +5,7 @@ import { deleteTracks, getFolders, getLibrary, saveFolders } from '../../reposit
 import { isInsideFolder, reportOfflineFolders } from '../watch/folder-availability';
 import { mountGuard } from '../mounts/mount-guard';
 import scanFolders from './scan-folders';
+import { recordLibraryChange } from '../changes/library-changes';
 import { queueAlbumArtAccents } from '../art/album-art-accents';
 import { quitSignal } from './scan-cancellation';
 import { findMissingTracks } from './missing-tracks';
@@ -18,7 +19,7 @@ const readModifiedTimes = async (folders: Folder[]) => {
 };
 
 /** The tracks below an offline folder are kept, its files cannot be told from missing ones; the tracks of a format or codec that is not played go too */
-const removeMissingTracks = async (database: Database, offline: string[], folders: string[]) => {
+const removeMissingTracks = async (database: Database, sender: WebContents, offline: string[], folders: string[]) => {
   const tracks = (await getLibrary(database, { sort: undefined, folders: [] })).filter(
     (track) => !offline.some((folderPath) => isInsideFolder(folderPath, track.path))
   );
@@ -28,7 +29,9 @@ const removeMissingTracks = async (database: Database, offline: string[], folder
   missing.forEach((track) => console.log(`Removing non existent ${track.path}`));
   unsupported.forEach((track) => console.log(`Removing unsupported format ${track.path}`));
   console.log(`Removing ${missing.length + unsupported.length} of ${tracks.length} songs`);
-  await deleteTracks(database, [...missing, ...unsupported]);
+  const removed = [...missing, ...unsupported];
+  await deleteTracks(database, removed);
+  recordLibraryChange(sender, { removed: new Set(removed.map((track) => track.path)).size });
 };
 
 /** Scan the changed folders, and remove the tracks that are gone */
@@ -56,6 +59,7 @@ async function scanLibrary(sender: WebContents, forced: boolean) {
     );
     await removeMissingTracks(
       database,
+      sender,
       offline,
       all.map((folder) => folder.path)
     );

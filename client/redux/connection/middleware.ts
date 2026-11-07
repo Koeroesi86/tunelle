@@ -26,6 +26,7 @@ import type { PageKind, PersistedSettings, PlaylistItem, UiState } from '../type
 
 function addListeners(store: Store) {
   onMessage('STORE_FOLDERS', messageSchemas.STORE_FOLDERS, (payload) => store.dispatch({ type: 'STORE_FOLDERS', payload }));
+  onMessage('BACKGROUND_TASKS', messageSchemas.BACKGROUND_TASKS, (payload) => store.dispatch({ type: 'BACKGROUND_TASKS', payload }));
   onMessage('LOUDNESS_STATUS', messageSchemas.LOUDNESS_STATUS, (payload) => store.dispatch({ type: 'LOUDNESS_STATUS', payload }));
   onMessage('OFFLINE_FOLDERS', messageSchemas.OFFLINE_FOLDERS, (payload) => store.dispatch({ type: 'OFFLINE_FOLDERS', payload }));
   onMessage('RESCAN_COMPLETE', emptyMessage, (payload) => store.dispatch({ type: 'RESCAN_COMPLETE', payload }));
@@ -163,6 +164,7 @@ const persistedKeys = [
   'artistPhotos',
   'watchFolders',
   'measureLoudness',
+  'notifyLibraryChanges',
   'libraryFolders',
   'radioQuery',
 ] satisfies (keyof PersistedSettings)[];
@@ -205,6 +207,7 @@ const start = (store: Store) => {
   electronAPI.send('FAVOURITES_LOAD');
   electronAPI.send('HISTORY_LOAD');
   electronAPI.send('PLAYLISTS_LOAD');
+  electronAPI.send('BACKGROUND_TASKS_LOAD');
 
   setInterval(() => {
     if (store.getState().uiState.totalCount === 0) rescanLibrary(false);
@@ -244,6 +247,7 @@ const handleActions = actionMiddleware((store) => [
   }),
   onAction('SET_WATCH_FOLDERS', ({ payload }) => saveSettings({ ...store.getState().uiState, watchFolders: payload.enabled })),
   onAction('SET_MEASURE_LOUDNESS', ({ payload }) => saveSettings({ ...store.getState().uiState, measureLoudness: payload.enabled })),
+  onAction('SET_NOTIFY_LIBRARY_CHANGES', ({ payload }) => saveSettings({ ...store.getState().uiState, notifyLibraryChanges: payload.enabled })),
   onAction('LOAD_LOUDNESS_STATUS', () => electronAPI.send('LOUDNESS_STATUS_LOAD')),
   onAction('CLEAR_MEASURED_LOUDNESS', () => electronAPI.send('LOUDNESS_CLEAR')),
   onAction('LOAD_LIBRARY_PAGE', ({ payload }) => void loadPage(store, payload.kind, payload.page)),

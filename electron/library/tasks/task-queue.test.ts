@@ -39,6 +39,57 @@ describe('createTaskQueue', () => {
     vi.restoreAllMocks();
   });
 
+  describe('what it tells', () => {
+    it('lists the kinds that run and wait, the running one first, and what a source has pending but its running task', async () => {
+      const queue = createTaskQueue(pause);
+      const running = deferred();
+      queue.addSource({ kind: 'source', priority: 0, canRun: () => false, pending: () => 5, next: async () => undefined });
+      queue.enqueue(task('later', 1, record('later'), { kind: 'later', canRun: () => false }));
+      queue.enqueue(task('slow', 9, () => running.promise, { kind: 'slow' }));
+      queue.start();
+      await settle();
+
+      expect(queue.snapshot()).toEqual([
+        { kind: 'slow', running: true, waiting: 0 },
+        { kind: 'later', running: false, waiting: 1 },
+        { kind: 'source', running: false, waiting: 5 },
+      ]);
+
+      running.finish();
+      await settle();
+      await queue.stop();
+    });
+
+    it('lists nothing when nothing runs or waits', () => {
+      const queue = createTaskQueue(pause);
+      queue.addSource({ kind: 'source', priority: 0, pending: () => 0, next: async () => undefined });
+
+      expect(queue.snapshot()).toEqual([]);
+    });
+
+    it('calls the listener when a task is added, starts, ends or is taken out, and a source says it changed, until it is taken away', async () => {
+      const queue = createTaskQueue(pause);
+      const listener = vi.fn();
+      const remove = queue.onChange(listener);
+
+      queue.enqueue(task('a', 1, record('a'), { canRun: () => false }));
+      expect(listener).toHaveBeenCalledTimes(1);
+      queue.dequeue('a');
+      expect(listener).toHaveBeenCalledTimes(2);
+      queue.dequeue('a');
+      expect(listener).toHaveBeenCalledTimes(2);
+      queue.refresh();
+      expect(listener).toHaveBeenCalledTimes(3);
+      const end = queue.begin('scan');
+      end();
+      expect(listener).toHaveBeenCalledTimes(5);
+
+      remove();
+      queue.refresh();
+      expect(listener).toHaveBeenCalledTimes(5);
+    });
+  });
+
   describe('the order', () => {
     it('runs the most important task first and the ones of the same priority in the order they came', async () => {
       const queue = createTaskQueue(pause);

@@ -21,13 +21,16 @@ describe('QueueIndicator', () => {
       <QueueIndicator
         tasks={[
           { kind: 'scan', running: true, waiting: 0 },
-          { kind: 'loudness', running: false, waiting: 120 },
+          { kind: 'loudness', running: true, waiting: 120 },
+          { kind: 'album-art', running: false, waiting: 1 },
         ]}
       />
     );
 
-    expect(screen.getByText('2 tasks')).toBeTruthy();
+    expect(screen.getByText('3 tasks')).toBeTruthy();
     expect(screen.getByRole('tooltip').textContent).toContain('Loudness normalization');
+    expect(screen.getByRole('tooltip').textContent).toContain('Album art colours');
     expect(screen.getByText('120 waiting')).toBeTruthy();
+    expect(screen.getAllByText('Running')).toHaveLength(2);
   });
 });

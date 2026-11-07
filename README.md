@@ -26,6 +26,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [Supported formats](docs/app/supported-formats.md)
 - [The background task queue](docs/app/task-queue.md)
 - [Loudness measurement](docs/app/loudness-measurement.md)
+- [Library notifications](docs/app/library-notifications.md)
 - [Calls on the library folders](docs/app/mount-guard.md)
 - [The AppImage launcher entry](docs/app/appimage-launcher.md)
 - [The Flatpak repository](docs/release/flatpak-repository.md)

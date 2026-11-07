@@ -5,6 +5,7 @@ import type { Database } from 'sqlite3';
 import type { WebContents } from 'electron';
 import type { Track } from '@shared/types/library';
 import { addTracks, readBatchSize } from './add-tracks';
+import { recordLibraryChange } from '../changes/library-changes';
 import { queueAlbumArtAccents } from '../art/album-art-accents';
 import { createTrackReader, ReadTimeoutError } from '../reading/track-reader';
 import { getTracksInside } from '../../repositories/library-repository';
@@ -63,7 +64,7 @@ const createProgressReporter = (sender: WebContents, folderPath: string, totalCo
 const updateInterval = 2000;
 
 /** Collects the tracks to store and writes them a batch at a time; a batch that cannot be written is stored track by track, so one bad track does not take the others with it */
-const createBatchWriter = (database: Database, sender: WebContents, size: number, signal: AbortSignal) => {
+const createBatchWriter = (database: Database, sender: WebContents, size: number, signal: AbortSignal, isKnown: (trackPath: string) => boolean) => {
   let batch: Track[] = [];
   let updatedAt = 0;
 
@@ -72,10 +73,23 @@ const createBatchWriter = (database: Database, sender: WebContents, size: number
     signal.throwIfAborted();
     const tracks = batch;
     batch = [];
-    await addTracks(database, tracks).catch((error) => {
-      console.error('Storing a batch of tracks failed, storing them one by one', error);
-      return mapAsync(tracks, (track) => addTracks(database, [track]).catch((trackError) => console.error(track.path, trackError)));
-    });
+    const stored = await addTracks(database, tracks).then(
+      () => tracks,
+      (error) => {
+        console.error('Storing a batch of tracks failed, storing them one by one', error);
+        return mapAsync(tracks, (track) =>
+          addTracks(database, [track]).then(
+            () => [track],
+            (trackError) => {
+              console.error(track.path, trackError);
+              return [];
+            }
+          )
+        ).then((results) => results.flat());
+      }
+    );
+    const updated = stored.filter((track) => isKnown(track.path)).length;
+    recordLibraryChange(sender, { added: stored.length - updated, updated });
 
     // the lists on the screen show what is stored while the scan goes on, not only at its end
     if (Date.now() - updatedAt < updateInterval) return;
@@ -102,7 +116,7 @@ const scanFiles = async (folderPath: string, sender: WebContents, deep: boolean,
   const existingTracks = new Map(library.map((track) => [track.path, track]));
   const report = createProgressReporter(sender, folderPath, files.length);
   const reader = createTrackReader();
-  const writer = createBatchWriter(database, sender, readBatchSize(), signal);
+  const writer = createBatchWriter(database, sender, readBatchSize(), signal, (trackPath) => existingTracks.has(trackPath));
 
   // the stat is taken before the read: a file that changes meanwhile differs from it at the next scan, and is read again
   const scanChangedFile = async (fileName: string, timeout: number) => {

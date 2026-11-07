@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { backgroundTasksSchema } from './background-tasks';
 import { loudnessProgressSchema } from './loudness';
 import { radioOptionKindSchema, radioOptionSchema, radioStationSchema, radioTagSchema } from './radio';
 import { updateStateSchema } from './update';
@@ -19,6 +20,7 @@ export const messageSchemas = {
   FOLDERS_ADDED_TO_LIBRARY: z.object({ folders: z.array(folderSchema) }),
   OFFLINE_FOLDERS: z.object({ folders: z.array(z.string()) }),
   LOUDNESS_STATUS: loudnessProgressSchema,
+  BACKGROUND_TASKS: backgroundTasksSchema,
   MAXIMIZED_APP: z.object({ maximized: z.boolean() }),
   SET_PLAYING: z.object({ isPlaying: z.boolean() }),
   LAUNCHER_STATE: z.object({ available: z.boolean(), enabled: z.boolean(), offered: z.boolean(), external: z.boolean() }),

@@ -1,31 +1,27 @@
 import type { MessageKey } from '@shared/locales/translate';
+import type { BackgroundTask } from '@shared/schemas/background-tasks';
 import { useTranslation } from '../../../i18n';
 import style from './QueueIndicator.scss';
 
-export type QueueTaskKind = 'scan' | 'watch' | 'loudness' | 'albumArt';
-
-export interface QueueTask {
-  kind: QueueTaskKind;
-  running: boolean;
-  waiting: number;
-}
-
 interface QueueIndicatorProps {
-  tasks?: QueueTask[];
+  tasks?: BackgroundTask[];
 }
 
-const labels: Record<QueueTaskKind, MessageKey> = {
+const labels: Record<BackgroundTask['kind'], MessageKey> = {
   scan: 'backgroundTasks.scan',
   watch: 'backgroundTasks.watch',
   loudness: 'backgroundTasks.loudness',
-  albumArt: 'backgroundTasks.albumArt',
+  'album-art': 'backgroundTasks.albumArt',
 };
 
 /** A pill in the title bar while the background queue has work; hovering or focusing it lists the tasks that run and wait */
 function QueueIndicator({ tasks = [] }: QueueIndicatorProps) {
   const { t } = useTranslation();
-  const label = (task: QueueTask) => t(labels[task.kind]);
-  const state = (task: QueueTask) => (task.running ? t('backgroundTasks.running') : t('backgroundTasks.waiting', { count: task.waiting }));
+  const label = (task: BackgroundTask) => t(labels[task.kind]);
+  const states = (task: BackgroundTask) => [
+    task.running && t('backgroundTasks.running'),
+    task.waiting > 0 && t('backgroundTasks.waiting', { count: task.waiting }),
+  ];
 
   if (tasks.length === 0) {
     return null;
@@ -43,7 +39,14 @@ function QueueIndicator({ tasks = [] }: QueueIndicatorProps) {
           <div key={task.kind} className={style.row}>
             <span className={task.running ? style.spinner : style.idle} aria-hidden="true" />
             <span className={style.name}>{label(task)}</span>
-            <span className={task.running ? style.running : style.waiting}>{state(task)}</span>
+            {states(task).map(
+              (text, index) =>
+                text && (
+                  <span key={text} className={index === 0 ? style.running : style.waiting}>
+                    {text}
+                  </span>
+                )
+            )}
           </div>
         ))}
       </div>

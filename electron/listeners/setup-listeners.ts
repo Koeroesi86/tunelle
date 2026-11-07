@@ -15,6 +15,7 @@ import registerLauncherListeners from './register-launcher-listeners';
 import registerUpdateListeners from './register-update-listeners';
 import registerArtistPhotoListeners from './register-artist-photo-listeners';
 import registerLoudnessListeners from './register-loudness-listeners';
+import registerBackgroundTaskListeners from './register-background-task-listeners';
 import registerMprisListeners from './register-mpris-listeners';
 import registerMediaPermission from '../windows/media-permission';
 
@@ -31,6 +32,7 @@ const registrars: ((context: ListenerContext) => void)[] = [
   registerUpdateListeners,
   registerArtistPhotoListeners,
   registerLoudnessListeners,
+  registerBackgroundTaskListeners,
   registerMprisListeners,
   registerMediaPermission,
 ];
