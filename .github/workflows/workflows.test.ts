@@ -204,6 +204,22 @@ describe('workflows', () => {
     expect(text).toMatch(/\n  site:\n\s+needs: release\n/);
   });
 
+  it('release.yml signs the macOS update file after the merge and before the upload, in the environment that holds the key', () => {
+    const text = read('release.yml');
+
+    expect(text).toMatch(/\n  release:\n[\s\S]*?\n    environment: release\n/);
+    expect(text.indexOf('merge-update-files.js')).toBeLessThan(text.indexOf('update-signature.js sign dist/latest-mac.yml'));
+    expect(text.indexOf('update-signature.js sign dist/latest-mac.yml')).toBeLessThan(text.indexOf('uses: softprops/action-gh-release'));
+    expect(text).toContain('UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}');
+  });
+
+  it('dist.yml runs the update test of the macOS app after the smoke test of the packaged app', () => {
+    const text = read('dist.yml');
+
+    expect(text).toMatch(/- name: Update test of the packaged app \(macOS\)\n\s+if: runner\.os == 'macOS'\n[\s\S]*?run: npm run test:updater/);
+    expect(text.indexOf('npm run smoke:packaged')).toBeLessThan(text.indexOf('npm run test:updater'));
+  });
+
   it('pr-checks.yml runs the perf measurements, which master does not require', () => {
     const text = read('pr-checks.yml');
 

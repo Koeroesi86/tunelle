@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const updateUnavailableReasonSchema = z.enum(['am', 'development', 'disabled', 'flatpak', 'managed', 'readonly', 'store']);
+const updateUnavailableReasonSchema = z.enum(['am', 'development', 'disabled', 'flatpak', 'macReadonly', 'managed', 'readonly', 'store', 'translocated']);
 
 const updateStatusSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('idle') }),
