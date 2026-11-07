@@ -2,6 +2,7 @@ import type { MeasureResult } from '@shared/types/loudness';
 import { measureBlocks } from './block-energies';
 import { measurementRate } from './k-weighting';
 import { measureSliced } from './measure-sliced';
+import { measureWebCodecs } from './measure-webcodecs';
 import { readBody } from './read-body';
 import { summarise } from './summarise';
 
@@ -26,7 +27,8 @@ const decode = (bytes: ArrayBuffer) =>
  */
 export const measureTrack = async (id: number, path: string, duration: number | undefined, progress: () => void): Promise<MeasureResult> => {
   const sliced = (duration ?? 0) > slicedFromSeconds ? await measureSliced(id, trackUrl(path), duration, decode, progress) : undefined;
-  if (sliced && (sliced.outcome !== 'too-large' || (duration ?? 0) > wholeFileSeconds)) return sliced;
+  if (sliced?.outcome === 'too-large' && (duration ?? 0) > wholeFileSeconds) return (await measureWebCodecs(id, trackUrl(path), progress)) ?? sliced;
+  if (sliced && sliced.outcome !== 'too-large') return sliced;
 
   const response = await fetch(trackUrl(path)).then(
     (answer) => (answer.ok ? answer : undefined),
