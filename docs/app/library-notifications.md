@@ -6,7 +6,7 @@ The title bar shows a pill while the [background queue](task-queue.md) has work.
 
 The queue tells its state with `snapshot()` (`task-queue.ts`): for each kind whether a task of it runs and how many wait. A source adds what it has left with `pending()`, and says so with `refresh()` when that changed; the loudness source counts the tracks that are not measured, and none while the measurement is off or rests (the tracks of a drive that is away stay unmeasured for good).
 
-`register-background-task-listeners.ts` sends the state to the window as the message `BACKGROUND_TASKS` (schema in `shared/schemas/background-tasks.ts`) at most every 250 ms and only when it changed, and answers `BACKGROUND_TASKS_LOAD` with it when the window starts. It is a message and not a route of the [protocol](tunelle-protocol.md), as the state changes by itself and the other status of the main process (`LOUDNESS_STATUS`, the progress of a scan) travels the same way. The kinds that the window does not name are left out.
+`register-background-task-listeners.ts` sends the state to the window as the message `BACKGROUND_TASKS` (schema in `shared/schemas/background-tasks.ts`) at most every 250 ms and only when it changed, and answers `BACKGROUND_TASKS_LOAD` with it when the window starts. It is a message and not a route of the [protocol](tunelle-protocol.md), as the state changes by itself and the other status of the main process (`LOUDNESS_STATUS`, the progress of a scan) travels the same way. The kinds that the window does not name are left out; the pooling of the album gains (`loudness-pool`) is one of them, so it is not counted among the tracks that wait or run.
 
 ## The notification
 

@@ -18,6 +18,8 @@ import { createLoudnessWindow } from './loudness-window';
 import type { Measurement } from './loudness-window';
 
 const loudnessKind = 'loudness';
+/** The pooling of the gains of the albums is not a track to measure: of its own kind, it is not counted among the tracks that wait or run */
+const poolKind = 'loudness-pool';
 /** Below the scans: what is measured waits for them, and for the user */
 const priority = 1;
 const batchSize = 20;
@@ -129,7 +131,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   /** The gains of the albums follow what was stored: when a track is measured, and at the end of a pass for the tracks a scan added or took away */
   const poolSoon = () =>
     backgroundQueue.enqueue({
-      kind: loudnessKind,
+      kind: poolKind,
       key: poolKey,
       priority,
       canRun: () => !backgroundQueue.isBusy(scanKind) && Date.now() >= nextPoolAt,

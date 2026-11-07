@@ -515,7 +515,7 @@ describe('the measurement of the loudness as a source of the background queue', 
     it('are pooled once for what was stored before the start, which a scan may have changed', async () => {
       register();
 
-      expect(pooling()).toEqual([expect.objectContaining({ kind: 'loudness', key: 'album-gains', priority: 1 })]);
+      expect(pooling()).toEqual([expect.objectContaining({ kind: 'loudness-pool', key: 'album-gains', priority: 1 })]);
       await lastPooling().run(signal);
       expect(poolAlbumGains).toHaveBeenCalledWith(database, signal);
     });
