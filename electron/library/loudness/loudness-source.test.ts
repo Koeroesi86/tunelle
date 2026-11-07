@@ -618,6 +618,21 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(source.pending?.()).toBe(0);
     });
 
+    it('counts the pending tracks down as each is stored, without waiting for the counts of the library', async () => {
+      library = ['a', 'b', 'c'].map((name) => track(`/music/${name}.flac`));
+      register();
+      await loudness.restart();
+      vi.mocked(backgroundQueue.refresh).mockClear();
+      vi.mocked(getLoudnessProgress).mockClear();
+
+      const first = await source.next();
+      await first?.run(signal);
+
+      expect(source.pending?.()).toBe(2);
+      expect(backgroundQueue.refresh).toHaveBeenCalled();
+      expect(getLoudnessProgress).not.toHaveBeenCalled();
+    });
+
     it('answers on request with what the library holds', async () => {
       library = [track('/music/a.flac')];
       register();

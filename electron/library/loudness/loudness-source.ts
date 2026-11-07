@@ -86,7 +86,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   let reached: TrackToMeasure[] = [];
   let restUntil = 0;
   let coolUntil = 0;
-  // what is left to measure and whether the measurement is turned off, for the state of the queue
+  // what is left to measure, the track that is measured included, and whether the measurement is turned off, for the state of the queue
   let remaining = 0;
   let off = false;
 
@@ -160,6 +160,9 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       if (!result || signal.aborted) return;
 
       await saveTrackLoudness(database, result);
+      // counted down at once: the counts of the library are read at most every 2 s, and the queue shows this number
+      remaining = Math.max(0, remaining - 1);
+      backgroundQueue.refresh();
       poolSoon();
       if (Date.now() - statusAt >= statusPause) await reportStatus();
     };
