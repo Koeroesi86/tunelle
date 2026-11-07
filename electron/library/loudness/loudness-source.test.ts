@@ -32,7 +32,7 @@ vi.mock('../mounts/mount-guard', () => ({ mountGuard: vi.fn() }));
 // the queue is the one of the app, which the source is put on; the tests ask the source what it would do, and what its tasks do
 vi.mock('../tasks/background-queue', () => ({
   scanKind: 'scan',
-  backgroundQueue: { addSource: vi.fn(), enqueue: vi.fn(), dequeue: vi.fn(), isBusy: vi.fn(), idleFor: vi.fn(), refresh: vi.fn() },
+  backgroundQueue: { addSource: vi.fn(), enqueue: vi.fn(), dequeue: vi.fn(), isBusy: vi.fn(), idleFor: vi.fn(), refresh: vi.fn(), onChange: vi.fn() },
 }));
 
 const analysis: LoudnessAnalysis = {
@@ -67,6 +67,7 @@ describe('the measurement of the loudness as a source of the background queue', 
   let isReadable: Mock<(mount: string, file: string) => Promise<boolean>>;
   let onStatus: Mock<(status: LoudnessProgress) => void>;
   let removeSource: Mock<() => boolean>;
+  let stopWatching: Mock<() => boolean>;
   let source: TaskSource;
   let loudness: ReturnType<typeof registerLoudness>;
   /** What the library holds to be measured, and what was stored: a track that was stored is not asked for again, as the query leaves it out */
@@ -96,6 +97,7 @@ describe('the measurement of the loudness as a source of the background queue', 
     measure = vi.fn<(path: string, duration?: number) => Promise<Measurement>>().mockResolvedValue(measured);
     close = vi.fn<() => void>();
     removeSource = vi.fn<() => boolean>().mockReturnValue(true);
+    stopWatching = vi.fn<() => boolean>().mockReturnValue(true);
     onStatus = vi.fn<(status: LoudnessProgress) => void>();
     vi.mocked(createLoudnessWindow).mockReturnValue({ measure, close });
     isReadable = vi.fn<(mount: string, file: string) => Promise<boolean>>().mockResolvedValue(true);
@@ -108,6 +110,7 @@ describe('the measurement of the loudness as a source of the background queue', 
     });
     vi.mocked(backgroundQueue.addSource).mockReset().mockReturnValue(removeSource);
     vi.mocked(backgroundQueue.isBusy).mockReset().mockReturnValue(false);
+    vi.mocked(backgroundQueue.onChange).mockReset().mockReturnValue(stopWatching);
     vi.mocked(backgroundQueue.idleFor).mockReset().mockReturnValue(idle);
     vi.mocked(powerMonitor.isOnBatteryPower).mockReturnValue(false);
     vi.mocked(findTracksToMeasure)
@@ -754,11 +757,47 @@ describe('the measurement of the loudness as a source of the background queue', 
     });
   });
 
+  describe('the end of a scan', () => {
+    const scanChange = () => {
+      const listener = vi.mocked(backgroundQueue.onChange).mock.calls.at(-1)?.[0];
+      if (!listener) throw new Error('The queue is not watched');
+      return listener;
+    };
+    const waitForStatus = () => vi.waitFor(() => expect(onStatus).toHaveBeenCalled());
+
+    it('tells the settings how far the measurement is, as tracks were added or taken away', async () => {
+      vi.mocked(getLoudnessProgress).mockResolvedValue({ total: 5, measured: 0, failed: 0 });
+      register();
+      onStatus.mockClear();
+
+      vi.mocked(backgroundQueue.isBusy).mockReturnValue(true);
+      scanChange()();
+      expect(onStatus).not.toHaveBeenCalled();
+
+      vi.mocked(backgroundQueue.isBusy).mockReturnValue(false);
+      scanChange()();
+      await waitForStatus();
+
+      expect(onStatus).toHaveBeenCalledExactlyOnceWith({ total: 5, measured: 0, failed: 0 });
+    });
+
+    it('is not a reason to tell them when no scan ran', () => {
+      register();
+      onStatus.mockClear();
+
+      scanChange()();
+      scanChange()();
+
+      expect(onStatus).not.toHaveBeenCalled();
+    });
+  });
+
   it('takes itself off the queue, takes its pooling off it and closes its window and the checks of the drives when it stops', () => {
     register();
     loudness.stop();
 
     expect(removeSource).toHaveBeenCalledTimes(1);
+    expect(stopWatching).toHaveBeenCalledTimes(1);
     expect(backgroundQueue.dequeue).toHaveBeenCalledWith('album-gains');
     expect(close).toHaveBeenCalledTimes(1);
   });

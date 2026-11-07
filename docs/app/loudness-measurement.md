@@ -79,7 +79,7 @@ Every format in the list of supported formats is cut, except the variants of it 
 
 The tile "Measure loudness" (`client/components/settings/measure-loudness/`) has the switch (`measureLoudness`, saved with the other settings and read by the main process before each track), the progress and "Clear measured values".
 
-- The progress is `LoudnessProgress` (`shared/types/loudness.d.ts`): the tracks, those with a measurement of the file as it is, and those that could not be measured (`getLoudnessProgress`). The tile asks for it (`LOUDNESS_STATUS_LOAD`) when it opens and when the switch changes, and the main process sends it (`LOUDNESS_STATUS`) at most every 2 s while it measures, at the end of a pass and after a clear.
+- The progress is `LoudnessProgress` (`shared/types/loudness.d.ts`): the tracks, those with a measurement of the file as it is, and those that could not be measured (`getLoudnessProgress`). The tile asks for it (`LOUDNESS_STATUS_LOAD`) when it opens and when the switch changes, and the main process sends it (`LOUDNESS_STATUS`) at most every 2 s while it measures, at the end of a pass, after a clear, and when a scan ends (it may have added or taken away tracks, and the count would stay stale until the next measurement).
 - "Clear measured values" (`LOUDNESS_CLEAR`) deletes every row of `track_loudness`, including the pooled album gains, and starts the measurement again from the first track (`restart`); with the switch off the tracks stay unmeasured and play at their tag gains.
 
 ## Not built yet
