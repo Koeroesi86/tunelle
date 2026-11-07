@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { maxPrioritisedTracks } from '../constants/loudness';
 
 // what the page asks of the main process, by the shape of the message; a message of the wrong shape is dropped (electron/utils/parse-payload.ts)
 // the readers that never refuse (the `catch`) are for messages where a part that is wrong is left out and the rest is done
@@ -20,6 +21,9 @@ export const rescanRequestSchema = z
   .object({ forced: z.literal(true) })
   .transform(() => true)
   .catch(false);
+
+/** The tracks that were queued or started: measured before the rest of the library, the first ones only */
+export const prioritiseLoudnessSchema = z.object({ paths: z.array(z.string()).transform((paths) => paths.slice(0, maxPrioritisedTracks)) });
 
 /** A switch in the settings: the launcher entry, the automatic updates */
 export const enabledRequestSchema = z.object({ enabled: z.boolean() });

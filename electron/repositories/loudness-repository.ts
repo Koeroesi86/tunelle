@@ -66,6 +66,22 @@ export const findTracksToMeasure = (database: Database, afterPath: string, limit
     trackToMeasureRowSchema
   );
 
+/** The given tracks of the library that have no measurement to go by, by the same rule as `findTracksToMeasure` */
+export const findTracksToMeasureAmong = (database: Database, paths: string[], version: number) =>
+  paths.length === 0
+    ? Promise.resolve([])
+    : executeQuery(
+        database,
+        {
+          query: `SELECT library.path, library.duration, library.fileModified, library.fileSize, library.trackGain, library.trackPeak
+      FROM library LEFT JOIN track_loudness ON track_loudness.path = library.path
+      WHERE library.path IN (${paths.map(() => '?').join(', ')}) AND (track_loudness.path IS NULL OR track_loudness.analysisVersion != ?
+        OR track_loudness.fileModified IS NOT library.fileModified OR track_loudness.fileSize IS NOT library.fileSize)`,
+          variables: [...paths, version],
+        },
+        trackToMeasureRowSchema
+      );
+
 // a track has its analysis when its row is a measurement of the file as it is, of the version asked for
 const hasAnalysis = `track_loudness.status = 'measured' AND track_loudness.analysisVersion = ?
   AND track_loudness.fileModified IS library.fileModified AND track_loudness.fileSize IS library.fileSize`;

@@ -3,7 +3,7 @@ import type { Database } from 'sqlite3';
 import type { Track } from '@shared/types/library';
 import type { LoudnessAnalysis, TrackLoudness } from '@shared/types/loudness';
 import { deleteTracks, deleteTracksInside, findTrackFormat, getAlbumTrackList, getTrackList, getTrackPage } from './library-repository';
-import { findLoudnessAnalysis, findTracksToMeasure, saveTrackLoudness } from './loudness-repository';
+import { findLoudnessAnalysis, findTracksToMeasure, findTracksToMeasureAmong, saveTrackLoudness } from './loudness-repository';
 import addTrack from '../library/scan/add-track';
 import executeQuery from '../database/execute-query';
 import { createTestDatabase } from '../test-database';
@@ -168,6 +168,18 @@ describe('loudnessRepository', () => {
       const found = await Promise.all(['failed', 'stale', 'old', 'gone'].map((name) => findLoudnessAnalysis(database, `/music/${name}.flac`, 1)));
 
       expect(found).toEqual([undefined, undefined, undefined, undefined]);
+    });
+  });
+
+  describe('the tracks to measure among some', () => {
+    it('are those of the given paths that have no measurement as the file is now, and none for no paths or paths that are not in the library', async () => {
+      await Promise.all(['/music/ok.flac', '/music/new.flac', '/music/other.flac'].map((path) => addTrack(database, track(path))));
+      await saveTrackLoudness(database, measured('/music/ok.flac'));
+
+      const among = async (paths: string[]) => (await findTracksToMeasureAmong(database, paths, 1)).map((found) => found.path);
+
+      expect(await among(['/music/ok.flac', '/music/new.flac', '/music/missing.flac'])).toEqual(['/music/new.flac']);
+      expect(await among([])).toEqual([]);
     });
   });
 

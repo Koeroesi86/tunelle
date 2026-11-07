@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addedFilesSchema, artistNamesSchema, enabledRequestSchema, rescanRequestSchema, savedSettingsSchema } from './requests';
+import { addedFilesSchema, artistNamesSchema, enabledRequestSchema, prioritiseLoudnessSchema, rescanRequestSchema, savedSettingsSchema } from './requests';
 import { readMainSettings } from './settings';
 import { loudnessAnalysisSchema, measureResultSchema } from './loudness';
 import { messageSchemas } from './messages';
@@ -8,6 +8,14 @@ describe('requests', () => {
   it('keeps the dropped files that have a path and a time', () => {
     expect(addedFilesSchema.parse([{ path: '/a', lastModified: 1, name: 'a' }, { path: '/b' }, 'x', null])).toEqual([{ path: '/a', lastModified: 1 }]);
     expect(addedFilesSchema.parse('nothing')).toEqual([]);
+  });
+
+  it('asks to measure the first 50 tracks that are given, and nothing from a message of another shape', () => {
+    const paths = [...Array(60).keys()].map((index) => `/music/${index}.flac`);
+
+    expect(prioritiseLoudnessSchema.parse({ paths }).paths).toEqual(paths.slice(0, 50));
+    expect(prioritiseLoudnessSchema.safeParse({ paths: [1] }).success).toBe(false);
+    expect(prioritiseLoudnessSchema.safeParse(undefined).success).toBe(false);
   });
 
   it('forces a rescan only when the message says so', () => {
