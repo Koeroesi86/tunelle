@@ -10,9 +10,9 @@ describe('QueueIndicator', () => {
   });
 
   it('names the task when only one runs', () => {
-    render(<QueueIndicator tasks={[{ kind: 'scan', target: 'Music', running: true, waiting: 0 }]} />);
+    render(<QueueIndicator tasks={[{ kind: 'scan', running: true, waiting: 0 }]} />);
 
-    expect(screen.getAllByText('Scanning Music')).toHaveLength(2);
+    expect(screen.getAllByText('Scanning the library')).toHaveLength(2);
     expect(screen.getByText('Running')).toBeTruthy();
   });
 
@@ -20,7 +20,7 @@ describe('QueueIndicator', () => {
     render(
       <QueueIndicator
         tasks={[
-          { kind: 'scan', target: 'Music', running: true, waiting: 0 },
+          { kind: 'scan', running: true, waiting: 0 },
           { kind: 'loudness', running: false, waiting: 120 },
         ]}
       />
