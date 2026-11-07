@@ -229,6 +229,13 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   // the tracks that wait as tasks of their own are counted by the queue with them
   const pending = () => (off || Date.now() < restUntil ? 0 : Math.max(0, remaining - requested.size));
   const removeSource = backgroundQueue.addSource({ kind: loudnessKind, priority, canRun: mayRun, pending, next });
+  // a scan that ended added or took away tracks: the settings are told at once, not with the next measurement
+  let scanning = backgroundQueue.isBusy(scanKind);
+  const stopWatchingScans = backgroundQueue.onChange(() => {
+    const wasScanning = scanning;
+    scanning = backgroundQueue.isBusy(scanKind);
+    if (wasScanning && !scanning) reportStatus().catch(console.error);
+  });
   // what was stored before this start may have changed on its own: a scan added or took away tracks while the app was closed
   poolSoon();
 
@@ -248,6 +255,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       return reportStatus();
     },
     stop: () => {
+      stopWatchingScans();
       removeSource();
       backgroundQueue.dequeue(poolKey);
       window.close();
