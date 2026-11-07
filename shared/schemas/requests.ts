@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { maxPrioritisedTracks } from '../constants/loudness';
+import { groupSummarySchema } from './library';
 
 // what the page asks of the main process, by the shape of the message; a message of the wrong shape is dropped (electron/utils/parse-payload.ts)
 // the readers that never refuse (the `catch`) are for messages where a part that is wrong is left out and the rest is done
@@ -28,7 +29,7 @@ export const prioritiseLoudnessSchema = z.object({ paths: z.array(z.string()).tr
 /** A switch in the settings: the launcher entry, the automatic updates */
 export const enabledRequestSchema = z.object({ enabled: z.boolean() });
 
-const artistNameSchema = z.object({ key: z.string(), name: z.string() });
+const artistNameSchema = groupSummarySchema.pick({ key: true, name: true });
 
 /** The names to look the photos of up, the ones that are not a key with a name are left out, and a request holds only so many */
 export const artistNamesSchema = z

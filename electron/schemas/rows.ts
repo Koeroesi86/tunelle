@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { storedFavouriteSchema, storedHistoryItemSchema } from '@shared/schemas/favourites';
+import { folderSchema } from '@shared/schemas/folders';
 import { foldersRowSchema } from './database/folders';
 import { favouritesRowSchema } from './database/favourites';
 import { historyRowSchema } from './database/history';
@@ -31,13 +32,8 @@ export const historyItemRowSchema = historyRowSchema
   .transform(({ played_at, ...row }) => ({ ...row, playedAt: played_at }))
   .pipe(storedHistoryItemSchema);
 
-// a folder saved by an older version can hold NULL as its modification time
-export const folderRowSchema = foldersRowSchema.extend({
-  lastModified: z
-    .number()
-    .nullable()
-    .transform((value) => value ?? 0),
-});
+// the columns come from the table, a NULL modification time is read as 0
+export const folderRowSchema = foldersRowSchema.extend(folderSchema.shape);
 
 export const playlistRowSchema = playlistsRowSchema.pick({ id: true, name: true });
 

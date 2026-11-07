@@ -2,6 +2,7 @@ import type { AlbumSummary, Album, Track } from '@shared/types/library';
 import type { Playlist } from '@shared/types/playlists';
 import { fetchAlbum } from '../services/library-api';
 import { z } from 'zod';
+import { storedPlaylistSchema } from '@shared/schemas/playlists';
 
 /** What the player shows of a track of a playlist, the rest of a snapshot is not needed */
 const trackSchema = z.custom<Track>((value) => z.looseObject({ path: z.string(), title: z.string() }).safeParse(value).success);
@@ -15,9 +16,7 @@ const entrySchema = z.object({
     .transform((available) => available === true),
 });
 
-const playlistMessageSchema = z.object({
-  id: z.number(),
-  name: z.string(),
+const playlistMessageSchema = storedPlaylistSchema.pick({ id: true, name: true }).extend({
   entries: z.array(z.unknown()).transform((entries) => entries.flatMap((entry) => entrySchema.safeParse(entry).data ?? [])),
 });
 
