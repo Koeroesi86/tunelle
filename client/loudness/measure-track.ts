@@ -8,8 +8,10 @@ import { summarise } from './summarise';
 /** The address of a track of the library, which the main process serves (`/track` of electron/protocols/tunelle-protocol.ts) */
 const trackUrl = (path: string) => `tunelle://app/track?path=${encodeURIComponent(path)}`;
 
-/** A file longer than this is not decoded as a whole: the decoded sound of 45 minutes of stereo is 2.2 GB, and 60 minutes took 2.9 GB of the window */
-const wholeFileSeconds = 2700;
+/** A file longer than this is cut into pieces when its format can be cut: the decoded sound of 10 minutes of stereo is 460 MB, of 45 minutes 2.2 GB */
+export const slicedFromSeconds = 600;
+/** A file of a format that is not cut is still decoded as a whole up to this length; 60 minutes took 2.9 GB of the window */
+export const wholeFileSeconds = 2700;
 
 const decode = (bytes: ArrayBuffer) =>
   // the context only decodes: it opens no audio device, and it sets the rate the file is resampled to
@@ -23,7 +25,8 @@ const decode = (bytes: ArrayBuffer) =>
  * whenever a part of the work is done (a chunk read, a piece decoded), which tells the main process that a slow drive is not a stuck one
  */
 export const measureTrack = async (id: number, path: string, duration: number | undefined, progress: () => void): Promise<MeasureResult> => {
-  if ((duration ?? 0) > wholeFileSeconds) return measureSliced(id, trackUrl(path), duration, decode, progress);
+  const sliced = (duration ?? 0) > slicedFromSeconds ? await measureSliced(id, trackUrl(path), duration, decode, progress) : undefined;
+  if (sliced && (sliced.outcome !== 'too-large' || (duration ?? 0) > wholeFileSeconds)) return sliced;
 
   const response = await fetch(trackUrl(path)).then(
     (answer) => (answer.ok ? answer : undefined),
