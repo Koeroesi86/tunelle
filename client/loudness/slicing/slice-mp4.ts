@@ -1,8 +1,10 @@
 import { aacSampleRates } from './adts';
-import { aacConfigOf, audioTrackOf } from './mp4-audio';
+import { aacConfigOf, audioTrackOf, sampleTableOf } from './mp4-audio';
 import type { AacConfig } from './mp4-audio';
 import { boxAt, childOf, mustChild } from './mp4-boxes';
 import type { Box } from './mp4-boxes';
+import { defaultSizeOf, fragmentSamples, trackIdOf } from './mp4-fragments';
+import type { Samples } from './mp4-fragments';
 import { NotSliceable, SliceError, mustRead } from './types';
 import type { ReadRange, Slicer } from './types';
 
@@ -16,21 +18,16 @@ const leadInSamples = 2;
 /** Samples of one piece that lie further apart than this in the file are read apart, as the bytes between them belong to another track */
 const maxGap = 256 * 1024;
 
-interface Samples {
-  offsets: Float64Array;
-  sizes: Uint32Array;
-}
-
 /** The `moov` box of the file, read whole, as the boxes at the top of the file go one after the other */
-const readMovie = async (read: ReadRange, size: number, offset = 0): Promise<{ bytes: Uint8Array; moov: Box }> => {
+const readMovie = async (read: ReadRange, size: number, offset = 0): Promise<{ bytes: Uint8Array; moov: Box; end: number }> => {
   if (offset >= size) throw new NotSliceable('An MP4 file without a moov box');
   const box = boxAt(await mustRead(read, offset, Math.min(offset + 16, size), 'A box of an MP4 file'), 0, size - offset);
-  if (box.type === 'moof') throw new NotSliceable('An MP4 file in fragments');
+  if (box.type === 'moof') throw new NotSliceable('An MP4 file in fragments with the moof box before the moov box');
   if (box.type !== 'moov') return readMovie(read, size, offset + box.end);
   if (box.end > maxMovieBytes) throw new NotSliceable('An MP4 file with a moov box of more than 64 MB');
 
   const bytes = await mustRead(read, offset, offset + box.end, 'The moov box of an MP4 file');
-  return { bytes, moov: boxAt(bytes, 0) };
+  return { bytes, moov: boxAt(bytes, 0), end: offset + box.end };
 };
 
 const view = (bytes: Uint8Array) => new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -81,11 +78,15 @@ const layoutOf = (sizes: Uint32Array, runs: { firstChunk: number; samplesPerChun
   return samples;
 };
 
+const checkedSizes = (samples: Samples) => {
+  if (samples.sizes.some((size) => size + adtsHeader > maxFrame)) throw new NotSliceable('An MP4 file with a frame that does not fit an ADTS header');
+  return samples;
+};
+
 const samplesOf = (bytes: Uint8Array, stbl: Box) => {
   const offsets = chunkOffsetsOf(bytes, childOf(bytes, stbl, 'stco') ?? mustChild(bytes, stbl, 'co64'));
   const sizes = sizesOf(bytes, mustChild(bytes, stbl, 'stsz'));
-  if (sizes.some((size) => size + adtsHeader > maxFrame)) throw new NotSliceable('An MP4 file with a frame that does not fit an ADTS header');
-  return layoutOf(sizes, runsOf(bytes, mustChild(bytes, stbl, 'stsc')), offsets);
+  return checkedSizes(layoutOf(sizes, runsOf(bytes, mustChild(bytes, stbl, 'stsc')), offsets));
 };
 
 /** The sample at which each piece starts, a piece taking samples until it has about `sliceBytes` of them, and the end */
@@ -156,10 +157,14 @@ const framesOf = async (read: ReadRange, samples: Samples, config: AacConfig, fr
  * `mdat` as a whole and no piece needs the table of the samples. Each piece but the first starts two frames early, which are left out
  */
 export const sliceMp4: Slicer = async function* (read, size, sliceBytes) {
-  const { bytes, moov } = await readMovie(read, size);
-  const stbl = audioTrackOf(bytes, moov);
+  const { bytes, moov, end } = await readMovie(read, size);
+  const track = audioTrackOf(bytes, moov);
+  const stbl = sampleTableOf(bytes, track);
   const config = aacConfigOf(bytes, mustChild(bytes, stbl, 'stsd'));
-  const samples = samplesOf(bytes, stbl);
+  const isFragmented = childOf(bytes, moov, 'mvex') !== undefined;
+  const samples = isFragmented
+    ? checkedSizes(await fragmentSamples(read, size, end, trackIdOf(bytes, track), defaultSizeOf(bytes, moov, trackIdOf(bytes, track))))
+    : samplesOf(bytes, stbl);
   const cuts = cutPoints(samples.sizes, sliceBytes);
 
   for (let index = 0; index < cuts.length - 1; index++) {

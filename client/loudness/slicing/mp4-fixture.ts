@@ -33,6 +33,8 @@ interface Layout {
   entry?: Uint8Array;
   handler?: string;
   fragments?: boolean;
+  /** The size that a sample has in a file in fragments where nothing else says it (`trex`) */
+  trexSize?: number;
   /** The bytes between the chunks, which belong to another track */
   gap?: number;
 }
@@ -46,6 +48,7 @@ export const movie = ({
   entry = description('mp4a', esds()),
   handler = 'soun',
   fragments = false,
+  trexSize = 0,
   gap = 0,
 }: Layout) => {
   const chunks = Math.ceil(sizes.length / perChunk);
@@ -67,9 +70,50 @@ export const movie = ({
         )
       : fullBox('stco', u32(chunks), offsets.flatMap(u32)),
   ];
-  const track = box('trak', box('mdia', fullBox('hdlr', u32(0), text(handler), new Uint8Array(13)), box('minf', box('stbl', ...table))));
-  return box('moov', box('mvhd', new Uint8Array(100)), track, ...(fragments ? [box('mvex')] : []));
+  const track = box(
+    'trak',
+    fullBox('tkhd', u32(0), u32(0), u32(1), new Uint8Array(68)),
+    box('mdia', fullBox('hdlr', u32(0), text(handler), new Uint8Array(13)), box('minf', box('stbl', ...table)))
+  );
+  return box(
+    'moov',
+    box('mvhd', new Uint8Array(100)),
+    track,
+    ...(fragments ? [box('mvex', fullBox('trex', u32(1), u32(1), u32(1024), u32(trexSize), u32(0)))] : [])
+  );
 };
 
 /** The sample of the file: `size` bytes that are all `marker` */
 export const sample = (marker: number, size: number) => new Uint8Array(size).fill(marker);
+
+interface Fragment {
+  /** The samples of the track, and the bytes that belong to another track in front of them in the `mdat` */
+  samples: Uint8Array[];
+  /** Left out of the sizes of the run, and given by the header of the track fragment instead */
+  defaultSize?: boolean;
+  /** The track of the samples, and the size of what comes before them in the `mdat` */
+  track?: number;
+  before?: number;
+}
+
+/** A box with a version of 0 and the flags it is given */
+const flaggedBox = (type: string, flags: number, ...content: number[][]) =>
+  box(type, Uint8Array.from([0, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255]), ...content.map((part) => Uint8Array.from(part)));
+
+/** A `moof` box with one run of the samples, then the `mdat` box that holds them, the data offset being from the start of the `moof` */
+export const fragment = ({ samples, defaultSize = false, track = 1, before = 0 }: Fragment) => {
+  const build = (dataOffset: number) => {
+    // 0x020000: the base of the offsets is the moof; 0x10: the header says the size of the samples; 0x01: the run says the offset of its data; 0x200: and the size of each
+    const header = flaggedBox('tfhd', 0x020000 | (defaultSize ? 0x10 : 0), u32(track), defaultSize ? u32(samples[0].length) : []);
+    const run = flaggedBox(
+      'trun',
+      defaultSize ? 0x01 : 0x201,
+      u32(samples.length),
+      u32(dataOffset),
+      defaultSize ? [] : samples.flatMap((one) => u32(one.length))
+    );
+    return box('moof', flaggedBox('mfhd', 0, u32(1)), box('traf', header, run));
+  };
+  const moof = build(0);
+  return join(build(moof.length + 8 + before), box('mdat', new Uint8Array(before), ...samples));
+};

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { sliceMp4 } from './slice-mp4';
 import { collect, join } from './memory-reader';
-import { box, description, esds, movie, sample } from './mp4-fixture';
+import { box, description, esds, fragment, movie, sample } from './mp4-fixture';
 
 const sizes = Array.from({ length: 600 }, (_, index) => 100 + (index % 7) * 10);
 const samples = sizes.map((size, index) => sample(1 + (index % 200), size));
@@ -63,8 +63,44 @@ describe('sliceMp4', () => {
     expect(all).toEqual(few.map((_, index) => 1 + (index % 200)));
   });
 
+  describe('in fragments', () => {
+    const fragments = (options: { defaultSize?: boolean } = {}) => {
+      const chunk = (from: number) => (options.defaultSize ? samples.slice(from, from + 30).map((one) => sample(one[0], 100)) : samples.slice(from, from + 30));
+      return Array.from({ length: 20 }, (_, index) => chunk(index * 30));
+    };
+    const fileOf = (parts: Uint8Array[], trexSize = 0) =>
+      join(ftyp, movie({ sizes: [], perChunk: 1, offsetOfFirstChunk: 0, fragments: true, trexSize }), ...parts);
+    const marked = async (file: Uint8Array) =>
+      (await collect(sliceMp4, file, 10_000)).flatMap(({ bytes, skip }, index) => markers(bytes).slice(index === 0 ? 0 : Math.round((skip * 44100) / 1024)));
+
+    it('gives the samples that the runs of the fragments tell, in the order of the file, as ADTS frames', async () => {
+      const file = fileOf(fragments().map((one) => fragment({ samples: one })));
+
+      expect(await marked(file)).toEqual(samples.map((_, index) => 1 + (index % 200)));
+      expect((await collect(sliceMp4, file, 10_000)).length).toBeGreaterThan(5);
+    });
+
+    it('takes the size of a sample from the header of the fragment, or from the defaults of the movie when the header says none', async () => {
+      const sized = fileOf(fragments({ defaultSize: true }).map((one) => fragment({ samples: one, defaultSize: true })));
+      const first = (await collect(sliceMp4, sized, 10_000))[0];
+
+      expect(frameLength(first.bytes, 0)).toBe(107);
+      expect(await marked(sized)).toHaveLength(600);
+    });
+
+    it('leaves out the samples of another track, and the bytes of it between them', async () => {
+      const mixed = fragments().flatMap((one) => [fragment({ samples: [sample(250, 50)], track: 2 }), fragment({ samples: one, before: 4000 })]);
+
+      expect(await marked(fileOf(mixed))).toEqual(samples.map((_, index) => 1 + (index % 200)));
+    });
+
+    it('does not cut a file whose fragments have no samples of the sound track', async () => {
+      await expect(collect(sliceMp4, fileOf([fragment({ samples: [sample(1, 50)], track: 2 })]), 10_000)).rejects.toThrow('without samples');
+    });
+  });
+
   it.each([
-    ['a file with fragments after the header', join(ftyp, box('moof', new Uint8Array(8)), mdat)],
+    ['a file with a moof box before its movie', join(ftyp, box('moof', new Uint8Array(8)), mdat)],
     ['a file without a movie', join(ftyp, mdat)],
     ['a file whose movie says it is in fragments', movieLast({ fragments: true })],
     ['a file without sound', movieLast({ handler: 'vide' })],

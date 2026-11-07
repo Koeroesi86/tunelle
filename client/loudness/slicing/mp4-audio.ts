@@ -56,10 +56,12 @@ const handlerOf = (bytes: Uint8Array, track: Box) => {
   return String.fromCharCode(...bytes.subarray(handler.start + 8, handler.start + 12));
 };
 
-/** The first track that carries sound, with the table of its samples */
+/** The first track that carries sound */
 export const audioTrackOf = (bytes: Uint8Array, moov: Box) => {
-  if (childOf(bytes, moov, 'mvex')) throw new NotSliceable('An MP4 file in fragments');
   const track = childrenOf(bytes, moov).find((box) => box.type === 'trak' && handlerOf(bytes, box) === 'soun');
   if (!track) throw new NotSliceable('An MP4 file without a track of sound');
-  return mustChild(bytes, mustChild(bytes, mustChild(bytes, track, 'mdia'), 'minf'), 'stbl');
+  return track;
 };
+
+/** The table of the samples of a track, which holds their description; the samples themselves are in it unless the file is in fragments */
+export const sampleTableOf = (bytes: Uint8Array, track: Box) => mustChild(bytes, mustChild(bytes, mustChild(bytes, track, 'mdia'), 'minf'), 'stbl');
