@@ -232,8 +232,18 @@
           </article>
         </div>
 
-        <div class="flatpak" id="flatpak">
-          <h3>{{t:flatpak.title}} <span class="badge">{{t:flatpak.badge}}</span></h3>
+        <details class="help" id="macos" data-for="mac" open>
+          <summary><h3>{{t:macos.summary}}</h3></summary>
+          <ol>
+            <li>{{t:macos.move}}</li>
+            <li>{{t:macos.gatekeeper}}</li>
+            <li>{{t:macos.terminal}}</li>
+            <li>{{t:macos.update}}</li>
+          </ol>
+        </details>
+
+        <details class="help flatpak" id="flatpak" data-for="linux" open>
+          <summary><h3>{{t:flatpak.title}} <span class="badge">{{t:flatpak.badge}}</span></h3></summary>
           <p>{{t:flatpak.intro}}</p>
           <p><a class="button" href="flatpak+https://koeroesi86.github.io/tunelle/repo/tunelle.flatpakref"><svg class="icon" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><g fill="currentColor" transform="matrix(.04764 0 0 .04764 -8.374 -7.77)"><path d="M474.61 255.118V406.3l-130.927 75.59V330.71zM343.683 330.709V179.528l-130.927 75.59Z"/><path d="M218.612 233.262a43.667 43.667 0 0 0-21.856 37.856V390.3a43.667 43.667 0 0 0 21.856 37.857l103.214 59.59a43.667 43.667 0 0 0 43.713 0l103.214-59.59a43.667 43.667 0 0 0 21.856-37.857V271.12a43.667 43.667 0 0 0-21.856-37.857l-103.214-59.59a43.667 43.667 0 0 0-43.713 0zm130.927-31.878 103.214 59.59a11.759 11.759 0 0 1 5.856 10.144V390.3c0 4.166-2.249 8.06-5.856 10.144l-103.214 59.59a11.759 11.759 0 0 1-11.713 0l-103.214-59.59a11.759 11.759 0 0 1-5.856-10.144V271.12c0-4.167 2.249-8.062 5.856-10.144l103.214-59.591a11.759 11.759 0 0 1 11.713 0z"/></g></svg>{{t:download.linux.flatpak}}</a> {{t:flatpak.opens}}</p>
           <div class="command">
@@ -241,7 +251,7 @@
             <button type="button" data-copy="flatpak-command" hidden>{{t:flatpak.copy}}</button>
           </div>
           <p class="meta">{{t:flatpak.meta}}</p>
-        </div>
+        </details>
 
         <details class="help">
           <summary>{{t:appimage.summary}}</summary>

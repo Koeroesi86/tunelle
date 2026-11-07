@@ -11,6 +11,14 @@ document.querySelectorAll('[data-copy]').forEach((copy) => {
   })
 })
 
+// a link to a help that is closed (the big Linux button, a shared address) opens it
+const openTarget = () => {
+  const target = document.querySelector(':target')
+  if (target instanceof HTMLDetailsElement) target.open = true
+}
+openTarget()
+addEventListener('hashchange', openTarget)
+
 // marks the download of the visitor's system and points the big button at it; without this script the three systems are all listed
 ;(async () => {
   const platform = navigator.userAgentData?.platform || navigator.platform || navigator.userAgent
@@ -20,6 +28,12 @@ document.querySelectorAll('[data-copy]').forEach((copy) => {
     ['linux', /linux|x11|cros/i],
   ].find(([, pattern]) => pattern.test(platform))?.[0]
   const card = document.querySelector(`[data-system="${system}"]`)
+  // the help of the visitor's system is open and marked, the others are closed (all of them are open without this script)
+  if (system)
+    document.querySelectorAll('details[data-for]').forEach((help) => {
+      help.open = help.dataset.for === system
+      help.classList.toggle('detected', help.open)
+    })
   const button = document.getElementById('download-primary')
   if (!card || !button) return
 
