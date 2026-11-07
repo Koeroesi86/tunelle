@@ -64,6 +64,8 @@ jobs:
     needs: [plan, dist]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # the environment holds the key that signs the macOS update file
+    environment: release
     permissions:
       contents: write
     steps:
@@ -79,6 +81,13 @@ jobs:
       # windows and macOS write one update file for both architectures from separate runners: one list of files for electron-updater to choose from
       - name: Merge the artifacts of the runners
         run: node scripts/release/merge-update-files.js artifacts dist
+      # the macOS app only installs an update whose latest-mac.yml has a signature of this key (docs/app/updater.md); without the secret the release goes out unsigned
+      - name: Sign the macOS update file
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+        run: |
+          node scripts/release/update-signature.js sign dist/latest-mac.yml
+          if [ -f dist/latest-mac.yml.sig ]; then node scripts/release/update-signature.js check dist/latest-mac.yml; fi
       # the update files have to name the version of the release, or the updater of a platform compares against another one
       - name: Check the version of the update files
         env:

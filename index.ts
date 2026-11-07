@@ -32,7 +32,8 @@ import { getMainTranslator, setPickedLanguage } from './electron/language';
 import { applyThemeMode } from './electron/theme';
 import { getSettings } from './electron/repositories/settings-repository';
 import { autoUpdater } from 'electron-updater';
-import { createMockUpdateSource, getUpdateUnavailableReason, inspectAppImage, runUpdate } from './electron/services/updater';
+import { createMockUpdateSource, getUpdateUnavailableReason, inspectAppImage, inspectMacInstall, runUpdate } from './electron/services/updater';
+import { bundleOf, confirmStart, createMacUpdateSource } from './electron/services/mac-update-source';
 import { createUpdateManager } from './electron/services/update-manager';
 import type { UpdateSource } from './electron/services/updater';
 
@@ -192,13 +193,17 @@ const unavailable = isMockUpdate
       process.platform,
       process.env,
       process.windowsStore,
-      process.env.APPIMAGE ? inspectAppImage(process.env.APPIMAGE) : undefined
+      process.env.APPIMAGE ? inspectAppImage(process.env.APPIMAGE) : undefined,
+      process.platform === 'darwin' ? inspectMacInstall(bundleOf(process.execPath)) : undefined
     );
 
 const getUpdateSource = (): UpdateSource | undefined => {
   if (isMockUpdate) return createMockUpdateSource();
 
-  return unavailable ? undefined : autoUpdater;
+  if (unavailable) return undefined;
+
+  // macOS replaces itself with a signed zip of the release, as electron-updater needs a Developer ID there. See docs/app/updater.md
+  return process.platform === 'darwin' ? createMacUpdateSource(appDataPath) : autoUpdater;
 };
 
 // the splash and the settings share one source; the settings flow starts after the splash one is done
@@ -246,6 +251,8 @@ app
   )
   .then((d) => {
     console.log(`Connected to library ${libraryLocation}`);
+    // the swap script of an update waits for this before it drops the backup of the old version
+    if (process.platform === 'darwin') confirmStart(appDataPath).catch((error) => console.error('The start was not recorded', error));
     global._database = d;
 
     return getSettings(d)

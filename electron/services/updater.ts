@@ -139,6 +139,13 @@ interface AppImageInstall {
   writable: boolean;
 }
 
+interface MacInstall {
+  /** The app runs from a mounted disk image or from the randomised copy that macOS makes of an app that was never moved: an update would replace the copy */
+  translocated: boolean;
+  /** An update replaces the bundle, which needs its folder to be writable (a standard user in /Applications) */
+  writable: boolean;
+}
+
 const canWrite = (path: string) => {
   try {
     accessSync(path, constants.W_OK);
@@ -153,6 +160,11 @@ export const inspectAppImage = (appImage: string): AppImageInstall => ({
   writable: canWrite(dirname(appImage)),
 });
 
+export const inspectMacInstall = (bundle: string): MacInstall => ({
+  translocated: bundle.includes('/AppTranslocation/') || bundle.startsWith('/Volumes/'),
+  writable: canWrite(dirname(bundle)),
+});
+
 /**
  * Why electron-updater can not update this install, if it can not
  * See docs/app/updater.md
@@ -162,12 +174,15 @@ export const getUpdateUnavailableReason = (
   platform: NodeJS.Platform,
   env: NodeJS.ProcessEnv,
   windowsStore?: boolean,
-  appImage?: AppImageInstall
+  appImage?: AppImageInstall,
+  macInstall?: MacInstall
 ): UpdateUnavailableReason | undefined => {
   if (!isPackaged) return 'development';
   if (isFlagSet(env.TUNELLE_NO_UPDATE)) return 'disabled';
   // the Store update the package itself, and its policy does not let an app update outside of it; an env variable cannot say this, the Store starts the app
   if (windowsStore) return 'store';
+  if (platform === 'darwin' && macInstall?.translocated) return 'translocated';
+  if (platform === 'darwin' && macInstall?.writable === false) return 'macReadonly';
   if (platform !== 'linux') return undefined;
   if (env.APPIMAGE && appImage?.managedByAm) return 'am';
   if (env.APPIMAGE) return appImage?.writable === false ? 'readonly' : undefined;
