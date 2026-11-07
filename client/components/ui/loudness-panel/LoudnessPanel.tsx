@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import type { LoudnessAnalysis, LoudnessProgress } from '@shared/types/loudness';
 import { useTranslation } from '../../../i18n';
@@ -41,8 +41,8 @@ const LoudnessPanel = ({ path, duration, currentTime, status, sampleRate, output
   const histogram = analysis && toHistogramBars(analysis);
   const lit = useRef<HTMLDivElement>(null);
   const played = duration && currentTime !== undefined ? Math.min(Math.max(currentTime / duration, 0), 1) : undefined;
-  // a custom property that the style sheet moves with the same ease as the line, so the lit bars follow it
-  useEffect(() => lit.current?.style.setProperty('--played', `${(played ?? 0) * 100}%`), [played, histogram !== undefined]);
+  // a custom property that the style sheet moves with the same ease as the line, so the lit bars follow it; set in the commit, so the bars are never painted at the start first
+  useLayoutEffect(() => lit.current?.style.setProperty('--played', `${(played ?? 0) * 100}%`), [played, histogram !== undefined]);
   const kilohertz = (rate: number) => formatNumber(rate / 1000, { maximumFractionDigits: 1 });
   const isResampled = sampleRate !== undefined && outputRate !== undefined && sampleRate !== outputRate;
   const signal = sampleRate && (
