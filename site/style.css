@@ -444,17 +444,14 @@ a:not(.button) > .icon {
   box-shadow: 0 0 0 1px var(--accent), 0 12px 30px -16px var(--accent);
 }
 
-.flatpak {
-  margin: 16px 0;
-  padding: 20px;
-  border: 1px solid var(--accent);
-  border-radius: 14px;
-  background: var(--surface);
+.help.detected {
+  border-color: var(--accent);
   box-shadow: 0 12px 30px -16px var(--accent);
 }
 
-.flatpak h3 {
-  margin-top: 0;
+.help summary h3 {
+  display: inline;
+  margin: 0;
 }
 
 .flatpak .badge {

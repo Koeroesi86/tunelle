@@ -14,6 +14,9 @@ interface FolderManagementProps {
   removeFolder: (path: string) => void;
 }
 
+// macOS asks once for access to protected folders and may ask again after an update (docs/app/updater.md)
+const isMac = () => navigator.userAgent.includes('Macintosh');
+
 const FolderManagement = ({ folders, offlineFolders, addFolders, removeFolder }: FolderManagementProps) => {
   const { t } = useTranslation();
   const [removing, setRemoving] = useState<string>();
@@ -41,7 +44,7 @@ const FolderManagement = ({ folders, offlineFolders, addFolders, removeFolder }:
                 {parent && <span className={style.parent}>{parent}</span>}
               </span>
               {offline && (
-                <span className={style.offlineLabel} title={t('folders.offlineHint')}>
+                <span className={style.offlineLabel} title={isMac() ? t('folders.offlineHintMac') : t('folders.offlineHint')}>
                   <MdWarningAmber aria-hidden="true" />
                   {t('folders.offline')}
                 </span>

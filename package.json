@@ -34,6 +34,7 @@
     "screenshots": "playwright test --project screenshots",
     "security:electron": "node scripts/checks/security-scan.js",
     "test:e2e": "playwright test --project e2e",
+    "test:updater": "playwright test --project updater",
     "perf": "playwright test --project perf",
     "smoke": "node scripts/checks/smoke.js",
     "smoke:packaged": "node scripts/checks/smoke.js --packaged",

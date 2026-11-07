@@ -41,6 +41,20 @@ describe('FolderManagement', () => {
     expect(screen.getByText('Unavailable')).not.toBeNull();
   });
 
+  it.each([
+    ['a Mac', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', /System Settings/],
+    [
+      'another system',
+      'Mozilla/5.0 (X11; Linux x86_64)',
+      /^The folder cannot be reached right now\. Its tracks stay in the library and play again once it is back\.$/,
+    ],
+  ])('explains an offline folder on %s', (_name, userAgent, hint) => {
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(userAgent);
+    render(<FolderManagement folders={folders} offlineFolders={['/music/a']} addFolders={() => {}} removeFolder={() => {}} />);
+
+    expect(screen.getByText('Unavailable').title).toMatch(hint);
+  });
+
   it('shows the name of a folder first and the folder it sits in beside it', () => {
     render(<FolderManagement folders={[{ path: '/music/jazz', lastModified: 1 }]} offlineFolders={[]} addFolders={() => {}} removeFolder={() => {}} />);
 

@@ -17,3 +17,7 @@ It is valid semver for electron-updater: no zero padded month and no prerelease 
 ## Pull requests and `master`
 
 `master` requires up to date branches. Pull requests with auto-merge on are rebased onto `master` one at a time: only the one whose auto-merge was enabled first is looked at, and it is rebased when it is behind (`rebase-auto-merge.yml`, `scripts/release/rebase-auto-merge.js`). The ones after it wait until it merges or its auto-merge is turned off, also when its checks fail or it has a conflict, so that the author fixes it first. The state of the checks is not looked at. It pushes with the `GH_REBASE_TOKEN` secret, as a push with `GITHUB_TOKEN` starts no checks.
+
+## Signature of the macOS update file
+
+`release.yml` signs the merged `latest-mac.yml` with the secret `UPDATE_SIGNING_KEY` of the environment `release` and uploads `latest-mac.yml.sig` with it; the macOS app installs nothing without a valid signature, see [updater.md](../app/updater.md). Without the secret the release goes out unsigned and macOS apps stay on their version.

@@ -3,7 +3,16 @@ import { chmod, mkdir, mkdtemp, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { checkForUpdate, createMockUpdateSource, downloadUpdate, getUpdateUnavailableReason, inspectAppImage, installUpdate, runUpdate } from './updater';
+import {
+  checkForUpdate,
+  createMockUpdateSource,
+  downloadUpdate,
+  getUpdateUnavailableReason,
+  inspectAppImage,
+  inspectMacInstall,
+  installUpdate,
+  runUpdate,
+} from './updater';
 import type { UpdateSource } from './updater';
 
 const createSource = (check: UpdateSource['checkForUpdates'], download: UpdateSource['downloadUpdate'] = () => Promise.resolve()) => {
@@ -243,6 +252,18 @@ describe('getUpdateUnavailableReason', () => {
     expect(getUpdateUnavailableReason(true, 'win32', {}, undefined, { managedByAm: true, writable: false })).toBeUndefined();
   });
 
+  it.each([
+    ['it runs from a disk image', { translocated: true, writable: false }, 'translocated'],
+    ['it was never moved from the download', { translocated: true, writable: true }, 'translocated'],
+    ['its folder can not be written to', { translocated: false, writable: false }, 'macReadonly'],
+  ] as const)('names the reason on macOS when %s', (_name, macInstall, reason) => {
+    expect(getUpdateUnavailableReason(true, 'darwin', {}, undefined, undefined, macInstall)).toBe(reason);
+  });
+
+  it('lets a Mac app in a writable folder update itself', () => {
+    expect(getUpdateUnavailableReason(true, 'darwin', {}, undefined, undefined, { translocated: false, writable: true })).toBeUndefined();
+  });
+
   it('names the Store for a Store package, which has no say over its updates', () => {
     expect(getUpdateUnavailableReason(true, 'win32', {}, true)).toBe('store');
   });
@@ -292,5 +313,27 @@ describe('inspectAppImage', () => {
 
     expect(inspectAppImage(join(folder, 'sub/tunelle')).writable).toBe(false);
     await chmod(join(folder, 'sub'), 0o755);
+  });
+});
+
+describe('inspectMacInstall', () => {
+  it.each([
+    ['/Applications/Tunelle.app', false],
+    ['/Users/me/Applications/Tunelle.app', false],
+    ['/Volumes/Tunelle 26.11.1/Tunelle.app', true],
+    ['/private/var/folders/xy/T/AppTranslocation/6F3B/d/Tunelle.app', true],
+  ])('finds that %s is translocated: %s', (bundle, translocated) => {
+    expect(inspectMacInstall(bundle).translocated).toBe(translocated);
+  });
+
+  it('finds a folder that can be written to', async () => {
+    const folder = await mkdtemp(join(tmpdir(), 'tunelle-mac-install-'));
+
+    expect(inspectMacInstall(join(folder, 'Tunelle.app')).writable).toBe(true);
+    await rm(folder, { recursive: true, force: true });
+  });
+
+  it('finds a folder that does not exist as not writable', () => {
+    expect(inspectMacInstall(join(tmpdir(), 'tunelle-missing-folder', 'Tunelle.app')).writable).toBe(false);
   });
 });

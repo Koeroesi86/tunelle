@@ -41,8 +41,9 @@ describe('findMissingTracks', () => {
     expect(await findMissingTracks([track(at('album', 'one.flac', 'inside.flac'))], [root])).toHaveLength(1);
   });
 
-  it('keeps the tracks of a folder that cannot be read for another reason than that it is gone', async () => {
-    const readdir = vi.spyOn(fs.promises, 'readdir').mockRejectedValueOnce(Object.assign(new Error('denied'), { code: 'EACCES' }));
+  // macOS answers EPERM for a protected folder that the app has no access to (again) after an update
+  it.each(['EACCES', 'EPERM'])('keeps the tracks of a folder that cannot be read for another reason than that it is gone: %s', async (code) => {
+    const readdir = vi.spyOn(fs.promises, 'readdir').mockRejectedValueOnce(Object.assign(new Error('denied'), { code }));
 
     expect(await findMissingTracks([track(at('album', 'two.flac'))], [root])).toEqual([]);
     readdir.mockRestore();
