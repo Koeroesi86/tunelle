@@ -330,7 +330,7 @@
   "backgroundTasks.title": "Háttérfeladatok",
   "backgroundTasks.scan": "A könyvtár átvizsgálása",
   "backgroundTasks.watch": "A könyvtármappák figyelése",
-  "backgroundTasks.loudness": "Hangerő",
+  "backgroundTasks.loudness": "Hangerő-kiegyenlítés",
   "backgroundTasks.albumArt": "Albumborító színei",
   "backgroundTasks.running": "Fut",
   "backgroundTasks.waiting_one": "{count} vár",

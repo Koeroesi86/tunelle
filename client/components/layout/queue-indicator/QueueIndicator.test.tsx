@@ -27,7 +27,7 @@ describe('QueueIndicator', () => {
     );
 
     expect(screen.getByText('2 tasks')).toBeTruthy();
-    expect(screen.getByRole('tooltip').textContent).toContain('Loudness');
+    expect(screen.getByRole('tooltip').textContent).toContain('Loudness normalization');
     expect(screen.getByText('120 waiting')).toBeTruthy();
   });
 });

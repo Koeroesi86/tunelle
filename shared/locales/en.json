@@ -331,7 +331,7 @@
   "backgroundTasks.title": "Background tasks",
   "backgroundTasks.scan": "Scanning the library",
   "backgroundTasks.watch": "Watching the library folders",
-  "backgroundTasks.loudness": "Loudness",
+  "backgroundTasks.loudness": "Loudness normalization",
   "backgroundTasks.albumArt": "Album art colours",
   "backgroundTasks.running": "Running",
   "backgroundTasks.waiting_one": "{count} waiting",
