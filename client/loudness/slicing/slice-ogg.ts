@@ -57,12 +57,16 @@ const pagesIn = (bytes: Uint8Array) => {
   return pages;
 };
 
-/** What the first packet says of the stream: Opus (always 48 kHz in a granule) and Vorbis (the rate of the file); no other codec is cut */
-const rateOf = (body: Uint8Array) => {
+/**
+ * What the first packet says of the stream: Opus (always 48 kHz in a granule), Vorbis (the rate of the file) and FLAC, of which every packet is a frame
+ * that needs nothing before it, so no pages go before a cut and none of a piece is left out; no other codec is cut
+ */
+const codecOf = (body: Uint8Array) => {
   const name = String.fromCharCode(...body.subarray(0, 8));
-  if (name === 'OpusHead') return 48_000;
-  if (String.fromCharCode(...body.subarray(0, 7)) === '\u0001vorbis') return view(body).getUint32(12, true);
-  throw new NotSliceable('An Ogg file that is not Vorbis or Opus');
+  if (name === 'OpusHead') return { rate: 48_000, hasLead: true };
+  if (String.fromCharCode(...body.subarray(0, 7)) === '\u0001vorbis') return { rate: view(body).getUint32(12, true), hasLead: true };
+  if (String.fromCharCode(...body.subarray(0, 5)) === '\u007fFLAC') return { rate: 0, hasLead: false };
+  throw new NotSliceable('An Ogg file that is not Vorbis, Opus or FLAC');
 };
 
 /** The pages at the start that carry no sound (their granule is 0, or none for a packet that goes on), with the codec found in the first */
@@ -70,11 +74,11 @@ const readHeader = async (read: ReadRange) => {
   const first = await mustRead(read, 0, maxPage, 'The start of an Ogg file');
   const firstPage = mustPage(first, 0);
   if ((firstPage.flags & 0x02) === 0) throw new SliceError('An Ogg file that does not start with its first page');
-  const rate = rateOf(first.subarray(27 + first[26], firstPage.length));
+  const { rate, hasLead } = codecOf(first.subarray(27 + first[26], firstPage.length));
 
   const bytes = await mustRead(read, 0, maxHeader, 'The header of an Ogg file');
   const end = headerEnd(bytes, 0, firstPage.serial);
-  return { rate, serial: firstPage.serial, header: bytes.subarray(0, end) };
+  return { rate, hasLead, serial: firstPage.serial, header: bytes.subarray(0, end) };
 };
 
 const headerEnd = (bytes: Uint8Array, offset: number, serial: number): number => {
@@ -94,22 +98,23 @@ const pagesBefore = async (read: ReadRange, cut: number, first: number, size: nu
 };
 
 /**
- * An Ogg file of one Vorbis or Opus stream is cut at the start of a page that starts a packet, with the header pages of the file in front of each
+ * An Ogg file of one Vorbis, Opus or FLAC stream is cut at the start of a page that starts a packet, with the header pages of the file in front of each
  * piece. Each piece but the first starts a few pages early for the decoder, and the length of the sound after the cut is told by the granules
  */
 export const sliceOgg: Slicer = async function* (read, size, sliceBytes) {
-  const { rate, serial, header } = await readHeader(read);
+  const { rate, hasLead, serial, header } = await readHeader(read);
   const isStart = (bytes: Uint8Array, offset: number) => {
     const page = pageAt(bytes, offset);
     return page !== undefined && (page.flags & 0x03) === 0 && page.serial === serial;
   };
   const cuts = await cutsOf(read, header.length, size, sliceBytes, isStart);
-  const before = await Promise.all(cuts.slice(1).map((cut) => pagesBefore(read, cut, header.length, size, isStart)));
+
+  const before = hasLead ? await Promise.all(cuts.slice(1).map((cut) => pagesBefore(read, cut, header.length, size, isStart))) : [];
 
   for (let index = 0; index < cuts.length - 1; index++) {
-    const start = index === 0 ? cuts[0] : before[index - 1].from;
+    const start = before[index - 1]?.from ?? cuts[index];
     const data = await mustRead(read, start, cuts[index + 1], 'A piece of an Ogg file');
     const piece: Slice = { bytes: withHeader(header, data), skip: 0 };
-    yield index === 0 ? piece : { ...piece, keep: (before[index].end - before[index - 1].end) / rate };
+    yield index === 0 || !hasLead ? piece : { ...piece, keep: (before[index].end - before[index - 1].end) / rate };
   }
 };
