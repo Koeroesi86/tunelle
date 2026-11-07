@@ -216,7 +216,10 @@ export const useGaplessAudio = ({ currentSong, upNext, activateNode, onEnded, on
       if (!node) return undefined;
 
       loaded.current[active.current] = source || undefined;
-      node.src = source;
+      // an empty src fails the element (the error event, and play() rejects), no src empties it
+      if (source) node.src = source;
+      else node.removeAttribute('src');
+      if (!source) node.load();
       return node;
     },
   };
