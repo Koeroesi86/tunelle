@@ -6,6 +6,7 @@ import type { GroupKind } from '@shared/types/library-query';
 
 import { electronAPI } from '../../services/electron-api';
 import { z } from 'zod';
+import { maxPrioritisedTracks } from '@shared/constants/loudness';
 import { restoredSettingsSchema } from '../persisted-settings';
 import { onMessage } from '../../services/on-message';
 import { emptyMessage, messageSchemas } from '@shared/schemas/messages';
@@ -222,6 +223,10 @@ const start = (store: Store) => {
   loadPage(store, 'tracks', 0).then(appLoaded);
 };
 
+/** The tracks that are queued or start are measured before the rest of the library, the first ones only; the main process leaves out the ones that are measured or not in the library */
+const prioritiseLoudness = (tracks: Pick<Track, 'path'>[]) =>
+  electronAPI.send('LOUDNESS_PRIORITISE', { paths: tracks.slice(0, maxPrioritisedTracks).map((track) => track.path) });
+
 const notifyTrack = (store: Store, track: Track) =>
   notifyPlaying(track, () => {
     store.dispatch({ type: 'CLICK_NOTIFICATION', payload: {} });
@@ -273,9 +278,11 @@ const handleActions = actionMiddleware((store) => [
   }),
   ...(['MINIMIZE_APP', 'MAXIMIZE_APP'] as const).map((type) => onAction(type, () => electronAPI.send(type, {}))),
   onAction('CLICKED_URL', ({ payload }) => store.dispatch({ type: 'PLAY_TRACKS', payload: { tracks: payload.playlist.map(toPlaylistTrack) } })),
+  ...(['PLAY_TRACKS', 'ADD_TO_QUEUE', 'PLAY_NEXT'] as const).map((type) => onAction(type, ({ payload }) => prioritiseLoudness(payload.tracks))),
   onAction('PLAY_TRACK', ({ payload }) => {
     if (!payload.track) return;
 
+    prioritiseLoudness([payload.track]);
     notifyTrack(store, payload.track);
     // a station is recorded with all that is known of it when it is picked, the track of the radio knows its name only
     if (!radioUuidOf(payload.track.path)) electronAPI.send('HISTORY_RECORD', trackFavourite(payload.track));

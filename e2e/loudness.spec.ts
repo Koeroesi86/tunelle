@@ -46,6 +46,19 @@ test('measures a track without gain tags in the background and levels it by the 
   await expect.poll(async () => (await levelNow(page)) / full).toBeCloseTo(cut, 1);
 });
 
+test('measures a track that is queued before the ones that come first in the library', async ({ start }) => {
+  const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
+  await addFolder(page, folderOfTracks(3), 3);
+  const paths = (await libraryTracks(page)).map((track) => track.path).sort();
+  const last = paths[paths.length - 1];
+
+  // what the page sends when a track is added to the queue; the track in progress finishes first, then the last one goes before the rest
+  await page.evaluate((trackPath) => window.electronAPI.send('LOUDNESS_PRIORITISE', { paths: [trackPath] }), last);
+
+  await expect.poll(async () => (await gainsOf(page, last)).trackGain, { message: 'the measured gain of the queued track', timeout: 90_000 }).not.toBeNull();
+  expect((await gainsOf(page, paths[1])).trackGain).toBeNull();
+});
+
 test('shows the histogram of the loudness of the song that plays on the now playing page', async ({ start }) => {
   const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
   await addFolder(page, folderOfTracks(1), 1);

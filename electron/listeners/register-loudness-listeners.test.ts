@@ -19,7 +19,7 @@ describe('registerLoudnessListeners', () => {
   const send = vi.fn();
   const event = { sender: { send, isDestroyed: () => false } } as unknown as IpcMainEvent;
   const status = { total: 4, measured: 3, failed: 1 };
-  const loudness = { status: vi.fn(), restart: vi.fn() };
+  const loudness = { status: vi.fn(), restart: vi.fn(), prioritise: vi.fn() };
   let database: Database;
 
   beforeEach(async () => {
@@ -27,6 +27,7 @@ describe('registerLoudnessListeners', () => {
     send.mockReset();
     loudness.status.mockReset().mockResolvedValue(status);
     loudness.restart.mockReset().mockResolvedValue(undefined);
+    loudness.prioritise.mockReset().mockResolvedValue(undefined);
     database = await createTestDatabase();
     registerLoudnessListeners({ database, loudness } as unknown as ListenerContext);
   });
@@ -36,6 +37,13 @@ describe('registerLoudnessListeners', () => {
     await vi.waitFor(() => expect(send).toHaveBeenCalled());
 
     expect(send).toHaveBeenCalledWith('LOUDNESS_STATUS', status);
+  });
+
+  it('measures the tracks that the window queued or started first, and refuses a message of another shape', () => {
+    listeners.get('LOUDNESS_PRIORITISE')?.(event, { paths: ['/music/a.flac', '/music/b.flac'] });
+    listeners.get('LOUDNESS_PRIORITISE')?.(event, { paths: 'x' });
+
+    expect(loudness.prioritise).toHaveBeenCalledExactlyOnceWith(['/music/a.flac', '/music/b.flac']);
   });
 
   it('forgets every measurement and starts over when the window asks to clear them', async () => {

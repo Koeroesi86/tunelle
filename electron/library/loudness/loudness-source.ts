@@ -5,7 +5,7 @@ import type { Database } from 'sqlite3';
 import type { LoudnessProgress, TrackLoudness } from '@shared/types/loudness';
 import { analysisVersion } from '@shared/constants/loudness';
 import { readMainSettings } from '@shared/schemas/settings';
-import { findTracksToMeasure, getLoudnessProgress, saveTrackLoudness } from '../../repositories/loudness-repository';
+import { findTracksToMeasure, findTracksToMeasureAmong, getLoudnessProgress, saveTrackLoudness } from '../../repositories/loudness-repository';
 import type { TrackToMeasure } from '../../repositories/loudness-repository';
 import { getFolders } from '../../repositories/library-repository';
 import { getSettings } from '../../repositories/settings-repository';
@@ -102,6 +102,9 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
     return off;
   };
 
+  // the tracks that were queued or started and wait for their turn: the pass over the library leaves them to their own task
+  const requested = new Set<string>();
+
   const mayRun = async () => {
     // a scan that ended since the rest began may have added tracks, so the rest is over then
     const resting = Date.now() < restUntil && backgroundQueue.idleFor(scanKind) >= Date.now() - (restUntil - restPause);
@@ -174,9 +177,34 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       if (Date.now() - statusAt >= statusPause) await reportStatus();
     };
 
+  const readFolders = async () => (await getFolders(database)).map((folder) => folder.path);
+
+  /** Measures the tracks that were queued or started before the rest of the library, in the order they were given, as tasks of their own: the same conditions hold, but no track waits for the pass to reach it */
+  const prioritise = async (paths: string[]) => {
+    if (await readOff()) return;
+
+    const tracks = await findTracksToMeasureAmong(database, paths, analysisVersion);
+    folders = await readFolders();
+    paths
+      .flatMap((path) => tracks.filter((track) => track.path === path))
+      .forEach((track) => {
+        requested.add(track.path);
+        backgroundQueue.enqueue({
+          kind: loudnessKind,
+          key: track.path,
+          priority,
+          canRun: mayRun,
+          run: (signal) => {
+            requested.delete(track.path);
+            return measure(track)(signal);
+          },
+        });
+      });
+  };
+
   /** The next track to measure; the end of the library starts the rest, and the next one starts again from the first track */
   const next = async (): Promise<Pick<Task, 'key' | 'run'> | undefined> => {
-    const [track, ...rest] = reached;
+    const [track, ...rest] = reached.filter((candidate) => !requested.has(candidate.path));
     if (track) {
       reached = rest;
       return { key: track.path, run: measure(track) };
@@ -192,13 +220,14 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       return undefined;
     }
     cursor = batch[batch.length - 1].path;
-    folders = (await getFolders(database)).map((folder) => folder.path);
+    folders = await readFolders();
     reached = batch;
     return next();
   };
 
-  // the tracks of a drive that is away stay unmeasured, so nothing is left to wait for while the source rests or the measurement is off
-  const pending = () => (off || Date.now() < restUntil ? 0 : remaining);
+  // the tracks of a drive that is away stay unmeasured, so nothing is left to wait for while the source rests or the measurement is off;
+  // the tracks that wait as tasks of their own are counted by the queue with them
+  const pending = () => (off || Date.now() < restUntil ? 0 : Math.max(0, remaining - requested.size));
   const removeSource = backgroundQueue.addSource({ kind: loudnessKind, priority, canRun: mayRun, pending, next });
   // what was stored before this start may have changed on its own: a scan added or took away tracks while the app was closed
   poolSoon();
@@ -207,10 +236,12 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
     status,
     /** The settings were saved: the count that waits follows the switch at once, not when the source is next asked to run */
     checkSetting: () => readOff().then(() => undefined),
+    prioritise,
     /** Starts over from the first track after the measurements were cleared */
     restart: () => {
       cursor = '';
       reached = [];
+      requested.clear();
       restUntil = 0;
       nextPoolAt = 0;
       poolSoon();

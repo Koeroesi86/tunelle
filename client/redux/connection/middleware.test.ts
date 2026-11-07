@@ -204,6 +204,33 @@ describe('connection middleware', () => {
       expect(send).toHaveBeenCalledWith('HISTORY_RECORD', { source: 'local', kind: 'track', id: '/a.flac', snapshot: track });
     });
 
+    it('asks for the loudness of the tracks that start, are queued or come next, before the rest of the library', async () => {
+      const { store, send } = await setup();
+      vi.stubGlobal('Notification', vi.fn());
+
+      store.dispatch({ type: 'PLAY_TRACK', payload: { track } });
+      store.dispatch({ type: 'ADD_TO_QUEUE', payload: { tracks: [{ ...track, path: '/b.flac' }] } });
+      store.dispatch({ type: 'PLAY_NEXT', payload: { tracks: [{ ...track, path: '/c.flac' }] } });
+      store.dispatch({ type: 'PLAY_TRACKS', payload: { tracks: [{ ...track, path: '/d.flac' }] } });
+
+      expect(send.mock.calls.filter(([channel]) => channel === 'LOUDNESS_PRIORITISE')).toEqual([
+        ['LOUDNESS_PRIORITISE', { paths: ['/a.flac'] }],
+        ['LOUDNESS_PRIORITISE', { paths: ['/b.flac'] }],
+        ['LOUDNESS_PRIORITISE', { paths: ['/c.flac'] }],
+        ['LOUDNESS_PRIORITISE', { paths: ['/d.flac'] }],
+      ]);
+    });
+
+    it('asks for the first 50 tracks of a long list only', async () => {
+      const { store, send } = await setup();
+      const tracks = [...Array(80).keys()].map((index) => ({ ...track, path: `/${index}.flac` }));
+
+      store.dispatch({ type: 'ADD_TO_QUEUE', payload: { tracks } });
+
+      const [, request] = send.mock.calls.findLast(([channel]) => channel === 'LOUDNESS_PRIORITISE') ?? [];
+      expect(request).toEqual({ paths: tracks.slice(0, 50).map((found) => found.path) });
+    });
+
     it('records the station a radio track plays, not the track', async () => {
       const { store, send } = await setup();
 

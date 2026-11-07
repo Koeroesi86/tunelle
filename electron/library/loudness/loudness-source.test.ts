@@ -5,7 +5,7 @@ import type { LoudnessAnalysis, LoudnessProgress, TrackLoudness } from '@shared/
 import { analysisVersion } from '@shared/constants/loudness';
 import { backgroundQueue } from '../tasks/background-queue';
 import type { TaskSource } from '../tasks/task-queue';
-import { findTracksToMeasure, getLoudnessProgress, saveTrackLoudness } from '../../repositories/loudness-repository';
+import { findTracksToMeasure, findTracksToMeasureAmong, getLoudnessProgress, saveTrackLoudness } from '../../repositories/loudness-repository';
 import type { TrackToMeasure } from '../../repositories/loudness-repository';
 import { getFolders } from '../../repositories/library-repository';
 import { getSettings } from '../../repositories/settings-repository';
@@ -20,7 +20,12 @@ vi.mock('sqlite3', () => ({ Database: class {} }));
 vi.mock('electron', () => ({ powerMonitor: { isOnBatteryPower: vi.fn() } }));
 vi.mock('./album-gains', () => ({ poolAlbumGains: vi.fn() }));
 vi.mock('./loudness-window', () => ({ createLoudnessWindow: vi.fn() }));
-vi.mock('../../repositories/loudness-repository', () => ({ findTracksToMeasure: vi.fn(), getLoudnessProgress: vi.fn(), saveTrackLoudness: vi.fn() }));
+vi.mock('../../repositories/loudness-repository', () => ({
+  findTracksToMeasure: vi.fn(),
+  findTracksToMeasureAmong: vi.fn(),
+  getLoudnessProgress: vi.fn(),
+  saveTrackLoudness: vi.fn(),
+}));
 vi.mock('../../repositories/library-repository', () => ({ getFolders: vi.fn() }));
 vi.mock('../../repositories/settings-repository', () => ({ getSettings: vi.fn() }));
 vi.mock('../mounts/mount-guard', () => ({ mountGuard: vi.fn() }));
@@ -113,6 +118,9 @@ describe('the measurement of the loudness as a source of the background queue', 
           .sort(byPath)
           .slice(0, limit)
       );
+    vi.mocked(findTracksToMeasureAmong)
+      .mockReset()
+      .mockImplementation(async (_database, paths) => library.filter((found) => paths.includes(found.path) && !stored.some((row) => row.path === found.path)));
     vi.mocked(saveTrackLoudness)
       .mockReset()
       .mockImplementation(async (_database, row) => {
@@ -243,6 +251,67 @@ describe('the measurement of the loudness as a source of the background queue', 
       ]);
       expect(measure.mock.calls.map(([file]) => file)).toEqual(['/mnt/here/b.flac']);
       expect(stored).toEqual([expect.objectContaining({ path: '/mnt/here/b.flac' })]);
+    });
+  });
+
+  describe('the tracks that are queued or play', () => {
+    const queued = () =>
+      vi
+        .mocked(backgroundQueue.enqueue)
+        .mock.calls.map(([task]) => task)
+        .filter((task) => task.key.startsWith('/music/'));
+
+    it('are put on the queue as tasks of their own, in the order given, with the same priority and conditions as the pass', async () => {
+      library = ['a', 'b', 'c'].map((name) => track(`/music/${name}.flac`));
+      register();
+
+      await loudness.prioritise(['/music/c.flac', '/music/a.flac']);
+
+      expect(queued()).toEqual([
+        expect.objectContaining({ kind: 'loudness', key: '/music/c.flac', priority: 1, canRun: source.canRun }),
+        expect.objectContaining({ kind: 'loudness', key: '/music/a.flac', priority: 1 }),
+      ]);
+    });
+
+    it('are not counted twice among the tracks that wait, as the queue counts their tasks', async () => {
+      library = ['a', 'b', 'c'].map((name) => track(`/music/${name}.flac`));
+      register();
+      await loudness.restart();
+
+      await loudness.prioritise(['/music/c.flac']);
+
+      expect(source.pending?.()).toBe(2);
+    });
+
+    it('measure the track and store it', async () => {
+      library = [track('/music/a.flac')];
+      register();
+      await loudness.prioritise(['/music/a.flac']);
+
+      await queued()[0].run(signal);
+
+      expect(measure).toHaveBeenCalledWith('/music/a.flac', 200);
+      expect(stored.map((row) => row.path)).toEqual(['/music/a.flac']);
+    });
+
+    it('are left out of the pass while they wait for their own task', async () => {
+      library = ['a', 'b'].map((name) => track(`/music/${name}.flac`));
+      register();
+      await loudness.prioritise(['/music/a.flac']);
+
+      expect((await source.next())?.key).toBe('/music/b.flac');
+      expect(await source.next()).toBeUndefined();
+    });
+
+    it('queue nothing for tracks that are measured or not in the library, and nothing while the measurement is off', async () => {
+      library = [track('/music/a.flac')];
+      register();
+      await loudness.prioritise(['/music/other.flac']);
+      expect(queued()).toEqual([]);
+
+      vi.mocked(getSettings).mockResolvedValue({ measureLoudness: false });
+      await loudness.prioritise(['/music/a.flac']);
+      expect(queued()).toEqual([]);
     });
   });
 
