@@ -88,16 +88,18 @@ interface Found {
   sizes: number[];
 }
 
+/** The bytes of a `moof` box that starts `head`, which holds them when it is long enough */
+const moofBytes = (read: ReadRange, offset: number, head: Uint8Array, box: Box) => {
+  if (box.end > maxFragmentBytes) throw new NotSliceable('An MP4 file with a moof box of more than 16 MB');
+  return box.end <= head.length ? Promise.resolve(head.subarray(0, box.end)) : mustRead(read, offset, offset + box.end, 'A moof box of an MP4 file');
+};
+
 /** The box at `offset`, and the fragment it is when it is a `moof` */
 const walkBoxes = async (read: ReadRange, size: number, offset: number, id: number, defaultSize: number, found: Found): Promise<void> => {
   if (offset >= size) return;
   const head = await mustRead(read, offset, Math.min(offset + readWindow, size), 'A box of an MP4 file');
   const box = boxAt(head, 0, size - offset);
-  if (box.type === 'moof') {
-    if (box.end > maxFragmentBytes) throw new NotSliceable('An MP4 file with a moof box of more than 16 MB');
-    const bytes = box.end <= head.length ? head.subarray(0, box.end) : await mustRead(read, offset, offset + box.end, 'A moof box of an MP4 file');
-    addFragment(bytes, offset, id, defaultSize, found);
-  }
+  if (box.type === 'moof') addFragment(await moofBytes(read, offset, head, box), offset, id, defaultSize, found);
   return walkBoxes(read, size, offset + box.end, id, defaultSize, found);
 };
 
