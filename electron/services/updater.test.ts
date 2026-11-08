@@ -213,6 +213,48 @@ describe('runUpdate', () => {
   });
 });
 
+describe('runUpdate on a metered connection', () => {
+  it('asks with the version before the download and downloads on yes', async () => {
+    const source = createSource(available);
+    const confirmDownload = vi.fn(() => Promise.resolve(true));
+
+    await runUpdate(source, vi.fn(), { install: false, confirmDownload });
+
+    expect(confirmDownload).toHaveBeenCalledExactlyOnceWith('2.0.0');
+    expect(source.downloadUpdate).toHaveBeenCalledOnce();
+  });
+
+  it('starts the installed version without a download on not now', async () => {
+    const source = createSource(available);
+
+    await runUpdate(source, vi.fn(), { confirmDownload: () => Promise.resolve(false) });
+
+    expect(source.downloadUpdate).not.toHaveBeenCalled();
+    expect(source.quitAndInstall).not.toHaveBeenCalled();
+  });
+
+  it('does not ask when there is no update', async () => {
+    const confirmDownload = vi.fn(() => Promise.resolve(true));
+
+    await runUpdate(
+      createSource(() => Promise.resolve(null)),
+      vi.fn(),
+      { confirmDownload }
+    );
+
+    expect(confirmDownload).not.toHaveBeenCalled();
+  });
+
+  it('starts the installed version when asking fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const source = createSource(available);
+
+    await expect(runUpdate(source, vi.fn(), { confirmDownload: () => Promise.reject(new Error('no window')) })).resolves.toBeUndefined();
+
+    expect(source.downloadUpdate).not.toHaveBeenCalled();
+  });
+});
+
 describe('createMockUpdateSource', () => {
   it('goes through a whole update without installing anything', async () => {
     const report = vi.fn();

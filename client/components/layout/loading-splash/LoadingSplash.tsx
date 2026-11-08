@@ -3,7 +3,7 @@ import type { PageLocals } from '../index-page/Index';
 import Wordmark from '../wordmark/Wordmark';
 import loading from './assets/loading.svg';
 
-const style: Record<'body' | 'container' | 'wrapper' | 'logo' | 'name' | 'text' | 'track' | 'bar', CSSProperties> = {
+const style: Record<'body' | 'container' | 'wrapper' | 'logo' | 'name' | 'text' | 'track' | 'bar' | 'actions' | 'button', CSSProperties> = {
   body: {
     backgroundColor: 'transparent',
     margin: '0',
@@ -63,6 +63,22 @@ const style: Record<'body' | 'container' | 'wrapper' | 'logo' | 'name' | 'text' 
     background: 'linear-gradient(90deg, #ffb347, #ff5a36)',
     transition: 'width 0.2s ease',
   },
+  actions: {
+    WebkitAppRegion: 'no-drag',
+    display: 'none',
+    gap: '10px',
+    marginTop: '14px',
+  },
+  button: {
+    padding: '6px 14px',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    borderRadius: '8px',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    color: '#ffffff',
+    font: 'inherit',
+    fontSize: '12px',
+    cursor: 'pointer',
+  },
 };
 
 function LoadingSplash(props: { locals: Pick<PageLocals, 'title'> }) {
@@ -80,6 +96,10 @@ function LoadingSplash(props: { locals: Pick<PageLocals, 'title'> }) {
             <div id="status" style={style.text} />
             <div id="progress-track" style={style.track} hidden>
               <div id="progress-bar" style={style.bar} />
+            </div>
+            <div id="actions" style={style.actions}>
+              <button style={style.button} />
+              <button style={style.button} />
             </div>
           </div>
         </div>

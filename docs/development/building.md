@@ -13,6 +13,7 @@
 ## Environment variables
 
 - `TUNELLE_NO_UPDATE=1` turns the updater off (see [updater.md](../app/updater.md)).
+- `TUNELLE_METERED=1` makes the connection count as metered, so the update asks before it downloads (see [updater.md](../app/updater.md)).
 - `TUNELLE_RADIO_DIRECTORY=<url>` replaces the station directory. The smoke tests set both variables, the second to a station of their own.
 - `TUNELLE_LOUDNESS_IDLE_SECONDS=<seconds>` is how long no folder must have been scanned before the loudness of the library is measured in the background (30 by default, see [loudness-measurement.md](../app/loudness-measurement.md)). The end to end test of the measurement sets it to 0.
 - `TUNELLE_APP_DATA=<folder>` replaces the app data folder, where the library lives. The end to end tests set it to the profile of the run: on macOS and Windows the app data folder does not follow `HOME`, and a test would use the library of the user.

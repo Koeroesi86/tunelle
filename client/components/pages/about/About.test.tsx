@@ -3,10 +3,26 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { UpdateState, UpdateStatus } from '@shared/types/update';
 import About from './About';
 
-const base: UpdateState = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, automatic: true, status: { kind: 'idle' } };
+const base: UpdateState = {
+  version: '26.10.5',
+  electron: '40.0.0',
+  chrome: '140.0.0',
+  unavailable: undefined,
+  automatic: true,
+  allowMetered: false,
+  status: { kind: 'idle' },
+};
 
 const setup = (overrides: Partial<UpdateState> = {}, isPlaying = false) => {
-  const handlers = { check: vi.fn(), install: vi.fn(), setAutomatic: vi.fn(), openReleases: vi.fn() };
+  const handlers = {
+    check: vi.fn(),
+    install: vi.fn(),
+    confirmMetered: vi.fn(),
+    cancelMetered: vi.fn(),
+    setAllowMetered: vi.fn(),
+    setAutomatic: vi.fn(),
+    openReleases: vi.fn(),
+  };
   render(<About update={{ ...base, ...overrides }} isPlaying={isPlaying} {...handlers} />);
 
   return handlers;
@@ -16,7 +32,19 @@ const withStatus = (status: UpdateStatus) => ({ status });
 
 describe('About', () => {
   it('shows nothing before the main process reports', () => {
-    const { container } = render(<About update={null} isPlaying={false} check={vi.fn()} install={vi.fn()} setAutomatic={vi.fn()} openReleases={vi.fn()} />);
+    const { container } = render(
+      <About
+        update={null}
+        isPlaying={false}
+        check={vi.fn()}
+        install={vi.fn()}
+        confirmMetered={vi.fn()}
+        cancelMetered={vi.fn()}
+        setAllowMetered={vi.fn()}
+        setAutomatic={vi.fn()}
+        openReleases={vi.fn()}
+      />
+    );
 
     expect(container.innerHTML).toBe('');
   });
@@ -35,7 +63,19 @@ describe('About', () => {
   });
 
   it('shows the icon of the app next to the version', () => {
-    const { container } = render(<About update={base} isPlaying={false} check={vi.fn()} install={vi.fn()} setAutomatic={vi.fn()} openReleases={vi.fn()} />);
+    const { container } = render(
+      <About
+        update={base}
+        isPlaying={false}
+        check={vi.fn()}
+        install={vi.fn()}
+        confirmMetered={vi.fn()}
+        cancelMetered={vi.fn()}
+        setAllowMetered={vi.fn()}
+        setAutomatic={vi.fn()}
+        openReleases={vi.fn()}
+      />
+    );
 
     expect(container.querySelector('img')?.getAttribute('src')).toContain('svg');
   });
@@ -137,6 +177,47 @@ describe('About', () => {
     fireEvent.click(screen.getByRole('switch', { name: 'Update at start' }));
 
     expect(setAutomatic).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it('asks before it checks and downloads on a metered connection, and goes on when the user agrees', () => {
+    const { confirmMetered, cancelMetered } = setup(withStatus({ kind: 'metered' }));
+
+    expect(screen.getByText(/This connection is metered/)).toBeTruthy();
+    fireEvent.click(screen.getByText('Continue'));
+
+    expect(confirmMetered).toHaveBeenCalledOnce();
+    expect(cancelMetered).not.toHaveBeenCalled();
+  });
+
+  it('drops the check when the user does not agree to the metered connection', () => {
+    const { confirmMetered, cancelMetered } = setup(withStatus({ kind: 'metered' }));
+
+    fireEvent.click(screen.getByText('No'));
+
+    expect(cancelMetered).toHaveBeenCalledOnce();
+    expect(confirmMetered).not.toHaveBeenCalled();
+  });
+
+  it('does not ask while the connection is not metered', () => {
+    setup();
+
+    expect(screen.queryByText(/This connection is metered/)).toBeNull();
+  });
+
+  it('turns the download on a metered connection without asking on and off', () => {
+    const { setAllowMetered } = setup();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Download on a metered connection' }));
+    expect(setAllowMetered).toHaveBeenLastCalledWith(true);
+  });
+
+  it('turns the download on a metered connection without asking off again', () => {
+    const { setAllowMetered } = setup({ allowMetered: true });
+
+    expect(screen.getByText(/without asking/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('switch', { name: 'Download on a metered connection' }));
+
+    expect(setAllowMetered).toHaveBeenLastCalledWith(false);
   });
 
   it('says what the off switch means, still offers the check, and turns the update at start on', () => {

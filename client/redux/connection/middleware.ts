@@ -306,6 +306,9 @@ const handleActions = actionMiddleware((store) => [
   onAction('LOAD_RADIO_OPTIONS', () => electronAPI.send('RADIO_OPTIONS')),
   onAction('CHECK_FOR_UPDATES', () => electronAPI.send('CHECK_FOR_UPDATES')),
   onAction('OPEN_RELEASES', () => electronAPI.send('OPEN_RELEASES')),
+  onAction('CONFIRM_METERED_UPDATE', () => electronAPI.send('CONFIRM_METERED_UPDATE')),
+  onAction('CANCEL_METERED_UPDATE', () => electronAPI.send('CANCEL_METERED_UPDATE')),
+  onAction('SET_ALLOW_METERED_UPDATES', ({ payload }) => electronAPI.send('SET_ALLOW_METERED_UPDATES', payload)),
   onAction('SET_AUTOMATIC_UPDATES', ({ payload }) => electronAPI.send('SET_AUTOMATIC_UPDATES', payload)),
   // the restart quits the app, so the queue and the position are saved first (the main process closes the database after what it has queued)
   onAction('INSTALL_UPDATE', () => {

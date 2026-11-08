@@ -14,14 +14,25 @@ vi.mock('electron', () => ({
   shell: { openExternal: (url: string) => openExternal(url) },
 }));
 
-const state = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, automatic: true, status: { kind: 'idle' } } as const;
+const state = {
+  version: '26.10.5',
+  electron: '40.0.0',
+  chrome: '140.0.0',
+  unavailable: undefined,
+  automatic: true,
+  allowMetered: false,
+  status: { kind: 'idle' },
+} as const;
 
 describe('registerUpdateListeners', () => {
   const send = vi.fn();
   const updates: UpdateManager = {
     getState: vi.fn(() => state),
     check: vi.fn(() => Promise.resolve()),
+    confirmMetered: vi.fn(() => Promise.resolve()),
+    cancelMetered: vi.fn(),
     setAutomatic: vi.fn(() => Promise.resolve()),
+    setAllowMetered: vi.fn(() => Promise.resolve()),
     install: vi.fn(),
   };
   const event = (destroyed = false) => ({ sender: { send, isDestroyed: () => destroyed } }) as unknown as IpcMainEvent;
@@ -63,6 +74,26 @@ describe('registerUpdateListeners', () => {
     listeners.get('SET_AUTOMATIC_UPDATES')?.(event(), payload);
 
     expect(updates.setAutomatic).not.toHaveBeenCalled();
+  });
+
+  it('continues or drops a check that waited for the metered connection', () => {
+    emit('CONFIRM_METERED_UPDATE');
+    emit('CANCEL_METERED_UPDATE');
+
+    expect(updates.confirmMetered).toHaveBeenCalledOnce();
+    expect(updates.cancelMetered).toHaveBeenCalledOnce();
+  });
+
+  it('passes the choice to download on a metered connection', () => {
+    listeners.get('SET_ALLOW_METERED_UPDATES')?.(event(), { enabled: true });
+
+    expect(updates.setAllowMetered).toHaveBeenCalledExactlyOnceWith(true);
+  });
+
+  it.each([undefined, null, 'on', {}, { enabled: 1 }])('ignores %j as the choice for a metered connection', (payload) => {
+    listeners.get('SET_ALLOW_METERED_UPDATES')?.(event(), payload);
+
+    expect(updates.setAllowMetered).not.toHaveBeenCalled();
   });
 
   it('opens the releases page, a fixed address', () => {

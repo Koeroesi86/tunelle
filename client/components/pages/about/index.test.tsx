@@ -7,7 +7,15 @@ import type { AppAction } from '../../../redux/types';
 import type { UpdateState } from '@shared/types/update';
 import About from './index';
 
-const state: UpdateState = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, automatic: true, status: { kind: 'idle' } };
+const state: UpdateState = {
+  version: '26.10.5',
+  electron: '40.0.0',
+  chrome: '140.0.0',
+  unavailable: undefined,
+  automatic: true,
+  allowMetered: false,
+  status: { kind: 'idle' },
+};
 
 const setup = (actions: AppAction[]) => {
   const store = createStore(reducers);
@@ -36,6 +44,19 @@ describe('About connected to the store', () => {
     fireEvent.click(screen.getByText('Check for updates'));
 
     expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: 'CHECK_FOR_UPDATES' });
+  });
+
+  it('dispatches the answer to the metered connection and the choice to skip the question', () => {
+    const dispatch = setup([{ type: 'UPDATE_STATE', payload: { ...state, status: { kind: 'metered' } } }]);
+
+    fireEvent.click(screen.getByText('Continue'));
+    expect(dispatch).toHaveBeenLastCalledWith({ type: 'CONFIRM_METERED_UPDATE' });
+
+    fireEvent.click(screen.getByText('No'));
+    expect(dispatch).toHaveBeenLastCalledWith({ type: 'CANCEL_METERED_UPDATE' });
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Download on a metered connection' }));
+    expect(dispatch).toHaveBeenLastCalledWith({ type: 'SET_ALLOW_METERED_UPDATES', payload: { enabled: true } });
   });
 
   it('dispatches the install of a downloaded update when nothing plays', () => {

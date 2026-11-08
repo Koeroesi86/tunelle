@@ -30,6 +30,8 @@ interface UpdateOptions {
   installTimeout?: number;
   // the text of the splash, English by default
   translate?: Translate;
+  // asked before the download with the version found; false starts the installed version, undefined downloads
+  confirmDownload?: (version: string) => Promise<boolean>;
 }
 
 const defaultCheckTimeout = 10000;
@@ -89,6 +91,7 @@ export async function runUpdate(source: UpdateSource, report: (progress: SplashP
     downloadStallTimeout = defaultDownloadStallTimeout,
     installTimeout = defaultInstallTimeout,
     translate = getTranslator(undefined, []).t,
+    confirmDownload,
   } = options;
 
   const update = async () => {
@@ -96,6 +99,7 @@ export async function runUpdate(source: UpdateSource, report: (progress: SplashP
     const version = await checkForUpdate(source, checkTimeout);
 
     if (!version) return;
+    if (confirmDownload && !(await confirmDownload(version))) return;
 
     const downloading = translate('update.downloading', { version });
     report({ text: downloading, percent: 0 });
