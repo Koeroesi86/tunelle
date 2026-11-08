@@ -228,14 +228,19 @@ const updateOnSplash = async (loading: BrowserWindow) => {
     install: !isMockUpdate,
     translate: getMainTranslator().t,
     // a metered connection asks on the splash first, the version check above is small and stays as it is
-    confirmDownload: async (version) =>
-      updates.getState().allowMetered ||
-      !(await isMeteredConnection()) ||
-      askOnSplash(loading, {
+    confirmDownload: async (version) => {
+      if (updates.getState().allowMetered || !(await isMeteredConnection())) return true;
+
+      const download = await askOnSplash(loading, {
         text: getMainTranslator().t('update.metered', { version }),
         download: getMainTranslator().t('update.metered.download'),
         notNow: getMainTranslator().t('update.metered.notNow'),
-      }),
+      });
+      // the question goes away with the answer: the download reports its own text next, "Not now" falls back to the loading text
+      sendIfAlive(loading.webContents, 'SPLASH_PROGRESS', { text: getMainTranslator().t('splash.loading', { title: 'Tunelle' }) });
+
+      return download;
+    },
   });
 };
 
