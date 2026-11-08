@@ -13,12 +13,15 @@ interface AboutProps {
   isPlaying: boolean;
   check: () => void;
   install: () => void;
+  confirmMetered: () => void;
+  cancelMetered: () => void;
+  setAllowMetered: (enabled: boolean) => void;
   setAutomatic: (enabled: boolean) => void;
   openReleases: () => void;
 }
 
 /** The installed version, and where the app updates itself the check for a new one; elsewhere the reason it does not */
-const About = ({ update, isPlaying, check, install, setAutomatic, openReleases }: AboutProps) => {
+const About = ({ update, isPlaying, check, install, confirmMetered, cancelMetered, setAllowMetered, setAutomatic, openReleases }: AboutProps) => {
   const { t, language } = useTranslation();
   const [confirming, setConfirming] = useState(false);
 
@@ -61,6 +64,18 @@ const About = ({ update, isPlaying, check, install, setAutomatic, openReleases }
           </div>
           <Switch checked={update.automatic} label={t('about.automatic')} onChange={setAutomatic} />
         </div>
+      )}
+      {!unavailable && (
+        <div className={style.automatic}>
+          <div>
+            <div className={style.automaticTitle}>{t('about.allowMetered')}</div>
+            <div className={style.status}>{update.allowMetered ? t('about.allowMetered.on') : t('about.allowMetered.off')}</div>
+          </div>
+          <Switch checked={update.allowMetered} label={t('about.allowMetered')} onChange={setAllowMetered} />
+        </div>
+      )}
+      {!unavailable && status.kind === 'metered' && (
+        <Confirm message={t('about.metered')} confirmLabel={t('about.metered.continue')} confirm={confirmMetered} cancel={cancelMetered} />
       )}
       {confirming && (
         <Confirm

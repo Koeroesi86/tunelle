@@ -15,6 +15,16 @@ const registerUpdateListeners = ({ updates }: ListenerContext) => {
   ipcMain.on('CHECK_FOR_UPDATES', () => {
     updates.check().catch(logError);
   });
+  ipcMain.on('CONFIRM_METERED_UPDATE', () => {
+    updates.confirmMetered().catch(logError);
+  });
+  ipcMain.on('CANCEL_METERED_UPDATE', () => updates.cancelMetered());
+  ipcMain.on('SET_ALLOW_METERED_UPDATES', (_event, payload: unknown) => {
+    const request = parsePayload(enabledRequestSchema, payload);
+    if (!request) return;
+
+    updates.setAllowMetered(request.enabled).catch(logError);
+  });
   ipcMain.on('SET_AUTOMATIC_UPDATES', (_event, payload: unknown) => {
     const request = parsePayload(enabledRequestSchema, payload);
     if (!request) return;

@@ -6,17 +6,22 @@ import { z } from 'zod';
 // the preference is read before the splash, and the library, where the settings live, opens after it
 const getFile = (folder: string) => resolve(folder, './update-preference.json');
 
-// only a saved off turns the updates off
-const offSchema = z.object({ automatic: z.literal(false) });
+// the updates are on and a metered connection asks first, unless the user chose otherwise; a value that is not a boolean counts as not chosen
+const preferenceSchema = z
+  .object({ automatic: z.boolean().catch(true), allowMetered: z.boolean().catch(false) })
+  .catch({ automatic: true, allowMetered: false });
 
-/** Whether the app updates itself at start: on unless the user turned it off, also when the file is missing or unreadable */
-export const readAutomaticUpdates = (folder: string): boolean => {
+export type UpdatePreference = z.infer<typeof preferenceSchema>;
+
+/** What the user chose about the updates, the defaults also when the file is missing or unreadable */
+export const readUpdatePreference = (folder: string): UpdatePreference => {
   try {
-    return !offSchema.safeParse(JSON.parse(readFileSync(getFile(folder), 'utf8'))).success;
+    return preferenceSchema.parse(JSON.parse(readFileSync(getFile(folder), 'utf8')));
   } catch {
-    return true;
+    return preferenceSchema.parse(undefined);
   }
 };
 
-export const saveAutomaticUpdates = (folder: string, automatic: boolean) =>
-  mkdir(folder, { recursive: true }).then(() => writeFile(getFile(folder), JSON.stringify({ automatic })));
+/** Keeps one choice and leaves the other as it was */
+export const saveUpdatePreference = (folder: string, change: Partial<UpdatePreference>) =>
+  mkdir(folder, { recursive: true }).then(() => writeFile(getFile(folder), JSON.stringify({ ...readUpdatePreference(folder), ...change })));

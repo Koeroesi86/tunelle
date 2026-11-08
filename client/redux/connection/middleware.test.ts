@@ -97,7 +97,15 @@ describe('connection middleware', () => {
 
   it('asks the main process for the version when it starts and stores the update state it reports', async () => {
     const { store, send, listen } = await setup();
-    const state = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined, automatic: true, status: { kind: 'checking' } };
+    const state = {
+      version: '26.10.5',
+      electron: '40.0.0',
+      chrome: '140.0.0',
+      unavailable: undefined,
+      automatic: true,
+      allowMetered: false,
+      status: { kind: 'checking' },
+    };
 
     listen('UPDATE_STATE', state);
 
@@ -121,6 +129,18 @@ describe('connection middleware', () => {
     store.dispatch({ type: 'SET_AUTOMATIC_UPDATES', payload: { enabled: false } });
 
     expect(send).toHaveBeenCalledWith('SET_AUTOMATIC_UPDATES', { enabled: false });
+  });
+
+  it('sends the answer about a metered connection and the choice to skip the question to the main process', async () => {
+    const { store, send } = await setup();
+
+    store.dispatch({ type: 'CONFIRM_METERED_UPDATE' });
+    store.dispatch({ type: 'CANCEL_METERED_UPDATE' });
+    store.dispatch({ type: 'SET_ALLOW_METERED_UPDATES', payload: { enabled: true } });
+
+    expect(send).toHaveBeenCalledWith('CONFIRM_METERED_UPDATE');
+    expect(send).toHaveBeenCalledWith('CANCEL_METERED_UPDATE');
+    expect(send).toHaveBeenCalledWith('SET_ALLOW_METERED_UPDATES', { enabled: true });
   });
 
   it('saves the queue and the position before the restart for an update', async () => {

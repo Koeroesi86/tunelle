@@ -7,7 +7,9 @@ import ws from 'windows-shortcuts-appid';
 import type { AppWindows } from '@shared/types/global';
 import { directoryUrlSchema } from './electron/schemas/environment';
 import getAppDataPath from './electron/utils/app-data-path';
-import { readAutomaticUpdates, saveAutomaticUpdates } from './electron/services/update-preference';
+import { readUpdatePreference, saveUpdatePreference } from './electron/services/update-preference';
+import { isMeteredConnection } from './electron/services/metered-connection';
+import { askOnSplash } from './electron/services/splash-confirm';
 import { copyOldLibrary, copyOldUserData, getAppName } from './electron/utils/user-data';
 import createWindow from './electron/windows/create-window';
 import getLoadingWindow from './electron/windows/get-loading-window';
@@ -208,11 +210,13 @@ const getUpdateSource = (): UpdateSource | undefined => {
 
 // the splash and the settings share one source; the settings flow starts after the splash one is done
 const updateSource = getUpdateSource();
+const updatePreference = readUpdatePreference(appDataPath);
 const updates = createUpdateManager({
   source: updateSource,
   info: { version: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome, unavailable },
-  automatic: readAutomaticUpdates(appDataPath),
-  saveAutomatic: (automatic) => saveAutomaticUpdates(appDataPath, automatic),
+  ...updatePreference,
+  saveAutomatic: (automatic) => saveUpdatePreference(appDataPath, { automatic }),
+  saveAllowMetered: (allowMetered) => saveUpdatePreference(appDataPath, { allowMetered }),
   publish: (state) => windows.main?.webContents.send('UPDATE_STATE', state),
 });
 
@@ -223,6 +227,15 @@ const updateOnSplash = async (loading: BrowserWindow) => {
   return runUpdate(updateSource, (progress) => loading.webContents.send('SPLASH_PROGRESS', progress), {
     install: !isMockUpdate,
     translate: getMainTranslator().t,
+    // a metered connection asks on the splash first, the version check above is small and stays as it is
+    confirmDownload: async (version) =>
+      updates.getState().allowMetered ||
+      !(await isMeteredConnection()) ||
+      askOnSplash(loading, {
+        text: getMainTranslator().t('update.metered', { version }),
+        download: getMainTranslator().t('update.metered.download'),
+        notNow: getMainTranslator().t('update.metered.notNow'),
+      }),
   });
 };
 

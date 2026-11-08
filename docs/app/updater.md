@@ -12,6 +12,22 @@ electron-updater only works in the packaged app, and on Linux only in an AppImag
 
 The published release is what installed apps update from, see [releases.md](../release/releases.md).
 
+## Metered connections
+
+The version check is small and always runs; the download asks first when the system says the connection is metered, as it uses data the user may pay for. `isMeteredConnection` in `electron/services/metered-connection.ts` asks the system, with a timeout of 3 seconds, and any error, a timeout or an answer it does not know counts as not metered, so the detection never blocks the app:
+
+- **Windows**: `NetworkCostType` of the connection profile through a short `powershell.exe` call; `Fixed` and `Variable` are metered, `Unrestricted`, `Unknown` and `Default` are not.
+- **Linux**: the `Metered` property of NetworkManager through `busctl`; 1 (yes) and 3 (guess yes) are metered, 0, 2 and 4 are not. No `busctl` or no NetworkManager is not metered.
+- **macOS**: not detected, as `isExpensive` of Network.framework needs a native helper. It counts as not metered.
+- `navigator.connection` is not used, it does not read the setting of the system on a desktop.
+- `TUNELLE_METERED=1` makes every platform metered, for a hotspot the system does not know and for testing.
+
+**On the splash** (`confirmDownload` of `runUpdate`) the splash shows "Download" and "Not now" (`askOnSplash` in `electron/services/splash-confirm.ts`). "Download" goes on as without the question; "Not now", and closing the splash, start the installed version for this start only. The next start asks again.
+
+**In the settings** the manager sets the status `metered` before it checks, and the page asks to continue (`CONFIRM_METERED_UPDATE`) or not (`CANCEL_METERED_UPDATE`, back to idle). A check later asks again.
+
+The setting "Download on a metered connection" (`allowMetered` in `update-preference.json`, next to `automatic`) skips both questions. It is off by default.
+
 ## macOS
 
 electron-updater installs an update through Squirrel.Mac, which refuses an app without a Developer ID, and the macOS build is signed ad hoc (`identity: "-"`; there is no Apple Developer membership, see [#314](https://github.com/Koeroesi86/tunelle/issues/314)). So the app updates itself with `electron/services/mac-update-source.ts`, which implements the same `UpdateSource` as electron-updater, and the splash and the settings use it the same way.

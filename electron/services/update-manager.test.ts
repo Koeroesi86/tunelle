@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUpdateManager } from './update-manager';
 import type { UpdateSource } from './updater';
 import type { UpdateState } from '@shared/types/update';
+import { isMeteredConnection } from './metered-connection';
+
+vi.mock('./metered-connection', () => ({ isMeteredConnection: vi.fn(() => Promise.resolve(false)) }));
 
 const info = { version: '26.10.5', electron: '40.0.0', chrome: '140.0.0', unavailable: undefined } as const;
 const found = () => Promise.resolve({ isUpdateAvailable: true, updateInfo: { version: '26.10.6' } });
@@ -32,7 +35,7 @@ describe('createUpdateManager', () => {
   });
 
   it('starts idle with the versions of the app', () => {
-    expect(setup(notFound).manager.getState()).toEqual({ ...info, automatic: true, status: { kind: 'idle' } });
+    expect(setup(notFound).manager.getState()).toEqual({ ...info, automatic: true, allowMetered: false, status: { kind: 'idle' } });
   });
 
   it('reports up to date with the time of the check', async () => {
@@ -188,6 +191,106 @@ describe('createUpdateManager', () => {
 
       expect(manager.getState().automatic).toBe(true);
       expect(saveAutomatic).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('on a metered connection', () => {
+    beforeEach(() => {
+      vi.mocked(isMeteredConnection).mockResolvedValue(true);
+    });
+    afterEach(() => {
+      vi.mocked(isMeteredConnection).mockResolvedValue(false);
+    });
+
+    it('waits for the user before it checks or downloads anything', async () => {
+      const { manager, source, kinds } = setup(found);
+
+      await manager.check();
+
+      expect(kinds()).toEqual(['checking', 'metered']);
+      expect(source.checkForUpdates).not.toHaveBeenCalled();
+      expect(source.downloadUpdate).not.toHaveBeenCalled();
+    });
+
+    it('goes on with the check and the download once the user agrees', async () => {
+      const { manager, source, kinds } = setup(found);
+
+      await manager.check();
+      await manager.confirmMetered();
+
+      expect(kinds()).toEqual(['checking', 'metered', 'checking', 'downloading', 'ready']);
+      expect(source.downloadUpdate).toHaveBeenCalledOnce();
+    });
+
+    it('drops the check when the user does not agree', async () => {
+      const { manager, source } = setup(found);
+
+      await manager.check();
+      manager.cancelMetered();
+
+      expect(manager.getState().status).toEqual({ kind: 'idle' });
+      expect(source.checkForUpdates).not.toHaveBeenCalled();
+    });
+
+    it('asks again at the next check', async () => {
+      const { manager, kinds } = setup(found);
+
+      await manager.check();
+      manager.cancelMetered();
+      await manager.check();
+
+      expect(kinds()).toEqual(['checking', 'metered', 'idle', 'checking', 'metered']);
+    });
+
+    it('does not ask when the user allowed it', async () => {
+      const { manager, kinds } = setup(found, undefined, { allowMetered: true });
+
+      await manager.check();
+
+      expect(kinds()).toEqual(['checking', 'downloading', 'ready']);
+      expect(isMeteredConnection).not.toHaveBeenCalled();
+    });
+
+    it('ignores an answer when nothing waits for one', async () => {
+      const { manager, source } = setup(found);
+
+      await manager.confirmMetered();
+      manager.cancelMetered();
+
+      expect(manager.getState().status).toEqual({ kind: 'idle' });
+      expect(source.checkForUpdates).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the choice to download on a metered connection without asking', () => {
+    it('keeps the choice and tells the settings', async () => {
+      const saveAllowMetered = vi.fn(() => Promise.resolve());
+      const { manager } = setup(notFound, undefined, { saveAllowMetered });
+
+      await manager.setAllowMetered(true);
+
+      expect(saveAllowMetered).toHaveBeenCalledExactlyOnceWith(true);
+      expect(manager.getState().allowMetered).toBe(true);
+    });
+
+    it('goes back when the choice is not saved', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const { manager } = setup(notFound, undefined, { saveAllowMetered: () => Promise.reject(new Error('disk full')) });
+
+      await manager.setAllowMetered(true);
+
+      expect(manager.getState().allowMetered).toBe(false);
+    });
+
+    it('saves nothing when the choice is the same or the app does not update itself', async () => {
+      const saveAllowMetered = vi.fn(() => Promise.resolve());
+      const same = setup(notFound, undefined, { saveAllowMetered });
+      const unavailable = createUpdateManager({ source: undefined, info: { ...info, unavailable: 'managed' }, publish: vi.fn(), saveAllowMetered });
+
+      await same.manager.setAllowMetered(false);
+      await unavailable.setAllowMetered(true);
+
+      expect(saveAllowMetered).not.toHaveBeenCalled();
     });
   });
 });

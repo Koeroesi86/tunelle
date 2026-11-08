@@ -111,6 +111,9 @@ export type AppAction =
   | EmptyAction<'CLEAR_HISTORY'>
   | EmptyAction<'CLICK_NOTIFICATION'>
   | EmptyAction<'CHECK_FOR_UPDATES'>
+  | EmptyAction<'CONFIRM_METERED_UPDATE'>
+  | EmptyAction<'CANCEL_METERED_UPDATE'>
+  | PayloadAction<'SET_ALLOW_METERED_UPDATES', { enabled: boolean }>
   | EmptyAction<'INSTALL_UPDATE'>
   | EmptyAction<'OPEN_RELEASES'>
   | PayloadAction<'SET_AUTOMATIC_UPDATES', { enabled: boolean }>

@@ -17,6 +17,11 @@ describe('LoadingSplash', () => {
     expect(page.querySelector('svg[aria-label="Tunelle"]')).toBeTruthy();
   });
 
+  it('has two buttons for the question on a metered connection, hidden until it is asked', () => {
+    expect(page.getElementById('actions')?.hasAttribute('hidden')).toBe(true);
+    expect(page.querySelectorAll('#actions button')).toHaveLength(2);
+  });
+
   it('has a progress bar for the download that stays hidden until there is progress', () => {
     expect(page.getElementById('progress-track')?.hasAttribute('hidden')).toBe(true);
     expect(page.getElementById('progress-bar')?.style.width).toBe('0%');
