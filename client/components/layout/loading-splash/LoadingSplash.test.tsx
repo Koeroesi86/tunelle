@@ -18,7 +18,7 @@ describe('LoadingSplash', () => {
   });
 
   it('has two buttons for the question on a metered connection, hidden until it is asked', () => {
-    expect(page.getElementById('actions')?.hasAttribute('hidden')).toBe(true);
+    expect(page.getElementById('actions')?.style.display).toBe('none');
     expect(page.querySelectorAll('#actions button')).toHaveLength(2);
   });
 

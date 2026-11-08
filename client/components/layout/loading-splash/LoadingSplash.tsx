@@ -65,7 +65,7 @@ const style: Record<'body' | 'container' | 'wrapper' | 'logo' | 'name' | 'text' 
   },
   actions: {
     WebkitAppRegion: 'no-drag',
-    display: 'flex',
+    display: 'none',
     gap: '10px',
     marginTop: '14px',
   },
@@ -97,7 +97,7 @@ function LoadingSplash(props: { locals: Pick<PageLocals, 'title'> }) {
             <div id="progress-track" style={style.track} hidden>
               <div id="progress-bar" style={style.bar} />
             </div>
-            <div id="actions" style={style.actions} hidden>
+            <div id="actions" style={style.actions}>
               <button style={style.button} />
               <button style={style.button} />
             </div>

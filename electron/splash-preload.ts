@@ -23,12 +23,12 @@ ipcRenderer.on('SPLASH_QUESTION', (_event, question: { text: string; download: s
 
   if (status) status.textContent = question.text;
   if (track) track.hidden = true;
-  if (actions) actions.hidden = false;
+  if (actions) actions.style.display = 'flex';
   if (download) download.textContent = question.download;
   if (notNow) notNow.textContent = question.notNow;
 
   const finish = (value: boolean) => {
-    if (actions) actions.hidden = true;
+    if (actions) actions.style.display = 'none';
     answer(value);
   };
 
