@@ -15,6 +15,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [Microsoft Store](docs/release/microsoft-store.md)
 - [Website](docs/development/website.md)
 - [Screenshots of the website](docs/development/screenshots.md)
+- [Keeping the usage of Claude Code down](docs/development/claude-usage.md)
 - [Testing the app](docs/development/end-to-end-tests.md)
 - [Checks in CI](docs/development/ci.md)
 - [The updater](docs/app/updater.md)

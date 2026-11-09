@@ -18,11 +18,15 @@ Pull requests also run `fallow audit --base`, CodeQL, dependency review and OSV 
 
 Releases come from `release.yml` (Monday and Thursday 06:00 UTC and by hand, from `master` only) and the published release is what installed apps update from. Never edit `version` of `package.json` by hand (`scripts/release/version.js` stamps `YY.M.<run number>` in the release workflow; no zero padded month and no prerelease part, electron-updater would take it for a channel), and `release.yml` must not be renamed or recreated (its run number would restart). A release goes to the Microsoft Store through `store.yml`, whose secrets are in the environment `microsoft-store` (limited to `master`, with no reviewer: an automatic run starts by itself). Read [docs/release/releases.md](docs/release/releases.md) and [docs/release/microsoft-store.md](docs/release/microsoft-store.md) before working on either. The `TUNELLE_` variables that the smoke and end to end tests set are in [docs/development/building.md](docs/development/building.md).
 
-`npx tsx scripts/checks/verify.ts` runs 1, 2, 3, 4, 6 and the build of 7 in order and prints only the end of the failed check. A SessionStart hook puts Node 24 of nvm on `PATH` for Claude.
+`npx tsx scripts/checks/verify.ts` runs 1, 2, 3, 4, 6 and the build of 7 in order and prints only the end of the failed check. A SessionStart hook puts Node 24 of nvm on `PATH` for Claude, so do not `export PATH` in a command.
 
 ## Guards
 
 Claude Code hooks (`.claude/hooks/`, wired in `.claude/settings.json`, tested in `.claude/hooks/claude-hooks.test.ts`) block what the rules below forbid: `--no-verify`, `prettier --write`, `continue-on-error`, renaming `release.yml`, pushing to `master`, editing `version` of `package.json` or a migration that has shipped, and writing a comment block over 4 lines. `git push` and `gh pr create` run lint and typecheck first. `.github/workflows/workflows.test.ts` checks the workflow rules, and `pr-description.yml` fails a pull request without **Not verified:**.
+
+## Context
+
+Every call re-reads the whole session, so keep it small ([docs/development/claude-usage.md](docs/development/claude-usage.md)): one issue or pull request per session; read a part of a file (`grep -n`, `sed -n A,Bp`, Read with offset and limit), never `cat` several files; send a wide search or a long log to a subagent; run independent calls together; at a task boundary, or when a hook says the context is large, `/handoff` and `/clear`.
 
 ## Conventions
 
