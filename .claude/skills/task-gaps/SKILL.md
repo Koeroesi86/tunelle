@@ -1,6 +1,7 @@
 ---
 name: task-gaps
 description: Review a GitHub issue for ambiguities, inconsistencies and gaps before work starts, checked against the code. Trigger "task gaps", "/task-gaps", optional issue number, URL or commit hash; defaults to the branch's issue.
+disable-model-invocation: true
 model: opus
 allowed-tools: Read, Grep, Glob, Bash
 ---

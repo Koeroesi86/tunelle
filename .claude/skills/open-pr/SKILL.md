@@ -1,6 +1,7 @@
 ---
 name: open-pr
 description: Open a pull request for the current branch with the repository template filled in and what was tried by hand listed (CI-run checks are not). Trigger "open pr", "create pr", "/open-pr".
+disable-model-invocation: true
 model: sonnet
 allowed-tools: Read, Bash
 ---

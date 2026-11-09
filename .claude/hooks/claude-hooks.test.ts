@@ -107,6 +107,81 @@ describe.skipIf(!hasTools)('claude hooks', () => {
     });
   });
 
+  describe('guard-output', () => {
+    const big = () => {
+      writeFileSync(join(project, 'big.txt'), 'x\n'.repeat(400));
+      writeFileSync(join(project, 'small.txt'), 'x\n');
+    };
+
+    it.each(['cat a.ts b.ts', 'cd x && cat a.ts b.ts | head', 'cat src/*.ts', 'cat big.txt', 'gh run view 1 --log', 'gh pr diff 3', 'npm ci'])(
+      'blocks %s',
+      (command) => {
+        big();
+
+        expect(run('guard-output.sh', { command }).status).toBe(2);
+      }
+    );
+
+    it.each([
+      'cat small.txt',
+      'cat big.txt | head -50',
+      'cat > out.txt',
+      "cat <<'EOF'\ncat a b\nEOF",
+      'git commit -m "cat a b"',
+      'gh run view 1 --log-failed | tail -n 100',
+      'gh pr diff 3 > diff.txt',
+      'gh run view 1',
+      'npm ci 2>&1 | tail -5',
+      'grep -n x a.ts b.ts',
+    ])('allows %s', (command) => {
+      big();
+
+      expect(run('guard-output.sh', { command }).status).toBe(0);
+    });
+  });
+
+  describe('context-nudge', () => {
+    const nudge = (tokens: number, session: string) => {
+      const transcript = join(project, `${session}.jsonl`);
+      writeFileSync(
+        transcript,
+        `${JSON.stringify({ type: 'assistant', message: { usage: { input_tokens: 2, cache_creation_input_tokens: 1000, cache_read_input_tokens: tokens } } })}\n`
+      );
+      const { status, stdout } = spawnSync('bash', [join(hooks, 'context-nudge.sh')], {
+        input: JSON.stringify({ transcript_path: transcript, session_id: session }),
+        encoding: 'utf8',
+        env: { ...process.env, TMPDIR: project },
+      });
+      return { status, stdout };
+    };
+
+    it('stays quiet below 150K', () => {
+      expect(nudge(100000, 'quiet').stdout).toBe('');
+    });
+
+    it('says it once per level', () => {
+      expect(nudge(160000, 'levels').stdout).toContain('/handoff');
+      expect(nudge(170000, 'levels').stdout).toBe('');
+      expect(nudge(260000, 'levels').stdout).toContain('261K');
+      expect(nudge(270000, 'levels').stdout).toBe('');
+    });
+  });
+
+  describe('repeat-failure', () => {
+    const fail = (command: string) =>
+      spawnSync('bash', [join(hooks, 'repeat-failure.sh')], {
+        input: JSON.stringify({ session_id: 'failing', tool_input: { command } }),
+        encoding: 'utf8',
+        env: { ...process.env, TMPDIR: project },
+      }).stdout;
+
+    it('speaks on the third failure of the same command and not after another one', () => {
+      expect([fail('npm test'), fail('npm test')]).toEqual(['', '']);
+      expect(fail('npm test')).toContain('3 times');
+      expect(fail('npm run lint')).toBe('');
+    });
+  });
+
   describe('no-ascii-preview', () => {
     it('blocks a question with a preview and allows one without', () => {
       const question = (option: Record<string, string>) => ({
