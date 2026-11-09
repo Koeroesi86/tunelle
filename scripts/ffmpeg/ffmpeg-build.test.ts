@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import source from './ffmpeg-source.json';
-import { checkBinary, checkFlags, checkTarball, sha256Of } from './ffmpeg-build';
+import { checkBinary, checkFlags, checkTarball, posixPath, sha256Of } from './ffmpeg-build';
 
 const legend = ' A..... = Audio\n ------\n';
 const decoderLines = legend + source.decoders.map((name) => ` A....D ${name}   some decoder`).join('\n');
@@ -38,5 +38,12 @@ describe('checkBinary', () => {
 
   it('refuses a decoder that is not in the list', () => {
     expect(() => checkBinary(version, `${decoderLines}\n A....D h264   H.264`, source)).toThrow('h264');
+  });
+});
+
+describe('posixPath', () => {
+  it('turns a Windows path into the one MSYS reads and leaves a POSIX path as it is', () => {
+    expect(posixPath('D:\\a\\_temp\\ffmpeg\\install')).toBe('/d/a/_temp/ffmpeg/install');
+    expect(posixPath('/tmp/ffmpeg/install')).toBe('/tmp/ffmpeg/install');
   });
 });

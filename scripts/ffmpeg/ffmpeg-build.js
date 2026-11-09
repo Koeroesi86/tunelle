@@ -1,7 +1,7 @@
 const { spawnSync } = require('child_process')
 const { createHash } = require('crypto')
 const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('fs')
-const { join, resolve } = require('path')
+const { basename, join, resolve } = require('path')
 const source = require('./ffmpeg-source.json')
 
 const sha256Of = buffer => createHash('sha256').update(buffer).digest('hex')
@@ -33,6 +33,9 @@ const checkBinary = (versionOutput, decoderOutput, { forbidden, decoders }) => {
   if (listed.join() !== expected.join()) throw new Error(`The binary decodes ${listed.join(' ')}, expected ${expected.join(' ')}`)
 }
 
+// configure under MSYS reads D:\a\x as a host path, so the prefix is /d/a/x there
+const posixPath = path => path.replace(/^([A-Za-z]):/, (_, drive) => `/${drive.toLowerCase()}`).replace(/\\/g, '/')
+
 const run = (command, args, options) => {
   const result = spawnSync(command, args, { stdio: 'inherit', ...options })
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed (${result.status})`)
@@ -54,10 +57,10 @@ const build = async work => {
     writeFileSync(tarball, Buffer.from(await response.arrayBuffer()))
   }
   checkTarball(readFileSync(tarball), source.sha256)
-  run('tar', ['-xf', tarball, '-C', work])
+  run('tar', ['-xf', basename(tarball)], { cwd: work })
   const tree = join(work, `ffmpeg-${source.version}`)
   const prefix = join(work, 'install')
-  run('sh', ['./configure', `--prefix=${prefix}`, ...source.configure], { cwd: tree })
+  run('sh', ['./configure', `--prefix=${posixPath(prefix)}`, ...source.configure], { cwd: tree })
   run('make', ['-j', String(require('os').availableParallelism())], { cwd: tree })
   run('make', ['install'], { cwd: tree })
   const binary = join(prefix, 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
@@ -72,4 +75,4 @@ if (require.main === module) {
   })
 }
 
-module.exports = { checkBinary, checkFlags, checkTarball, sha256Of }
+module.exports = { checkBinary, checkFlags, checkTarball, posixPath, sha256Of }
