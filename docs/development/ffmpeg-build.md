@@ -10,7 +10,7 @@ A decode-only ffmpeg and ffprobe, built by us from the source tarball of ffmpeg.
 
 ## The check
 
-`node scripts/ffmpeg/ffmpeg-build.js <work folder>` downloads the tarball, refuses it unless the sha256 matches, builds, and then checks the binary: its configuration has no `--enable-gpl`, `--enable-nonfree` or `--enable-version3`, and `ffmpeg -decoders` lists exactly the decoders of the file. A format is added to the build by adding its demuxer and decoder to the file, in the pull request that adds its playback test.
+`node scripts/ffmpeg/ffmpeg-build.js <work folder>` downloads the tarball, refuses it unless the sha256 matches, unpacks it from memory, builds, and then checks the binary: its configuration has no `--enable-gpl`, `--enable-nonfree` or `--enable-version3`, and `ffmpeg -decoders` lists exactly the decoders of the file. A format is added to the build by adding its demuxer and decoder to the file, in the pull request that adds its playback test.
 
 ## CI
 

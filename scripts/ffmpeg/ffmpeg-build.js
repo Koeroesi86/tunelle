@@ -1,7 +1,7 @@
 const { spawnSync } = require('child_process')
 const { createHash } = require('crypto')
-const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('fs')
-const { basename, join, resolve } = require('path')
+const { mkdirSync } = require('fs')
+const { join, resolve } = require('path')
 const source = require('./ffmpeg-source.json')
 
 const sha256Of = buffer => createHash('sha256').update(buffer).digest('hex')
@@ -50,14 +50,12 @@ const output = (command, args) => {
 const build = async work => {
   checkFlags(source)
   mkdirSync(work, { recursive: true })
-  const tarball = join(work, `ffmpeg-${source.version}.tar.xz`)
-  if (!existsSync(tarball)) {
-    const response = await fetch(source.url)
-    if (!response.ok) throw new Error(`Downloading ${source.url} failed (${response.status})`)
-    writeFileSync(tarball, Buffer.from(await response.arrayBuffer()))
-  }
-  checkTarball(readFileSync(tarball), source.sha256)
-  run('tar', ['-xf', basename(tarball)], { cwd: work })
+  const response = await fetch(source.url)
+  if (!response.ok) throw new Error(`Downloading ${source.url} failed (${response.status})`)
+  const tarball = Buffer.from(await response.arrayBuffer())
+  checkTarball(tarball, source.sha256)
+  // the verified bytes go to tar on stdin, so no downloaded file is written by this script
+  run('tar', ['-xJf', '-'], { cwd: work, input: tarball, stdio: ['pipe', 'inherit', 'inherit'] })
   const tree = join(work, `ffmpeg-${source.version}`)
   const prefix = join(work, 'install')
   run('sh', ['./configure', `--prefix=${posixPath(prefix)}`, ...source.configure], { cwd: tree })
