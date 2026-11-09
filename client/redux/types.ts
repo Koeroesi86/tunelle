@@ -116,6 +116,7 @@ export type AppAction =
   | PayloadAction<'SET_ALLOW_METERED_UPDATES', { enabled: boolean }>
   | EmptyAction<'INSTALL_UPDATE'>
   | EmptyAction<'OPEN_RELEASES'>
+  | EmptyAction<'OPEN_FFMPEG_NOTICE'>
   | PayloadAction<'SET_AUTOMATIC_UPDATES', { enabled: boolean }>
   | PayloadAction<'UPDATE_STATE', UpdateState>
   | PayloadAction<'SEARCH_RADIO', { query: RadioQuery }>

@@ -20,6 +20,7 @@
     "dev": "npm run generate:schemas && node scripts/tooling/prebuild.js && node scripts/tooling/tsc.js tsconfig.main.json out && node --max_old_space_size=2048 scripts/tooling/start.js",
     "build": "node scripts/tooling/tsc.js tsconfig.main.json out && node scripts/tooling/build.js",
     "start": "electron out/index.js",
+    "ffmpeg": "node scripts/ffmpeg/ffmpeg-build.js .cache/ffmpeg",
     "dist": "node scripts/release/dist.js",
     "typecheck": "node scripts/tooling/tsc.js tsconfig.json && node scripts/tooling/tsc.js tsconfig.e2e.json && node scripts/tooling/tsc.js tsconfig.scripts.json",
     "test": "vitest run",
@@ -69,6 +70,20 @@
     ],
     "asarUnpack": [
       "**/node_modules/@img/**"
+    ],
+    "extraResources": [
+      {
+        "from": ".cache/ffmpeg/install/bin",
+        "to": "ffmpeg",
+        "filter": [
+          "ffmpeg",
+          "ffmpeg.exe"
+        ]
+      },
+      {
+        "from": "packaging/ffmpeg",
+        "to": "ffmpeg"
+      }
     ],
     "win": {
       "icon": "icons/win/icon.ico",

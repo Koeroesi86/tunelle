@@ -306,6 +306,7 @@ const handleActions = actionMiddleware((store) => [
   onAction('LOAD_RADIO_OPTIONS', () => electronAPI.send('RADIO_OPTIONS')),
   onAction('CHECK_FOR_UPDATES', () => electronAPI.send('CHECK_FOR_UPDATES')),
   onAction('OPEN_RELEASES', () => electronAPI.send('OPEN_RELEASES')),
+  onAction('OPEN_FFMPEG_NOTICE', () => electronAPI.send('OPEN_FFMPEG_NOTICE')),
   onAction('CONFIRM_METERED_UPDATE', () => electronAPI.send('CONFIRM_METERED_UPDATE')),
   onAction('CANCEL_METERED_UPDATE', () => electronAPI.send('CANCEL_METERED_UPDATE')),
   onAction('SET_ALLOW_METERED_UPDATES', ({ payload }) => electronAPI.send('SET_ALLOW_METERED_UPDATES', payload)),

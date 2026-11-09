@@ -22,6 +22,14 @@ const packagedExecutable = (platform, arch) => `${unpackedFolder(platform, arch)
 
 const resourcesFolder = (platform, arch) => `${unpackedFolder(platform, arch)}/${resources[platform]}`
 
+// the decode-only ffmpeg (docs/development/ffmpeg-build.md): npm run ffmpeg or the ffmpeg workflow puts it in .cache/ffmpeg/install/bin, package.json (extraResources)
+// copies it with its notice and license into the ffmpeg folder of the resources of the app
+const ffmpegProgram = platform => (platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+
+const builtFfmpeg = platform => `.cache/ffmpeg/install/bin/${ffmpegProgram(platform)}`
+
+const packagedFfmpegFolder = (platform, arch) => `${resourcesFolder(platform, arch)}/ffmpeg`
+
 // the update metadata that electron-updater reads from the release, and the installer it has to list; windows and macOS share one file between the
 // architectures (the release workflow merges them with scripts/release/merge-update-files.js), only linux has a file for each
 const updateMetadata = (platform, arch) =>
@@ -46,4 +54,4 @@ const linuxBuilds = linuxPackage => [
 // the AppImage is built by every job of linux but the Flatpak one
 const buildsAppImage = linuxPackage => linuxPackage !== 'flatpak'
 
-module.exports = { buildsAppImage, linuxBuilds, packagedExecutable, resourcesFolder, storePackage, updateMetadata }
+module.exports = { buildsAppImage, builtFfmpeg, ffmpegProgram, linuxBuilds, packagedFfmpegFolder, packagedExecutable, resourcesFolder, storePackage, updateMetadata }

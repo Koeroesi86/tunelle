@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import source from './ffmpeg-source.json';
-import { checkBinary, checkFlags, checkTarball, posixPath, sha256Of } from './ffmpeg-build';
+import { checkBinary, checkFlags, checkTarball, posixPath, sha256Of, toolchainFlags } from './ffmpeg-build';
 
 const legend = ' A..... = Audio\n ------\n';
 const decoderLines = legend + source.decoders.map((name) => ` A....D ${name}   some decoder`).join('\n');
@@ -45,5 +45,13 @@ describe('posixPath', () => {
   it('turns a Windows path into the one MSYS reads and leaves a POSIX path as it is', () => {
     expect(posixPath('D:\\a\\_temp\\ffmpeg\\install')).toBe('/d/a/_temp/ffmpeg/install');
     expect(posixPath('/tmp/ffmpeg/install')).toBe('/tmp/ffmpeg/install');
+  });
+});
+
+describe('toolchainFlags', () => {
+  it('asks for clang on Windows on ARM only', () => {
+    expect(toolchainFlags('win32', 'arm64')).toEqual(['--cc=clang']);
+    expect(toolchainFlags('win32', 'x64')).toEqual([]);
+    expect(toolchainFlags('linux', 'arm64')).toEqual([]);
   });
 });

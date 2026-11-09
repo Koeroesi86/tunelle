@@ -36,6 +36,9 @@ const checkBinary = (versionOutput, decoderOutput, { forbidden, decoders }) => {
 // configure under MSYS reads D:\a\x as a host path, so the prefix is /d/a/x there
 const posixPath = path => path.replace(/^([A-Za-z]):/, (_, drive) => `/${drive.toLowerCase()}`).replace(/\\/g, '/')
 
+// MSYS2 has no gcc for Windows on ARM, its packages for that processor are clang ones
+const toolchainFlags = (platform, arch) => (platform === 'win32' && arch === 'arm64' ? ['--cc=clang'] : [])
+
 const run = (command, args, options) => {
   const result = spawnSync(command, args, { stdio: 'inherit', ...options })
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed (${result.status})`)
@@ -58,7 +61,7 @@ const build = async work => {
   run('tar', ['-xJf', '-'], { cwd: work, input: tarball, stdio: ['pipe', 'inherit', 'inherit'] })
   const tree = join(work, `ffmpeg-${source.version}`)
   const prefix = join(work, 'install')
-  run('sh', ['./configure', `--prefix=${posixPath(prefix)}`, ...source.configure], { cwd: tree })
+  run('sh', ['./configure', `--prefix=${posixPath(prefix)}`, ...toolchainFlags(process.platform, process.arch), ...source.configure], { cwd: tree })
   run('make', ['-j', String(require('os').availableParallelism())], { cwd: tree })
   run('make', ['install'], { cwd: tree })
   const binary = join(prefix, 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
@@ -73,4 +76,4 @@ if (require.main === module) {
   })
 }
 
-module.exports = { checkBinary, checkFlags, checkTarball, posixPath, sha256Of }
+module.exports = { checkBinary, checkFlags, checkTarball, posixPath, sha256Of, toolchainFlags }

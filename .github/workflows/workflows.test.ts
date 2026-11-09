@@ -90,6 +90,17 @@ describe('workflows', () => {
     expect(text).toMatch(/if: matrix\.package == 'appimage'\n\s+run: \|\n\s+install\(\).*zsync/);
   });
 
+  it('dist.yml packages the ffmpeg that ffmpeg.yml built for the system of the job, before npm run dist', () => {
+    const text = read('dist.yml');
+    const download = text.indexOf('name: ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}');
+
+    expect(text).toMatch(/\n  ffmpeg:\n\s+uses: \.\/\.github\/workflows\/ffmpeg\.yml/);
+    expect(text).toMatch(/\n  dist:\n\s+needs: ffmpeg\n/);
+    expect(download).toBeGreaterThan(0);
+    expect(download).toBeLessThan(text.indexOf('run: npm run dist'));
+    expect(read('ffmpeg.yml')).toMatch(/name: ffmpeg-\$\{\{ matrix\.platform \}\}-\$\{\{ matrix\.arch \}\}/);
+  });
+
   it('test.yml keeps the report of the end to end tests', () => {
     const text = read('test.yml');
 

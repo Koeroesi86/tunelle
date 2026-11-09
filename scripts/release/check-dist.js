@@ -1,10 +1,13 @@
 const { listPackage, extractFile } = require('@electron/asar')
 const { createHash } = require('crypto')
+const { spawnSync } = require('child_process')
 const { existsSync, readdirSync, readFileSync } = require('fs')
 const { normalize, resolve } = require('path')
 const { readUpdateInformation, updateInformation } = require('./appimage-update-info')
 const { exceedsGlibc, highestGlibc } = require('./glibc')
-const { resourcesFolder, storePackage, updateMetadata } = require('./dist-layout')
+const { ffmpegProgram, packagedFfmpegFolder, resourcesFolder, storePackage, updateMetadata } = require('./dist-layout')
+const { checkBinary } = require('../ffmpeg/ffmpeg-build')
+const ffmpegSource = require('../ffmpeg/ffmpeg-source.json')
 
 // usage: node scripts/release/check-dist.js
 // lists what the packaged app contains and fails on files that must not ship: secrets, source maps, tests and the sources of the app
@@ -35,6 +38,24 @@ const problems = [
   ...files.flatMap(file => forbidden.filter(([pattern]) => pattern.test(file)).map(([, label]) => `${label}: ${file}`)),
   ...required.filter(path => !files.some(file => file === path || file.startsWith(`${path}/`))).map(path => `missing: ${path}`)
 ]
+
+// the decode-only LGPL ffmpeg ships next to its notice and license text, and is the build that scripts/ffmpeg/ffmpeg-source.json describes (docs/development/ffmpeg-build.md)
+const ffmpegFolder = resolve(__dirname, '../..', packagedFfmpegFolder(process.platform, process.arch))
+const ffmpegPath = resolve(ffmpegFolder, ffmpegProgram(process.platform))
+;[ffmpegPath, resolve(ffmpegFolder, 'NOTICE.txt'), resolve(ffmpegFolder, 'COPYING.LGPLv2.1')]
+  .filter(file => !existsSync(file))
+  .forEach(file => problems.push(`missing: ${file}`))
+if (existsSync(ffmpegPath)) {
+  const ask = args => spawnSync(ffmpegPath, args, { encoding: 'utf8' })
+  const [version, decoders] = [ask(['-version']), ask(['-hide_banner', '-decoders'])]
+  if (version.status !== 0) problems.push(`the packaged ffmpeg does not run: ${version.error?.message ?? version.stderr}`)
+  else
+    try {
+      checkBinary(version.stdout, decoders.stdout, ffmpegSource)
+    } catch (error) {
+      problems.push(`the packaged ffmpeg: ${error.message}`)
+    }
+}
 
 // a font that is a JavaScript module (file-loader with esModule) fails to decode in the renderer, so the text falls back
 files

@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { ipcMain, shell } from 'electron';
 import type { ListenerContext } from './listener-context';
 import { sendIfAlive } from '../utils/send-if-alive';
@@ -36,6 +37,13 @@ const registerUpdateListeners = ({ updates }: ListenerContext) => {
   // a fixed address, the renderer does not choose what is opened
   ipcMain.on('OPEN_RELEASES', () => {
     shell.openExternal(releasesUrl).catch(logError);
+  });
+  // the notice and the license text of the ffmpeg that the package carries (docs/development/ffmpeg-build.md), a fixed file
+  ipcMain.on('OPEN_FFMPEG_NOTICE', () => {
+    shell
+      .openPath(join(process.resourcesPath, 'ffmpeg', 'NOTICE.txt'))
+      .then((failure) => failure && logError(new Error(failure)))
+      .catch(logError);
   });
 };
 

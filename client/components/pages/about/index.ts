@@ -14,6 +14,7 @@ const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   install: () => dispatch({ type: 'INSTALL_UPDATE' }),
   setAutomatic: (enabled: boolean) => dispatch({ type: 'SET_AUTOMATIC_UPDATES', payload: { enabled } }),
   openReleases: () => dispatch({ type: 'OPEN_RELEASES' }),
+  openFfmpegNotice: () => dispatch({ type: 'OPEN_FFMPEG_NOTICE' }),
 });
 
 export default connect(mapState, mapDispatch)(About);

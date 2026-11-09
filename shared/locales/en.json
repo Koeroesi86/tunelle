@@ -339,6 +339,8 @@
   "about.unavailable.translocated": "Move Tunelle to the Applications folder to let it update itself",
   "about.unavailable.store": "Updates come through the Microsoft Store",
   "about.releases": "Open the releases page",
+  "about.ffmpeg": "Tunelle plays the formats that the browser engine cannot with FFmpeg, a separate program under the LGPL 2.1 or later.",
+  "about.ffmpeg.notice": "FFmpeg notice and source",
   "backgroundTasks.title": "Background tasks",
   "backgroundTasks.scan": "Scanning the library",
   "backgroundTasks.watch": "Watching the library folders",

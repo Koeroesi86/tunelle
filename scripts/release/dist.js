@@ -3,7 +3,7 @@ const os = require('os')
 const rimraf = require('rimraf')
 const fs = require('fs')
 const cache = require('../tooling/config/cache')
-const { buildsAppImage, linuxBuilds } = require('./dist-layout')
+const { buildsAppImage, builtFfmpeg, linuxBuilds } = require('./dist-layout')
 const { embedUpdateInformation, updateInformation } = require('./appimage-update-info')
 
 process.env.ELECTRON_CACHE = process.env.ELECTRON_CACHE || cache.electron
@@ -21,6 +21,12 @@ const isLinux = process.platform === 'linux'
 
 // process.env.DEBUG = 'electron-builder' // TODO: find another way to log
 // process.env.NODE_OPTIONS = '--max-old-space-size=2048'
+
+// package.json (extraResources) copies the ffmpeg, and electron-builder only warns about a source that is missing
+if (!fs.existsSync(resolve(cwd, builtFfmpeg(process.platform)))) {
+  console.error(`${builtFfmpeg(process.platform)} does not exist, run npm run ffmpeg first (docs/development/ffmpeg-build.md)`)
+  process.exit(1)
+}
 
 const distPath = resolve(cwd, './dist')
 if (fs.existsSync(distPath)) {

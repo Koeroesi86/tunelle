@@ -35,3 +35,24 @@ describe('AppImage', () => {
     ]);
   });
 });
+
+// the ffmpeg of #302 travels outside the asar archive, as a program that is run, with the notice and license text that the LGPL asks for
+describe('ffmpeg', () => {
+  it('copies the build, its notice and the license into the ffmpeg folder of the resources', () => {
+    expect(build.extraResources).toEqual([
+      { from: '.cache/ffmpeg/install/bin', to: 'ffmpeg', filter: ['ffmpeg', 'ffmpeg.exe'] },
+      { from: 'packaging/ffmpeg', to: 'ffmpeg' },
+    ]);
+  });
+
+  it('has the notice name the pinned source and the license file is the LGPL', () => {
+    const source = JSON.parse(readFileSync(new URL('../ffmpeg/ffmpeg-source.json', import.meta.url), 'utf8'));
+    const notice = readFileSync(new URL('../../packaging/ffmpeg/NOTICE.txt', import.meta.url), 'utf8');
+    const license = readFileSync(new URL('../../packaging/ffmpeg/COPYING.LGPLv2.1', import.meta.url), 'utf8');
+
+    expect(notice).toContain(`Version: ${source.version}`);
+    expect(notice).toContain(source.url);
+    expect(notice).toContain(source.sha256);
+    expect(license).toContain('GNU LESSER GENERAL PUBLIC LICENSE');
+  });
+});
