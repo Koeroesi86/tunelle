@@ -32,9 +32,8 @@ jobs:
       - run: npm ci
       - run: npx fallow audit --base origin/${{ github.base_ref }}
 
-  # packaging only starts once the cheap checks passed
+  # packaging runs beside the tests, as waiting for them would add their duration to every run; required-checks fails unless both passed
   dist:
-    needs: test
     uses: ./.github/workflows/dist.yml
 
   security:
