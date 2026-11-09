@@ -146,5 +146,6 @@ jobs:
       tag: v${{ needs.plan.outputs.version }}
       commit: true
       automatic: true
+    secrets: inherit
     permissions:
       contents: read
