@@ -61,11 +61,15 @@ describe('workflows', () => {
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
-  it('test.yml runs the checks of every system only after the static ones passed', () => {
+  it('test.yml runs the static checks once on Linux, beside the jobs of every system', () => {
     const text = read('test.yml');
 
     expect(text).toMatch(/\n  static:\n(?:.*\n)*?    runs-on: ubuntu-latest\n/);
-    expect(text).toMatch(/\n  test:\n(?:.*\n)*?    needs: static\n/);
+    expect(text).not.toMatch(/needs: static/);
+  });
+
+  it('pr-checks.yml packages beside the tests, and required-checks needs both', () => {
+    expect(read('pr-checks.yml')).not.toMatch(/\n  dist:\n\s+needs:/);
   });
 
   // appimage.github.io tests the AppImage on the oldest supported Ubuntu LTS: a native module built on a newer one needs a newer glibc (npm run check:dist)
