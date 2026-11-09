@@ -22,11 +22,16 @@ const setup = (overrides: Partial<UpdateState> = {}, isPlaying = false) => {
     setAllowMetered: vi.fn(),
     setAutomatic: vi.fn(),
     openReleases: vi.fn(),
+    openFfmpegNotice: vi.fn(),
   };
   render(<About update={{ ...base, ...overrides }} isPlaying={isPlaying} {...handlers} />);
 
   return handlers;
 };
+
+// the notice of the ffmpeg is the one button next to the update ones
+const noticeLabel = 'FFmpeg notice and source';
+const buttonLabels = () => screen.queryAllByRole('button').map((button) => button.textContent);
 
 const withStatus = (status: UpdateStatus) => ({ status });
 
@@ -43,6 +48,7 @@ describe('About', () => {
         setAllowMetered={vi.fn()}
         setAutomatic={vi.fn()}
         openReleases={vi.fn()}
+        openFfmpegNotice={vi.fn()}
       />
     );
 
@@ -74,6 +80,7 @@ describe('About', () => {
         setAllowMetered={vi.fn()}
         setAutomatic={vi.fn()}
         openReleases={vi.fn()}
+        openFfmpegNotice={vi.fn()}
       />
     );
 
@@ -92,7 +99,7 @@ describe('About', () => {
     setup(withStatus({ kind: 'checking' }));
 
     expect(screen.getByText('Checking for updates...')).toBeTruthy();
-    expect(screen.queryByRole('button')).toBeNull();
+    expect(buttonLabels()).toEqual([noticeLabel]);
   });
 
   it('shows that it is up to date with the time of the check, and offers the check again', () => {
@@ -107,7 +114,7 @@ describe('About', () => {
     setup(withStatus({ kind: 'downloading', version: '26.10.6', percent: 40 }));
 
     expect(screen.getByText('Downloading update 26.10.6... 40%')).toBeTruthy();
-    expect(screen.queryByRole('button')).toBeNull();
+    expect(buttonLabels()).toEqual([noticeLabel]);
   });
 
   it('restarts to install a downloaded update when nothing is playing', () => {
@@ -234,5 +241,13 @@ describe('About', () => {
     setup({ unavailable });
 
     expect(screen.queryByRole('switch')).toBeNull();
+  });
+
+  it('names the ffmpeg with its license and opens the notice', () => {
+    const { openFfmpegNotice } = setup();
+
+    expect(screen.getByText(/FFmpeg, a separate program under the LGPL 2.1 or later/)).toBeTruthy();
+    fireEvent.click(screen.getByText('FFmpeg notice and source'));
+    expect(openFfmpegNotice).toHaveBeenCalledOnce();
   });
 });

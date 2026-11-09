@@ -13,7 +13,14 @@ permissions:
   contents: read
 
 jobs:
+  # the decode-only ffmpeg of every system (docs/development/ffmpeg-build.md); the build is cached, so it runs when the source or the build script changed
+  ffmpeg:
+    uses: ./.github/workflows/ffmpeg.yml
+    permissions:
+      contents: read
+
   dist:
+    needs: ffmpeg
     name: Dist (${{ matrix.platform }} ${{ matrix.arch }}${{ matrix.package && format(' {0}', matrix.package) || '' }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -120,6 +127,15 @@ jobs:
         # the default shell of Windows is PowerShell, where "$VERSION" is empty and the installer would keep the version of package.json
         shell: bash
         run: node scripts/release/version.js "$VERSION"
+      # package.json (extraResources) packages it with its notice and license, and the packaging step fails without it
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}
+          path: .cache/ffmpeg/install/bin
+      # the artifact does not keep the executable bit
+      - name: Make ffmpeg executable
+        if: runner.os != 'Windows'
+        run: chmod +x .cache/ffmpeg/install/bin/*
       - run: npm run build
       - run: npm run dist
       # the update information in the AppImage names it (scripts/release/appimage-update-info.js); AppImageUpdate and appimageupdatetool, which AM runs, download only what changed with it

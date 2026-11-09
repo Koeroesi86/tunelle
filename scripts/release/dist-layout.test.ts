@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { buildsAppImage, linuxBuilds, packagedExecutable, resourcesFolder, storePackage, updateMetadata } from './dist-layout';
+import {
+  buildsAppImage,
+  builtFfmpeg,
+  ffmpegProgram,
+  linuxBuilds,
+  packagedFfmpegFolder,
+  packagedExecutable,
+  resourcesFolder,
+  storePackage,
+  updateMetadata,
+} from './dist-layout';
 
 describe('packagedExecutable', () => {
   it.each([
@@ -72,5 +82,16 @@ describe('buildsAppImage', () => {
     ['flatpak', false],
   ])('says whether the job %j builds the AppImage', (linuxPackage, builds) => {
     expect(buildsAppImage(linuxPackage)).toBe(builds);
+  });
+});
+
+describe('ffmpeg', () => {
+  it('names the program after the system', () => {
+    expect([ffmpegProgram('win32'), ffmpegProgram('linux'), ffmpegProgram('darwin')]).toEqual(['ffmpeg.exe', 'ffmpeg', 'ffmpeg']);
+  });
+
+  it('takes the build from the cache folder of npm run ffmpeg and finds it in the resources of the app', () => {
+    expect(builtFfmpeg('win32')).toBe('.cache/ffmpeg/install/bin/ffmpeg.exe');
+    expect(packagedFfmpegFolder('darwin', 'arm64')).toBe('dist/mac-arm64/Tunelle.app/Contents/Resources/ffmpeg');
   });
 });

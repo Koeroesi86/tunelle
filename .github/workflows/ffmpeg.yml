@@ -1,35 +1,30 @@
 name: ffmpeg
 
-# Builds the decode-only LGPL ffmpeg of #302 from the pinned source (scripts/ffmpeg/ffmpeg-source.json); the binary is an artifact, nothing ships it yet.
-# See docs/development/ffmpeg-build.md.
+# Builds the decode-only LGPL ffmpeg of #302 from the pinned source (scripts/ffmpeg/ffmpeg-source.json); dist.yml packages the artifact of each system.
+# The build is kept in a cache keyed on the source and the build script, so it only runs when one of them changes. See docs/development/ffmpeg-build.md.
 on:
-  pull_request:
-    paths:
-      - scripts/ffmpeg/**
-      - .github/workflows/ffmpeg.yml
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build:
-    name: build (${{ matrix.name }})
+    name: build (${{ matrix.platform }} ${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { name: linux-x64, os: ubuntu-22.04 }
-          - { name: linux-arm64, os: ubuntu-22.04-arm }
-          - { name: macos-arm64, os: macos-latest }
-          - { name: macos-x64, os: macos-15-intel }
-          - { name: windows-x64, os: windows-2025 }
+          # the AppImage runs on Ubuntu 22.04, so the Linux build is made there (see dist.yml); platform and arch are the ones of process.platform and process.arch
+          - { platform: linux, arch: x64, os: ubuntu-22.04 }
+          - { platform: linux, arch: arm64, os: ubuntu-22.04-arm }
+          - { platform: darwin, arch: arm64, os: macos-15 }
+          - { platform: darwin, arch: x64, os: macos-15-intel }
+          - { platform: win32, arch: x64, os: windows-2025 }
+          - { platform: win32, arch: arm64, os: windows-11-arm }
     defaults:
       run:
         shell: ${{ startsWith(matrix.os, 'windows') && 'msys2 {0}' || 'bash' }}
@@ -37,23 +32,37 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: cache
+        with:
+          path: ${{ runner.temp }}/ffmpeg/install
+          key: ffmpeg-${{ matrix.os }}-${{ hashFiles('scripts/ffmpeg/ffmpeg-source.json', 'scripts/ffmpeg/ffmpeg-build.js') }}
       - uses: msys2/setup-msys2@e9898307ac31d1a803454791be09ab9973336e1c # v2.31.1
-        if: startsWith(matrix.os, 'windows')
+        if: steps.cache.outputs.cache-hit != 'true' && matrix.platform == 'win32' && matrix.arch == 'x64'
         with:
           msystem: UCRT64
           path-type: inherit
           install: make nasm diffutils xz tar
           pacboy: gcc:p
-      - if: startsWith(matrix.os, 'ubuntu')
+      # the arm64 build uses clang, which the packages of MSYS2 for that processor provide (scripts/ffmpeg/ffmpeg-build.js passes --cc=clang); the assembly is not assembled by nasm there
+      - uses: msys2/setup-msys2@e9898307ac31d1a803454791be09ab9973336e1c # v2.31.1
+        if: steps.cache.outputs.cache-hit != 'true' && matrix.platform == 'win32' && matrix.arch == 'arm64'
+        with:
+          msystem: CLANGARM64
+          path-type: inherit
+          install: make diffutils xz tar
+          pacboy: clang:p
+      - if: steps.cache.outputs.cache-hit != 'true' && startsWith(matrix.os, 'ubuntu')
         run: sudo apt-get update && sudo apt-get install -y nasm
-      - if: startsWith(matrix.os, 'macos')
+      - if: steps.cache.outputs.cache-hit != 'true' && startsWith(matrix.os, 'macos')
         run: brew install nasm
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-      - run: node scripts/ffmpeg/ffmpeg-build.js "$RUNNER_TEMP/ffmpeg"
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: node scripts/ffmpeg/ffmpeg-build.js "$RUNNER_TEMP/ffmpeg"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ffmpeg-${{ matrix.name }}
+          name: ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ runner.temp }}/ffmpeg/install/bin/
           retention-days: 7

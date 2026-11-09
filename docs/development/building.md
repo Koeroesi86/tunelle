@@ -6,7 +6,8 @@
 | `MOCK_UPDATE=1 npm run dev` | Development server with a mocked update on the splash (nothing is installed)  |
 | `npm run build`             | Compile the app to `/out` and `/build`                                        |
 | `npm run typecheck`         | Type-check the whole project                                                  |
-| `npm run dist`              | Build for current OS                                                          |
+| `npm run ffmpeg`            | Build the decode-only ffmpeg that `npm run dist` packages ([ffmpeg-build.md](ffmpeg-build.md)) |
+| `npm run dist`              | Build for current OS (needs `npm run ffmpeg` first)                           |
 
 `npx tsx scripts/checks/verify.ts` runs the checks of [CLAUDE.md](../../CLAUDE.md) in order and prints only the end of the one that failed.
 

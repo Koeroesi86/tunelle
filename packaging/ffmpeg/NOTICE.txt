@@ -1,0 +1,17 @@
+FFmpeg in Tunelle
+
+Tunelle plays some audio formats that the browser engine cannot by decoding them with FFmpeg, a separate program (the file "ffmpeg" next to this notice, not linked into Tunelle). Tunelle itself is under the MIT license. FFmpeg is under the GNU Lesser General Public License, version 2.1 or later (COPYING.LGPLv2.1 next to this notice).
+
+This FFmpeg is built by the Tunelle project, with --disable-gpl, --disable-nonfree and --disable-version3, and contains only decoders, no encoder of a lossy format and no network access.
+
+Version: 9.0.2
+Source: https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz
+SHA-256 of the source: 8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e
+Build script and configure flags: https://github.com/Koeroesi86/tunelle/tree/master/scripts/ffmpeg (ffmpeg-source.json lists the flags, ffmpeg-build.js builds it)
+No patch is applied to the source.
+
+The source of the exact version above is available at that address. Write to the project at https://github.com/Koeroesi86/tunelle/issues if you cannot get it.
+
+You can replace the program with your own build of FFmpeg: put it in this folder under the same name. Tunelle decodes with whatever ffmpeg it finds there.
+
+FFmpeg is a trademark of Fabrice Bellard, originator of the FFmpeg project. https://ffmpeg.org

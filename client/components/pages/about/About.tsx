@@ -18,10 +18,22 @@ interface AboutProps {
   setAllowMetered: (enabled: boolean) => void;
   setAutomatic: (enabled: boolean) => void;
   openReleases: () => void;
+  openFfmpegNotice: () => void;
 }
 
 /** The installed version, and where the app updates itself the check for a new one; elsewhere the reason it does not */
-const About = ({ update, isPlaying, check, install, confirmMetered, cancelMetered, setAllowMetered, setAutomatic, openReleases }: AboutProps) => {
+const About = ({
+  update,
+  isPlaying,
+  check,
+  install,
+  confirmMetered,
+  cancelMetered,
+  setAllowMetered,
+  setAutomatic,
+  openReleases,
+  openFfmpegNotice,
+}: AboutProps) => {
   const { t, language } = useTranslation();
   const [confirming, setConfirming] = useState(false);
 
@@ -76,6 +88,12 @@ const About = ({ update, isPlaying, check, install, confirmMetered, cancelMetere
       )}
       {!unavailable && status.kind === 'metered' && (
         <Confirm message={t('about.metered')} confirmLabel={t('about.metered.continue')} confirm={confirmMetered} cancel={cancelMetered} />
+      )}
+      {unavailable !== 'development' && (
+        <div className={style.automatic}>
+          <div className={style.status}>{t('about.ffmpeg')}</div>
+          {action(t('about.ffmpeg.notice'), openFfmpegNotice)}
+        </div>
       )}
       {confirming && (
         <Confirm

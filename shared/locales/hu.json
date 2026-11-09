@@ -338,6 +338,8 @@
   "about.unavailable.translocated": "Told át a Tunelle-t az Alkalmazások mappába, hogy frissíthesse önmagát",
   "about.unavailable.store": "A frissítések a Microsoft Store-on keresztül érkeznek",
   "about.releases": "A kiadások oldalának megnyitása",
+  "about.ffmpeg": "A Tunelle az FFmpeggel játssza le azokat a formátumokat, amelyeket a böngészőmotor nem tud; az FFmpeg különálló program, LGPL 2.1 vagy újabb licenc alatt.",
+  "about.ffmpeg.notice": "FFmpeg közlemény és forráskód",
   "backgroundTasks.title": "Háttérfeladatok",
   "backgroundTasks.scan": "A könyvtár átvizsgálása",
   "backgroundTasks.watch": "A könyvtármappák figyelése",

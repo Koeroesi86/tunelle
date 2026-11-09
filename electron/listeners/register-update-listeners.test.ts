@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IpcMainEvent } from 'electron';
 import type { ListenerContext } from './listener-context';
@@ -8,10 +9,11 @@ type Listener = (event: IpcMainEvent, payload?: unknown) => void;
 
 const listeners = new Map<string, Listener>();
 const openExternal = vi.fn((_url: string) => Promise.resolve());
+const openPath = vi.fn((_path: string) => Promise.resolve(''));
 
 vi.mock('electron', () => ({
   ipcMain: { on: (channel: string, listener: Listener) => listeners.set(channel, listener) },
-  shell: { openExternal: (url: string) => openExternal(url) },
+  shell: { openExternal: (url: string) => openExternal(url), openPath: (path: string) => openPath(path) },
 }));
 
 const state = {
@@ -100,5 +102,12 @@ describe('registerUpdateListeners', () => {
     emit('OPEN_RELEASES');
 
     expect(openExternal).toHaveBeenCalledExactlyOnceWith('https://github.com/Koeroesi86/tunelle/releases');
+  });
+
+  it('opens the notice of the ffmpeg in the resources of the app, a fixed file', () => {
+    Object.defineProperty(process, 'resourcesPath', { value: join('app', 'resources'), configurable: true });
+    emit('OPEN_FFMPEG_NOTICE');
+
+    expect(openPath).toHaveBeenCalledExactlyOnceWith(join('app', 'resources', 'ffmpeg', 'NOTICE.txt'));
   });
 });

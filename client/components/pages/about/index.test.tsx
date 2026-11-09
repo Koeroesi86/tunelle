@@ -94,4 +94,12 @@ describe('About connected to the store', () => {
 
     expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: 'OPEN_RELEASES' });
   });
+
+  it('dispatches opening the notice of the ffmpeg', () => {
+    const dispatch = setup([{ type: 'UPDATE_STATE', payload: state }]);
+
+    fireEvent.click(screen.getByText('FFmpeg notice and source'));
+
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: 'OPEN_FFMPEG_NOTICE' });
+  });
 });
