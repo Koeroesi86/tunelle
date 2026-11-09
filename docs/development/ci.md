@@ -6,6 +6,8 @@ Checks 1, 2, 3 and 6 run once on Linux (the `static` job of `test.yml`). The `te
 
 Pull requests also run `fallow audit --base` (findings of the changed files), CodeQL, dependency review (high severity, GPL/AGPL licences denied) and OSV.
 
+The decode-only ffmpeg has its own workflow, `ffmpeg.yml` ([ffmpeg-build.md](ffmpeg-build.md)).
+
 How pull requests are rebased and released is in [releases.md](../release/releases.md).
 
 `dist.yml` also runs `npm run test:updater` on the macOS runners after the smoke test of the packaged app: the own updater of macOS replaces the app bundle, which needs the packaged app ([updater.md](../app/updater.md)).

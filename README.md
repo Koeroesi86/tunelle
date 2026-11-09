@@ -18,6 +18,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [Keeping the usage of Claude Code down](docs/development/claude-usage.md)
 - [Testing the app](docs/development/end-to-end-tests.md)
 - [Checks in CI](docs/development/ci.md)
+- [The decode-only ffmpeg build](docs/development/ffmpeg-build.md)
 - [The updater](docs/app/updater.md)
 - [The app data folder](docs/app/user-data.md)
 - [The `tunelle://app` protocol](docs/app/tunelle-protocol.md)
