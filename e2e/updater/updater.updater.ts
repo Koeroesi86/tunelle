@@ -15,8 +15,6 @@ const root = resolve(__dirname, '../..');
 const packagedBundle = resolve(root, packagedExecutable('darwin', process.arch), '../../..');
 const updateVersion = '26.99.1';
 const zipName = `Tunelle-${updateVersion}-${process.arch === 'arm64' ? 'arm64-' : ''}mac.zip`;
-// the version of the packaged app, which the update has to be greater than
-const installedVersion = '1.0.0';
 
 const run = (command: string, args: string[]) => execFileSync(command, args, { encoding: 'utf8' }).trim();
 // undefined while the bundle is being replaced
@@ -27,6 +25,8 @@ const plistVersion = (bundle: string) => {
     return undefined;
   }
 };
+// the version of the packaged app (the release stamps it), which the update has to be greater than
+const installedVersion = plistVersion(packagedBundle);
 const executableHash = (bundle: string) =>
   createHash('sha256')
     .update(readFileSync(join(bundle, 'Contents', 'MacOS', 'Tunelle')))
