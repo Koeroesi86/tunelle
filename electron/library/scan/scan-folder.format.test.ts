@@ -47,12 +47,20 @@ describe('scanFolder audio format', () => {
     expect(await stored()).toEqual([{ codec: 'FLAC', bitDepth: 24, sampleRate: 96000, bitrate: 2304000, vbr: null, lossless: 1 }]);
   });
 
-  it('does not store a file with a codec that does not play, like ALAC', async () => {
-    parsed.mockResolvedValue(meta({ codec: 'ALAC', lossless: true }) as never);
+  it('does not store a file with a codec that does not play, like AC-3', async () => {
+    parsed.mockResolvedValue(meta({ codec: 'AC-3' }) as never);
 
     await scanFolder(root, sender);
 
     expect(await stored()).toEqual([]);
+  });
+
+  it('stores an ALAC file, which the decoder proxy plays', async () => {
+    parsed.mockResolvedValue(meta({ codec: 'ALAC', lossless: true }) as never);
+
+    await scanFolder(root, sender);
+
+    expect(await stored()).toEqual([expect.objectContaining({ codec: 'ALAC', lossless: 1 })]);
   });
 
   it('fills in a row that was stored before the format was read', async () => {

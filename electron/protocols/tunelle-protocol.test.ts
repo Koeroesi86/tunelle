@@ -20,6 +20,12 @@ vi.mock('electron', () => ({
   },
 }));
 
+// the decoder itself is tested in decoded-track.test.ts; here it answers with a file of its own for what it decodes
+const { decoded } = vi.hoisted(() => ({ decoded: { file: '' } }));
+vi.mock('./decoded-track', () => ({
+  playableFile: vi.fn(async ({ path: trackPath, codec }: { path: string; codec: string | null }) => (codec === 'ALAC' ? decoded.file : trackPath)),
+}));
+
 const { handleTunelleRequest } = await import('./tunelle-protocol');
 
 describe('tunelle protocol', () => {
@@ -128,6 +134,31 @@ describe('tunelle protocol', () => {
       expect(response.headers.get('content-length')).toBe('5');
       expect(response.headers.get('content-type')).toContain('audio/x-flac');
       expect(await response.text()).toBe('audio');
+    });
+
+    it('serves the decoded copy of a track that Chromium does not play, with ranges', async () => {
+      const alac = path.join(folder, 'library.m4a');
+      decoded.file = path.join(folder, 'decoded.wav');
+      fs.writeFileSync(alac, 'alac');
+      fs.writeFileSync(decoded.file, 'RIFF-decoded');
+      await insert(alac);
+      await new Promise<void>((resolve, reject) =>
+        database.run(`UPDATE library SET codec = 'ALAC' WHERE path = ?`, [alac], (err) => (err ? reject(err) : resolve()))
+      );
+
+      const response = await track(alac, { range: 'bytes=5-11' });
+
+      expect(response.status).toBe(206);
+      expect(response.headers.get('content-type')).toContain('audio/');
+      expect(response.headers.get('content-range')).toBe('bytes 5-11/12');
+      expect(await response.text()).toBe('decoded');
+    });
+
+    it('answers 404 when the decoder gives nothing', async () => {
+      const alac = path.join(folder, 'library.m4a');
+      decoded.file = path.join(folder, 'nothing.wav');
+
+      expect((await track(alac)).status).toBe(404);
     });
 
     it('does not serve a file outside of the library', async () => {

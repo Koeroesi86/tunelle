@@ -6,3 +6,9 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 ```
 
 The second track is the same with 880 Hz, "Octave Up" and track 2. No real music or artist.
+
+`alac/` has the same two tracks in ALAC (16 bit, mono, 44.1 kHz) in the album "Lossless Apple", for `e2e/alac.spec.ts`, which plays them through the decoder proxy:
+
+```sh
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a alac -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless Apple" -metadata track=1 alac/1-concert-a.m4a
+```

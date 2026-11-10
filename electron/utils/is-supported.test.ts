@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import isSupported, { isSupportedCodec } from './is-supported';
+import isSupported, { isDecodedCodec, isSupportedCodec } from './is-supported';
 
 describe('isSupported', () => {
   it.each(['a.flac', 'a.mp3', 'a.m4a', 'a.ogg', 'a.opus', 'a.wav', 'a.aac', 'C:/Music/b.flac'])('accepts %s', (name) => {
@@ -15,11 +15,18 @@ describe('isSupported', () => {
 });
 
 describe('isSupportedCodec', () => {
-  it.each(['FLAC', 'MP3', 'MPEG-4/AAC', 'AAC', 'VORBIS', 'OPUS', 'WAV', null, undefined])('accepts %s', (codec) => {
+  it.each(['FLAC', 'MP3', 'MPEG-4/AAC', 'AAC', 'VORBIS', 'OPUS', 'WAV', 'ALAC', null, undefined])('accepts %s', (codec) => {
     expect(isSupportedCodec(codec)).toBe(true);
   });
 
-  it.each(['ALAC', 'AC-3', 'SPEEX', 'THEORA'])('rejects %s, which Chromium does not decode', (codec) => {
+  it.each(['AC-3', 'SPEEX', 'THEORA'])('rejects %s, which Chromium does not decode', (codec) => {
     expect(isSupportedCodec(codec)).toBe(false);
+  });
+});
+
+describe('isDecodedCodec', () => {
+  it('names the codecs that ffmpeg decodes before they are served', () => {
+    expect(isDecodedCodec('ALAC')).toBe(true);
+    expect(['FLAC', 'AC-3', null, undefined].map(isDecodedCodec)).toEqual([false, false, false, false]);
   });
 });
