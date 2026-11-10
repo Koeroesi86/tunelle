@@ -1,6 +1,6 @@
 # The ffmpeg build
 
-Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302): a decoder proxy plays the formats that Chromium cannot (ALAC, APE, WavPack, AIFF, DSD and others) by decoding them to PCM with ffmpeg. This page is about the build of that ffmpeg and how it is packaged. ALAC and APE play through it ([decoder-proxy.md](../app/decoder-proxy.md)); the other formats follow.
+Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302): a decoder proxy plays the formats that Chromium cannot (ALAC, APE, WavPack, AIFF, DSD and others) by decoding them to PCM with ffmpeg. This page is about the build of that ffmpeg and how it is packaged. ALAC, APE and WavPack play through it ([decoder-proxy.md](../app/decoder-proxy.md)); the other formats follow.
 
 ## What is built
 
