@@ -1,6 +1,6 @@
 # The decoder proxy
 
-Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302). Chromium plays the audio of the app, so a format it cannot decode is decoded by the bundled ffmpeg ([ffmpeg-build.md](../development/ffmpeg-build.md)) to a WAV file first, and the `/track` route serves that file. The address the renderer asks for does not change, so the `<audio>` elements, the Web Audio graph, gapless playback and the rest stay as they are. Only the codecs in `decodedCodecs` of `electron/utils/is-supported.ts` take this way: ALAC (in an `.m4a`), Monkey's Audio (`.ape`), WavPack (`.wv`) AIFF (`.aiff`, `.aif`) with AIFC (`.aifc`) and DSD (`.dsf`, `.dff`), told apart by the `codec` the scan read.
+Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302). Chromium plays the audio of the app, so a format it cannot decode is decoded by the bundled ffmpeg ([ffmpeg-build.md](../development/ffmpeg-build.md)) to a WAV file first, and the `/track` route serves that file. The address the renderer asks for does not change, so the `<audio>` elements, the Web Audio graph, gapless playback and the rest stay as they are. Only the codecs in `decodedCodecs` of `electron/utils/is-supported.ts` take this way: ALAC (in an `.m4a`), Monkey's Audio (`.ape`), WavPack (`.wv`) AIFF (`.aiff`, `.aif`) with AIFC (`.aifc`) DSD (`.dsf`, `.dff`) and WMA (`.wma`, `.asf`), told apart by the `codec` the scan read.
 
 ## The route
 
@@ -24,7 +24,7 @@ After each decode the oldest files are removed until the folder is under 2 GiB (
 
 ## Tests
 
-`decoded-track.test.ts` runs the cache, the sharing, the abort, the limit and the eviction with a fake child process; `tunelle-protocol.test.ts` the route; `e2e/alac.spec.ts`, `e2e/ape.spec.ts`, `e2e/wavpack.spec.ts`, `e2e/aiff.spec.ts` and `e2e/dsd.spec.ts` play ALAC, Monkey's Audio, WavPack, AIFF and DSD fixtures (`e2e/fixtures/alac/`, `e2e/fixtures/ape/`, `e2e/fixtures/wavpack/`, `e2e/fixtures/aiff/`, `e2e/fixtures/dsd/`) with the real ffmpeg and measures the tone that leaves the app.
+`decoded-track.test.ts` runs the cache, the sharing, the abort, the limit and the eviction with a fake child process; `tunelle-protocol.test.ts` the route; `e2e/alac.spec.ts`, `e2e/ape.spec.ts`, `e2e/wavpack.spec.ts`, `e2e/aiff.spec.ts`, `e2e/dsd.spec.ts` and `e2e/wma.spec.ts` play ALAC, Monkey's Audio, WavPack, AIFF, DSD and WMA fixtures (`e2e/fixtures/alac/`, `e2e/fixtures/ape/`, `e2e/fixtures/wavpack/`, `e2e/fixtures/aiff/`, `e2e/fixtures/dsd/`, `e2e/fixtures/wma/`) with the real ffmpeg and measures the tone that leaves the app.
 
 Decode time of Monkey's Audio, measured on a laptop: a 10 minute 24 bit, 96 kHz stereo file at the insane level took 13.6 s (about 44 times faster than playing). The file was a pure tone, which compresses far better than music, so real albums take longer.
 

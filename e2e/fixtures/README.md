@@ -38,3 +38,9 @@ wavpack -q -hh -w "Title=Concert A" -w "Artist=The Sine Waves" -w "Album Artist=
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16be -write_id3v2 1 -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless AIFF" -metadata track=1 aiff/1-concert-a.aiff
 ffmpeg -f lavfi -i "sine=frequency=880:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16le -f aiff -write_id3v2 1 -metadata title="Octave Up" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless AIFF" -metadata track=2 aiff/2-octave-up.aifc
 ```
+
+`wma/` has the same two tracks in WMA (Windows Media Audio 2, mono, 44.1 kHz, 64 kbit/s) in the album "Windows Media", for `e2e/wma.spec.ts`, made with ffmpeg:
+
+```sh
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a wmav2 -b:a 64k -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Windows Media" -metadata track=1 wma/1-concert-a.wma
+```

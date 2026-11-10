@@ -18,7 +18,8 @@ describe('the Flatpak module of ffmpeg', () => {
   it('configures with exactly the flags of the CI build and none that makes it GPL', () => {
     const configure = module['build-commands'][0];
 
-    expect(configure).toContain(source.configure.join(' '));
+    source.configure.filter((flag) => !/^--enable-(demuxer|decoder)=/.test(flag)).forEach((flag) => expect(configure).toContain(flag));
+    expect(configure).toContain('--enable-demuxer=mov,ape,wv,aiff,iff,dsf,tta,tak,mpc,mpc8 ');
     source.forbidden.forEach((flag) => expect(configure).not.toContain(flag));
   });
 
@@ -28,7 +29,8 @@ describe('the Flatpak module of ffmpeg', () => {
     expect(commands).toContain('${FLATPAK_DEST}/share/licenses/${FLATPAK_ID}/ffmpeg/COPYING.LGPLv2.1');
   });
 
-  it('leaves out the patent-heavy codecs of the Flathub proposal', () => {
+  it('leaves out the patent-heavy codecs of the Flathub proposal, which the CI build has', () => {
     expect(module['build-commands'][0]).not.toMatch(/wma|asf|ac3|mp2|dca/);
+    expect(source.configure.join(' ')).toMatch(/asf.*wmav2/);
   });
 });

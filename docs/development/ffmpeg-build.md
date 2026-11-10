@@ -1,6 +1,6 @@
 # The ffmpeg build
 
-Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302): a decoder proxy plays the formats that Chromium cannot (ALAC, APE, WavPack, AIFF, DSD and others) by decoding them to PCM with ffmpeg. This page is about the build of that ffmpeg and how it is packaged. ALAC, APE, WavPack, AIFF and DSD play through it ([decoder-proxy.md](../app/decoder-proxy.md)); the other formats follow.
+Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302): a decoder proxy plays the formats that Chromium cannot (ALAC, APE, WavPack, AIFF, DSD and others) by decoding them to PCM with ffmpeg. This page is about the build of that ffmpeg and how it is packaged. ALAC, APE, WavPack, AIFF, DSD and WMA play through it ([decoder-proxy.md](../app/decoder-proxy.md)); the other formats follow.
 
 ## What is built
 
@@ -28,8 +28,12 @@ The About page names ffmpeg and its license, and a button opens `NOTICE.txt` (`O
 
 ## Flatpak and Flathub
 
-Flathub builds everything from source and accepts no binary, so the CI binary cannot go there. `packaging/flatpak/ffmpeg-module.json` is a flatpak-builder module that builds the same ffmpeg from the pinned tarball (`archive` source with the sha256, no network during the build) with the configure flags of `ffmpeg-source.json`. It installs the program to `/app/ffmpeg/ffmpeg` and the license texts to `/app/share/licenses/<app id>/ffmpeg/`. `npm run ffmpeg:flatpak` writes it from the source file (`scripts/ffmpeg/flatpak-module.js`), and `flatpak-module.test.ts` fails when the committed file is out of step, so the flags stay in one place. It is not part of the bundle that `dist.yml` builds, which still packages the CI binary; the manifest of the app for Flathub lists the module before the app and links `/app/ffmpeg` to `ffmpeg/` of the resources of the app. WMA is not in the build (the patent question below), so it stays out of the Flatpak.
+Flathub builds everything from source and accepts no binary, so the CI binary cannot go there. `packaging/flatpak/ffmpeg-module.json` is a flatpak-builder module that builds the same ffmpeg from the pinned tarball (`archive` source with the sha256, no network during the build) with the configure flags of `ffmpeg-source.json`. It installs the program to `/app/ffmpeg/ffmpeg` and the license texts to `/app/share/licenses/<app id>/ffmpeg/`. `npm run ffmpeg:flatpak` writes it from the source file (`scripts/ffmpeg/flatpak-module.js`), and `flatpak-module.test.ts` fails when the committed file is out of step, so the flags stay in one place. It is not part of the bundle that `dist.yml` builds, which still packages the CI binary; the manifest of the app for Flathub lists the module before the app and links `/app/ffmpeg` to `ffmpeg/` of the resources of the app. WMA (the `asf` demuxer and the `wma` decoders, listed in `flatpakExcluded` of `ffmpeg-source.json`) is in the CI build but filtered out of the module, so it stays out of the Flatpak until the Flathub reviewers have been asked ([#347](https://github.com/Koeroesi86/tunelle/issues/347)).
+
+## Patents
+
+WMA is in the build ([#347](https://github.com/Koeroesi86/tunelle/issues/347)): the patent that describes the codec, [US 7,158,539 B2](https://patents.google.com/patent/US7158539B2/en), has expired, and the notice shipped with the app (`packaging/ffmpeg/NOTICE.txt`) refers to it. This is the maintainer's reading, not legal advice, and other claims on the codec may exist. The other patent-heavy codecs (AC-3, MP2) stay out of the build until the question of patents and Flathub is decided for each. The Flathub question stays open for all of them.
 
 ## Not decided here
 
-The patent-heavy codecs (WMA, AC-3, MP2) stay out of the build until the question of patents and Flathub is decided. The checks of the Microsoft Store (WACK) on the program are a later item of the issue.
+The checks of the Microsoft Store (WACK) on the program are a later item of the issue.

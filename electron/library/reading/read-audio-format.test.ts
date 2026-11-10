@@ -27,6 +27,15 @@ describe('readAudioFormat', () => {
   });
 
   it.each([
+    [{ codec: 'Windows Media Audio V8', container: 'ASF/audio' }, 'WMA', undefined],
+    [{ codec: 'Windows Media Audio 10 Professional', container: 'ASF/audio' }, 'WMA', undefined],
+    [{ codec: 'Windows Media Audio 9 Lossless', container: 'ASF/audio' }, 'WMA', 1],
+    [{ codec: 'Windows Media Audio 9 Voice', container: 'ASF/audio' }, 'WMA-VOICE', undefined],
+  ])('names %o %s', (format, codec, lossless) => {
+    expect(readAudioFormat(format)).toMatchObject({ codec, lossless: lossless ?? null });
+  });
+
+  it.each([
     [{ codec: 'PCM', container: 'WAVE' }, 'WAV'],
     [{ codec: 'PCM', container: 'AIFF' }, 'AIFF'],
     [{ codec: 'PCM (byte swapped)', container: 'AIFF-C' }, 'AIFF-C'],
