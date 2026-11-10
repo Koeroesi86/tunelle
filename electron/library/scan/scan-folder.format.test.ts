@@ -79,6 +79,17 @@ describe('scanFolder audio format', () => {
     expect(await stored()).toEqual([expect.objectContaining({ codec: 'WAVPACK', bitDepth: 24, lossless: 1 })]);
   });
 
+  it.each([
+    [{ codec: 'PCM', container: 'AIFF', lossless: true }, 'AIFF'],
+    [{ codec: 'PCM (byte swapped)', container: 'AIFF-C', lossless: false }, 'AIFF-C'],
+  ])('stores %o, which the decoder proxy plays', async (format, codec) => {
+    parsed.mockResolvedValue(meta({ ...format, bitsPerSample: 16 }) as never);
+
+    await scanFolder(root, sender);
+
+    expect(await stored()).toEqual([expect.objectContaining({ codec, bitDepth: 16 })]);
+  });
+
   it('fills in a row that was stored before the format was read', async () => {
     parsed.mockResolvedValue(meta({}) as never);
     await scanFolder(root, sender);

@@ -18,11 +18,11 @@
     "--enable-ffprobe",
     "--enable-protocol=file,pipe",
     "--enable-demuxer=mov,ape,wv,aiff,iff,dsf,tta,tak,mpc,mpc8",
-    "--enable-decoder=alac,ape,wavpack,pcm_s16be,pcm_s24be,pcm_s32be,pcm_s8,pcm_u8,dsd_lsbf,dsd_msbf,dsd_lsbf_planar,dsd_msbf_planar,tta,tak,mpc7,mpc8",
+    "--enable-decoder=alac,ape,wavpack,pcm_s16be,pcm_s24be,pcm_s32be,pcm_s16le,pcm_s24le,pcm_s32le,pcm_f32be,pcm_f64be,pcm_s8,pcm_u8,dsd_lsbf,dsd_msbf,dsd_lsbf_planar,dsd_msbf_planar,tta,tak,mpc7,mpc8",
     "--enable-muxer=wav",
     "--enable-encoder=pcm_s16le,pcm_s24le,pcm_s32le",
     "--enable-filter=aresample,aformat,anull,abuffer,abuffersink"
   ],
   "forbidden": ["--enable-gpl", "--enable-nonfree", "--enable-version3"],
-  "decoders": ["alac", "ape", "dsd_lsbf", "dsd_lsbf_planar", "dsd_msbf", "dsd_msbf_planar", "mpc7", "mpc8", "pcm_s16be", "pcm_s24be", "pcm_s32be", "pcm_s8", "pcm_u8", "tak", "tta", "wavpack"]
+  "decoders": ["alac", "ape", "dsd_lsbf", "dsd_lsbf_planar", "dsd_msbf", "dsd_msbf_planar", "mpc7", "mpc8", "pcm_f32be", "pcm_f64be", "pcm_s16be", "pcm_s16le", "pcm_s24be", "pcm_s24le", "pcm_s32be", "pcm_s32le", "pcm_s8", "pcm_u8", "tak", "tta", "wavpack"]
 }

@@ -1,7 +1,7 @@
 import path from 'path';
 
 /** The formats the player plays: the ones Chromium decodes, which the library scan keeps. See docs/app/supported-formats.md */
-const supportedFormats = ['flac', 'm4a', 'm4b', 'm4r', 'aac', 'mp3', 'oga', 'ogg', 'opus', 'wav', 'ape', 'wv'];
+const supportedFormats = ['flac', 'm4a', 'm4b', 'm4r', 'aac', 'mp3', 'oga', 'ogg', 'opus', 'wav', 'ape', 'wv', 'aif', 'aiff', 'aifc'];
 
 const isSupported = (filePath: string) => supportedFormats.includes(path.extname(filePath).replace('.', ''));
 
@@ -9,7 +9,7 @@ const isSupported = (filePath: string) => supportedFormats.includes(path.extname
 const unsupportedCodecs = ['AC-3', 'SPEEX', 'THEORA', 'DSD'];
 
 /** Codecs that Chromium does not decode and that ffmpeg decodes before the track is served. See docs/app/decoder-proxy.md */
-const decodedCodecs = ['ALAC', "MONKEY'S", 'WAVPACK'];
+const decodedCodecs = ['ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C'];
 
 export const isDecodedCodec = (codec: string | null | undefined) => decodedCodecs.includes(codec ?? '');
 
