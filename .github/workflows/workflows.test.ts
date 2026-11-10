@@ -163,6 +163,12 @@ describe('workflows', () => {
     expect(text.indexOf('npm run build')).toBeLessThan(text.indexOf('npm run dist'));
   });
 
+  it('release.yml hands the secrets on to store.yml, as a called workflow gets none of the environment secrets otherwise', () => {
+    expect(read('release.yml')).toMatch(
+      /uses: \.\/\.github\/workflows\/store\.yml\n(?:\s+#.*\n)?(?:\s+(?:with|tag|commit|automatic):.*\n)+\s+secrets: inherit/
+    );
+  });
+
   it('store.yml takes its secrets from the environment through env and decides before it downloads and submits', () => {
     const text = read('store.yml');
     const secretLines = text.split('\n').filter((line) => /secrets\./.test(line));
