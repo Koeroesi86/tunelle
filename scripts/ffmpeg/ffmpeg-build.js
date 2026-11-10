@@ -1,6 +1,6 @@
 const { spawnSync } = require('child_process')
 const { createHash } = require('crypto')
-const { mkdirSync } = require('fs')
+const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('fs')
 const { join, resolve } = require('path')
 const source = require('./ffmpeg-source.json')
 
@@ -68,12 +68,25 @@ const download = async (url, attempt = 1) => {
   return download(url, attempt + 1)
 }
 
-const build = async work => {
+// a tarball kept from an earlier run (the CI cache) is used when it is the pinned one; a downloaded one is kept there after the check
+const fetchTarball = async (keep, { url, sha256, version }) => {
+  const file = keep && join(keep, `ffmpeg-${version}.tar.xz`)
+  const kept = file && existsSync(file) ? readFileSync(file) : undefined
+  if (kept && sha256Of(kept) === sha256) return kept
+  const tarball = await download(url)
+  checkTarball(tarball, sha256)
+  if (file) {
+    mkdirSync(keep, { recursive: true })
+    writeFileSync(file, tarball)
+  }
+  return tarball
+}
+
+const build = async (work, keep) => {
   checkFlags(source)
   mkdirSync(work, { recursive: true })
-  const tarball = await download(source.url)
-  checkTarball(tarball, source.sha256)
-  // the verified bytes go to tar on stdin, so no downloaded file is written by this script
+  const tarball = await fetchTarball(keep, source)
+  // the verified bytes go to tar on stdin
   run('tar', ['-xJf', '-'], { cwd: work, input: tarball, stdio: ['pipe', 'inherit', 'inherit'] })
   const tree = join(work, `ffmpeg-${source.version}`)
   const prefix = join(work, 'install')
@@ -86,10 +99,10 @@ const build = async work => {
 }
 
 if (require.main === module) {
-  build(resolve(process.argv[2] || 'ffmpeg-work')).catch(error => {
+  build(resolve(process.argv[2] || 'ffmpeg-work'), process.argv[3] && resolve(process.argv[3])).catch(error => {
     console.error(error.message)
     process.exit(1)
   })
 }
 
-module.exports = { checkBinary, download, checkFlags, checkTarball, posixPath, sha256Of, toolchainFlags }
+module.exports = { checkBinary, download, fetchTarball, checkFlags, checkTarball, posixPath, sha256Of, toolchainFlags }

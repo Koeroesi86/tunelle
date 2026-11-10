@@ -112,6 +112,15 @@ describe('workflows', () => {
     expect(read('ffmpeg.yml')).toMatch(/name: \$\{\{ inputs\.artifact-prefix \}\}ffmpeg-/);
   });
 
+  it('ffmpeg.yml keeps the source tarball by its sha256, apart from the build, and passes the place to the script', () => {
+    const text = read('ffmpeg.yml');
+
+    expect(text).toMatch(/key: ffmpeg-source-\$\{\{ matrix\.os \}\}-\$\{\{ steps\.pin\.outputs\.sha256 \}\}/);
+    expect(text).toMatch(/ffmpeg-build\.js "\$RUNNER_TEMP\/ffmpeg" "\$RUNNER_TEMP\/ffmpeg-source"/);
+    expect(text.indexOf('actions/cache/restore')).toBeLessThan(text.indexOf('node scripts/ffmpeg/ffmpeg-build.js'));
+    expect(text.indexOf('node scripts/ffmpeg/ffmpeg-build.js')).toBeLessThan(text.indexOf('actions/cache/save'));
+  });
+
   it('test.yml keeps the report of the end to end tests', () => {
     const text = read('test.yml');
 

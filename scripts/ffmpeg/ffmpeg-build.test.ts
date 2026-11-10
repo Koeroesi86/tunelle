@@ -1,6 +1,9 @@
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import source from './ffmpeg-source.json';
-import { checkBinary, checkFlags, download, checkTarball, posixPath, sha256Of, toolchainFlags } from './ffmpeg-build';
+import { checkBinary, checkFlags, download, fetchTarball, checkTarball, posixPath, sha256Of, toolchainFlags } from './ffmpeg-build';
 
 const legend = ' A..... = Audio\n ------\n';
 const decoderLines = legend + source.decoders.map((name) => ` A....D ${name}   some decoder`).join('\n');
@@ -107,5 +110,50 @@ describe('download', () => {
 
     expect(error?.message).toContain('(404)');
     expect(calls).toBe(1);
+  });
+});
+
+describe('fetchTarball', () => {
+  const content = Buffer.from('tarball');
+  const pinned = { url: 'https://example.test/ffmpeg-1.tar.xz', version: '1', sha256: sha256Of(content) };
+  const keep = () => fs.mkdtempSync(path.join(os.tmpdir(), 'ffmpeg-keep-'));
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('downloads the pinned bytes and keeps them for the next run', async () => {
+    const folder = path.join(keep(), 'source');
+    const fetcher = vi.fn(async () => new Response(content));
+    vi.stubGlobal('fetch', fetcher);
+
+    expect(await fetchTarball(folder, pinned)).toEqual(content);
+    expect(fs.readFileSync(path.join(folder, 'ffmpeg-1.tar.xz'))).toEqual(content);
+    expect(await fetchTarball(folder, pinned)).toEqual(content);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('downloads again when the kept file is not the pinned one', async () => {
+    const folder = keep();
+    fs.writeFileSync(path.join(folder, 'ffmpeg-1.tar.xz'), 'damaged');
+    const fetcher = vi.fn(async () => new Response(content));
+    vi.stubGlobal('fetch', fetcher);
+
+    expect(await fetchTarball(folder, pinned)).toEqual(content);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fs.readFileSync(path.join(folder, 'ffmpeg-1.tar.xz'))).toEqual(content);
+  });
+
+  it('keeps nothing that fails the check', async () => {
+    const folder = keep();
+    vi.stubGlobal('fetch', async () => new Response('other'));
+
+    await expect(fetchTarball(folder, pinned)).rejects.toThrow('expected');
+    expect(fs.readdirSync(folder)).toEqual([]);
+  });
+
+  it('only downloads when there is no place to keep it', async () => {
+    const fetcher = vi.fn(async () => new Response(content));
+    vi.stubGlobal('fetch', fetcher);
+
+    expect(await fetchTarball(undefined, pinned)).toEqual(content);
   });
 });

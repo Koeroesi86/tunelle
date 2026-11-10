@@ -10,11 +10,11 @@ A decode-only ffmpeg and ffprobe, built by us from the source tarball of ffmpeg.
 
 ## The check
 
-`node scripts/ffmpeg/ffmpeg-build.js <work folder>` downloads the tarball (up to four attempts with a growing wait after a network failure or a 5xx or 429 answer, as ffmpeg.org drops some of the parallel downloads of the runners), refuses it unless the sha256 matches, unpacks it from memory, builds, and then checks the binary: its configuration has no `--enable-gpl`, `--enable-nonfree` or `--enable-version3`, and `ffmpeg -decoders` lists exactly the decoders of the file. A format is added to the build by adding its demuxer and decoder to the file, in the pull request that adds its playback test.
+`node scripts/ffmpeg/ffmpeg-build.js <work folder> [<folder to keep the tarball in>]` downloads the tarball (up to four attempts with a growing wait after a network failure or a 5xx or 429 answer, as ffmpeg.org drops some of the parallel downloads of the runners), refuses it unless the sha256 matches, unpacks it from memory, builds, and then checks the binary: its configuration has no `--enable-gpl`, `--enable-nonfree` or `--enable-version3`, and `ffmpeg -decoders` lists exactly the decoders of the file. A format is added to the build by adding its demuxer and decoder to the file, in the pull request that adds its playback test.
 
 ## CI
 
-`.github/workflows/ffmpeg.yml` builds on Linux (x64, arm64), macOS (arm64, x64) and Windows (x64 with gcc, arm64 with clang, both in MSYS2). `dist.yml` calls it, so every pull request and release has the binary of each system as the artifact `ffmpeg-<platform>-<arch>`; the build is kept in a cache keyed on the runner, `ffmpeg-source.json` and `ffmpeg-build.js`, so it only runs when one of them changes. It can be started by hand too. Updating ffmpeg means changing the version, URL and sha256 together (and the same three in `packaging/ffmpeg/NOTICE.txt`, which `dist.test.ts` checks).
+`.github/workflows/ffmpeg.yml` builds on Linux (x64, arm64), macOS (arm64, x64) and Windows (x64 with gcc, arm64 with clang, both in MSYS2). `dist.yml` calls it, so every pull request and release has the binary of each system as the artifact `ffmpeg-<platform>-<arch>`; the checked source tarball is kept in a second cache keyed on the system and its sha256 (the folder is the second argument of the script), so a change of the build script or the flags builds again without downloading it; the build is kept in a cache keyed on the runner, `ffmpeg-source.json` and `ffmpeg-build.js`, so it only runs when one of them changes. It can be started by hand too. Updating ffmpeg means changing the version, URL and sha256 together (and the same three in `packaging/ffmpeg/NOTICE.txt`, which `dist.test.ts` checks).
 
 ## Packaging
 
