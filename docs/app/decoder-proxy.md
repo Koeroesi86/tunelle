@@ -24,4 +24,6 @@ After each decode the oldest files are removed until the folder is under 2 GiB (
 
 ## Tests
 
-`decoded-track.test.ts` runs the cache, the sharing, the abort, the limit and the eviction with a fake child process; `tunelle-protocol.test.ts` the route; `e2e/alac.spec.ts` plays ALAC fixtures (`e2e/fixtures/alac/`) with the real ffmpeg and measures the tone that leaves the app.
+`decoded-track.test.ts` runs the cache, the sharing, the abort, the limit and the eviction with a fake child process; `tunelle-protocol.test.ts` the route; `e2e/alac.spec.ts` and `e2e/ape.spec.ts` play ALAC and Monkey's Audio fixtures (`e2e/fixtures/alac/`, `e2e/fixtures/ape/`) with the real ffmpeg and measures the tone that leaves the app.
+
+Decode time of Monkey's Audio, measured on a laptop: a 10 minute 24 bit, 96 kHz stereo file at the insane level took 13.6 s (about 44 times faster than playing). The file was a pure tone, which compresses far better than music, so real albums take longer.
