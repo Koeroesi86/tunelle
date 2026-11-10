@@ -38,6 +38,7 @@ describe('decoded track', () => {
     return file;
   };
   const never = new AbortController().signal;
+  const alac = { codec: 'ALAC', bitDepth: 16 };
 
   beforeAll(() => {
     temp.folder = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-decoded-test-'));
@@ -70,7 +71,7 @@ describe('decoded track', () => {
 
   it('decodes the first audio stream to a WAV of the depth of the file, written under another name', async () => {
     const file = source('a.m4a');
-    const result = decodeTrack(file, 24, never);
+    const result = decodeTrack(file, { codec: 'ALAC', bitDepth: 24 }, never);
     await started();
     children[0].finish();
 
@@ -86,7 +87,7 @@ describe('decoded track', () => {
     [16, 'pcm_s16le'],
     [32, 'pcm_s32le'],
   ])('encodes a depth of %s as %s', async (bitDepth, encoder) => {
-    const result = decodeTrack(source(`depth-${bitDepth}.m4a`), bitDepth, never);
+    const result = decodeTrack(source(`depth-${bitDepth}.m4a`), { codec: 'ALAC', bitDepth }, never);
     await started();
     children[0].finish();
     await result;
@@ -94,25 +95,45 @@ describe('decoded track', () => {
     expect(children[0].args).toContain(encoder);
   });
 
+  it.each([1, 8])('decodes DSD of %s bit to 88.2 kHz and 24 bit, whatever its rate', async (bitDepth) => {
+    const result = decodeTrack(source(`dsd-${bitDepth}.dsf`), { codec: 'DSD', bitDepth }, never);
+    await started();
+    children[0].finish();
+    await result;
+
+    expect(children[0].args).toEqual(expect.arrayContaining(['-ar', '88200', '-c:a', 'pcm_s24le']));
+    expect(children[0].args).not.toContain('pcm_s16le');
+  });
+
+  it('keeps the decoded copy of a DSD file apart from a PCM decode of the same file', async () => {
+    const file = source('same.dsf');
+    const dsd = decodeTrack(file, { codec: 'DSD', bitDepth: 1 }, never);
+    const pcm = decodeTrack(file, { codec: 'ALAC', bitDepth: 16 }, never);
+    await vi.waitFor(() => expect(children).toHaveLength(2));
+    children.forEach((child) => child.finish());
+
+    expect(await dsd).not.toBe(await pcm);
+  });
+
   it('serves the second request from the cache without a decoder', async () => {
     const file = source('b.m4a');
-    const first = decodeTrack(file, 16, never);
+    const first = decodeTrack(file, alac, never);
     await started();
     children[0].finish();
 
-    expect(await decodeTrack(file, 16, never)).toBe(await first);
+    expect(await decodeTrack(file, alac, never)).toBe(await first);
     expect(spawn).toHaveBeenCalledTimes(1);
   });
 
   it('decodes again when the file changed', async () => {
     const file = source('c.m4a');
-    const first = decodeTrack(file, 16, never);
+    const first = decodeTrack(file, alac, never);
     await started();
     children[0].finish();
     await first;
 
     source('c.m4a', 'changed and longer');
-    const second = decodeTrack(file, 16, never);
+    const second = decodeTrack(file, alac, never);
     await vi.waitFor(() => expect(children).toHaveLength(2));
     children[1].finish();
 
@@ -121,7 +142,7 @@ describe('decoded track', () => {
 
   it('shares one decoder between the requests for the same track', async () => {
     const file = source('d.m4a');
-    const results = [decodeTrack(file, 16, never), decodeTrack(file, 16, never)];
+    const results = [decodeTrack(file, alac, never), decodeTrack(file, alac, never)];
     await started();
     children[0].finish();
 
@@ -132,7 +153,7 @@ describe('decoded track', () => {
   it('kills the decoder when the only request is aborted, and not while another one waits', async () => {
     const [first, second] = [new AbortController(), new AbortController()];
     const file = source('e.m4a');
-    const results = [decodeTrack(file, 16, first.signal), decodeTrack(file, 16, second.signal)];
+    const results = [decodeTrack(file, alac, first.signal), decodeTrack(file, alac, second.signal)];
     await started();
 
     first.abort();
@@ -148,13 +169,13 @@ describe('decoded track', () => {
     const controller = new AbortController();
     controller.abort();
 
-    expect(await decodeTrack(source('f.m4a'), 16, controller.signal)).toBeUndefined();
+    expect(await decodeTrack(source('f.m4a'), alac, controller.signal)).toBeUndefined();
     expect(spawn).not.toHaveBeenCalled();
   });
 
   it('gives nothing, and leaves no file, when the decoder fails', async () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const result = decodeTrack(source('g.m4a'), 16, never);
+    const result = decodeTrack(source('g.m4a'), alac, never);
     await started();
     children[0].finish(1, 'Invalid data');
 
@@ -166,7 +187,7 @@ describe('decoded track', () => {
 
   it('gives nothing when the decoder can not be started', async () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const result = decodeTrack(source('h.m4a'), 16, never);
+    const result = decodeTrack(source('h.m4a'), alac, never);
     await started();
     children[0].emit('error', new Error('spawn ffmpeg ENOENT'));
 
@@ -175,11 +196,11 @@ describe('decoded track', () => {
   });
 
   it('gives nothing for a file that is gone', async () => {
-    expect(await decodeTrack(path.join(temp.folder, 'gone.m4a'), 16, never)).toBeUndefined();
+    expect(await decodeTrack(path.join(temp.folder, 'gone.m4a'), alac, never)).toBeUndefined();
   });
 
   it('runs two decoders at a time and starts the next when one ends', async () => {
-    const results = ['i1', 'i2', 'i3'].map((name) => decodeTrack(source(`${name}.m4a`), 16, never));
+    const results = ['i1', 'i2', 'i3'].map((name) => decodeTrack(source(`${name}.m4a`), alac, never));
     await vi.waitFor(() => expect(children).toHaveLength(2));
     await new Promise((resolve) => setTimeout(resolve, 20));
 
@@ -196,7 +217,7 @@ describe('decoded track', () => {
     const targets: (string | undefined)[] = [];
     // a file older than the others: the modification time orders the files, the clock of a fast test would not
     for (const [index, name] of names.entries()) {
-      const result = decodeTrack(source(`${name}.m4a`), 16, never);
+      const result = decodeTrack(source(`${name}.m4a`), alac, never);
       await vi.waitFor(() => expect(children).toHaveLength(index + 1));
       children[index].finish();
       targets.push(await result);

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import isSupported, { isDecodedCodec, isSupportedCodec } from './is-supported';
 
 describe('isSupported', () => {
-  it.each(['a.flac', 'a.mp3', 'a.m4a', 'a.ogg', 'a.opus', 'a.wav', 'a.aac', 'a.ape', 'a.wv', 'a.aiff', 'a.aif', 'a.aifc', 'C:/Music/b.flac'])(
+  it.each(['a.flac', 'a.mp3', 'a.m4a', 'a.ogg', 'a.opus', 'a.wav', 'a.aac', 'a.ape', 'a.wv', 'a.aiff', 'a.aif', 'a.aifc', 'a.dsf', 'a.dff', 'C:/Music/b.flac'])(
     'accepts %s',
     (name) => {
       expect(isSupported(name)).toBe(true);
@@ -18,21 +18,21 @@ describe('isSupported', () => {
 });
 
 describe('isSupportedCodec', () => {
-  it.each(['FLAC', 'MP3', 'MPEG-4/AAC', 'AAC', 'VORBIS', 'OPUS', 'WAV', 'ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', null, undefined])(
+  it.each(['FLAC', 'MP3', 'MPEG-4/AAC', 'AAC', 'VORBIS', 'OPUS', 'WAV', 'ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'DSD', null, undefined])(
     'accepts %s',
     (codec) => {
       expect(isSupportedCodec(codec)).toBe(true);
     }
   );
 
-  it.each(['AC-3', 'SPEEX', 'THEORA', 'DSD'])('rejects %s, which Chromium does not decode', (codec) => {
+  it.each(['AC-3', 'SPEEX', 'THEORA', 'DSD-WAVPACK', 'DST'])('rejects %s, which ffmpeg does not decode here', (codec) => {
     expect(isSupportedCodec(codec)).toBe(false);
   });
 });
 
 describe('isDecodedCodec', () => {
   it('names the codecs that ffmpeg decodes before they are served', () => {
-    expect(['ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C'].map(isDecodedCodec)).toEqual([true, true, true, true, true]);
+    expect(['ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'DSD'].map(isDecodedCodec)).toEqual([true, true, true, true, true, true]);
     expect(['FLAC', 'AC-3', null, undefined].map(isDecodedCodec)).toEqual([false, false, false, false]);
   });
 });

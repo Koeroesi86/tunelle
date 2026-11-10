@@ -18,10 +18,13 @@ interface Job {
   child?: ChildProcess;
 }
 
-interface PlayableTrack {
-  path: string;
+interface Format {
   codec: string | null;
   bitDepth: number | null;
+}
+
+interface PlayableTrack extends Format {
+  path: string;
 }
 
 const jobs = new Map<string, Job>();
@@ -37,8 +40,11 @@ const ffmpegProgram = () =>
     process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
   );
 
-/** The WAV keeps the depth of the file, 16 bit when it is not known */
-const toEncoder = (bitDepth: number | null) => ((bitDepth ?? 16) > 24 ? 'pcm_s32le' : (bitDepth ?? 16) > 16 ? 'pcm_s24le' : 'pcm_s16le');
+/** The WAV keeps the depth of the file, 16 bit when it is not known; DSD, which has 1 bit, is 88.2 kHz and 24 bit whatever its rate. See docs/app/decoder-proxy.md */
+const toEncoder = ({ codec, bitDepth }: Format) => {
+  if (codec === 'DSD') return ['-ar', '88200', '-c:a', 'pcm_s24le'];
+  return ['-c:a', (bitDepth ?? 16) > 24 ? 'pcm_s32le' : (bitDepth ?? 16) > 16 ? 'pcm_s24le' : 'pcm_s16le'];
+};
 
 const takeSlot = () => {
   if (running >= maxDecodes) return new Promise<void>((resolve) => queue.push(resolve));
@@ -52,11 +58,11 @@ const freeSlot = () => {
   else running -= 1;
 };
 
-const runDecoder = (job: Job, source: string, encoder: string, output: string) =>
+const runDecoder = (job: Job, source: string, encoder: string[], output: string) =>
   new Promise<boolean>((resolve) => {
     const child = spawn(
       ffmpegProgram(),
-      ['-nostdin', '-v', 'error', '-fflags', '+bitexact', '-i', source, '-map', '0:a:0', '-map_metadata', '-1', '-c:a', encoder, '-f', 'wav', '-y', output],
+      ['-nostdin', '-v', 'error', '-fflags', '+bitexact', '-i', source, '-map', '0:a:0', '-map_metadata', '-1', ...encoder, '-f', 'wav', '-y', output],
       { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true }
     );
     const errors: Buffer[] = [];
@@ -96,7 +102,7 @@ const evict = async () => {
   );
 };
 
-const writeDecoded = async (job: Job, source: string, encoder: string, target: string) => {
+const writeDecoded = async (job: Job, source: string, encoder: string[], target: string) => {
   if (job.cancelled) return undefined;
   await mkdir(cacheFolder(), { recursive: true });
   // written under another name and renamed, so a file of the cache is always whole
@@ -110,12 +116,12 @@ const writeDecoded = async (job: Job, source: string, encoder: string, target: s
   return target;
 };
 
-const produce = async (job: Job, source: string, encoder: string, target: string) => {
+const produce = async (job: Job, source: string, encoder: string[], target: string) => {
   await takeSlot();
   return writeDecoded(job, source, encoder, target).finally(freeSlot);
 };
 
-const startJob = (key: string, source: string, encoder: string, target: string) => {
+const startJob = (key: string, source: string, encoder: string[], target: string) => {
   const job: Job = { done: Promise.resolve(undefined), waiters: 0, cancelled: false };
   job.done = produce(job, source, encoder, target)
     .catch((error) => {
@@ -139,12 +145,15 @@ const leave = (key: string, job: Job) => {
 };
 
 /** Decodes a track to a WAV file in the cache, once for all the requests that ask for it meanwhile, undefined when it fails or the request is gone */
-export const decodeTrack = async (source: string, bitDepth: number | null, signal: AbortSignal) => {
+export const decodeTrack = async (source: string, format: Format, signal: AbortSignal) => {
   const stats = await stat(source).catch(() => undefined);
   if (!stats?.isFile() || signal.aborted) return undefined;
 
-  const encoder = toEncoder(bitDepth);
-  const key = createHash('sha256').update(`${source}\0${stats.size}\0${stats.mtimeMs}\0${encoder}`).digest('hex').slice(0, 32);
+  const encoder = toEncoder(format);
+  const key = createHash('sha256')
+    .update(`${source}\0${stats.size}\0${stats.mtimeMs}\0${encoder.join(' ')}`)
+    .digest('hex')
+    .slice(0, 32);
   const target = join(cacheFolder(), `${key}.wav`);
   recent = [key, ...recent.filter((kept) => kept !== key)].slice(0, keptRecent);
 
@@ -167,5 +176,5 @@ export const decodeTrack = async (source: string, bitDepth: number | null, signa
 };
 
 /** The file the page gets for a track of the library: the file itself, or its decoded copy for a codec that Chromium does not play */
-export const playableFile = ({ path, codec, bitDepth }: PlayableTrack, signal: AbortSignal) =>
-  isDecodedCodec(codec) ? decodeTrack(path, bitDepth, signal) : Promise.resolve(path);
+export const playableFile = ({ path, ...format }: PlayableTrack, signal: AbortSignal) =>
+  isDecodedCodec(format.codec) ? decodeTrack(path, format, signal) : Promise.resolve(path);
