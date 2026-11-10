@@ -1,6 +1,6 @@
 # The decoder proxy
 
-Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302). Chromium plays the audio of the app, so a format it cannot decode is decoded by the bundled ffmpeg ([ffmpeg-build.md](../development/ffmpeg-build.md)) to a WAV file first, and the `/track` route serves that file. The address the renderer asks for does not change, so the `<audio>` elements, the Web Audio graph, gapless playback and the rest stay as they are. Only the codecs in `decodedCodecs` of `electron/utils/is-supported.ts` take this way: ALAC for now (in an `.m4a`, told apart by the `codec` the scan read).
+Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302). Chromium plays the audio of the app, so a format it cannot decode is decoded by the bundled ffmpeg ([ffmpeg-build.md](../development/ffmpeg-build.md)) to a WAV file first, and the `/track` route serves that file. The address the renderer asks for does not change, so the `<audio>` elements, the Web Audio graph, gapless playback and the rest stay as they are. Only the codecs in `decodedCodecs` of `electron/utils/is-supported.ts` take this way: ALAC (in an `.m4a`) and Monkey's Audio (`.ape`), told apart by the `codec` the scan read.
 
 ## The route
 
@@ -24,4 +24,6 @@ After each decode the oldest files are removed until the folder is under 2 GiB (
 
 ## Tests
 
-`decoded-track.test.ts` runs the cache, the sharing, the abort, the limit and the eviction with a fake child process; `tunelle-protocol.test.ts` the route; `e2e/alac.spec.ts` plays ALAC fixtures (`e2e/fixtures/alac/`) with the real ffmpeg and measures the tone that leaves the app.
+`decoded-track.test.ts` runs the cache, the sharing, the abort, the limit and the eviction with a fake child process; `tunelle-protocol.test.ts` the route; `e2e/alac.spec.ts` and `e2e/ape.spec.ts` play ALAC and Monkey's Audio fixtures (`e2e/fixtures/alac/`, `e2e/fixtures/ape/`) with the real ffmpeg and measures the tone that leaves the app.
+
+Decode time of Monkey's Audio, measured on a laptop: a 10 minute 24 bit, 96 kHz stereo file at the insane level took 13.6 s (about 44 times faster than playing). The file was a pure tone, which compresses far better than music, so real albums take longer.

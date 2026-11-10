@@ -12,3 +12,10 @@ The second track is the same with 880 Hz, "Octave Up" and track 2. No real music
 ```sh
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a alac -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless Apple" -metadata track=1 alac/1-concert-a.m4a
 ```
+
+`ape/` has the same two tracks in Monkey's Audio (16 bit, mono, 44.1 kHz, normal compression) in the album "Lossless Monkey", for `e2e/ape.spec.ts`. They are made with the `mac` tool of the official SDK (<https://monkeysaudio.com/developers.html>) from WAV files that ffmpeg generates:
+
+```sh
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16le 1-concert-a.wav
+mac 1-concert-a.wav ape/1-concert-a.ape -c2000 -t "Title=Concert A|Artist=The Sine Waves|Album Artist=The Sine Waves|Album=Lossless Monkey|Track=1"
+```
