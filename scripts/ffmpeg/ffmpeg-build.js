@@ -50,12 +50,28 @@ const output = (command, args) => {
   return result.stdout
 }
 
+const attempts = 4
+
+// a download that fails on the network, or with a server error, is tried again after a wait that grows (ffmpeg.org drops some of the parallel downloads of the runners);
+// any other status is final. The bytes are checked against the sha256 afterwards.
+const download = async (url, attempt = 1) => {
+  const result = await fetch(url).then(
+    async response => (response.status >= 500 || response.status === 429 ? new Error(`Downloading ${url} failed (${response.status})`) : response),
+    error => error
+  )
+  if (result instanceof Response && !result.ok) throw new Error(`Downloading ${url} failed (${result.status})`)
+  const body = result instanceof Response ? await result.arrayBuffer().then(Buffer.from, error => error) : result
+  if (Buffer.isBuffer(body)) return body
+  if (attempt >= attempts) throw body instanceof Error ? body : new Error(`Downloading ${url} failed`)
+  console.error(`${body.message}${body.cause ? ` (${body.cause.message ?? body.cause})` : ''}, trying again (${attempt}/${attempts - 1})`)
+  await new Promise(resolve => setTimeout(resolve, 2000 * attempt))
+  return download(url, attempt + 1)
+}
+
 const build = async work => {
   checkFlags(source)
   mkdirSync(work, { recursive: true })
-  const response = await fetch(source.url)
-  if (!response.ok) throw new Error(`Downloading ${source.url} failed (${response.status})`)
-  const tarball = Buffer.from(await response.arrayBuffer())
+  const tarball = await download(source.url)
   checkTarball(tarball, source.sha256)
   // the verified bytes go to tar on stdin, so no downloaded file is written by this script
   run('tar', ['-xJf', '-'], { cwd: work, input: tarball, stdio: ['pipe', 'inherit', 'inherit'] })
@@ -76,4 +92,4 @@ if (require.main === module) {
   })
 }
 
-module.exports = { checkBinary, checkFlags, checkTarball, posixPath, sha256Of, toolchainFlags }
+module.exports = { checkBinary, download, checkFlags, checkTarball, posixPath, sha256Of, toolchainFlags }

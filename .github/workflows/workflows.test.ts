@@ -46,8 +46,8 @@ describe('workflows', () => {
   it('test.yml also runs the tests and the end to end tests on Ubuntu 22.04, the system the AppImage is built for', () => {
     const text = read('test.yml');
 
-    expect(text).toMatch(/os: \[.*ubuntu-22\.04,/);
-    expect(text).toMatch(/os: \[.*ubuntu-22\.04-arm,/);
+    expect(text).toMatch(/- \{ os: ubuntu-22\.04, platform: linux, arch: x64 \}/);
+    expect(text).toMatch(/- \{ os: ubuntu-22\.04-arm, platform: linux, arch: arm64 \}/);
     expect(text).toMatch(/startsWith\(matrix\.os, 'ubuntu-22\.04'\)[\s\S]*npm_config_build_from_source=true/);
   });
 
@@ -98,7 +98,18 @@ describe('workflows', () => {
     expect(text).toMatch(/\n  dist:\n\s+needs: ffmpeg\n/);
     expect(download).toBeGreaterThan(0);
     expect(download).toBeLessThan(text.indexOf('run: npm run dist'));
-    expect(read('ffmpeg.yml')).toMatch(/name: ffmpeg-\$\{\{ matrix\.platform \}\}-\$\{\{ matrix\.arch \}\}/);
+    expect(read('ffmpeg.yml')).toMatch(/ffmpeg-\$\{\{ matrix\.platform \}\}-\$\{\{ matrix\.arch \}\}/);
+  });
+
+  it('test.yml gets the ffmpeg of the system of the job under a name of its own, before the end to end tests', () => {
+    const text = read('test.yml');
+    const download = text.indexOf('name: test-ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}');
+
+    expect(text).toMatch(/\n  ffmpeg:\n\s+uses: \.\/\.github\/workflows\/ffmpeg\.yml\n\s+with:\n\s+artifact-prefix: test-/);
+    expect(text).toMatch(/\n  test:\n\s+name: [^\n]+\n\s+needs: ffmpeg\n/);
+    expect(download).toBeGreaterThan(0);
+    expect(download).toBeLessThan(text.indexOf('run: npm run test:e2e'));
+    expect(read('ffmpeg.yml')).toMatch(/name: \$\{\{ inputs\.artifact-prefix \}\}ffmpeg-/);
   });
 
   it('test.yml keeps the report of the end to end tests', () => {

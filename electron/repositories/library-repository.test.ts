@@ -4,6 +4,7 @@ import type { Database } from 'sqlite3';
 import {
   deleteFolders,
   deleteTracks,
+  findPlayableTrack,
   findTrackPath,
   getFolders,
   getAlbumPage,
@@ -72,6 +73,13 @@ describe('libraryRepository', () => {
 
     expect(await findTrackPath(database, '/music/a/one.flac')).toBe('/music/a/one.flac');
     expect(await findTrackPath(database, '/etc/passwd')).toBeUndefined();
+  });
+
+  it('finds the path, codec and depth of a track to play, only for a track of the library', async () => {
+    await addTrack(database, { ...track('/music/a/one.m4a'), codec: 'ALAC', bitDepth: 24 });
+
+    expect(await findPlayableTrack(database, '/music/a/one.m4a')).toEqual({ path: '/music/a/one.m4a', codec: 'ALAC', bitDepth: 24 });
+    expect(await findPlayableTrack(database, '/etc/passwd')).toBeUndefined();
   });
 
   describe('windows of the library', () => {

@@ -3,11 +3,12 @@ import { protocol } from 'electron';
 import type { Database } from 'sqlite3';
 import { resolveAlbumArt } from '../library/art/album-art';
 import { getCoverAccent } from '../library/art/album-art-accents';
-import { findTrackPath } from '../repositories/library-repository';
+import { findPlayableTrack } from '../repositories/library-repository';
 import { libraryRoutes } from './library-routes';
 import { serveRadio } from './radio-protocol';
 import type { RadioStreamDeps } from './radio-proxy';
 import type { RadioArtImage } from '../services/radio-art';
+import { playableFile } from './decoded-track';
 import { notFound, serveFile } from './serve-file';
 import { artKeySchema, assetPathSchema, stationUuidSchema, trackPathSchema } from '../schemas/routes';
 
@@ -43,8 +44,10 @@ const route = async (request: Request, { getDatabase, radio, appRoot }: TunelleD
     const database = getDatabase();
     const filePath = trackPathSchema.safeParse(searchParams.get('path')).data;
     // only files of the library are served, the path comes from the database and not from the request
-    const trackPath = database && filePath ? await findTrackPath(database, filePath) : undefined;
-    return trackPath ? serveFile(trackPath, request) : notFound();
+    const track = database && filePath ? await findPlayableTrack(database, filePath) : undefined;
+    // a format that Chromium does not play is decoded to a WAV file first (docs/app/decoder-proxy.md)
+    const file = track ? await playableFile(track, request.signal) : undefined;
+    return file ? serveFile(file, request) : notFound();
   }
 
   const { kind, key = '' } = assetPathSchema.safeParse(pathname).data ?? {};

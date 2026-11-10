@@ -34,7 +34,7 @@
   "features.lossless.title": "Veszteségmentes, és látod is",
   "features.lossless.text": "Minden szám és állomás kiírja a formátumát: FLAC 16/44.1, FLAC 24/96, MP3 320. Nem kell találgatni, mit hallgatsz.",
   "features.formats.title": "Lejátssza, amid van",
-  "features.formats.text": "FLAC, MP3, AAC, M4A, Ogg, Opus és WAV, a címkék és a borító kiolvasásával a fájlokból.",
+  "features.formats.text": "FLAC, ALAC, MP3, AAC, M4A, Ogg, Opus és WAV, a címkék és a borító kiolvasásával a fájlokból.",
   "features.radio.title": "Beépített internetes rádió",
   "features.radio.text": "Több ezer állomás a nyílt radio-browser.info címtárból, logóval, szűrőkkel és az éppen szóló számmal. <a href='#radio'>Bővebben a rádióról</a>",
   "features.home.title": "Kezdőlap, amely emlékszik",

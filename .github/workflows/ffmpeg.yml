@@ -4,6 +4,11 @@ name: ffmpeg
 # The build is kept in a cache keyed on the source and the build script, so it only runs when one of them changes. See docs/development/ffmpeg-build.md.
 on:
   workflow_call:
+    inputs:
+      # a run that calls this workflow twice (the pull request checks) needs two names, an artifact name is taken once per run
+      artifact-prefix:
+        type: string
+        default: ''
   workflow_dispatch:
 
 permissions:
@@ -63,6 +68,6 @@ jobs:
         run: node scripts/ffmpeg/ffmpeg-build.js "$RUNNER_TEMP/ffmpeg"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}
+          name: ${{ inputs.artifact-prefix }}ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ runner.temp }}/ffmpeg/install/bin/
           retention-days: 7

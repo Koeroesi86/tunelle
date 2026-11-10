@@ -438,6 +438,14 @@ export const findTrackPath = (database: Database, trackPath: string) =>
     ([track]) => track?.path
   );
 
+/** What the `/track` route needs to serve a file of the library: the codec says whether it has to be decoded first */
+export const findPlayableTrack = (database: Database, trackPath: string) =>
+  executeQuery(
+    database,
+    { query: `SELECT path, codec, bitDepth FROM library WHERE path = ?`, variables: [trackPath] },
+    libraryRowSchema.pick({ path: true, codec: true, bitDepth: true })
+  ).then(([track]) => track);
+
 export const deleteTracks = (database: Database, tracks: Pick<Track, 'path'>[]) =>
   executeQueries(
     database,

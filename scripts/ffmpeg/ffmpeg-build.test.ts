@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import source from './ffmpeg-source.json';
-import { checkBinary, checkFlags, checkTarball, posixPath, sha256Of, toolchainFlags } from './ffmpeg-build';
+import { checkBinary, checkFlags, download, checkTarball, posixPath, sha256Of, toolchainFlags } from './ffmpeg-build';
 
 const legend = ' A..... = Audio\n ------\n';
 const decoderLines = legend + source.decoders.map((name) => ` A....D ${name}   some decoder`).join('\n');
@@ -53,5 +53,59 @@ describe('toolchainFlags', () => {
     expect(toolchainFlags('win32', 'arm64')).toEqual(['--cc=clang']);
     expect(toolchainFlags('win32', 'x64')).toEqual([]);
     expect(toolchainFlags('linux', 'arm64')).toEqual([]);
+  });
+});
+
+describe('download', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  const bytes = (text: string) => new Response(text);
+  const run = async (answers: (Response | Error)[]) => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fetcher = vi.fn(async () => {
+      const next = answers.shift();
+      if (next instanceof Error) throw next;
+      return next;
+    });
+    vi.stubGlobal('fetch', fetcher);
+    const result = download('https://example.test/ffmpeg.tar.xz').then(
+      (value): { value?: Buffer; error?: Error } => ({ value }),
+      (error: Error): { value?: Buffer; error?: Error } => ({ error })
+    );
+    await vi.runAllTimersAsync();
+    return { ...(await result), calls: fetcher.mock.calls.length };
+  };
+
+  it('returns the bytes of the first answer', async () => {
+    const { value, calls } = await run([bytes('tarball')]);
+
+    expect(value?.toString()).toBe('tarball');
+    expect(calls).toBe(1);
+  });
+
+  it('tries again after a failure of the network and after a server error', async () => {
+    const { value, calls } = await run([new TypeError('fetch failed'), new Response('', { status: 503 }), bytes('tarball')]);
+
+    expect(value?.toString()).toBe('tarball');
+    expect(calls).toBe(3);
+  });
+
+  it('gives up with the last error after four attempts', async () => {
+    const { error, calls } = await run(Array.from({ length: 4 }, () => new TypeError('fetch failed')));
+
+    expect(error?.message).toBe('fetch failed');
+    expect(calls).toBe(4);
+  });
+
+  it('does not try again for a status that will not change', async () => {
+    const { error, calls } = await run([new Response('', { status: 404 }), bytes('tarball')]);
+
+    expect(error?.message).toContain('(404)');
+    expect(calls).toBe(1);
   });
 });
