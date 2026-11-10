@@ -74,8 +74,8 @@ describe('download', () => {
     });
     vi.stubGlobal('fetch', fetcher);
     const result = download('https://example.test/ffmpeg.tar.xz').then(
-      (value) => ({ value }),
-      (error: Error) => ({ error })
+      (value): { value?: Buffer; error?: Error } => ({ value }),
+      (error: Error): { value?: Buffer; error?: Error } => ({ error })
     );
     await vi.runAllTimersAsync();
     return { ...(await result), calls: fetcher.mock.calls.length };
