@@ -21,6 +21,7 @@
     "build": "node scripts/tooling/tsc.js tsconfig.main.json out && node scripts/tooling/build.js",
     "start": "electron out/index.js",
     "ffmpeg": "node scripts/ffmpeg/ffmpeg-build.js .cache/ffmpeg",
+    "ffmpeg:flatpak": "node scripts/ffmpeg/flatpak-module.js",
     "dist": "node scripts/release/dist.js",
     "typecheck": "node scripts/tooling/tsc.js tsconfig.json && node scripts/tooling/tsc.js tsconfig.e2e.json && node scripts/tooling/tsc.js tsconfig.scripts.json",
     "test": "vitest run",
