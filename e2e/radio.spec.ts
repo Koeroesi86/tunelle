@@ -1,7 +1,7 @@
 import { expect, navigate, test } from './support/app';
 import { player } from './support/player';
 
-test('lists the stations of the directory with their format', { tag: '@parallel' }, async ({ start }) => {
+test('lists the stations of the directory with their format', async ({ start }) => {
   const { page } = await start();
   await navigate(page, 'Radio stations');
 
@@ -10,7 +10,7 @@ test('lists the stations of the directory with their format', { tag: '@parallel'
   await expect(page.getByText('FLAC', { exact: true }).first()).toBeVisible();
 });
 
-test('plays a station live, with the title its stream announces', { tag: '@parallel' }, async ({ start }) => {
+test('plays a station live, with the title its stream announces', async ({ start }) => {
   const { page } = await start();
   const controls = player(page);
   await navigate(page, 'Radio stations');

@@ -14,6 +14,8 @@ test.skip(process.platform !== 'darwin', 'the own updater is for macOS, other sy
 const root = resolve(__dirname, '../..');
 const packagedBundle = resolve(root, packagedExecutable('darwin', process.arch), '../../..');
 const updateVersion = '26.99.1';
+/** How long an update may take to install and start: the Intel runner needs about 200 s, so 240 s left no room */
+const updateTimeout = 420_000;
 const zipName = `Tunelle-${updateVersion}-${process.arch === 'arm64' ? 'arm64-' : ''}mac.zip`;
 
 const run = (command: string, args: string[]) => execFileSync(command, args, { encoding: 'utf8' }).trim();
@@ -165,7 +167,10 @@ test.describe('the macOS updater', () => {
     const exited = start(bundle);
 
     // the swap script drops the backup once the new app wrote its marker
-    await expect.poll(() => plistVersion(bundle) === updateVersion && existsSync(marker()) && !existsSync(`${bundle}.backup`), { timeout: 240_000 }).toBe(true);
+    // the first start of a bundle that was just signed is scanned by the system, and the update takes about 3 minutes on the Intel runner: the state is polled, so a failure says which part is missing
+    await expect
+      .poll(() => ({ version: plistVersion(bundle), marker: existsSync(marker()), backup: existsSync(`${bundle}.backup`) }), { timeout: updateTimeout })
+      .toEqual({ version: updateVersion, marker: true, backup: false });
     await exited;
     expect(existsSync(join(folder, 'Applications', '.Tunelle-update'))).toBe(false);
     expect(feed.requests).toEqual(expect.arrayContaining(['latest-mac.yml', 'latest-mac.yml.sig', zipName]));
@@ -179,7 +184,7 @@ test.describe('the macOS updater', () => {
 
     // the old app starts again after the script waited for the marker of the new one: it writes the marker, and the version is recorded as failed
     await expect
-      .poll(() => (existsSync(appData('update-failed')) ? readFileSync(appData('update-failed'), 'utf8').trim() : undefined), { timeout: 240_000 })
+      .poll(() => (existsSync(appData('update-failed')) ? readFileSync(appData('update-failed'), 'utf8').trim() : undefined), { timeout: updateTimeout })
       .toBe(updateVersion);
     await expect.poll(() => plistVersion(bundle) === installedVersion && existsSync(marker()), { timeout: 240_000 }).toBe(true);
     expect(existsSync(`${bundle}.backup`)).toBe(false);

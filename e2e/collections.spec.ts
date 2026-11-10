@@ -2,7 +2,7 @@ import { expect, navigate, quit, test } from './support/app';
 import { player } from './support/player';
 
 // what the listener builds up in the app and expects to find again: playlists, favourites, the history, the settings
-test('keeps a playlist of an album, and plays it', { tag: '@parallel' }, async ({ start, session }) => {
+test('keeps a playlist of an album, and plays it', async ({ start, session }) => {
   const { page } = session;
   await navigate(page, 'Albums');
   // the menu of the album creates the playlist with the album in it
@@ -19,7 +19,7 @@ test('keeps a playlist of an album, and plays it', { tag: '@parallel' }, async (
   await expect(player(restarted.page).title()).toHaveText('Concert A');
 });
 
-test('lists a liked album under Liked, and keeps it after a restart', { tag: '@parallel' }, async ({ start, session }) => {
+test('lists a liked album under Liked, and keeps it after a restart', async ({ start, session }) => {
   const { page } = session;
   await navigate(page, 'Albums');
   await page.getByRole('button', { name: 'Add to favourites' }).first().click();
@@ -32,7 +32,7 @@ test('lists a liked album under Liked, and keeps it after a restart', { tag: '@p
   await expect(restarted.page.getByText('Pitch Perfect').filter({ visible: true }).first()).toBeVisible();
 });
 
-test('shows what was played under Recently played, and clears it', { tag: '@parallel' }, async ({ session: { page } }) => {
+test('shows what was played under Recently played, and clears it', async ({ session: { page } }) => {
   const controls = player(page);
   await controls.playAlbum('Single Note');
   await expect(controls.title()).toHaveText('Hold It');
@@ -47,7 +47,7 @@ test('shows what was played under Recently played, and clears it', { tag: '@para
   await expect(page.getByText('Nothing was played yet')).toBeVisible();
 });
 
-test('keeps the equalizer preset after a restart', { tag: '@parallel' }, async ({ start, session }) => {
+test('keeps the equalizer preset after a restart', async ({ start, session }) => {
   await navigate(session.page, 'Equalizer');
   await session.page.getByRole('button', { name: 'Vocal' }).click();
   await expect(session.page.getByRole('button', { name: 'Vocal' })).toHaveAttribute('aria-pressed', 'true');
