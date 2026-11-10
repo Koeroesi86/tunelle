@@ -10,7 +10,7 @@ const folderOfTracks = (count: number, seconds: number) => {
   return folder;
 };
 
-test('lists the background work in a tooltip of the title bar while it runs, and shows nothing once it is done', async ({ start }) => {
+test('lists the background work in a tooltip of the title bar while it runs, and shows nothing once it is done', { tag: '@parallel' }, async ({ start }) => {
   const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
   // the loudness is listed once its first track starts, so the track is long enough to still run when the list is read, on any runner
   await addFolder(page, folderOfTracks(1, 180), 1);

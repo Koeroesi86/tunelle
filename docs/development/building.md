@@ -17,6 +17,7 @@
 - `TUNELLE_METERED=1` makes the connection count as metered, so the update asks before it downloads (see [updater.md](../app/updater.md)).
 - `TUNELLE_RADIO_DIRECTORY=<url>` replaces the station directory. The smoke tests set both variables, the second to a station of their own.
 - `TUNELLE_LOUDNESS_IDLE_SECONDS=<seconds>` is how long no folder must have been scanned before the loudness of the library is measured in the background (30 by default, see [loudness-measurement.md](../app/loudness-measurement.md)). The end to end test of the measurement sets it to 0.
+- `TUNELLE_WATCH_MIN_SECONDS=<seconds>` is the shortest wait between two looks at a watched folder for a change (10 by default; a look takes a hundredth of the time it needs, so a big tree or a network drive waits longer). The end to end tests set it to 1, so a test that adds a file to a folder does not wait for the next look.
 - `TUNELLE_APP_DATA=<folder>` replaces the app data folder, where the library lives. The end to end tests set it to the profile of the run: on macOS and Windows the app data folder does not follow `HOME`, and a test would use the library of the user.
 
 ## The `@shared` import alias

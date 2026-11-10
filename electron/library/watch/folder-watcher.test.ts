@@ -15,6 +15,14 @@ describe('pollInterval', () => {
   ])('waits after a look that took %s ms for %s ms', (lookMs, expected) => {
     expect(pollInterval(lookMs)).toBe(expected);
   });
+
+  it('takes the shortest wait from TUNELLE_WATCH_MIN_SECONDS, and the default for a value that is not a number of seconds', () => {
+    vi.stubEnv('TUNELLE_WATCH_MIN_SECONDS', '1');
+    expect(pollInterval(0.2)).toBe(1000);
+    vi.stubEnv('TUNELLE_WATCH_MIN_SECONDS', 'soon');
+    expect(pollInterval(0.2)).toBe(10_000);
+    vi.unstubAllEnvs();
+  });
 });
 
 describe('createFolderWatcher', () => {

@@ -13,4 +13,5 @@ out
 coverage
 test-results
 playwright-report
+blob-report
 electron/schemas/database

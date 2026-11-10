@@ -5,7 +5,7 @@ import { expect, libraryTracks, navigate, quit, test } from './support/app';
 import { player } from './support/player';
 
 // where the app meets the system around it: the window, the media controls of the desktop, the protocol that serves the files
-test('tells the desktop what plays', async ({ session: { app, page } }) => {
+test('tells the desktop what plays', { tag: '@parallel' }, async ({ session: { app, page } }) => {
   const controls = player(page);
   const mediaSession = () =>
     page.evaluate(() => ({
@@ -39,7 +39,7 @@ test('tells the desktop what plays', async ({ session: { app, page } }) => {
   await expect.poll(async () => (await shown()).title).toBe('Octave Up');
 });
 
-test('a second start of the same profile leaves and keeps the window of the first', async ({ session: { app, page } }) => {
+test('a second start of the same profile leaves and keeps the window of the first', { tag: '@parallel' }, async ({ session: { app, page } }) => {
   const { spawnfile, spawnargs } = app.process();
   // the command of the first start without what Playwright adds to attach to it (the loader and the debugging ports)
   const args = spawnargs.slice(spawnargs.findIndex((arg) => arg.endsWith('index.js')));
@@ -52,7 +52,7 @@ test('a second start of the same profile leaves and keeps the window of the firs
   await expect(page.locator('#root')).not.toBeEmpty();
 });
 
-test('serves a track in ranges, and nothing outside of the library', async ({ session: { page }, music }) => {
+test('serves a track in ranges, and nothing outside of the library', { tag: '@parallel' }, async ({ session: { page }, music }) => {
   const [track] = await libraryTracks(page);
   // a real file next to the library: a missing one would be a 404 on every system, whether or not the request was refused
   const secret = join(dirname(music), `${basename(music)}-secret.txt`);
@@ -82,7 +82,7 @@ test('serves a track in ranges, and nothing outside of the library', async ({ se
   expect(answers.refused).toBe(404);
 });
 
-test('maximizes the window from its own button', async ({ session: { app, page } }) => {
+test('maximizes the window from its own button', { tag: '@parallel' }, async ({ session: { app, page } }) => {
   const maximized = () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().some((window) => window.isMaximized()));
 
   await page.getByRole('button', { name: 'Maximize' }).click();
@@ -92,18 +92,22 @@ test('maximizes the window from its own button', async ({ session: { app, page }
   if (process.platform !== 'darwin') await expect(page.getByRole('button', { name: 'Restore' })).toBeAttached();
 });
 
-test('closes the window with the close button, and quits the app where closing the last window quits it', async ({ session: { app, page } }) => {
-  const windowClosed = page.waitForEvent('close');
+test(
+  'closes the window with the close button, and quits the app where closing the last window quits it',
+  { tag: '@parallel' },
+  async ({ session: { app, page } }) => {
+    const windowClosed = page.waitForEvent('close');
 
-  await page.locator('[class*="WindowControls__button"][aria-label="Close"]').click();
+    await page.locator('[class*="WindowControls__button"][aria-label="Close"]').click();
 
-  await windowClosed;
-  // macOS keeps the app running without a window (index.ts): it is quit here, as the test run would wait for it otherwise, and killed when it does not quit
-  if (process.platform === 'darwin') return quit(app);
-  await app.waitForEvent('close', { timeout: 60_000 });
-});
+    await windowClosed;
+    // macOS keeps the app running without a window (index.ts): it is quit here, as the test run would wait for it otherwise, and killed when it does not quit
+    if (process.platform === 'darwin') return quit(app);
+    await app.waitForEvent('close', { timeout: 60_000 });
+  }
+);
 
-test('speaks the language that is picked, and keeps it after a restart', async ({ start, session }) => {
+test('speaks the language that is picked, and keeps it after a restart', { tag: '@parallel' }, async ({ start, session }) => {
   await navigate(session.page, 'Settings');
   await session.page.locator('select[class*="LanguageSelect__select"]').selectOption('hu');
   await expect(session.page.locator('[class*="Navigation__label"]').getByText('Kezdőlap')).toBeVisible();
