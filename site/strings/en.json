@@ -34,7 +34,7 @@
   "features.lossless.title": "Lossless, and you can see it",
   "features.lossless.text": "Every track and station wears its format: FLAC 16/44.1, FLAC 24/96, MP3 320. No guessing what you are listening to.",
   "features.formats.title": "Plays what you have",
-  "features.formats.text": "FLAC, ALAC, APE, WavPack, AIFF, MP3, AAC, M4A, Ogg, Opus and WAV, with the tags and the cover read from the files.",
+  "features.formats.text": "FLAC, ALAC, APE, WavPack, AIFF, DSD, MP3, AAC, M4A, Ogg, Opus and WAV, with the tags and the cover read from the files.",
   "features.radio.title": "Internet radio built in",
   "features.radio.text": "Thousands of stations from the open radio-browser.info directory, with their logos, filters and the song that is on right now. <a href='#radio'>More about radio</a>",
   "features.home.title": "A Home that remembers",

@@ -20,6 +20,12 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 mac 1-concert-a.wav ape/1-concert-a.ape -c2000 -t "Title=Concert A|Artist=The Sine Waves|Album Artist=The Sine Waves|Album=Lossless Monkey|Track=1"
 ```
 
+`dsd/` has the two tracks as DSD64 (1 bit, mono, 2.8224 MHz, 3 s), the first as DSF and the second as DFF, in the album "Lossless DSD", for `e2e/dsd.spec.ts`. ffmpeg cannot encode DSD, so `scripts/tooling/generate-dsd-fixtures.ts` modulates the sines itself and writes both files with ID3 tags (the result is the same bytes each time):
+
+```sh
+npm run fixtures:dsd
+```
+
 `wavpack/` has the same two tracks in WavPack (16 bit, mono, 44.1 kHz, high compression) in the album "Lossless WavPack", for `e2e/wavpack.spec.ts`. They are made with `wavpack` of the official tools (<https://www.wavpack.com>) from the same WAV files:
 
 ```sh

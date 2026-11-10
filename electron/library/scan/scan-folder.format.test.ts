@@ -90,6 +90,22 @@ describe('scanFolder audio format', () => {
     expect(await stored()).toEqual([expect.objectContaining({ codec, bitDepth: 16 })]);
   });
 
+  it('stores a DSF file, which the decoder proxy plays, with the 1 bit of the source', async () => {
+    parsed.mockResolvedValue(meta({ container: 'DSF', bitsPerSample: 1, sampleRate: 2822400 }) as never);
+
+    await scanFolder(root, sender);
+
+    expect(await stored()).toEqual([expect.objectContaining({ codec: 'DSD', bitDepth: 1, sampleRate: 2822400, lossless: 1 })]);
+  });
+
+  it('keeps a WavPack file that holds DSD out of the library', async () => {
+    parsed.mockResolvedValue(meta({ codec: 'DSD', container: 'WavPack', bitsPerSample: 1 }) as never);
+
+    await scanFolder(root, sender);
+
+    expect(await stored()).toEqual([]);
+  });
+
   it('fills in a row that was stored before the format was read', async () => {
     parsed.mockResolvedValue(meta({}) as never);
     await scanFolder(root, sender);

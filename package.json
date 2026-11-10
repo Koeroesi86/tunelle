@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "generate:schemas": "tsx scripts/tooling/generate-database-schemas.ts",
+    "fixtures:dsd": "tsx scripts/tooling/generate-dsd-fixtures.ts",
     "prebuild": "npm run generate:schemas && node scripts/tooling/prebuild.js",
     "postinstall": "node scripts/tooling/postinstall.js && npm run generate:schemas",
     "prelint": "npm run generate:schemas",

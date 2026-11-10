@@ -33,8 +33,23 @@ describe('readAudioFormat', () => {
     [{ codec: 'AAC LC', container: 'M4A' }, 'AAC'],
     [{ codec: 'Vorbis I', container: 'Ogg' }, 'VORBIS'],
     [{ container: 'Matroska' }, 'MATROSKA'],
+    [{ container: 'DSF' }, 'DSD'],
+    [{ codec: 'DSD (DSD uncompressed)', container: 'DSDIFF/DSD' }, 'DSD'],
+    [{ container: 'DSDIFF/DSD' }, 'DSD'],
+    [{ codec: 'DST (DST compressed)', container: 'DSDIFF/DSD' }, 'DST'],
+    [{ codec: 'DSD', container: 'WavPack' }, 'DSD-WAVPACK'],
+    [{ codec: 'PCM', container: 'WavPack' }, 'WAVPACK'],
   ])('names %o as %s', (format, codec) => {
     expect(readAudioFormat(format).codec).toBe(codec);
+  });
+
+  it('shows DSD as lossless with its 1 bit and its rate, which DSF does not say', () => {
+    expect(readAudioFormat({ container: 'DSF', bitsPerSample: 1, sampleRate: 2822400, bitrate: 5644800 })).toMatchObject({
+      codec: 'DSD',
+      bitDepth: 1,
+      sampleRate: 2822400,
+      lossless: 1,
+    });
   });
 
   it('leaves out what the file does not tell', () => {
