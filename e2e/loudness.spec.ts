@@ -55,8 +55,20 @@ test('measures a track that is queued before the ones that come first in the lib
   // what the page sends when a track is added to the queue; the track in progress finishes first, then the last one goes before the rest
   await page.evaluate((trackPath) => window.electronAPI.send('LOUDNESS_PRIORITISE', { paths: [trackPath] }), last);
 
-  await expect.poll(async () => (await gainsOf(page, last)).trackGain, { message: 'the measured gain of the queued track', timeout: 90_000 }).not.toBeNull();
-  expect((await gainsOf(page, paths[1])).trackGain).toBeNull();
+  // the track that would come next is read first, so a gain on it with none on the queued track was measured before it, however late the poll looks
+  let first: { next: number | null; queued: number | null } | undefined;
+  await expect
+    .poll(
+      async () => {
+        const next = (await gainsOf(page, paths[1])).trackGain;
+        const queued = (await gainsOf(page, last)).trackGain;
+        first = next === null && queued === null ? undefined : { next, queued };
+        return first;
+      },
+      { message: 'the first measured gain', timeout: 90_000 }
+    )
+    .toBeDefined();
+  expect(first?.queued).not.toBeNull();
 });
 
 test('shows the histogram of the loudness of the song that plays on the now playing page', async ({ start }) => {
