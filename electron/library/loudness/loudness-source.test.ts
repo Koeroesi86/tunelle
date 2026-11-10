@@ -89,7 +89,7 @@ describe('the measurement of the loudness as a source of the background queue', 
   };
 
   beforeEach(() => {
-    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout'] });
     vi.setSystemTime(1_000_000);
     delete process.env.TUNELLE_LOUDNESS_IDLE_SECONDS;
     library = [];
@@ -363,32 +363,46 @@ describe('the measurement of the loudness as a source of the background queue', 
           return measured;
         });
 
-      const measureOne = async () => {
+      /** Starts the task of the first track, and tells whether it has ended */
+      const startOne = async (controller = new AbortController()) => {
         library = [track('/music/a.flac')];
         register();
         const task = await source.next();
-        await task?.run(signal);
+        const state = { ended: false };
+        const run = task?.run(controller.signal).then(() => {
+          state.ended = true;
+        });
+        await vi.advanceTimersByTimeAsync(0);
+        return { state, run };
       };
 
-      it('rests as long as the measurement took, and then goes on', async () => {
+      it('keeps the task running as long as the measurement took, and then ends it', async () => {
         takes(4000);
-        await measureOne();
+        const { state } = await startOne();
 
-        expect(await canRun()).toBe(false);
-        elapse(3999);
-        expect(await canRun()).toBe(false);
-        elapse(1);
+        expect(state.ended).toBe(false);
+        await vi.advanceTimersByTimeAsync(3999);
+        expect(state.ended).toBe(false);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(state.ended).toBe(true);
         expect(await canRun()).toBe(true);
+      });
+
+      it('stores the track before it rests', async () => {
+        takes(4000);
+        await startOne();
+
+        expect(stored.map((row) => row.path)).toEqual(['/music/a.flac']);
       });
 
       it('rests at most 30 s, however long the measurement took', async () => {
         takes(120_000);
-        await measureOne();
+        const { state } = await startOne();
 
-        elapse(29_999);
-        expect(await canRun()).toBe(false);
-        elapse(1);
-        expect(await canRun()).toBe(true);
+        await vi.advanceTimersByTimeAsync(29_999);
+        expect(state.ended).toBe(false);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(state.ended).toBe(true);
       });
 
       it('rests also after a measurement that gave no row, as the work was done', async () => {
@@ -396,11 +410,22 @@ describe('the measurement of the loudness as a source of the background queue', 
           elapse(2000);
           return { outcome: 'unavailable' };
         });
-        await measureOne();
+        const { state } = await startOne();
 
-        expect(await canRun()).toBe(false);
-        elapse(2000);
-        expect(await canRun()).toBe(true);
+        await vi.advanceTimersByTimeAsync(1999);
+        expect(state.ended).toBe(false);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(state.ended).toBe(true);
+      });
+
+      it('ends the rest when the task is aborted', async () => {
+        takes(4000);
+        const controller = new AbortController();
+        const { state } = await startOne(controller);
+
+        controller.abort();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(state.ended).toBe(true);
       });
     });
 
