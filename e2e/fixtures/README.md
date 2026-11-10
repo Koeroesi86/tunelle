@@ -25,3 +25,10 @@ mac 1-concert-a.wav ape/1-concert-a.ape -c2000 -t "Title=Concert A|Artist=The Si
 ```sh
 wavpack -q -hh -w "Title=Concert A" -w "Artist=The Sine Waves" -w "Album Artist=The Sine Waves" -w "Album=Lossless WavPack" -w "Track=1" 1-concert-a.wav -o wavpack/1-concert-a.wv
 ```
+
+`aiff/` has the same two tracks in the album "Lossless AIFF" (16 bit, mono, 44.1 kHz) for `e2e/aiff.spec.ts`: the first is an AIFF (big endian PCM), the second an AIFC with byte swapped PCM (`sowt`), made with ffmpeg:
+
+```sh
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16be -write_id3v2 1 -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless AIFF" -metadata track=1 aiff/1-concert-a.aiff
+ffmpeg -f lavfi -i "sine=frequency=880:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16le -f aiff -write_id3v2 1 -metadata title="Octave Up" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless AIFF" -metadata track=2 aiff/2-octave-up.aifc
+```

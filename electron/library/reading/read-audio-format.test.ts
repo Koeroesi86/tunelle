@@ -29,6 +29,7 @@ describe('readAudioFormat', () => {
   it.each([
     [{ codec: 'PCM', container: 'WAVE' }, 'WAV'],
     [{ codec: 'PCM', container: 'AIFF' }, 'AIFF'],
+    [{ codec: 'PCM (byte swapped)', container: 'AIFF-C' }, 'AIFF-C'],
     [{ codec: 'AAC LC', container: 'M4A' }, 'AAC'],
     [{ codec: 'Vorbis I', container: 'Ogg' }, 'VORBIS'],
     [{ container: 'Matroska' }, 'MATROSKA'],
