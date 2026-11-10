@@ -42,6 +42,19 @@ jobs:
         with:
           path: ${{ runner.temp }}/ffmpeg/install
           key: ffmpeg-${{ matrix.os }}-${{ hashFiles('scripts/ffmpeg/ffmpeg-source.json', 'scripts/ffmpeg/ffmpeg-build.js') }}
+      # the source tarball is kept apart from the build, so a change of the build script or the flags does not download it again
+      - name: Read the pinned sha256
+        id: pin
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: echo "sha256=$(node -p "require('./scripts/ffmpeg/ffmpeg-source.json').sha256")" >> "$GITHUB_OUTPUT"
+      - name: Restore the source tarball
+        id: tarball
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ffmpeg-source
+          key: ffmpeg-source-${{ matrix.os }}-${{ steps.pin.outputs.sha256 }}
       - uses: msys2/setup-msys2@e9898307ac31d1a803454791be09ab9973336e1c # v2.31.1
         if: steps.cache.outputs.cache-hit != 'true' && matrix.platform == 'win32' && matrix.arch == 'x64'
         with:
@@ -65,7 +78,14 @@ jobs:
         with:
           node-version: 24
       - if: steps.cache.outputs.cache-hit != 'true'
-        run: node scripts/ffmpeg/ffmpeg-build.js "$RUNNER_TEMP/ffmpeg"
+        run: node scripts/ffmpeg/ffmpeg-build.js "$RUNNER_TEMP/ffmpeg" "$RUNNER_TEMP/ffmpeg-source"
+      # saved when the build fails too: the tarball is checked before it is kept, and the next run needs no download
+      - name: Keep the source tarball
+        if: always() && steps.cache.outputs.cache-hit != 'true' && steps.tarball.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ffmpeg-source
+          key: ffmpeg-source-${{ matrix.os }}-${{ steps.pin.outputs.sha256 }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ inputs.artifact-prefix }}ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}
