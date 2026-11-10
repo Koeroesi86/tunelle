@@ -31,9 +31,22 @@ const defaultIdleSeconds = 30;
 /** The albums are pooled at most this often while tracks are measured, as the look for them goes over the library */
 const poolPause = 5000;
 const poolKey = 'album-gains';
-/** After a track the source waits as long as its measurement took, so the work is half of the time and the computer stays cool; but never longer than this */
+/** After a track its task goes on for as long as the measurement took, so the work is half of the time and the computer stays cool; but never longer than this */
 const coolDownRatio = 1;
 const maxCoolDown = 30_000;
+/** Waits for `ms`, or until the task is aborted; nothing is waited for when there is nothing to wait */
+const rest = (ms: number, signal: AbortSignal) =>
+  new Promise<void>((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', done);
+      resolve();
+    };
+    const timer = setTimeout(done, Math.max(0, ms));
+    signal.addEventListener('abort', done, { once: true });
+    if (signal.aborted || ms <= 0) done();
+  });
+
 /** The window is told how far the measurement is at most this often */
 const statusPause = 2000;
 
@@ -87,7 +100,6 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   let cursor = '';
   let reached: TrackToMeasure[] = [];
   let restUntil = 0;
-  let coolUntil = 0;
   // what is left to measure, the track that is measured included, and whether the measurement is turned off, for the state of the queue
   let remaining = 0;
   let off = false;
@@ -108,7 +120,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   const mayRun = async () => {
     // a scan that ended since the rest began may have added tracks, so the rest is over then
     const resting = Date.now() < restUntil && backgroundQueue.idleFor(scanKind) >= Date.now() - (restUntil - restPause);
-    if (resting || Date.now() < coolUntil || backgroundQueue.isBusy(scanKind) || backgroundQueue.idleFor(scanKind) < readIdleTime()) return false;
+    if (resting || backgroundQueue.isBusy(scanKind) || backgroundQueue.idleFor(scanKind) < readIdleTime()) return false;
     return !powerMonitor.isOnBatteryPower() && !(await readOff());
   };
 
@@ -156,6 +168,15 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
     return result;
   };
 
+  const store = async (result: TrackLoudness) => {
+    await saveTrackLoudness(database, result);
+    // counted down at once: the counts of the library are read at most every 2 s, and the queue shows this number
+    remaining = Math.max(0, remaining - 1);
+    backgroundQueue.refresh();
+    poolSoon();
+    if (Date.now() - statusAt >= statusPause) await reportStatus();
+  };
+
   const measure =
     (track: TrackToMeasure): Task['run'] =>
     async (signal) => {
@@ -165,16 +186,11 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
 
       const started = Date.now();
       const measurement = await window.measure(track.path, track.duration ?? undefined);
-      coolUntil = Date.now() + Math.min((Date.now() - started) * coolDownRatio, maxCoolDown);
+      const coolDown = Math.min((Date.now() - started) * coolDownRatio, maxCoolDown);
       const result = toStored(track, measurement);
-      if (!result || signal.aborted) return;
-
-      await saveTrackLoudness(database, result);
-      // counted down at once: the counts of the library are read at most every 2 s, and the queue shows this number
-      remaining = Math.max(0, remaining - 1);
-      backgroundQueue.refresh();
-      poolSoon();
-      if (Date.now() - statusAt >= statusPause) await reportStatus();
+      if (result && !signal.aborted) await store(result);
+      // the task stays on the queue while the source rests, so the queue shows the measurement as running
+      await rest(coolDown, signal);
     };
 
   const readFolders = async () => (await getFolders(database)).map((folder) => folder.path);
