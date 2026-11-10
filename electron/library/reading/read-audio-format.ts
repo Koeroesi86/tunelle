@@ -11,11 +11,19 @@ const toDsdName = ({ codec, container }: ReadFormat) => {
   return /^(dsf|dsdiff)/i.test(container ?? '') && (!codec || /^dsd/i.test(codec)) ? 'DSD' : undefined;
 };
 
+/** Windows Media Audio is named WMA; the voice codecs are told apart, as the decoder proxy does not play them. See docs/app/supported-formats.md */
+const toWmaName = (codec: string | undefined) => {
+  if (!/^windows media audio/i.test(codec ?? '')) return undefined;
+  return /voice|speech/i.test(codec ?? '') ? 'WMA-VOICE' : 'WMA';
+};
+
 /** The name the badge shows: MPEG layers are named by their common name, PCM by its container, the rest by the first word of the codec */
 const toCodecName = ({ codec, container }: ReadFormat) => {
   if (!codec && !container) return null;
   const dsd = toDsdName({ codec, container });
   if (dsd) return dsd;
+  const wma = toWmaName(codec);
+  if (wma) return wma;
   if (/layer 3/i.test(codec ?? '')) return 'MP3';
   if (/layer 2/i.test(codec ?? '')) return 'MP2';
   const name = !codec || /^pcm/i.test(codec) ? (container ?? '') : codec;
@@ -31,7 +39,7 @@ const readAudioFormat = (format: ReadFormat): AudioFormat => ({
   sampleRate: format.sampleRate ?? null,
   bitrate: format.bitrate ? Math.round(format.bitrate) : null,
   vbr: format.codecProfile ? Number(/^V/i.test(format.codecProfile)) : null,
-  lossless: toFlag(format.lossless ?? (toCodecName(format) === 'DSD' ? true : undefined)),
+  lossless: toFlag(format.lossless ?? (toCodecName(format) === 'DSD' || /lossless/i.test(format.codec ?? '') ? true : undefined)),
 });
 
 export default readAudioFormat;

@@ -98,6 +98,22 @@ describe('scanFolder audio format', () => {
     expect(await stored()).toEqual([expect.objectContaining({ codec: 'DSD', bitDepth: 1, sampleRate: 2822400, lossless: 1 })]);
   });
 
+  it('stores a WMA file, which the decoder proxy plays, under the name WMA', async () => {
+    parsed.mockResolvedValue(meta({ codec: 'Windows Media Audio V8', container: 'ASF/audio', bitsPerSample: 16, sampleRate: 44100 }) as never);
+
+    await scanFolder(root, sender);
+
+    expect(await stored()).toEqual([expect.objectContaining({ codec: 'WMA', bitDepth: 16, sampleRate: 44100 })]);
+  });
+
+  it('keeps a WMA voice file out of the library', async () => {
+    parsed.mockResolvedValue(meta({ codec: 'Windows Media Audio 9 Voice', container: 'ASF/audio' }) as never);
+
+    await scanFolder(root, sender);
+
+    expect(await stored()).toEqual([]);
+  });
+
   it('keeps a WavPack file that holds DSD out of the library', async () => {
     parsed.mockResolvedValue(meta({ codec: 'DSD', container: 'WavPack', bitsPerSample: 1 }) as never);
 
