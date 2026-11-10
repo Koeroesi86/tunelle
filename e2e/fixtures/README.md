@@ -19,3 +19,9 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16le 1-concert-a.wav
 mac 1-concert-a.wav ape/1-concert-a.ape -c2000 -t "Title=Concert A|Artist=The Sine Waves|Album Artist=The Sine Waves|Album=Lossless Monkey|Track=1"
 ```
+
+`wavpack/` has the same two tracks in WavPack (16 bit, mono, 44.1 kHz, high compression) in the album "Lossless WavPack", for `e2e/wavpack.spec.ts`. They are made with `wavpack` of the official tools (<https://www.wavpack.com>) from the same WAV files:
+
+```sh
+wavpack -q -hh -w "Title=Concert A" -w "Artist=The Sine Waves" -w "Album Artist=The Sine Waves" -w "Album=Lossless WavPack" -w "Track=1" 1-concert-a.wav -o wavpack/1-concert-a.wv
+```

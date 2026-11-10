@@ -71,6 +71,14 @@ describe('scanFolder audio format', () => {
     expect(await stored()).toEqual([expect.objectContaining({ codec: "MONKEY'S", bitDepth: 16, lossless: 1 })]);
   });
 
+  it('stores a WavPack file, which the decoder proxy plays', async () => {
+    parsed.mockResolvedValue(meta({ codec: 'PCM', container: 'WavPack', lossless: true, bitsPerSample: 24 }) as never);
+
+    await scanFolder(root, sender);
+
+    expect(await stored()).toEqual([expect.objectContaining({ codec: 'WAVPACK', bitDepth: 24, lossless: 1 })]);
+  });
+
   it('fills in a row that was stored before the format was read', async () => {
     parsed.mockResolvedValue(meta({}) as never);
     await scanFolder(root, sender);
