@@ -1,0 +1,35 @@
+name: Feature or task
+description: A new feature, an improvement or a piece of maintenance
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is missing or costly today, and who it affects.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: What exists today
+      description: The current behaviour with the files and functions that matter, so the work starts from facts.
+  - type: textarea
+    id: wanted
+    attributes:
+      label: Wanted
+      description: What the change should do, as a list if there are several parts. Say what is out of scope.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      description: What shows it is done (tests, the doc in docs/, the website and screenshots if a feature is visible).
+    validations:
+      required: true
+  - type: input
+    id: related
+    attributes:
+      label: Related
+      description: Related issues and pull requests, for example "#173, #293".
