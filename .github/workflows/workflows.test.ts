@@ -169,6 +169,33 @@ describe('workflows', () => {
     expect(read('release.yml')).toMatch(/uses: \.\/\.github\/workflows\/pages\.yml\n(?:\s+#.*\n)?\s+secrets: inherit/);
   });
 
+  it('test.yml keeps the downloads of apt between runs, also after a failed install, and installs before it validates', () => {
+    const text = read('test.yml');
+
+    expect(text.indexOf('actions/cache/restore')).toBeLessThan(text.indexOf('apt-get install'));
+    expect(text.indexOf('apt-get install')).toBeLessThan(text.indexOf('actions/cache/save'));
+    expect(text.indexOf('actions/cache/save')).toBeLessThan(text.indexOf('appstreamcli validate'));
+    expect(text).toMatch(/Dir::Cache::archives="\$HOME\/apt-archives"/);
+    expect(text).toMatch(/- name: Keep the validation tools\n\s+if: always\(\)/);
+  });
+
+  it('test.yml checks that the Ubuntu mirrors resolve, and adds public DNS servers if not, before apt installs', () => {
+    const text = read('test.yml');
+
+    expect(text.indexOf('getent hosts archive.ubuntu.com')).toBeGreaterThan(-1);
+    expect(text.indexOf('getent hosts archive.ubuntu.com')).toBeLessThan(text.indexOf('apt-get install'));
+    expect(text).toMatch(/DNS=1\.1\.1\.1 8\.8\.8\.8/);
+  });
+
+  it('cache-cleanup.yml deletes caches with actions: write on its jobs only', () => {
+    const text = read('cache-cleanup.yml');
+
+    expect(text).toMatch(/^permissions:\n {2}contents: read\n\njobs:|^permissions:\n {2}contents: read\n\nconcurrency:/m);
+    expect(text.match(/^ {6}actions: write$/gm)).toHaveLength(2);
+    expect(text).toMatch(/types: \[closed\]/);
+    expect(text).toMatch(/cron:/);
+  });
+
   it('pages.yml builds the Flatpak repository into the site before it is uploaded', () => {
     const text = read('pages.yml');
 
