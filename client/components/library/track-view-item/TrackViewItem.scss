@@ -165,7 +165,7 @@
     }
 
     &.format {
-      width: 96px;
+      width: 136px;
     }
 
     &.title {
@@ -213,6 +213,11 @@
 
   // the format as a pill, the accent for a lossless one
   .pill {
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
     padding: 0 7px;
     line-height: 17px;
     color: var(--text-soft);
