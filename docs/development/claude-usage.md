@@ -9,7 +9,7 @@ An analysis of 197 sessions (Oct 17 to Nov 9, 2026) showed where the usage goes,
 
 ## What enforces it
 
-All in `.claude/hooks/`, wired in `.claude/settings.json`, tested in `claude-hooks.test.ts`:
+All in `.claude/hooks/`, wired in `.claude/settings.json`, tested in `claude-hooks.integration.test.ts`:
 
 - `guard-output.sh` (PreToolUse, Bash) blocks `cat` of several files, of a glob or of a file over 300 lines, and a whole log or diff (`gh run view --log`, `gh pr diff`, `npm ci`, `npm install`) that is not piped through `tail`, `head`, `grep`, `wc`, `jq` or `sed -n`, or redirected. `npx tsx scripts/checks/ci-failure.ts` prints only what failed.
 - `context-nudge.sh` (PostToolUse) says once at 150K and once at 250K tokens of context that the session should end. The count comes from the last `usage` of the transcript.

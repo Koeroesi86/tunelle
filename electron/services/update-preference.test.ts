@@ -1,17 +1,19 @@
-import { existsSync, mkdtempSync, writeFileSync } from 'fs';
-import { rm } from 'fs/promises';
-import { tmpdir } from 'os';
 import { join } from 'path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { memoryFs } from '../test-memory-fs';
 import { readUpdatePreference, saveUpdatePreference } from './update-preference';
 
+vi.mock('fs', () => ({ ...memoryFs.sync, default: memoryFs.sync }));
+vi.mock('fs/promises', () => ({ ...memoryFs.promises, default: memoryFs.promises }));
+
 describe('the preference for automatic updates', () => {
-  let folder = '';
+  const folder = '/user-data';
+  const file = join(folder, 'update-preference.json');
 
   beforeEach(() => {
-    folder = mkdtempSync(join(tmpdir(), 'tunelle-update-preference-'));
+    memoryFs.reset();
+    memoryFs.sync.mkdirSync(folder);
   });
-  afterEach(() => rm(folder, { recursive: true, force: true }));
 
   it('is on when nothing was saved', () => {
     expect(readUpdatePreference(folder).automatic).toBe(true);
@@ -32,7 +34,7 @@ describe('the preference for automatic updates', () => {
   it('keeps the file inside the folder it was given', async () => {
     await saveUpdatePreference(folder, { automatic: false });
 
-    expect(existsSync(join(folder, 'update-preference.json'))).toBe(true);
+    expect(memoryFs.sync.existsSync(file)).toBe(true);
   });
 
   it('creates the folder when it is missing', async () => {
@@ -44,7 +46,7 @@ describe('the preference for automatic updates', () => {
   });
 
   it.each(['not json', '{}', 'null', '{"automatic":"no"}'])('is on when the file holds %s', (content) => {
-    writeFileSync(join(folder, 'update-preference.json'), content);
+    memoryFs.sync.writeFileSync(file, content);
 
     expect(readUpdatePreference(folder).automatic).toBe(true);
   });
@@ -65,7 +67,7 @@ describe('the preference for automatic updates', () => {
   });
 
   it('keeps a choice that is valid when the other one is not', () => {
-    writeFileSync(join(folder, 'update-preference.json'), '{"automatic":false,"allowMetered":"yes"}');
+    memoryFs.sync.writeFileSync(file, '{"automatic":false,"allowMetered":"yes"}');
 
     expect(readUpdatePreference(folder)).toEqual({ automatic: false, allowMetered: false });
   });

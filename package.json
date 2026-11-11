@@ -31,6 +31,7 @@
     "test:backend": "vitest run --project backend",
     "test:frontend": "vitest run --project frontend",
     "test:integration": "vitest run --project integration",
+    "test:timing": "vitest run --project timing",
     "test:coverage": "vitest run --coverage --project backend --project frontend",
     "lint": "eslint --cache --cache-strategy content --cache-location .cache/eslint/ .",
     "lint:fix": "eslint --fix .",
