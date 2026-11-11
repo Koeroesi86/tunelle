@@ -12,7 +12,7 @@
 
 ## What stays in `e2e/`
 
-Whatever needs Chromium or the operating system around the app: sound leaving the app, the loudness measurement (it runs in a hidden window, see [loudness-measurement.md](../app/loudness-measurement.md)), the window, the `tunelle://` scheme as Electron registers it, and the preload. A test here cannot see a difference between Node and Electron (`net.fetch`, streams, `app.isPackaged`), so a behaviour that depends on one is an end to end test.
+One played format per decoder path (`alac.spec.ts`, and `dsd.spec.ts` for 24 bit at 88.2 kHz); the other formats are decoded in the integration tests. Whatever else needs Chromium or the operating system around the app: sound leaving the app, the loudness measurement (it runs in a hidden window, see [loudness-measurement.md](../app/loudness-measurement.md)), the window, the `tunelle://` scheme as Electron registers it, and the preload. A test here cannot see a difference between Node and Electron (`net.fetch`, streams, `app.isPackaged`), so a behaviour that depends on one is an end to end test.
 
 ## In CI
 
