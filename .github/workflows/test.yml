@@ -76,6 +76,17 @@ jobs:
           path: ~/apt-archives
           key: apt-validate-${{ github.run_id }}
           restore-keys: apt-validate-
+      # apt could not resolve the Ubuntu mirrors on some runners; the resolver is shown, and public ones are added when the lookup fails (docs/development/ci.md)
+      - name: Check the DNS of apt
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          resolvectl status 2>&1 | head -20 || true
+          if getent hosts archive.ubuntu.com security.ubuntu.com; then exit 0; fi
+          echo '::warning::The Ubuntu mirrors do not resolve, adding public DNS servers'
+          sudo mkdir -p /etc/systemd/resolved.conf.d
+          printf '[Resolve]\nDNS=1.1.1.1 8.8.8.8 9.9.9.9\n' | sudo tee /etc/systemd/resolved.conf.d/fallback.conf
+          sudo systemctl restart systemd-resolved || printf 'nameserver 1.1.1.1\nnameserver 8.8.8.8\n' | sudo tee -a /etc/resolv.conf
+          getent hosts archive.ubuntu.com security.ubuntu.com
       - name: Install the validation tools
         if: matrix.os == 'ubuntu-latest'
         timeout-minutes: 15

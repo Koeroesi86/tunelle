@@ -179,6 +179,14 @@ describe('workflows', () => {
     expect(text).toMatch(/- name: Keep the validation tools\n\s+if: always\(\)/);
   });
 
+  it('test.yml checks that the Ubuntu mirrors resolve, and adds public DNS servers if not, before apt installs', () => {
+    const text = read('test.yml');
+
+    expect(text.indexOf('getent hosts archive.ubuntu.com')).toBeGreaterThan(-1);
+    expect(text.indexOf('getent hosts archive.ubuntu.com')).toBeLessThan(text.indexOf('apt-get install'));
+    expect(text).toMatch(/DNS=1\.1\.1\.1 8\.8\.8\.8/);
+  });
+
   it('cache-cleanup.yml deletes caches with actions: write on its jobs only', () => {
     const text = read('cache-cleanup.yml');
 
