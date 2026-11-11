@@ -4,8 +4,8 @@ import { migrate } from './database/migrate';
 
 const migrationsPath = path.resolve(__dirname, '../migrations');
 
-/** In-memory database with all migrations applied */
-export const createTestDatabase = (): Promise<sqlite3.Database> =>
+/** Database with all migrations applied: in memory, or in the file a test gives to open it again later */
+export const createTestDatabase = (location = ':memory:'): Promise<sqlite3.Database> =>
   new Promise<sqlite3.Database>((resolve, reject) => {
-    const database = new sqlite3.Database(':memory:', (err) => (err ? reject(err) : resolve(database)));
+    const database = new sqlite3.Database(location, (err) => (err ? reject(err) : resolve(database)));
   }).then((database) => migrate(database, migrationsPath).then(() => database));

@@ -103,12 +103,8 @@ test('closes the window with the close button, and quits the app where closing t
   await app.waitForEvent('close', { timeout: 60_000 });
 });
 
-test('speaks the language that is picked, and keeps it after a restart', async ({ start, session }) => {
+test('speaks the language that is picked', async ({ session }) => {
   await navigate(session.page, 'Settings');
   await session.page.locator('select[class*="LanguageSelect__select"]').selectOption('hu');
   await expect(session.page.locator('[class*="Navigation__label"]').getByText('Kezdőlap')).toBeVisible();
-  await quit(session.app);
-
-  const restarted = await start();
-  await expect(restarted.page.locator('[class*="Navigation__label"]').getByText('Kezdőlap')).toBeVisible();
 });
