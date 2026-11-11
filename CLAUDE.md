@@ -4,21 +4,22 @@ Electron lossless audio player: main process in `electron/` (TypeScript, SQLite 
 
 ## Checks
 
-CI (`.github/workflows/`: `test.yml`, `dist.yml`, wired together by `pr-checks.yml` for pull requests and `build.yml` for `master`) runs these (in this order within a job): 1, 2, 3 and 6 once on Linux (the `static` job of `test.yml`), and beside it the rest on Linux, macOS and Windows (the `test` job runs 4, 5 and the build of 7; on pull requests `dist.yml` also starts at once):
+CI (`.github/workflows/`: `test.yml`, `dist.yml`, wired together by `pr-checks.yml` for pull requests and `build.yml` for `master`) runs these (in this order within a job): 1, 2, 3 and 7 once on Linux (the `static` job of `test.yml`), and beside it the rest on Linux, macOS and Windows (the `test` job runs 4, 5, 6 and the build of 8; on pull requests `dist.yml` also starts at once):
 
 1. `npm run lint` (ESLint with Prettier; fix with `npm run lint:fix`, not `prettier --write`)
 2. `npm run fallow` (dead code, unused dependencies and stale suppressions fail; complexity and duplication are reported)
 3. `npm run typecheck`
 4. `npm run test:coverage` (Vitest with coverage thresholds in `vitest.config.ts`, `--project backend` or `--project frontend` for one side with `npm test`)
-5. `npm run test:e2e` (Playwright in `e2e/`, run by `test.yml` on every system, after the build, with the Playwright report kept as an artifact: it starts the built `out/`, so `npm run build` first, and measures the audio the app sends out, see Testing the app)
-6. `npm run security:electron` (Electronegativity on `electron/`; fails on a finding that is not in `electronegativity-baseline.json`, `node scripts/checks/security-scan.js --update` after fixing one)
-7. `npm run build`, then `npm run dist`, `npm run check:dist` (nothing that must not ship is in the package) and `npm run smoke:packaged` (the packaged app opens and answers; needs a display, `xvfb-run` on a headless Linux; `npm run smoke` does the same for `out/`)
+5. `npm run test:integration` (Vitest project `integration`, `*.integration.test.ts` in `electron/`: real SQLite, real files and the real ffmpeg without Electron, see [docs/development/integration-tests.md](docs/development/integration-tests.md); it runs after 4, on every system)
+6. `npm run test:e2e` (Playwright in `e2e/`, run by `test.yml` on every system, after the build, with the Playwright report kept as an artifact: it starts the built `out/`, so `npm run build` first, and measures the audio the app sends out, see Testing the app)
+7. `npm run security:electron` (Electronegativity on `electron/`; fails on a finding that is not in `electronegativity-baseline.json`, `node scripts/checks/security-scan.js --update` after fixing one)
+8. `npm run build`, then `npm run dist`, `npm run check:dist` (nothing that must not ship is in the package) and `npm run smoke:packaged` (the packaged app opens and answers; needs a display, `xvfb-run` on a headless Linux; `npm run smoke` does the same for `out/`)
 
 Pull requests also run `fallow audit --base`, CodeQL, dependency review and OSV (docs/development/ci.md). Pull requests with auto-merge on are rebased onto `master` one at a time (docs/release/releases.md).
 
 Releases come from `release.yml` (Monday and Thursday 06:00 UTC and by hand, from `master` only) and the published release is what installed apps update from. Never edit `version` of `package.json` by hand (`scripts/release/version.js` stamps `YY.M.<run number>` in the release workflow; no zero padded month and no prerelease part, electron-updater would take it for a channel), and `release.yml` must not be renamed or recreated (its run number would restart). A release goes to the Microsoft Store through `store.yml`, whose secrets are in the environment `microsoft-store` (limited to `master`, with no reviewer: an automatic run starts by itself). Read [docs/release/releases.md](docs/release/releases.md) and [docs/release/microsoft-store.md](docs/release/microsoft-store.md) before working on either. The `TUNELLE_` variables that the smoke and end to end tests set are in [docs/development/building.md](docs/development/building.md).
 
-`npx tsx scripts/checks/verify.ts` runs 1, 2, 3, 4, 6 and the build of 7 in order and prints only the end of the failed check. A SessionStart hook puts Node 24 of nvm on `PATH` for Claude, so do not `export PATH` in a command.
+`npx tsx scripts/checks/verify.ts` runs 1, 2, 3, 4, 5, 7 and the build of 8 in order and prints only the end of the failed check. A SessionStart hook puts Node 24 of nvm on `PATH` for Claude, so do not `export PATH` in a command.
 
 ## Guards
 

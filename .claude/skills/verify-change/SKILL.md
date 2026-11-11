@@ -10,7 +10,7 @@ Run what `CLAUDE.md` requires before something is called done. The report feeds 
 ## Checks
 Changed files: `git diff --name-only origin/master...HEAD` and `git status --short`.
 
-From the root run `npx tsx scripts/checks/verify.ts`: lint, fallow, typecheck, test:coverage, security:electron and build in order, stopping at the first failure. It prints one line per check and the end of the output of the failed one; fix the failure and continue with `npx tsx scripts/checks/verify.ts --from <check>`. Its last line lists what did not run.
+From the root run `npx tsx scripts/checks/verify.ts`: lint, fallow, typecheck, test:coverage, test:integration, security:electron and build in order, stopping at the first failure. It prints one line per check and the end of the output of the failed one; fix the failure and continue with `npx tsx scripts/checks/verify.ts --from <check>`. Its last line lists what did not run.
 
 - `npm run dist` packages the app for the current OS only; run it when packaging, `build/`, `scripts/` or `package.json` `build` changed, otherwise leave it to CI. After it, `npm run check:dist` and `npm run smoke:packaged` (with `xvfb-run` when there is no display).
 - A change to UI or playback cannot be proven by the checks: say it was **Not run** by hand unless the app was started (`npm run dev`).

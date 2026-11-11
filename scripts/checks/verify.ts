@@ -7,6 +7,7 @@ const checks: [string, string[]][] = [
   ['fallow', ['run', 'fallow']],
   ['typecheck', ['run', 'typecheck']],
   ['test:coverage', ['run', 'test:coverage']],
+  ['test:integration', ['run', 'test:integration']],
   ['security:electron', ['run', 'security:electron']],
   ['build', ['run', 'build']],
 ];

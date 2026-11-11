@@ -53,9 +53,15 @@ describe('workflows', () => {
 
   it('test.yml runs the cheap checks first', () => {
     const text = read('test.yml');
-    const order = ['npm run lint', 'npm run fallow', 'npm run typecheck', 'npm run test:coverage', 'npm run build', 'npm run test:e2e'].map((command) =>
-      text.indexOf(command)
-    );
+    const order = [
+      'npm run lint',
+      'npm run fallow',
+      'npm run typecheck',
+      'npm run test:coverage',
+      'npm run test:integration',
+      'npm run build',
+      'npm run test:e2e',
+    ].map((command) => text.indexOf(command));
 
     expect(order.every((index) => index >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
@@ -99,6 +105,13 @@ describe('workflows', () => {
     expect(download).toBeGreaterThan(0);
     expect(download).toBeLessThan(text.indexOf('run: npm run dist'));
     expect(read('ffmpeg.yml')).toMatch(/ffmpeg-\$\{\{ matrix\.platform \}\}-\$\{\{ matrix\.arch \}\}/);
+  });
+
+  it('test.yml runs the integration tests of every system after it got the ffmpeg of the system, so required-checks waits for them', () => {
+    const text = read('test.yml');
+
+    expect(text.indexOf('run: npm run test:integration')).toBeGreaterThan(text.indexOf('name: test-ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}'));
+    expect(read('pr-checks.yml')).toMatch(/needs: \[test, /);
   });
 
   it('test.yml gets the ffmpeg of the system of the job under a name of its own, before the end to end tests', () => {
