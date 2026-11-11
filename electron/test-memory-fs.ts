@@ -1,13 +1,15 @@
-import { posix } from 'path';
+import { dirname, resolve, sep } from 'path';
 
 const missing = (path: string) => Object.assign(new Error(`ENOENT: no such file or directory, '${path}'`), { code: 'ENOENT' });
 
 /** An in-memory stand-in for `fs` and `fs/promises`, so a unit test touches no real folder (docs/development/unit-tests.md) */
 const createMemoryFs = () => {
   const files = new Map<string, Buffer>();
-  const folders = new Set<string>(['/']);
-  const clean = (path: string) => posix.resolve(path.replaceAll('\\', '/'));
-  const parents = (path: string): string[] => (path === '/' ? [] : [path, ...parents(posix.dirname(path))]);
+  const folders = new Set<string>();
+  const clean = (path: string) => resolve(path);
+  const isRoot = (path: string) => dirname(path) === path;
+  const parents = (path: string): string[] => (isRoot(path) ? [path] : [path, ...parents(dirname(path))]);
+  const inside = (entry: string, folder: string) => entry.startsWith(folder.endsWith(sep) ? folder : `${folder}${sep}`);
   const content = (data: string | Uint8Array) => Buffer.from(data);
   const decode = (data: Buffer, encoding?: BufferEncoding | { encoding?: BufferEncoding | null } | null) => {
     const name = typeof encoding === 'string' ? encoding : encoding?.encoding;
@@ -15,7 +17,7 @@ const createMemoryFs = () => {
     return name ? data.toString(name) : data;
   };
   const folderOf = (path: string) => {
-    if (!folders.has(clean(path))) throw missing(path);
+    if (!isRoot(clean(path)) && !folders.has(clean(path))) throw missing(path);
 
     return clean(path);
   };
@@ -24,7 +26,7 @@ const createMemoryFs = () => {
     existsSync: (path: string) => files.has(clean(path)) || folders.has(clean(path)),
     mkdirSync: (path: string) => void parents(clean(path)).forEach((folder) => folders.add(folder)),
     writeFileSync: (path: string, data: string | Uint8Array) => {
-      folderOf(posix.dirname(clean(path)));
+      folderOf(dirname(clean(path)));
       files.set(clean(path), content(data));
     },
     readFileSync: (path: string, encoding?: BufferEncoding | { encoding?: BufferEncoding | null }) => {
@@ -36,16 +38,16 @@ const createMemoryFs = () => {
     rmSync: (path: string, options?: { force?: boolean; recursive?: boolean }) => {
       const target = clean(path);
       if (!options?.force && !sync.existsSync(target)) throw missing(path);
-      [...files.keys()].filter((file) => file === target || file.startsWith(`${target}/`)).forEach((file) => files.delete(file));
-      [...folders].filter((folder) => folder !== '/' && (folder === target || folder.startsWith(`${target}/`))).forEach((folder) => folders.delete(folder));
+      [...files.keys()].filter((file) => file === target || inside(file, target)).forEach((file) => files.delete(file));
+      [...folders].filter((folder) => folder === target || inside(folder, target)).forEach((folder) => folders.delete(folder));
     },
     readdirSync: (path: string) => {
       const folder = folderOf(path);
-      const prefix = folder === '/' ? '/' : `${folder}/`;
+      const prefix = folder.endsWith(sep) ? folder : `${folder}${sep}`;
 
       return [...files.keys(), ...folders]
-        .filter((entry) => entry.startsWith(prefix) && entry !== folder)
-        .map((entry) => entry.slice(prefix.length).split('/')[0])
+        .filter((entry) => inside(entry, folder) && entry !== folder)
+        .map((entry) => entry.slice(prefix.length).split(sep)[0])
         .filter((name, index, all) => all.indexOf(name) === index)
         .sort();
     },
@@ -62,7 +64,6 @@ const createMemoryFs = () => {
   const reset = () => {
     files.clear();
     folders.clear();
-    folders.add('/');
   };
 
   return { sync, promises, reset };

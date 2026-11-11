@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { cpSync, existsSync } = vi.hoisted(() => ({ cpSync: vi.fn(), existsSync: vi.fn() }));
@@ -18,7 +19,7 @@ describe('getAppName', () => {
 });
 
 describe.each([
-  ['copyOldLibrary', copyOldLibrary, '/data/electron-music-player', '/data/tunelle', '/data/tunelle/library.sqlite'],
+  ['copyOldLibrary', copyOldLibrary, '/data/electron-music-player', '/data/tunelle', join('/data/tunelle', 'library.sqlite')],
   ['copyOldUserData', copyOldUserData, '/data/eMusic', '/data/Tunelle', '/data/Tunelle'],
 ])('%s', (_name, copy, oldFolder, newFolder, marker) => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from 'fs';
-import { join, relative, resolve } from 'path';
+import { join, relative, resolve, sep } from 'path';
 
 // the rule of docs/development/unit-tests.md: a unit test takes nothing from the system it runs on
 const root = resolve(__dirname, '../..');
@@ -21,7 +21,7 @@ export const usesRealWorld = (text: string) => realWorld.test(text);
 export const findRealWorldTests = (): string[] =>
   folders
     .flatMap((folder) => listFiles(join(root, folder)))
-    .map((file) => relative(root, file))
+    .map((file) => relative(root, file).split(sep).join('/'))
     .filter((file) => unitTest.test(file) && !otherTier.test(file))
     .filter((file) => usesRealWorld(readFileSync(join(root, file), 'utf8')))
     .sort();
