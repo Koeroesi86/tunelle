@@ -1,6 +1,6 @@
 # Integration tests
 
-`electron/**/*.integration.test.ts` is the Vitest project `integration` (`npm run test:integration`). It sits between the unit tests and `e2e/`: the code of the main process runs against the real things around it, in Node and without Electron.
+`electron/**/*.integration.test.ts`, `scripts/**/*.integration.test.ts` and `.claude/hooks/*.integration.test.ts` are the Vitest project `integration` (`npm run test:integration`). It sits between the unit tests and `e2e/`: the code of the main process runs against the real things around it, in Node and without Electron.
 
 - **Real:** SQLite (`createTestDatabase()`, all migrations applied), the files of `e2e/fixtures/`, `music-metadata`, and the ffmpeg of this system (`.cache/ffmpeg/install/bin`, `npm run ffmpeg` builds it, CI downloads it).
 - **Replaced:** only the `electron` module, with `vi.mock('electron')`: where the app is (`app.getAppPath()`), where it writes (`app.getPath()`), and a utility process that answers with the code of the worker in the same process.
@@ -18,6 +18,6 @@ One played format per decoder path (`alac.spec.ts`, and `dsd.spec.ts` for 24 bit
 
 ## In CI
 
-A step of the `test` job of `test.yml` after `npm run test:coverage` and before the build, on every system. `required-checks` of `pr-checks.yml` needs `test`, so the step is a required check without a rule of its own. `npm run test:coverage` runs the projects `backend` and `frontend` only; `npm test` runs all three.
+A step of the `test` job of `test.yml` after `npm run test:coverage` and before the build, on every system. `required-checks` of `pr-checks.yml` needs `test`, so the step is a required check without a rule of its own. `npm run test:coverage` runs the projects `backend` and `frontend` only; `npm test` runs all of them (the unit tests are in [unit-tests.md](unit-tests.md)).
 
 A new test file is named `name.integration.test.ts` and goes next to the code it tests. Read the sine fixtures in [e2e/fixtures/README.md](../../e2e/fixtures/README.md) before adding a format.

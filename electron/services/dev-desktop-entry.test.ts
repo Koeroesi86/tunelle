@@ -1,23 +1,20 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
 import { join } from 'path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { memoryFs } from '../test-memory-fs';
 import { registerDevDesktopEntry, removeDevDesktopEntry } from './dev-desktop-entry';
 
+vi.mock('fs', () => ({ ...memoryFs.sync, default: memoryFs.sync }));
+
 describe('devDesktopEntry', () => {
-  let dataHome = '';
-  const entry = () => join(dataHome, 'applications/tunelle-dev.desktop');
+  const dataHome = '/data';
+  const entry = join(dataHome, 'applications/tunelle-dev.desktop');
 
-  beforeEach(() => {
-    dataHome = mkdtempSync(join(tmpdir(), 'dev-entry-'));
-  });
-
-  afterEach(() => rmSync(dataHome, { recursive: true, force: true }));
+  beforeEach(() => memoryFs.reset());
 
   it('registers a hidden entry with the icon of the app', () => {
     registerDevDesktopEntry(dataHome, '/app/icons/png/512x512.png');
 
-    const content = readFileSync(entry(), 'utf8');
+    const content = memoryFs.sync.readFileSync(entry, 'utf8');
     expect(content).toContain('Icon=/app/icons/png/512x512.png');
     expect(content).toContain('NoDisplay=true');
   });
@@ -27,7 +24,7 @@ describe('devDesktopEntry', () => {
 
     removeDevDesktopEntry(dataHome);
 
-    expect(existsSync(entry())).toBe(false);
+    expect(memoryFs.sync.existsSync(entry)).toBe(false);
   });
 
   it('removes nothing without failing when there is no entry', () => {

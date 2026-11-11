@@ -24,6 +24,7 @@ export default defineConfig({
         'electron/schemas/database/**',
         'electron/test-utility-process.ts',
         'electron/test-wav.ts',
+        'electron/test-memory-fs.ts',
       ],
       // just below the current coverage, so it can not drop; raise them as tests are added
       thresholds: { statements: 77, branches: 81, functions: 75, lines: 79 },
@@ -44,7 +45,7 @@ export default defineConfig({
             '.github/workflows/*.test.ts',
             'packaging/**/*.test.ts',
           ],
-          exclude: [...configDefaults.exclude, '**/*.integration.test.ts'],
+          exclude: [...configDefaults.exclude, '**/*.integration.test.ts', '**/*.timing.test.ts'],
         },
       },
       {
@@ -53,9 +54,14 @@ export default defineConfig({
         test: {
           name: 'integration',
           environment: 'node',
-          include: ['electron/**/*.integration.test.ts'],
+          include: ['electron/**/*.integration.test.ts', 'scripts/**/*.integration.test.ts', '.claude/hooks/*.integration.test.ts'],
           testTimeout: 60_000,
         },
+      },
+      {
+        // benchmarks that print a comparison and assert nothing: by hand with npm run test:timing (docs/development/unit-tests.md)
+        extends: true,
+        test: { name: 'timing', environment: 'node', include: ['electron/**/*.timing.test.ts', 'client/**/*.timing.test.ts'], testTimeout: 120_000 },
       },
       {
         extends: true,
@@ -64,6 +70,7 @@ export default defineConfig({
           environment: 'jsdom',
           setupFiles: ['client/test/test-setup-frontend.ts'],
           include: ['client/**/*.test.{ts,tsx}'],
+          exclude: [...configDefaults.exclude, '**/*.timing.test.ts'],
         },
       },
     ],

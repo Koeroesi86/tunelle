@@ -1,9 +1,12 @@
-import { mkdtemp, readdir, readFile, rm } from 'fs/promises';
-import { tmpdir } from 'os';
 import { basename, join } from 'path';
 import { fileURLToPath } from 'url';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { memoryFs } from '../test-memory-fs';
 import { coverFolder, createCoverFiles } from './mpris-cover';
+
+vi.mock('fs/promises', () => ({ ...memoryFs.promises, default: memoryFs.promises }));
+
+const { readdir, readFile } = memoryFs.promises;
 
 describe('coverFolder', () => {
   it('is the folder the Flatpak shares with the host, or one of the app, and none without the runtime folder of the user', () => {
@@ -14,13 +17,12 @@ describe('coverFolder', () => {
 });
 
 describe('createCoverFiles', () => {
-  let folder: string;
+  const folder = '/run/user/1000/tunelle';
 
-  beforeEach(async () => {
-    folder = await mkdtemp(join(tmpdir(), 'tunelle-cover-'));
+  beforeEach(() => {
+    memoryFs.reset();
+    memoryFs.sync.mkdirSync(folder);
   });
-
-  afterEach(() => rm(folder, { recursive: true, force: true }));
 
   it('writes the cover and gives its address', async () => {
     const url = await createCoverFiles(join(folder, 'inner')).write(new Uint8Array([1, 2, 3]), 'image/png');
