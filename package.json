@@ -236,6 +236,7 @@
     "tar": "^7.5.22",
     "xmldom": "npm:@xmldom/xmldom@^0.9.12",
     "glob@13": "^14.0.2",
-    "minimatch@10": "^11.0.1"
+    "minimatch@10": "^11.0.1",
+    "@electron/universal": "^3.0.6"
   }
 }
