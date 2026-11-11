@@ -310,6 +310,15 @@ describe('connection middleware', () => {
     const requested = (fetchMock: ReturnType<typeof vi.fn>) => fetchMock.mock.calls.map(([url]) => String(url));
     const folder = (path: string) => ({ path, lastModified: 1 });
 
+    it('saves the gains of the equalizer with the settings, as the page does when it is left', async () => {
+      const { store, send } = await setup();
+
+      store.dispatch({ type: 'SET_GAINS', payload: { gains: [3, 2, 1, 0, 0, 0, 0, 0, -2, -3] } });
+      store.dispatch({ type: 'SAVE_SETTINGS', payload: {} });
+
+      expect(send).toHaveBeenLastCalledWith('SAVE_SETTINGS', expect.objectContaining({ equalizer: [3, 2, 1, 0, 0, 0, 0, 0, -2, -3] }));
+    });
+
     it('saves the sort and the selected folders with the settings', async () => {
       const { store, send } = await setup();
 
