@@ -1,5 +1,5 @@
 import path from 'path';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   oxc: { jsx: { runtime: 'automatic' } },
@@ -43,6 +43,17 @@ export default defineConfig({
             '.github/workflows/*.test.ts',
             'packaging/**/*.test.ts',
           ],
+          exclude: [...configDefaults.exclude, '**/*.integration.test.ts'],
+        },
+      },
+      {
+        // real SQLite, real files and the real ffmpeg, with only the electron module replaced (docs/development/integration-tests.md)
+        extends: true,
+        test: {
+          name: 'integration',
+          environment: 'node',
+          include: ['electron/**/*.integration.test.ts'],
+          testTimeout: 60_000,
         },
       },
       {

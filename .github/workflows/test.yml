@@ -1,6 +1,6 @@
 name: Test
 
-# lint, dead code and types (once), unit tests with coverage, the end to end tests of the built app and the Electron security scan, used by the workflows that package the app
+# lint, dead code and types (once), unit tests with coverage, the integration tests, the end to end tests of the built app and the Electron security scan, used by the workflows that package the app
 on:
   workflow_call:
 
@@ -82,6 +82,10 @@ jobs:
         if: runner.os != 'Windows'
         run: chmod +x .cache/ffmpeg/install/bin/*
       - run: npm run test:coverage
+      # real SQLite, real files and the real ffmpeg of this system, without Electron (docs/development/integration-tests.md)
+      - name: Integration tests
+        timeout-minutes: 10
+        run: npm run test:integration
       # the built app is started and driven (e2e/); the audio goes to a sink that plays nothing (--disable-audio-output), so the runners need no sound device, and Linux draws the window headless
       - run: npm run build
       - name: End to end tests
