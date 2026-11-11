@@ -1,0 +1,63 @@
+name: Cache cleanup
+
+# the caches of a pull request are only read by that pull request, and the apt downloads are saved under a new key on every run (docs/development/ci.md)
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cache-cleanup
+  cancel-in-progress: false
+
+jobs:
+  closed-pull-request:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # deleting a cache needs actions: write
+    permissions:
+      actions: write
+    steps:
+      - name: Delete the caches of the closed pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REF: refs/pull/${{ github.event.pull_request.number }}/merge
+        run: |
+          gh cache list --ref "${REF}" --limit 1000 --json id --jq '.[].id' | xargs -r -n1 gh cache delete
+
+  sweep:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      pull-requests: read
+    steps:
+      - name: Delete the caches of pull requests that are not open
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          open="$(gh pr list --state open --limit 200 --json number --jq '.[] | "refs/pull/\(.number)/merge"')"
+          gh cache list --limit 1000 --json id,ref --jq '.[] | select(.ref | startswith("refs/pull/")) | "\(.id) \(.ref)"' |
+            while read -r id ref; do
+              grep -qxF "${ref}" <<< "${open}" || gh cache delete "${id}"
+            done
+      # every run saves its own key; the newest of each name and ref is the one the next run restores
+      - name: Delete the superseded apt downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh cache list --limit 1000 --json id,key,ref,createdAt --jq '
+            [.[] | select(.key | startswith("apt-"))]
+            | group_by([.ref, (.key | sub("-[0-9]+$"; ""))])
+            | .[] | sort_by(.createdAt) | reverse | .[1:][] | .id' | xargs -r -n1 gh cache delete

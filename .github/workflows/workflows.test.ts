@@ -179,6 +179,15 @@ describe('workflows', () => {
     expect(text).toMatch(/- name: Keep the validation tools\n\s+if: always\(\)/);
   });
 
+  it('cache-cleanup.yml deletes caches with actions: write on its jobs only', () => {
+    const text = read('cache-cleanup.yml');
+
+    expect(text).toMatch(/^permissions:\n {2}contents: read\n\njobs:|^permissions:\n {2}contents: read\n\nconcurrency:/m);
+    expect(text.match(/^ {6}actions: write$/gm)).toHaveLength(2);
+    expect(text).toMatch(/types: \[closed\]/);
+    expect(text).toMatch(/cron:/);
+  });
+
   it('pages.yml builds the Flatpak repository into the site before it is uploaded', () => {
     const text = read('pages.yml');
 
