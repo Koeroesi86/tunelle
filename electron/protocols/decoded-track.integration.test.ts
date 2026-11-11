@@ -8,6 +8,7 @@ import { z } from 'zod';
 import executeQuery from '../database/execute-query';
 import scanFolder from '../library/scan/scan-folder';
 import { createTestDatabase } from '../test-database';
+import { readWav, toneShare } from '../test-wav';
 
 const root = path.resolve(__dirname, '../..');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-integration-'));
@@ -26,38 +27,6 @@ vi.mock('electron', async () => {
 const { playableFile } = await import('./decoded-track');
 
 const trackSchema = z.object({ path: z.string(), title: z.string(), codec: z.string() });
-
-/** The level of a sine of the frequency in the samples (Goertzel), as a share of the level of all of them */
-const toneShare = (samples: Float64Array, frequency: number, sampleRate: number) => {
-  const coefficient = 2 * Math.cos((2 * Math.PI * frequency) / sampleRate);
-  const [last, beforeLast] = samples.reduce(([previous, older], sample) => [sample + coefficient * previous - older, previous], [0, 0]);
-  const power = last ** 2 + beforeLast ** 2 - coefficient * last * beforeLast;
-  const energy = samples.reduce((sum, sample) => sum + sample ** 2, 0);
-  return (2 * power) / (samples.length * energy);
-};
-
-const readWav = (file: string) => {
-  const data = fs.readFileSync(file);
-  const chunks = (offset: number): { name: string; start: number; size: number }[] =>
-    offset + 8 > data.length
-      ? []
-      : [
-          { name: data.toString('ascii', offset, offset + 4), start: offset + 8, size: data.readUInt32LE(offset + 4) },
-          ...chunks(offset + 8 + data.readUInt32LE(offset + 4) + (data.readUInt32LE(offset + 4) % 2)),
-        ];
-  const found = chunks(12);
-  const format = found.find(({ name }) => name === 'fmt ');
-  const body = found.find(({ name }) => name === 'data');
-  if (!format || !body || data.toString('ascii', 0, 4) !== 'RIFF') throw new Error(`${file} is not a WAV file`);
-  const channels = data.readUInt16LE(format.start + 2);
-  const sampleRate = data.readUInt32LE(format.start + 4);
-  const bytes = data.readUInt16LE(format.start + 14) / 8;
-  const size = Math.min(body.size, data.length - body.start);
-  const frames = Math.floor(size / (bytes * channels));
-  // the first channel; the sample is a signed little endian integer of 2, 3 or 4 bytes
-  const samples = Float64Array.from({ length: frames }, (_, frame) => data.readIntLE(body.start + frame * bytes * channels, bytes) / 2 ** (bytes * 8 - 1));
-  return { channels, sampleRate, bytes, seconds: frames / sampleRate, samples };
-};
 
 // the fixtures of the end to end tests: the first track is a sine of 440 Hz, the second one of 880 Hz
 const formats = [

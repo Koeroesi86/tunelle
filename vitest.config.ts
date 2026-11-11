@@ -23,6 +23,7 @@ export default defineConfig({
         'electron/test-database.ts',
         'electron/schemas/database/**',
         'electron/test-utility-process.ts',
+        'electron/test-wav.ts',
       ],
       // just below the current coverage, so it can not drop; raise them as tests are added
       thresholds: { statements: 77, branches: 81, functions: 75, lines: 79 },
