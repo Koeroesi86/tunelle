@@ -67,10 +67,32 @@ jobs:
         run: echo "npm_config_build_from_source=true" >> "$GITHUB_ENV"
       - uses: ./.github/actions/install-dependencies
       # the files Flathub takes the app from (packaging/flatpak/) and the desktop file of the AppImage (packaging/appimage/) are checked with the tools it uses
+      # the downloads of apt are kept between runs, and the first try skips the update of the package lists, which needs the mirror (the runner could not resolve it at times)
+      - name: Restore the validation tools
+        if: matrix.os == 'ubuntu-latest'
+        id: apt-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/apt-archives
+          key: apt-validate-${{ github.run_id }}
+          restore-keys: apt-validate-
+      - name: Install the validation tools
+        if: matrix.os == 'ubuntu-latest'
+        timeout-minutes: 15
+        run: |
+          mkdir -p ~/apt-archives/partial
+          install() { sudo timeout 10m apt-get install -y -o Acquire::Retries=3 -o Dir::Cache::archives="$HOME/apt-archives" appstream desktop-file-utils; }
+          install || { sudo timeout 10m apt-get update && install; }
+          sudo chown -R "$USER" ~/apt-archives
+      - name: Keep the validation tools
+        if: always() && matrix.os == 'ubuntu-latest' && steps.apt-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/apt-archives
+          key: apt-validate-${{ github.run_id }}
       - name: Validate the Flatpak metadata
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get install -y appstream desktop-file-utils
           appstreamcli validate --no-net packaging/flatpak/*.metainfo.xml
           desktop-file-validate packaging/flatpak/*.desktop packaging/appimage/*.desktop
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2

@@ -169,6 +169,16 @@ describe('workflows', () => {
     expect(read('release.yml')).toMatch(/uses: \.\/\.github\/workflows\/pages\.yml\n(?:\s+#.*\n)?\s+secrets: inherit/);
   });
 
+  it('test.yml keeps the downloads of apt between runs, also after a failed install, and installs before it validates', () => {
+    const text = read('test.yml');
+
+    expect(text.indexOf('actions/cache/restore')).toBeLessThan(text.indexOf('apt-get install'));
+    expect(text.indexOf('apt-get install')).toBeLessThan(text.indexOf('actions/cache/save'));
+    expect(text.indexOf('actions/cache/save')).toBeLessThan(text.indexOf('appstreamcli validate'));
+    expect(text).toMatch(/Dir::Cache::archives="\$HOME\/apt-archives"/);
+    expect(text).toMatch(/- name: Keep the validation tools\n\s+if: always\(\)/);
+  });
+
   it('pages.yml builds the Flatpak repository into the site before it is uploaded', () => {
     const text = read('pages.yml');
 
