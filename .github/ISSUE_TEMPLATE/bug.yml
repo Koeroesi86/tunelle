@@ -1,0 +1,45 @@
+name: Bug
+description: Something does not work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What goes wrong, what you expected, and what it costs the user (a freeze, lost data, wrong sound).
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: Steps, the format or folder involved, and how often it happens.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and system
+      description: The version of Tunelle, the system and how it was installed (Flatpak, AppImage, Store, dmg).
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where it is in the code
+      description: Files, functions and callers that take part, if known.
+  - type: textarea
+    id: fix
+    attributes:
+      label: Proposed fix
+      description: How to fix it, if there is an idea.
+  - type: textarea
+    id: check
+    attributes:
+      label: To check
+      description: What shows that it is fixed, ideally as a test that fails without the change.
+  - type: input
+    id: related
+    attributes:
+      label: Related
+      description: Related issues and pull requests, for example "#173, #293".
