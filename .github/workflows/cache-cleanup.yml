@@ -52,12 +52,12 @@ jobs:
               grep -qxF "${ref}" <<< "${open}" || gh cache delete "${id}"
             done
       # every run saves its own key; the newest of each name and ref is the one the next run restores
-      - name: Delete the superseded apt downloads
+      - name: Delete the superseded apt, ESLint and Vitest caches
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           gh cache list --limit 1000 --json id,key,ref,createdAt --jq '
-            [.[] | select(.key | startswith("apt-"))]
-            | group_by([.ref, (.key | sub("-[0-9]+$"; ""))])
+            [.[] | select(.key | test("^(apt|eslint|vitest)-"))]
+            | group_by([.ref, (.key | sub("-([0-9]+|[0-9a-f]{40})$"; ""))])
             | .[] | sort_by(.createdAt) | reverse | .[1:][] | .id' | xargs -r -n1 gh cache delete
