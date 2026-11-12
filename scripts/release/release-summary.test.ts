@@ -64,7 +64,7 @@ describe('summarize', () => {
   });
 
   it.each([
-    ['an error status', { ok: false, status: 429 }],
+    ['an error status', { ok: false, status: 429, text: async () => '{"error":{"message":"Quota exceeded"}}' }],
     ['an answer that is not JSON', answer('Sure! Here are the notes')],
     ['an answer without Hungarian', answer('{"en":"Only English."}')],
     ['an answer without candidates', { ok: true, status: 200, json: async () => ({}) }],
@@ -81,5 +81,14 @@ describe('summarize', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     expect(await summarize(['Add gapless playback'], 'token')).toEqual(generic);
+  });
+
+  it('puts the message of the Gemini API into the warning', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403, text: async () => '{"error":{"message":"API key not valid"}}' }));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    await summarize(['Add gapless playback'], 'token');
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('answered 403: API key not valid'));
   });
 });

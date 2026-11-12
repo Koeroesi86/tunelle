@@ -49,7 +49,7 @@ const askModel = async (subjects, apiKey) => {
       generationConfig: { responseMimeType: 'application/json' }
     })
   })
-  if (!response.ok) throw new Error(`The Gemini API answered ${response.status}`)
+  if (!response.ok) throw new Error(`The Gemini API answered ${response.status}: ${parseJson(await response.text())?.error?.message ?? 'no message'}`)
 
   const summary = toSummary(parseJson((await response.json()).candidates?.[0]?.content?.parts?.[0]?.text))
   if (!summary) throw new Error('The answer is not a summary in both languages')
