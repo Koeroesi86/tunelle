@@ -1,6 +1,6 @@
 const { spawnSync } = require('child_process')
 const { existsSync, rmSync } = require('fs')
-const { basename, join } = require('path')
+const { basename, dirname, join } = require('path')
 const cache = require('./config/cache')
 const { rewriteFolder } = require('./alias-paths')
 
@@ -15,7 +15,7 @@ if (outDir && !existsSync(outDir)) {
 
 const { status } = spawnSync(
   process.execPath,
-  [require.resolve('typescript/bin/tsc'), '-p', project, '--incremental', '--tsBuildInfoFile', buildInfoFile],
+  [join(dirname(require.resolve('@typescript/native/package.json')), 'bin', 'tsc'), '-p', project, '--incremental', '--tsBuildInfoFile', buildInfoFile],
   { stdio: 'inherit' }
 )
 
