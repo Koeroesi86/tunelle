@@ -21,10 +21,6 @@ jobs:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # models: the summary of the changes comes from GitHub Models with the token of the run
-    permissions:
-      contents: read
-      models: read
     outputs:
       release: ${{ steps.plan.outputs.release }}
       version: ${{ steps.plan.outputs.version }}
@@ -60,7 +56,7 @@ jobs:
         id: summary
         if: steps.plan.outputs.release == 'true'
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           LATEST: ${{ steps.plan.outputs.latest }}
         run: echo "summary=$(node scripts/release/release-summary.js summarize "$LATEST")" | tee -a "$GITHUB_OUTPUT"
 

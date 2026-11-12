@@ -278,7 +278,7 @@ describe('workflows', () => {
   it('release.yml summarizes the changes in the plan job and gives the summary to the Flatpak, the release and the Store', () => {
     const text = read('release.yml');
 
-    expect(text).toMatch(/\n  plan:[\s\S]*?permissions:\n\s+contents: read\n\s+models: read\n/);
+    expect(text).toMatch(/- name: Summarize the changes[\s\S]*?GEMINI_API_KEY: \$\{\{ secrets\.GEMINI_API_KEY \}\}/);
     expect(text).toMatch(/- name: Summarize the changes\n\s+id: summary\n\s+if: steps\.plan\.outputs\.release == 'true'\n/);
     expect(text).toMatch(/uses: \.\/\.github\/workflows\/dist\.yml\n\s+with:\n\s+version: .*\n\s+notes: \$\{\{ needs\.plan\.outputs\.summary \}\}\n/);
     expect(text).toContain('${{ fromJSON(needs.plan.outputs.summary).en }}');

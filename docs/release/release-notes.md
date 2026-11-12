@@ -10,11 +10,11 @@ Every release has one short summary sentence in English and Hungarian, made from
 
 ## How it is made
 
-`scripts/release/release-summary.js summarize <latest tag>` runs in the `plan` job of `release.yml`, after the version is planned. It sends the subjects of `git log <latest tag>..HEAD` (at most 100, no merge commits) to [GitHub Models](https://docs.github.com/en/github-models) (`openai/gpt-4o-mini`) with the token of the run (`models: read` on that job), which is free with a rate limit and needs no secret. The answer is JSON, `{"en": ..., "hu": ...}`; the job output `summary` carries it to `dist.yml` and `store.yml` (input `notes`, environment `RELEASE_SUMMARY`) and to the release body.
+`scripts/release/release-summary.js summarize <latest tag>` runs in the `plan` job of `release.yml`, after the version is planned. It sends the subjects of `git log <latest tag>..HEAD` (at most 100, no merge commits) to the Gemini API (`gemini-flash-latest`, the free tier, with a rate limit far above two releases a week) with the key in the repository secret `GEMINI_API_KEY`, which only that step sees. The answer is JSON, `{"en": ..., "hu": ...}`; the job output `summary` carries it to `dist.yml` and `store.yml` (input `notes`, environment `RELEASE_SUMMARY`) and to the release body. GitHub Models, which this used first, was retired on 30 July 2026.
 
-A release never waits for the summary. Without commits, a token or a usable answer (an error status, no JSON, a language missing, over 400 characters), the script prints a warning and the generic text, `Bug fixes and improvements.` and `Hibajavítások és fejlesztések.`. `store.yml` run by hand or on Wednesday has no summary and uses the generic text as before. The script does not use Zod, as the `plan` job and `store.yml` run it without `npm ci`.
+A release never waits for the summary. Without commits, a token or a usable answer (a missing key, an error status, no JSON, a language missing, over 400 characters), the script prints a warning and the generic text, `Bug fixes and improvements.` and `Hibajavítások és fejlesztések.`. `store.yml` run by hand or on Wednesday has no summary and uses the generic text as before. The script does not use Zod, as the `plan` job and `store.yml` run it without `npm ci`.
 
-The commit subjects are sent to GitHub Models, so they must not hold anything that is not meant to be public. The answer is a line of plain text, cleaned of line breaks and a leading bullet, and escaped where it is put into XML.
+The commit subjects are sent to the Gemini API, so they must not hold anything that is not meant to be public (Google may use the prompts of the free tier to improve its products). The answer is a line of plain text, cleaned of line breaks and a leading bullet, and escaped where it is put into XML.
 
 ## Changing it
 

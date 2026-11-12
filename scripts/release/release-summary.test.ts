@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readSummary, summarize } from './release-summary';
 
 const generic = { en: 'Bug fixes and improvements.', hu: 'Hibajavítások és fejlesztések.' };
-const answer = (content: string) => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content } }] }) });
+const answer = (text: string) => ({ ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text }] } }] }) });
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -27,7 +27,7 @@ describe('readSummary', () => {
 });
 
 describe('summarize', () => {
-  it('asks GitHub Models with the subjects and the token of the run', async () => {
+  it('asks the Gemini API with the subjects and the key', async () => {
     const fetchMock = vi.fn().mockResolvedValue(answer('{"en":"Gapless playback.","hu":"Szünetmentes lejátszás."}'));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -35,9 +35,9 @@ describe('summarize', () => {
     const [url, init] = fetchMock.mock.calls[0];
 
     expect(summary).toEqual({ en: 'Gapless playback.', hu: 'Szünetmentes lejátszás.' });
-    expect(url).toBe('https://models.github.ai/inference/chat/completions');
-    expect(init.headers.Authorization).toBe('Bearer token');
-    expect(JSON.parse(init.body).messages[1].content).toBe('Add gapless playback\nUpdate jsdom');
+    expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent');
+    expect(init.headers['x-goog-api-key']).toBe('token');
+    expect(JSON.parse(init.body).contents[0].parts[0].text).toBe('Add gapless playback\nUpdate jsdom');
   });
 
   it('sends at most 100 subjects', async () => {
@@ -49,12 +49,12 @@ describe('summarize', () => {
       'token'
     );
 
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body).messages[1].content.split('\n')).toHaveLength(100);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).contents[0].parts[0].text.split('\n')).toHaveLength(100);
   });
 
   it.each([
     ['no commits', [], 'token'],
-    ['no token', ['Add gapless playback'], undefined],
+    ['no key', ['Add gapless playback'], undefined],
   ])('is the generic text without asking for %s', async (_, subjects, token) => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
@@ -67,7 +67,7 @@ describe('summarize', () => {
     ['an error status', { ok: false, status: 429 }],
     ['an answer that is not JSON', answer('Sure! Here are the notes')],
     ['an answer without Hungarian', answer('{"en":"Only English."}')],
-    ['an answer without choices', { ok: true, status: 200, json: async () => ({}) }],
+    ['an answer without candidates', { ok: true, status: 200, json: async () => ({}) }],
   ])('is the generic text and a warning for %s', async (_, response) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
