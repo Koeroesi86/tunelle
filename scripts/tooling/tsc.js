@@ -15,7 +15,7 @@ if (outDir && !existsSync(outDir)) {
 
 const { status } = spawnSync(
   process.execPath,
-  [join(dirname(require.resolve('@typescript/native/package.json')), 'bin', 'tsc'), '-p', project, '--incremental', '--tsBuildInfoFile', buildInfoFile],
+  [join(dirname(require.resolve('typescript/package.json')), 'bin', 'tsc'), '-p', project, '--incremental', '--tsBuildInfoFile', buildInfoFile],
   { stdio: 'inherit' }
 )
 

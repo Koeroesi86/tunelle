@@ -1,3 +1,8 @@
+// typescript-eslint needs the TypeScript 6 API, and TypeScript 7 has none. See docs/development/typescript-eslint.md
+const Module = require('module');
+const load = Module._load;
+Module._load = (request, ...rest) => load.call(Module, request === 'typescript' ? 'typescript6' : request, ...rest);
+
 const tsParser = require('@typescript-eslint/parser');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
 const prettierPlugin = require('eslint-plugin-prettier');
