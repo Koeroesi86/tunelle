@@ -226,7 +226,8 @@
     "sass-loader": "^17.0.1",
     "style-loader": "^4.0.0",
     "tsx": "^4.23.15",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
+    "typescript6": "npm:@typescript/typescript6@^6.0.2",
     "vitest": "^5.0.5",
     "webpack": "^5.112.0",
     "webpack-cli": "^7.2.3",
@@ -237,6 +238,12 @@
     "xmldom": "npm:@xmldom/xmldom@^0.9.12",
     "glob@13": "^14.0.2",
     "minimatch@10": "^11.0.1",
-    "@electron/universal": "^3.0.6"
+    "@electron/universal": "^3.0.6",
+    "@typescript-eslint/eslint-plugin": {
+      "typescript": "$typescript"
+    },
+    "@typescript-eslint/parser": {
+      "typescript": "$typescript"
+    }
   }
 }

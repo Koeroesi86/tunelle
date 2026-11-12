@@ -26,6 +26,8 @@
     "e2e/**/*.updater.ts"
   ],
   "ignoreDependencies": [
+    // the TypeScript 6 API for typescript-eslint, loaded through the hook in eslint.config.js
+    "typescript6",
     // webpack loaders, referenced by name in scripts/tooling/config/webpack.config.base.js
     "esbuild-loader",
     "css-loader",
