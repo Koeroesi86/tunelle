@@ -18,7 +18,7 @@ describe('readSummary', () => {
     expect(readSummary('{"en":"- Faster\\nstart.","hu":"* Gyorsabb  indítás."}')).toEqual({ en: 'Faster start.', hu: 'Gyorsabb indítás.' });
   });
 
-  it.each(['', 'not json', '{"en":"Only English."}', '{"en":"a","hu":""}', `{"en":"${'a'.repeat(401)}","hu":"b"}`, '{"en":1,"hu":2}'])(
+  it.each(['', 'null', 'not json', '{"en":"Only English."}', '{"en":"a","hu":""}', `{"en":"${'a'.repeat(401)}","hu":"b"}`, '{"en":1,"hu":2}'])(
     'is the generic text for %j',
     (text) => {
       expect(readSummary(text)).toEqual(generic);
@@ -90,5 +90,21 @@ describe('summarize', () => {
     await summarize(['Add gapless playback'], 'token');
 
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('answered 403: API key not valid'));
+  });
+
+  it('says there is no message when the error answer has none', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500, text: async () => '<html>' }));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    await summarize(['Add gapless playback'], 'token');
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('answered 500: no message'));
+  });
+
+  it('is the generic text for an answer whose first candidate has no content', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ candidates: [{}] }) }));
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    expect(await summarize(['Add gapless playback'], 'token')).toEqual(generic);
   });
 });
