@@ -3,8 +3,12 @@ const { execFileSync } = require('child_process')
 // usage: node scripts/release/release-summary.js summarize <latest tag>   prints {"en": ..., "hu": ...}, the summary of the commits since that tag (needs GEMINI_API_KEY)
 //        node scripts/release/release-summary.js text <en|hu>              prints that language of the summary in RELEASE_SUMMARY, or the generic text when it is empty or invalid
 // See docs/release/release-notes.md
-// the alias follows the current free Flash model of the Gemini API, as the named ones are retired from time to time
-const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent'
+// the aliases follow the current free Flash models of the Gemini API, as the named ones are retired from time to time
+const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models'
+// a busy model is tried again after a pause, the second time with the lighter one
+const models = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-flash-latest']
+const retryDelay = 5000
+const requestTimeout = 30000
 const maxSubjects = 100
 
 const defaultNotes = {
@@ -39,22 +43,34 @@ const parseJson = (text) => {
 
 const readSummary = (text) => toSummary(parseJson(text)) ?? defaultNotes
 
-const askModel = async (subjects, apiKey) => {
-  const response = await fetch(endpoint, {
+const ask = async (model, subjects, apiKey) => {
+  const response = await fetch(`${endpoint}/${model}:generateContent`, {
     method: 'POST',
     headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(requestTimeout),
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: prompt }] },
       contents: [{ role: 'user', parts: [{ text: subjects.join('\n') }] }],
       generationConfig: { responseMimeType: 'application/json' }
     })
   })
-  if (!response.ok) throw new Error(`The Gemini API answered ${response.status}: ${parseJson(await response.text())?.error?.message ?? 'no message'}`)
+  if (!response.ok) {
+    const message = parseJson(await response.text())?.error?.message ?? 'no message'
+    throw Object.assign(new Error(`The Gemini API answered ${response.status}: ${message}`), { busy: response.status === 429 || response.status >= 500 })
+  }
 
   const summary = toSummary(parseJson((await response.json()).candidates?.[0]?.content?.parts?.[0]?.text))
   if (!summary) throw new Error('The answer is not a summary in both languages')
   return summary
 }
+
+// only a busy API or a request that took too long is worth another try: a key that is refused or an answer that does not fit is the same next time
+const askModel = (subjects, apiKey, attempt = 0) =>
+  ask(models[attempt], subjects, apiKey).catch(async (error) => {
+    if (!(error.busy || error.name === 'TimeoutError') || attempt + 1 >= models.length) throw error
+    await new Promise((resolve) => setTimeout(resolve, retryDelay))
+    return askModel(subjects, apiKey, attempt + 1)
+  })
 
 // a release never waits for the summary: without commits, a key or an answer that fits, it has the generic text
 const summarize = async (subjects, apiKey) => {
