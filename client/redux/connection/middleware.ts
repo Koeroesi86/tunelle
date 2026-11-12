@@ -29,6 +29,7 @@ function addListeners(store: Store) {
   onMessage('STORE_FOLDERS', messageSchemas.STORE_FOLDERS, (payload) => store.dispatch({ type: 'STORE_FOLDERS', payload }));
   onMessage('BACKGROUND_TASKS', messageSchemas.BACKGROUND_TASKS, (payload) => store.dispatch({ type: 'BACKGROUND_TASKS', payload }));
   onMessage('LOUDNESS_STATUS', messageSchemas.LOUDNESS_STATUS, (payload) => store.dispatch({ type: 'LOUDNESS_STATUS', payload }));
+  onMessage('LOUDNESS_FAILED', messageSchemas.LOUDNESS_FAILED, (payload) => store.dispatch({ type: 'LOUDNESS_FAILED', payload }));
   onMessage('OFFLINE_FOLDERS', messageSchemas.OFFLINE_FOLDERS, (payload) => store.dispatch({ type: 'OFFLINE_FOLDERS', payload }));
   onMessage('RESCAN_COMPLETE', emptyMessage, (payload) => store.dispatch({ type: 'RESCAN_COMPLETE', payload }));
   onMessage('FOLDERS_ADDED_TO_LIBRARY', messageSchemas.FOLDERS_ADDED_TO_LIBRARY, (payload) => store.dispatch({ type: 'FOLDERS_ADDED_TO_LIBRARY', payload }));
@@ -254,6 +255,7 @@ const handleActions = actionMiddleware((store) => [
   onAction('SET_MEASURE_LOUDNESS', ({ payload }) => saveSettings({ ...store.getState().uiState, measureLoudness: payload.enabled })),
   onAction('SET_NOTIFY_LIBRARY_CHANGES', ({ payload }) => saveSettings({ ...store.getState().uiState, notifyLibraryChanges: payload.enabled })),
   onAction('LOAD_LOUDNESS_STATUS', () => electronAPI.send('LOUDNESS_STATUS_LOAD')),
+  onAction('LOAD_LOUDNESS_FAILED', () => electronAPI.send('LOUDNESS_FAILED_LOAD')),
   onAction('CLEAR_MEASURED_LOUDNESS', () => electronAPI.send('LOUDNESS_CLEAR')),
   onAction('LOAD_LIBRARY_PAGE', ({ payload }) => void loadPage(store, payload.kind, payload.page)),
   // tracks stored while a scan runs: the list on the screen shows them, the favourites and the rest wait for the end of the scan

@@ -3,7 +3,7 @@ import type { Database } from 'sqlite3';
 import type { Track } from '@shared/types/library';
 import type { LoudnessAnalysis, TrackLoudness } from '@shared/types/loudness';
 import { deleteTracks, deleteTracksInside, findTrackFormat, getAlbumTrackList, getTrackList, getTrackPage } from './library-repository';
-import { findLoudnessAnalysis, findTracksToMeasure, findTracksToMeasureAmong, saveTrackLoudness } from './loudness-repository';
+import { findLoudnessAnalysis, findTracksToMeasure, findTracksToMeasureAmong, saveTrackLoudness, getFailedLoudnessTracks } from './loudness-repository';
 import addTrack from '../library/scan/add-track';
 import executeQuery from '../database/execute-query';
 import { createTestDatabase } from '../test-database';
@@ -180,6 +180,21 @@ describe('loudnessRepository', () => {
 
       expect(await among(['/music/ok.flac', '/music/new.flac', '/music/missing.flac'])).toEqual(['/music/new.flac']);
       expect(await among([])).toEqual([]);
+    });
+  });
+
+  describe('the tracks that could not be measured', () => {
+    const failedPaths = async (version = 1) => (await getFailedLoudnessTracks(database, version)).map((found) => `${found.path} ${found.reason}`);
+
+    it('are listed with why, in the order of their paths, and not once the file changed or the version rose', async () => {
+      await Promise.all(['/music/c.flac', '/music/a.flac', '/music/b.flac', '/music/d.flac'].map((path) => addTrack(database, track(path))));
+      await saveTrackLoudness(database, measured('/music/c.flac', { status: 'failed', reason: 'silent', analysis: null }));
+      await saveTrackLoudness(database, measured('/music/a.flac', { status: 'failed', reason: 'undecodable', analysis: null }));
+      await saveTrackLoudness(database, measured('/music/b.flac', { status: 'failed', reason: 'silent', analysis: null, fileSize: 5 }));
+      await saveTrackLoudness(database, measured('/music/d.flac'));
+
+      expect(await failedPaths()).toEqual(['/music/a.flac undecodable', '/music/c.flac silent']);
+      expect(await failedPaths(2)).toEqual([]);
     });
   });
 

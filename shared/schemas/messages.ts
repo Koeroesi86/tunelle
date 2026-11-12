@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { backgroundTasksSchema } from './background-tasks';
 import { folderSchema } from './folders';
-import { loudnessProgressSchema } from './loudness';
+import { failedLoudnessTrackSchema, loudnessProgressSchema } from './loudness';
 import { radioOptionKindSchema, radioOptionSchema, radioStationSchema, radioTagSchema } from './radio';
 import { updateStateSchema } from './update';
 import { radioSearchSchema } from '../types/radio-query';
@@ -14,6 +14,7 @@ export const messageSchemas = {
   FOLDERS_ADDED_TO_LIBRARY: z.object({ folders: z.array(folderSchema) }),
   OFFLINE_FOLDERS: z.object({ folders: z.array(z.string()) }),
   LOUDNESS_STATUS: loudnessProgressSchema,
+  LOUDNESS_FAILED: z.object({ tracks: z.array(failedLoudnessTrackSchema) }),
   BACKGROUND_TASKS: backgroundTasksSchema,
   MAXIMIZED_APP: z.object({ maximized: z.boolean() }),
   SET_PLAYING: z.object({ isPlaying: z.boolean() }),

@@ -59,6 +59,7 @@ const initialState: UiState = {
   watchFolders: true,
   measureLoudness: true,
   loudnessStatus: undefined,
+  loudnessFailed: undefined,
   backgroundTasks: [],
   notifyLibraryChanges: true,
   openGroup: undefined,
@@ -149,8 +150,14 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, notifyLibraryChanges: action.payload.enabled };
     case 'LOUDNESS_STATUS':
       return { ...state, loudnessStatus: action.payload };
+    case 'LOUDNESS_FAILED':
+      return { ...state, loudnessFailed: action.payload.tracks };
     case 'CLEAR_MEASURED_LOUDNESS':
-      return { ...state, loudnessStatus: state.loudnessStatus ? { ...state.loudnessStatus, measured: 0, failed: 0 } : undefined };
+      return {
+        ...state,
+        loudnessFailed: undefined,
+        loudnessStatus: state.loudnessStatus ? { ...state.loudnessStatus, measured: 0, failed: 0 } : undefined,
+      };
     case 'SET_GROUP_SORT':
       return { ...state, groupSort: action.payload.sort };
     case 'SET_GROUP_FILTER':

@@ -15,6 +15,14 @@ const registerLoudnessListeners = ({ database, loudness }: ListenerContext) => {
       .catch(logError);
   });
 
+  // the list behind the count of tracks that could not be measured, asked for when the person opens it
+  ipcMain.on('LOUDNESS_FAILED_LOAD', (event) => {
+    loudness
+      .failed()
+      .then((tracks) => sendIfAlive(event.sender, 'LOUDNESS_FAILED', { tracks }))
+      .catch(logError);
+  });
+
   // the tracks that were queued or started are measured before the rest of the library
   ipcMain.on('LOUDNESS_PRIORITISE', (_event, payload: unknown) => {
     const request = parsePayload(prioritiseLoudnessSchema, payload);

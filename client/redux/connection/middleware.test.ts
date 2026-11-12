@@ -508,6 +508,16 @@ describe('connection middleware', () => {
         expect(store.getState().uiState.loudnessStatus).toEqual({ total: 3, measured: 1, failed: 0 });
       });
 
+      it('asks the main process for the tracks that could not be measured, and keeps the list', async () => {
+        const { store, send, listen } = await setup();
+
+        store.dispatch({ type: 'LOAD_LOUDNESS_FAILED', payload: {} });
+        listen('LOUDNESS_FAILED', { tracks: [{ path: '/music/a.flac', reason: 'silent' }] });
+
+        expect(send).toHaveBeenCalledWith('LOUDNESS_FAILED_LOAD');
+        expect(store.getState().uiState.loudnessFailed).toEqual([{ path: '/music/a.flac', reason: 'silent' }]);
+      });
+
       it('fetches the covers again when the main process has stored photos', async () => {
         const { store, listen } = await setup();
         store.dispatch(page('artist'));

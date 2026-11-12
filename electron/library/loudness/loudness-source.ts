@@ -5,7 +5,13 @@ import type { Database } from 'sqlite3';
 import type { LoudnessProgress, TrackLoudness } from '@shared/types/loudness';
 import { analysisVersion } from '@shared/constants/loudness';
 import { readMainSettings } from '@shared/schemas/settings';
-import { findTracksToMeasure, findTracksToMeasureAmong, getLoudnessProgress, saveTrackLoudness } from '../../repositories/loudness-repository';
+import {
+  findTracksToMeasure,
+  findTracksToMeasureAmong,
+  getFailedLoudnessTracks,
+  getLoudnessProgress,
+  saveTrackLoudness,
+} from '../../repositories/loudness-repository';
 import type { TrackToMeasure } from '../../repositories/loudness-repository';
 import { getFolders } from '../../repositories/library-repository';
 import { getSettings } from '../../repositories/settings-repository';
@@ -258,6 +264,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
 
   return {
     status,
+    failed: () => getFailedLoudnessTracks(database, analysisVersion),
     /** The settings were saved: the count that waits follows the switch at once, not when the source is next asked to run */
     checkSetting: async () => {
       // the page saves its settings on the way out, and the database is closed by the time this is asked

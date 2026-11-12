@@ -5,8 +5,8 @@ import MeasureLoudness from './MeasureLoudness';
 
 const view = (props: Partial<Parameters<typeof MeasureLoudness>[0]> = {}) => {
   // the connected component's dispatch answers with the action, which an effect must not hand back to React
-  const actions = { setEnabled: vi.fn(), loadStatus: vi.fn(() => ({})), clear: vi.fn() };
-  render(<MeasureLoudness enabled status={undefined} {...actions} {...props} />);
+  const actions = { setEnabled: vi.fn(), loadStatus: vi.fn(() => ({})), loadFailed: vi.fn(() => ({})), clear: vi.fn() };
+  render(<MeasureLoudness enabled status={undefined} failed={undefined} {...actions} {...props} />);
   return actions;
 };
 
@@ -20,10 +20,10 @@ describe('MeasureLoudness', () => {
   });
 
   it('asks again when it is turned on or off', () => {
-    const actions = { setEnabled: vi.fn(), loadStatus: vi.fn(() => ({})), clear: vi.fn() };
-    const { rerender } = render(<MeasureLoudness enabled status={undefined} {...actions} />);
+    const actions = { setEnabled: vi.fn(), loadStatus: vi.fn(() => ({})), loadFailed: vi.fn(() => ({})), clear: vi.fn() };
+    const { rerender } = render(<MeasureLoudness enabled status={undefined} failed={undefined} {...actions} />);
 
-    rerender(<MeasureLoudness enabled={false} status={undefined} {...actions} />);
+    rerender(<MeasureLoudness enabled={false} status={undefined} failed={undefined} {...actions} />);
 
     expect(actions.loadStatus).toHaveBeenCalledTimes(2);
   });
@@ -62,6 +62,42 @@ describe('MeasureLoudness', () => {
 
     expect(screen.getByRole('status').textContent).toContain('All tracks are measured.');
     expect(screen.getByRole('status').textContent).toContain('1 track could not be measured');
+  });
+
+  it('lists the files that could not be measured in a modal that opens from a link, and closes again', () => {
+    const { loadFailed } = view({
+      status: progress({ measured: 8, failed: 2 }),
+      failed: [
+        { path: '/music/Tina/16 - Stagger Lee.flac', reason: 'undecodable' },
+        { path: '/music/Eurythmics/01 - I Did It.flac', reason: 'silent' },
+      ],
+    });
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show the files' }));
+
+    expect(loadFailed).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('dialog', { name: 'Tracks that could not be measured' }).textContent).toContain('16 - Stagger Lee.flac');
+    expect(screen.getByText('Cannot be decoded')).toBeTruthy();
+    expect(screen.getByText('Silent')).toBeTruthy();
+    expect(screen.getByText('/music/Eurythmics/01 - I Did It.flac')).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('says it is looking while the list is not there yet, and has no link when nothing failed', () => {
+    view({ status: progress({ measured: 8, failed: 1 }) });
+    fireEvent.click(screen.getByRole('button', { name: 'Show the files' }));
+    expect(screen.getByText('Looking for the files…')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('has no link to the files when every track could be measured', () => {
+    view({ status: progress({ measured: 10 }) });
+
+    expect(screen.queryByRole('button', { name: 'Show the files' })).toBeNull();
   });
 
   it('uses the singular for one track', () => {
