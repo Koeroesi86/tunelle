@@ -12,6 +12,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [Window blur](docs/app/window-blur.md)
 - [Developing and building](docs/development/building.md)
 - [Releases](docs/release/releases.md)
+- [Release notes](docs/release/release-notes.md)
 - [Microsoft Store](docs/release/microsoft-store.md)
 - [Website](docs/development/website.md)
 - [Screenshots of the website](docs/development/screenshots.md)

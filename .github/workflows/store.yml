@@ -14,6 +14,10 @@ on:
       automatic:
         type: boolean
         default: true
+      # the summary of the release as JSON ({"en": ..., "hu": ...}); empty is the generic text
+      notes:
+        type: string
+        default: ''
   workflow_dispatch:
     inputs:
       tag:
@@ -48,10 +52,11 @@ jobs:
       REQUESTED_TAG: ${{ inputs.tag }}
       COMMIT: ${{ github.event_name == 'schedule' || inputs.commit }}
       AUTOMATIC: ${{ github.event_name == 'schedule' || inputs.automatic }}
-      # the same text for every version: the changes are listed on the releases of GitHub
-      RELEASE_NOTES: Bug fixes and improvements. The changes of every version are listed at https://github.com/Koeroesi86/tunelle/releases
+      RELEASE_SUMMARY: ${{ inputs.notes }}
+      # after the summary: the changes of every version are listed on the releases of GitHub
+      RELEASE_LINK: The changes of every version are listed at https://github.com/Koeroesi86/tunelle/releases
       # a listing in another language than English has its own text (the listing of a language that is added needs a line here, or shows the English text)
-      RELEASE_NOTES_HU: "Hibajavítások és fejlesztések. Az egyes verziók változásai itt olvashatók: https://github.com/Koeroesi86/tunelle/releases"
+      RELEASE_LINK_HU: "Az egyes verziók változásai itt olvashatók: https://github.com/Koeroesi86/tunelle/releases"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -143,7 +148,9 @@ jobs:
         run: |
           msstore submission get $env:PRODUCT_ID 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath draft.json
           if ($LASTEXITCODE -ne 0) { throw "msstore submission get failed with $LASTEXITCODE" }
-          node scripts/release/store-submission.js notes draft.json metadata.json $env:RELEASE_NOTES "hu=$env:RELEASE_NOTES_HU"
+          $notes = "$(node scripts/release/release-summary.js text en) $env:RELEASE_LINK"
+          $notesHu = "$(node scripts/release/release-summary.js text hu) $env:RELEASE_LINK_HU"
+          node scripts/release/store-submission.js notes draft.json metadata.json $notes "hu=$notesHu"
           if ($LASTEXITCODE -ne 0) { throw 'The release notes could not be put into the draft' }
           msstore submission updateMetadata $env:PRODUCT_ID metadata.json
           if ($LASTEXITCODE -ne 0) { throw "msstore submission updateMetadata failed with $LASTEXITCODE" }

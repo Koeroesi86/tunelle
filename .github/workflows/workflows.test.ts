@@ -225,7 +225,7 @@ describe('workflows', () => {
 
   it('release.yml hands the secrets on to store.yml, as a called workflow gets none of the environment secrets otherwise', () => {
     expect(read('release.yml')).toMatch(
-      /uses: \.\/\.github\/workflows\/store\.yml\n(?:\s+#.*\n)?(?:\s+(?:with|tag|commit|automatic):.*\n)+\s+secrets: inherit/
+      /uses: \.\/\.github\/workflows\/store\.yml\n(?:\s+#.*\n)?(?:\s+(?:with|tag|commit|automatic|notes):.*\n)+\s+secrets: inherit/
     );
   });
 
@@ -271,8 +271,19 @@ describe('workflows', () => {
 
   it('release.yml submits what it released to the Store, after the release is published', () => {
     expect(read('release.yml')).toMatch(
-      /\n  store:\n(?:\s+#.*\n)*\s+needs: \[plan, release\]\n\s+uses: \.\/\.github\/workflows\/store\.yml\n\s+with:\n\s+tag: v\$\{\{ needs\.plan\.outputs\.version \}\}\n\s+commit: true\n\s+automatic: true\n/
+      /\n  store:\n(?:\s+#.*\n)*\s+needs: \[plan, release\]\n\s+uses: \.\/\.github\/workflows\/store\.yml\n\s+with:\n\s+tag: v\$\{\{ needs\.plan\.outputs\.version \}\}\n\s+commit: true\n\s+automatic: true\n\s+notes: \$\{\{ needs\.plan\.outputs\.summary \}\}\n/
     );
+  });
+
+  it('release.yml summarizes the changes in the plan job and gives the summary to the Flatpak, the release and the Store', () => {
+    const text = read('release.yml');
+
+    expect(text).toMatch(/- name: Summarize the changes[\s\S]*?GEMINI_API_KEY: \$\{\{ secrets\.GEMINI_API_KEY \}\}/);
+    expect(text).toMatch(/- name: Summarize the changes\n\s+id: summary\n\s+if: steps\.plan\.outputs\.release == 'true'\n/);
+    expect(text).toMatch(/uses: \.\/\.github\/workflows\/dist\.yml\n\s+with:\n\s+version: .*\n\s+notes: \$\{\{ needs\.plan\.outputs\.summary \}\}\n/);
+    expect(text).toContain('${{ fromJSON(needs.plan.outputs.summary).en }}');
+    expect(read('dist.yml')).toMatch(/RELEASE_SUMMARY: \$\{\{ inputs\.notes \}\}/);
+    expect(read('store.yml')).toMatch(/RELEASE_SUMMARY: \$\{\{ inputs\.notes \}\}/);
   });
 
   it('release.yml uploads to a draft, checks its files and publishes it last, before the website and the Store', () => {
