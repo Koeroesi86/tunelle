@@ -30,6 +30,12 @@ jobs:
           node-version: 24
           cache: npm
       - uses: ./.github/actions/install-dependencies
+      # the transformed modules of Vitest and the results of ESLint, kept between runs (docs/development/ci.md)
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/eslint
+          key: eslint-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: eslint-${{ hashFiles('package-lock.json') }}-
       - run: npm run lint
       - run: npm run fallow
       - run: npm run typecheck
@@ -66,6 +72,12 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu-22.04')
         run: echo "npm_config_build_from_source=true" >> "$GITHUB_ENV"
       - uses: ./.github/actions/install-dependencies
+      # the transformed modules of Vitest, kept between runs (docs/development/ci.md)
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/vitest
+          key: vitest-${{ matrix.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: vitest-${{ matrix.os }}-${{ hashFiles('package-lock.json') }}-
       # the files Flathub takes the app from (packaging/flatpak/) and the desktop file of the AppImage (packaging/appimage/) are checked with the tools it uses
       # the downloads of apt are kept between runs, and the first try skips the update of the package lists, which needs the mirror (the runner could not resolve it at times)
       - name: Restore the validation tools

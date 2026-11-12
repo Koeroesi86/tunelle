@@ -10,6 +10,7 @@ export default defineConfig({
     ],
   },
   test: {
+    fsModuleCachePath: path.resolve(__dirname, '.cache/vitest'),
     restoreMocks: true,
     unstubGlobals: true,
     unstubEnvs: true,
