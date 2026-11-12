@@ -743,6 +743,17 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(backgroundQueue.refresh).toHaveBeenCalledOnce();
     });
 
+    it('does not read the settings once it is stopped, as the database is closed by then', async () => {
+      register();
+      await drain();
+      vi.mocked(getSettings).mockClear();
+
+      loudness.stop();
+      await loudness.checkSetting();
+
+      expect(getSettings).not.toHaveBeenCalled();
+    });
+
     it('answers on request with what the library holds', async () => {
       library = [track('/music/a.flac')];
       register();

@@ -103,6 +103,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   // what is left to measure, the track that is measured included, and whether the measurement is turned off, for the state of the queue
   let remaining = 0;
   let off = false;
+  let stopped = false;
 
   /** Whether the measurement is turned off in the saved settings; the queue is told when that changed, as what waits is not counted then */
   const readOff = async () => {
@@ -258,7 +259,10 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   return {
     status,
     /** The settings were saved: the count that waits follows the switch at once, not when the source is next asked to run */
-    checkSetting: () => readOff().then(() => undefined),
+    checkSetting: async () => {
+      // the page saves its settings on the way out, and the database is closed by the time this is asked
+      if (!stopped) await readOff();
+    },
     prioritise,
     /** Starts over from the first track after the measurements were cleared */
     restart: () => {
@@ -271,6 +275,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       return reportStatus();
     },
     stop: () => {
+      stopped = true;
       stopWatchingScans();
       removeSource();
       backgroundQueue.dequeue(poolKey);
