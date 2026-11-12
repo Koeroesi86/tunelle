@@ -104,12 +104,14 @@ describe('command line', () => {
 });
 
 describe('stampMetainfo', () => {
+  const notes = { en: 'Bug fixes and improvements.', hu: 'Hibajavítások és fejlesztések.' };
+
   it('replaces the release entry with the version, the date, the notes in both languages and the link to the release', () => {
     const folder = mkdtempSync(join(tmpdir(), 'tunelle-metainfo-'));
     const path = join(folder, 'metainfo.xml');
     writeFileSync(path, '<releases>\n    <release version="26.10.9" date="2026-10-29"/>\n  </releases>\n');
 
-    stampMetainfo(path, '26.11.19', new Date('2026-11-04T06:00:00Z'), 'Koeroesi86/tunelle');
+    stampMetainfo(path, '26.11.19', new Date('2026-11-04T06:00:00Z'), 'Koeroesi86/tunelle', notes);
     const stamped = readFileSync(path, 'utf8');
     rmSync(folder, { recursive: true });
 
@@ -125,11 +127,24 @@ describe('stampMetainfo', () => {
     const path = join(folder, 'metainfo.xml');
     writeFileSync(path, '<releases>\n    <release version="1.0.0" date="2026-01-01"><description><p>old</p></description></release>\n  </releases>\n');
 
-    stampMetainfo(path, '26.11.19', new Date('2026-11-04T06:00:00Z'), 'Koeroesi86/tunelle');
+    stampMetainfo(path, '26.11.19', new Date('2026-11-04T06:00:00Z'), 'Koeroesi86/tunelle', notes);
     const stamped = readFileSync(path, 'utf8');
     rmSync(folder, { recursive: true });
 
     expect(stamped).not.toContain('old');
     expect(stamped.match(/<release /g)).toHaveLength(1);
+  });
+
+  it('escapes the notes, as they come from a model', () => {
+    const folder = mkdtempSync(join(tmpdir(), 'tunelle-metainfo-'));
+    const path = join(folder, 'metainfo.xml');
+    writeFileSync(path, '<releases>\n    <release version="26.10.9" date="2026-10-29"/>\n  </releases>\n');
+
+    stampMetainfo(path, '26.11.19', new Date('2026-11-04T06:00:00Z'), 'Koeroesi86/tunelle', { en: 'Tags <b> & more.', hu: 'Címkék & több.' });
+    const stamped = readFileSync(path, 'utf8');
+    rmSync(folder, { recursive: true });
+
+    expect(stamped).toContain('<p>Tags &lt;b&gt; &amp; more.</p>');
+    expect(stamped).toContain('<p xml:lang="hu">Címkék &amp; több.</p>');
   });
 });

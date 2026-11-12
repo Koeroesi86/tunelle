@@ -8,6 +8,10 @@ on:
       version:
         type: string
         default: ''
+      # the summary of the release as JSON ({"en": ..., "hu": ...}), put into the metainfo of the Flatpak with the version; empty is the generic text
+      notes:
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -124,6 +128,7 @@ jobs:
         if: inputs.version != ''
         env:
           VERSION: ${{ inputs.version }}
+          RELEASE_SUMMARY: ${{ inputs.notes }}
         # the default shell of Windows is PowerShell, where "$VERSION" is empty and the installer would keep the version of package.json
         shell: bash
         run: node scripts/release/version.js "$VERSION"

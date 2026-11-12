@@ -1,5 +1,6 @@
 const { readFileSync, writeFileSync } = require('fs')
 const { resolve } = require('path')
+const { readSummary } = require('./release-summary')
 
 // usage: node scripts/release/version.js                    prints the version of a new release
 //        node scripts/release/version.js --after <latest>   the same, but fails when it is not greater than the latest release
@@ -28,18 +29,16 @@ const stampVersion = (packagePath, version) => {
   writeFileSync(packagePath, `${JSON.stringify({ ...packageInfo, version }, undefined, 2)}\n`)
 }
 
-const releaseNotes = {
-  en: 'Bug fixes and improvements.',
-  hu: 'Hibajavítások és fejlesztések.'
-}
+const escapeXml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 // the software centre of the Flatpak shows the release entry of the metainfo as the changelog of the version: its version and date, and its description, which would
-// otherwise read "no details for this release". The notes are generic, as the ones of the Microsoft Store; the details link leads to the changes of the version
-const stampMetainfo = (metainfoPath, version, date, repository) => {
+// otherwise read "no details for this release". The notes are the summary of the release (scripts/release/release-summary.js, generic text without one); the details link leads
+// to the changes of the version
+const stampMetainfo = (metainfoPath, version, date, repository, notes) => {
   const release = [
     `<release version="${version}" date="${date.toISOString().slice(0, 10)}">`,
     `      <description>`,
-    ...Object.entries(releaseNotes).map(([language, text]) => `        <p${language === 'en' ? '' : ` xml:lang="${language}"`}>${text}</p>`),
+    ...Object.entries(notes).map(([language, text]) => `        <p${language === 'en' ? '' : ` xml:lang="${language}"`}>${escapeXml(text)}</p>`),
     `      </description>`,
     `      <url type="details">https://github.com/${repository}/releases/tag/v${version}</url>`,
     `    </release>`
@@ -56,7 +55,7 @@ if (require.main === module) {
     const packagePath = resolve(__dirname, '../../package.json')
     stampVersion(packagePath, version)
     const { build } = JSON.parse(readFileSync(packagePath, 'utf8'))
-    stampMetainfo(resolve(__dirname, `../../packaging/flatpak/${build.appId}.metainfo.xml`), version, new Date(), `${build.publish.owner}/${build.publish.repo}`)
+    stampMetainfo(resolve(__dirname, `../../packaging/flatpak/${build.appId}.metainfo.xml`), version, new Date(), `${build.publish.owner}/${build.publish.repo}`, readSummary(process.env.RELEASE_SUMMARY ?? ''))
   }
   else if (!process.env.GITHUB_RUN_NUMBER) throw new Error('GITHUB_RUN_NUMBER is not set')
   else {

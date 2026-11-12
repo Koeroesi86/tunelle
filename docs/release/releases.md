@@ -1,6 +1,6 @@
 # Releases
 
-Releases come from `release.yml`: Monday and Thursday 06:00 UTC and by hand, from `master` only. A scheduled run skips when only docs or `.github/` changed since the latest `vYY.M.N` tag. The published release is what installed apps update from, see [updater.md](../app/updater.md). After every release it publishes it calls `store.yml`, see [microsoft-store.md](microsoft-store.md).
+Releases come from `release.yml`: Monday and Thursday 06:00 UTC and by hand, from `master` only. A scheduled run skips when only docs or `.github/` changed since the latest `vYY.M.N` tag. The published release is what installed apps update from, see [updater.md](../app/updater.md). After every release it publishes it calls `store.yml`, see [microsoft-store.md](microsoft-store.md). Each release carries a short summary of its changes, see [release-notes.md](release-notes.md).
 
 ## The version (`scripts/release/version.js`)
 

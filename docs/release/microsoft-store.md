@@ -15,7 +15,7 @@ A draft is left to be looked at in Partner Center, not changed there: a submissi
 
 ## The package
 
-Both packages of the release (x64 and arm64) are put in one bundle, as the Store developer CLI (`msstore`) takes `.msix`, `.msixbundle` and `.msixupload` and not the `.appx` of the release. The Store signs the package itself, so the bundle needs no signature. The release notes of the draft are a generic text (`RELEASE_NOTES` of the workflow, and one for each other language of the listing, `RELEASE_NOTES_HU`), and with `commit` it is then submitted.
+Both packages of the release (x64 and arm64) are put in one bundle, as the Store developer CLI (`msstore`) takes `.msix`, `.msixbundle` and `.msixupload` and not the `.appx` of the release. The Store signs the package itself, so the bundle needs no signature. The release notes of the draft are the summary of the release followed by a link to the releases (`RELEASE_LINK` of the workflow, and one for each other language of the listing, `RELEASE_LINK_HU`), the generic text without a summary, see [release-notes.md](release-notes.md), and with `commit` it is then submitted.
 
 ## Secrets
 
