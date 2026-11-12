@@ -238,6 +238,12 @@
     "xmldom": "npm:@xmldom/xmldom@^0.9.12",
     "glob@13": "^14.0.2",
     "minimatch@10": "^11.0.1",
-    "@electron/universal": "^3.0.6"
+    "@electron/universal": "^3.0.6",
+    "@typescript-eslint/eslint-plugin": {
+      "typescript": "$typescript"
+    },
+    "@typescript-eslint/parser": {
+      "typescript": "$typescript"
+    }
   }
 }
