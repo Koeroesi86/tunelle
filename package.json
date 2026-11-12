@@ -207,7 +207,7 @@
     "@vitest/coverage-v8": "^5.0.5",
     "classnames": "^2.5.1",
     "css-loader": "^7.1.5",
-    "electron": "^44.9.0",
+    "electron": "^45.3.1",
     "electron-builder": "^26.15.3",
     "esbuild-loader": "^4.5.0",
     "eslint": "^10.13.0",
