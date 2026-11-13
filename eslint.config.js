@@ -6,6 +6,7 @@ Module._load = (request, ...rest) => load.call(Module, request === 'typescript' 
 const tsParser = require('@typescript-eslint/parser');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
 const prettierPlugin = require('eslint-plugin-prettier');
+const jsxA11y = require('eslint-plugin-jsx-a11y');
 
 module.exports = [
   {
@@ -36,6 +37,19 @@ module.exports = [
       ],
     },
   },
+  {
+    // accessibility rules for the renderer. See docs/development/accessibility.md
+    files: ['client/**/*.tsx'],
+    ignores: ['**/*.test.tsx'],
+    plugins: { 'jsx-a11y': jsxA11y },
+    languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+    rules: jsxA11y.flatConfigs.recommended.rules,
+  },
+  // the violations that were there when the rules came in, shrink the file when one is fixed. See docs/development/accessibility.md
+  ...Object.entries(require('./a11y-lint-baseline.json')).map(([file, rules]) => ({
+    files: [file],
+    rules: Object.fromEntries(rules.map((rule) => [rule, 'off'])),
+  })),
   {
     // tests may cast to build partial fixtures; production code may not
     files: ['**/*.ts', '**/*.tsx'],
