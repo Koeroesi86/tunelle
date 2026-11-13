@@ -67,6 +67,17 @@ describe('workflows', () => {
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
+  it('test.yml runs axe in a job of its own on Ubuntu, and the end to end tests of every system leave it out', () => {
+    const text = read('test.yml');
+    const job = text.slice(text.indexOf('\n  accessibility:'));
+
+    expect(job).toMatch(/runs-on: ubuntu-latest/);
+    expect(job).toContain('run: npm run test:a11y');
+    expect(job).not.toContain('matrix');
+    expect(text.slice(0, text.indexOf('\n  accessibility:'))).not.toContain('test:a11y');
+    expect(readFileSync(join(__dirname, '../../playwright.config.ts'), 'utf8')).toMatch(/name: 'e2e'.*testIgnore: 'accessibility\.spec\.ts'/);
+  });
+
   it('test.yml runs the static checks once on Linux, beside the jobs of every system', () => {
     const text = read('test.yml');
 
