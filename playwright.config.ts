@@ -14,7 +14,9 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['list'], ['html', { open: 'never' }]] : [['list']],
   use: { trace: 'retain-on-failure' },
   projects: [
-    { name: 'e2e', testDir: 'e2e', testMatch: '*.spec.ts' },
+    { name: 'e2e', testDir: 'e2e', testMatch: '*.spec.ts', testIgnore: 'accessibility.spec.ts' },
+    // the warnings of axe, on Linux only and beside the end to end tests (docs/development/accessibility.md): npm run test:a11y
+    { name: 'a11y', testDir: 'e2e', testMatch: 'accessibility.spec.ts' },
     // measurements, not checks: npm run perf
     // PERF_REPEAT runs each measurement that many times, and the summary takes the median of the runs
     { name: 'perf', testDir: 'e2e/perf', testMatch: '*.perf.ts', timeout: 1_200_000, repeatEach: Number(process.env.PERF_REPEAT ?? 1) },
