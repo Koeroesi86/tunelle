@@ -493,6 +493,18 @@ describe('connection middleware', () => {
         expect(store.getState().uiState.artistPhotoFailure).toBe('tooLarge');
       });
 
+      it('sends the search of photos, and keeps what it found', async () => {
+        const { store, send, listen } = await setup();
+        const candidates = { query: 'adam', candidates: [{ name: 'Adam', picture: 'https://cdn.dzcdn.net/a.jpg' }] };
+
+        store.dispatch({ type: 'SEARCH_ARTIST_PHOTOS', payload: { query: 'adam' } });
+        listen('ARTIST_PHOTO_CANDIDATES', candidates);
+        listen('ARTIST_PHOTO_CANDIDATES', { query: 1 });
+
+        expect(send).toHaveBeenCalledWith('ARTIST_PHOTO_SEARCH', { query: 'adam' });
+        expect(store.getState().uiState.artistPhotoCandidates).toEqual(candidates);
+      });
+
       it('saves the setting that turns the watching of the library folders off', async () => {
         const { store, send } = await setup();
 

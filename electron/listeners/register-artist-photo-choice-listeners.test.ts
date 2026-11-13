@@ -12,6 +12,8 @@ const choose = vi.fn();
 const remove = vi.fn();
 const reset = vi.fn();
 const read = vi.fn();
+const getImage = vi.fn();
+const searchPhotos = vi.fn();
 
 vi.mock('sqlite3', () => ({ Database: class {} }));
 vi.mock('electron', () => ({
@@ -26,6 +28,12 @@ vi.mock('../services/artist-photo-choice', () => ({
   resetArtistPhoto: (...args: unknown[]) => reset(...args),
   readPhotoFile: (...args: unknown[]) => read(...args),
 }));
+
+vi.mock('../services/artist-photos', () => ({
+  getImage: (...args: unknown[]) => getImage(...args),
+  searchArtistPhotos: (...args: unknown[]) => searchPhotos(...args),
+}));
+vi.mock('../utils/log-error', () => ({ logError: vi.fn() }));
 
 describe('registerArtistPhotoChoiceListeners', () => {
   const sender = { send: vi.fn(), isDestroyed: () => false };
@@ -86,6 +94,55 @@ describe('registerArtistPhotoChoiceListeners', () => {
     expect(remove).toHaveBeenCalledWith(database, expect.any(String), 'adam');
     expect(reset).toHaveBeenCalledWith(database, expect.any(String), 'eve');
     expect(sender.send).toHaveBeenCalledTimes(2);
+  });
+
+  it('downloads the picture of a search result and keeps it', async () => {
+    const image = { extension: 'jpg', data: Buffer.from('jpeg') };
+    getImage.mockResolvedValue(image);
+    const picture = 'https://cdn-images.dzcdn.net/images/artist/x/500x500.jpg';
+
+    await change({ key: 'adam', change: 'download', picture });
+
+    expect(getImage).toHaveBeenCalledWith(picture);
+    expect(choose).toHaveBeenCalledWith(database, expect.any(String), 'adam', image);
+    expect(sender.send).toHaveBeenCalledWith('ARTIST_PHOTOS_READY', {});
+  });
+
+  it('tells when the picture cannot be downloaded, and changes nothing', async () => {
+    getImage.mockRejectedValue(new Error('503'));
+
+    await change({ key: 'adam', change: 'download', picture: 'https://cdn-images.dzcdn.net/a.jpg' });
+
+    expect(sender.send).toHaveBeenCalledExactlyOnceWith('ARTIST_PHOTO_FAILED', { reason: 'downloadFailed' });
+    expect(choose).not.toHaveBeenCalled();
+  });
+
+  it('does not download a picture from another server', () => {
+    listeners.get('ARTIST_PHOTO_CHANGE')?.(event, { key: 'adam', change: 'download', picture: 'https://example.com/a.jpg' });
+
+    expect(getImage).not.toHaveBeenCalled();
+  });
+
+  it('sends back the artists a search finds, with the text that was searched', async () => {
+    const candidates = [{ name: 'Adam', picture: 'https://cdn-images.dzcdn.net/a.jpg' }];
+    searchPhotos.mockResolvedValue(candidates);
+
+    listeners.get('ARTIST_PHOTO_SEARCH')?.(event, { query: ' Adam ' });
+    await vi.waitFor(() => expect(sender.send).toHaveBeenCalled());
+
+    expect(searchPhotos).toHaveBeenCalledWith('Adam');
+    expect(sender.send).toHaveBeenCalledExactlyOnceWith('ARTIST_PHOTO_CANDIDATES', { query: 'Adam', candidates });
+  });
+
+  it('tells when the search fails, and ignores a search with no text', async () => {
+    searchPhotos.mockRejectedValue(new Error('Deezer refused the search'));
+
+    listeners.get('ARTIST_PHOTO_SEARCH')?.(event, { query: '  ' });
+    listeners.get('ARTIST_PHOTO_SEARCH')?.(event, { query: 'Adam' });
+    await vi.waitFor(() => expect(sender.send).toHaveBeenCalled());
+
+    expect(searchPhotos).toHaveBeenCalledExactlyOnceWith('Adam');
+    expect(sender.send).toHaveBeenCalledExactlyOnceWith('ARTIST_PHOTO_FAILED', { reason: 'searchFailed' });
   });
 
   it('drops a request of the wrong shape', () => {

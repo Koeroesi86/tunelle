@@ -5,6 +5,7 @@ import { libraryRoutes } from './library-routes';
 import { saveTrackLoudness } from '../repositories/loudness-repository';
 import { analysisVersion } from '@shared/constants/loudness';
 import type { LoudnessAnalysis } from '@shared/types/loudness';
+import executeQuery from '../database/execute-query';
 import { createTestDatabase } from '../test-database';
 import type { Track } from '@shared/types/library';
 
@@ -30,6 +31,17 @@ describe('library routes for browsing', () => {
     database = await createTestDatabase();
     await addTrack(database, track('/m/a/1.flac', { artist: 'Adam', album: 'One', genre: 'Rock' }));
     await addTrack(database, track('/m/b/1.flac', { artist: 'Bea', album: 'Two', genre: 'Pop' }));
+  });
+
+  it('answers with the cover of one group, none for a name without tracks, and refuses a request without a kind or a key', async () => {
+    await addTrack(database, track('/m/a/2.flac', { artist: 'Adam', album: 'One', picture: 'one.png' }));
+    await executeQuery(database, { query: "INSERT INTO artist_photos (key, picture, checkedAt) VALUES ('bea', 'artist-bea.jpg', 1)", variables: [] });
+
+    expect(await (await answer('/library/group-cover', 'by=artist&key=adam')).json()).toEqual({ cover: 'one.png' });
+    expect(await (await answer('/library/group-cover', 'by=artist&key=bea')).json()).toEqual({ cover: 'artist-bea.jpg' });
+    expect(await (await answer('/library/group-cover', 'by=artist&key=nobody')).json()).toEqual({ cover: null });
+    expect((await answer('/library/group-cover', 'by=artist')).status).toBe(400);
+    expect((await answer('/library/group-cover', 'key=adam')).status).toBe(400);
   });
 
   it('lists the groups of a kind with a sort and a filter', async () => {

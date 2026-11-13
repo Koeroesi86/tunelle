@@ -18,6 +18,7 @@ vi.mock('../genre-card', () => ({
 }));
 vi.mock('../../../domain/group-tracks', () => ({ fetchGroupTracks: vi.fn() }));
 vi.mock('../artist-photo-menu', () => ({ default: ({ photoKey }: { photoKey: string }) => <div>{`photo menu ${photoKey}`}</div> }));
+vi.mock('../artist-photo', () => ({ default: ({ photoKey }: { photoKey: string }) => <div>{`photo ${photoKey}`}</div> }));
 vi.mock('../album-sort', () => ({ default: () => <div>album sort</div> }));
 vi.mock('../group-albums', () => ({ default: ({ toolbar }: { toolbar: ReactNode }) => <div>{toolbar}group albums</div> }));
 
@@ -112,14 +113,15 @@ describe('GroupView', () => {
   it('offers to change the photo of an open artist or album artist that has a name, not of a genre or of the tracks without one', () => {
     renderView({ kind: 'artist', open: { kind: 'artist', key: 'adam', name: 'Adam' } });
     expect(screen.getByText('photo menu adam')).toBeTruthy();
+    expect(screen.getByText('photo adam')).toBeTruthy();
 
     cleanup();
     renderView({ kind: 'albumArtist', open: { kind: 'albumArtist', key: '', name: '' } });
-    expect(screen.queryByText(/photo menu/)).toBeNull();
+    expect(screen.queryByText(/photo/)).toBeNull();
 
     cleanup();
     renderView({ kind: 'genre', open: { kind: 'genre', key: 'pop', name: 'Pop' } });
-    expect(screen.queryByText(/photo menu/)).toBeNull();
+    expect(screen.queryByText(/photo/)).toBeNull();
   });
 
   it('plays all the tracks of the open group in the selected folders, or shuffled', async () => {

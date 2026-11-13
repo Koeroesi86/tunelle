@@ -57,7 +57,7 @@ const candidatesOf = (answer: unknown) => {
 // an artist without a photo has the URL of a photo without a name in it
 const hasPhoto = (url: string) => URL.canParse(url) && new URL(url).protocol === 'https:' && !new URL(url).pathname.includes('/artist//');
 
-const getImage = async (url: string): Promise<PhotoImage> => {
+export const getImage = async (url: string): Promise<PhotoImage> => {
   const response = await fetchOk(url, { timeout: lookupTimeout });
   const extension = extensions[(response.headers.get('content-type') ?? '').split(';')[0].trim()];
   const data = Buffer.from(await response.arrayBuffer());
@@ -78,6 +78,10 @@ export const findArtistPhoto = async (name: string) => {
 
   return match && getImage(match.picture);
 };
+
+/** The artists Deezer finds for a text the user typed, the ones with a photo; a search that fails throws */
+export const searchArtistPhotos = async (query: string) =>
+  candidatesOf(await (await fetchOk(searchUrl(query), { timeout: lookupTimeout })).json()).filter(({ picture }) => hasPhoto(picture));
 
 /** Write the photo of a name into the album art folder, next to the covers; the file name follows from the name */
 const storePhoto = async (folder: string, key: string, { extension, data }: PhotoImage) => {

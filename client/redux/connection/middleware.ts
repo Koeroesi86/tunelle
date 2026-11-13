@@ -36,6 +36,7 @@ function addListeners(store: Store) {
   onMessage('FOLDERS_ADDED_TO_LIBRARY', messageSchemas.FOLDERS_ADDED_TO_LIBRARY, (payload) => store.dispatch({ type: 'FOLDERS_ADDED_TO_LIBRARY', payload }));
   onMessage('FOLDER_REMOVED_FROM_LIBRARY', emptyMessage, (payload) => store.dispatch({ type: 'FOLDER_REMOVED_FROM_LIBRARY', payload }));
   onMessage('ARTIST_PHOTO_FAILED', messageSchemas.ARTIST_PHOTO_FAILED, (payload) => store.dispatch({ type: 'ARTIST_PHOTO_FAILED', payload }));
+  onMessage('ARTIST_PHOTO_CANDIDATES', messageSchemas.ARTIST_PHOTO_CANDIDATES, (payload) => store.dispatch({ type: 'ARTIST_PHOTO_CANDIDATES', payload }));
   onMessage('ARTIST_PHOTOS_READY', emptyMessage, (payload) => store.dispatch({ type: 'ARTIST_PHOTOS_READY', payload }));
   onMessage('LIBRARY_UPDATED', emptyMessage, (payload) => store.dispatch({ type: 'LIBRARY_UPDATED', payload }));
   onMessage('TRACKS_ADDED_TO_LIBRARY', emptyMessage, (payload) => store.dispatch({ type: 'TRACKS_ADDED_TO_LIBRARY', payload }));
@@ -254,6 +255,7 @@ const handleActions = actionMiddleware((store) => [
     photoKinds.forEach((kind) => Object.values(library.groups[kind].pages).forEach(requestPhotos));
   }),
   onAction('CHANGE_ARTIST_PHOTO', ({ payload }) => electronAPI.send('ARTIST_PHOTO_CHANGE', payload)),
+  onAction('SEARCH_ARTIST_PHOTOS', ({ payload }) => electronAPI.send('ARTIST_PHOTO_SEARCH', payload)),
   onAction('SET_WATCH_FOLDERS', ({ payload }) => saveSettings({ ...store.getState().uiState, watchFolders: payload.enabled })),
   onAction('SET_MEASURE_LOUDNESS', ({ payload }) => saveSettings({ ...store.getState().uiState, measureLoudness: payload.enabled })),
   onAction('SET_NOTIFY_LIBRARY_CHANGES', ({ payload }) => saveSettings({ ...store.getState().uiState, notifyLibraryChanges: payload.enabled })),

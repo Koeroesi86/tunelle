@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AlbumSummary, Track } from '@shared/types/library';
-import { fetchAlbum, fetchAlbumPage, fetchGroupPage, fetchLibrary, fetchTrackFormat, fetchTrackPage } from './library-api';
+import { fetchAlbum, fetchAlbumPage, fetchGroupCover, fetchGroupPage, fetchLibrary, fetchTrackFormat, fetchTrackPage } from './library-api';
 
 const track = (path: string, picture: string | null = null): Track => ({
   path,
@@ -62,6 +62,15 @@ describe('library api', () => {
       'tunelle://app/library/groups?offset=100&limit=100&by=artist',
       'tunelle://app/library/groups?offset=0&limit=100&by=albumArtist&sort=albumCount&dir=desc&folder=%2Fm&q=a%26b',
     ]);
+  });
+
+  it('fetches the cover of one group, without the file protocol', async () => {
+    respond({ cover: 'file:///art.jpg' });
+    expect(await fetchGroupCover('artist', 'a&b')).toBe('/art.jpg');
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith('tunelle://app/library/group-cover?by=artist&key=a%26b');
+
+    respond({ cover: null });
+    expect(await fetchGroupCover('albumArtist', 'x')).toBeNull();
   });
 
   it('fetches the whole library', async () => {

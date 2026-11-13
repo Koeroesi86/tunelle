@@ -4,11 +4,12 @@ The photo of an artist or album artist is found once on Deezer (`electron/servic
 
 ## What the user can do
 
-The button **Change photo** in the header of an open artist or album artist has three entries:
+The header of an open artist or album artist shows its photo (or, with none, the cover of one of its albums, from `/library/group-cover`) and the button **Change photo**, which has these entries:
 
 - **Choose an image…** takes a JPEG, PNG or WebP file of up to 2 MB (the type is read from the first bytes, not from the name). A file that is missing, too large or not such an image shows its reason in the header (`ARTIST_PHOTO_FAILED`) and changes nothing. It works with the lookup of the photos turned off, as the file stays on the computer.
 - **Use the album cover** keeps no photo for the name, so the cover of one of its albums shows. The row has `manual = 1` and no picture.
 - **Look the photo up again** deletes the row, so the name is looked up as if it was new (when the lookup is on).
+- **Search online…** (only while the setting Artist photos is on, as it sends text to Deezer) searches Deezer for a text, which starts as the name and can be changed, and lists the artists with a photo (`ARTIST_PHOTO_SEARCH`, answered by `ARTIST_PHOTO_CANDIDATES` with the text that was searched, so an answer for an older text is ignored). The one picked is downloaded by the main process (`change: 'download'`) and kept as a manual photo. The renderer loads the thumbnails from Deezer itself. A picture to download must be an https URL on `*.dzcdn.net` (`artistPhotoChangeSchema`), so the page cannot make the main process fetch another server.
 
 ## Rules
 
@@ -18,6 +19,6 @@ The button **Change photo** in the header of an open artist or album artist has 
 
 ## Not done yet
 
-- Picking from the other Deezer results for a name, and refreshing a photo that changed on Deezer (the issue #211 asks how a change is detected; the file name by content is ready for it).
+- Refreshing a photo that changed on Deezer (the issue #211 asks how a change is detected; the file name by content is ready for it).
 - A menu on the tile; the button is on the page of the artist, which a touch screen has too.
 - Album covers can use the same pieces (an override row by album, the file check, the channel).

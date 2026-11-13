@@ -58,6 +58,12 @@ export const fetchGroupPage = (kind: GroupKind, page: number, query: GroupQuery)
     pageOf(groupSummarySchema)
   ).then(({ items, total }) => ({ items: items.map((group) => ({ ...group, cover: withoutFileProtocol(group.cover) })), total }));
 
+/** The photo or cover the tile of an artist, an album artist or a genre shows, null when it has none */
+export const fetchGroupCover = (kind: GroupKind, key: string) =>
+  getJson(`/library/group-cover?by=${kind}&key=${encodeURIComponent(key)}`, z.object({ cover: z.string().nullable() })).then(({ cover }) =>
+    withoutFileProtocol(cover)
+  );
+
 /** The tracks of the query at once, for what needs every track */
 export const fetchLibrary = (query: LibraryQuery<TrackSort>) =>
   getJson(withQuery('/library', query), z.array(trackSchema)).then((library) => library.map(toTrack));

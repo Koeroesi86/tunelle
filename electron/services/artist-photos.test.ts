@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Database } from 'sqlite3';
-import { createArtistPhotoQueue, findArtistPhoto } from './artist-photos';
+import { createArtistPhotoQueue, findArtistPhoto, searchArtistPhotos } from './artist-photos';
 import executeQuery from '../database/execute-query';
 import { createTestDatabase } from '../test-database';
 
@@ -68,6 +68,32 @@ describe('findArtistPhoto', () => {
 
     stubFetch(async (url) => (url.includes('/search/') ? answer(found.Adam) : image('text/html', '<html>')));
     await expect(findArtistPhoto('Adam')).rejects.toThrow('Not a usable image');
+  });
+});
+
+describe('searchArtistPhotos', () => {
+  it('lists the artists with a photo that Deezer finds for a text, whatever they are called', async () => {
+    const fetcher = deezer({
+      'ad dam': [
+        { name: 'Adam', picture_big: photoUrl('a') },
+        { name: 'Without', picture_big: 'https://cdn-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg' },
+        { name: 'Adam Two', picture_big: photoUrl('b') },
+      ],
+    });
+
+    expect(await searchArtistPhotos('ad dam')).toEqual([
+      { name: 'Adam', picture: photoUrl('a') },
+      { name: 'Adam Two', picture: photoUrl('b') },
+    ]);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails when Deezer refuses or cannot answer', async () => {
+    stubFetch(async () => Response.json({ error: { code: 4 } }));
+    await expect(searchArtistPhotos('Adam')).rejects.toThrow('refused');
+
+    stubFetch(async () => new Response(undefined, { status: 503 }));
+    await expect(searchArtistPhotos('Adam')).rejects.toThrow('503');
   });
 });
 
