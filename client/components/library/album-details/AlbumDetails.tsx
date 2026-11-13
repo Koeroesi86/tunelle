@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
-import classNames from 'classnames';
-import { faPlay, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { Album, Track } from '@shared/types/library';
 import { useTranslation } from '../../../i18n';
-import { useLastDefined } from '../../../hooks/use-last-defined';
 import { getCoverUrl } from '../../../utils/cover-url';
 import { getImageTint } from '../../../utils/cover-tint';
 import { albumFavourite } from '../../../domain/favourites';
@@ -22,10 +20,10 @@ interface AlbumDetailsProps {
   close: () => void;
 }
 
+/** The page of an open album, over the library: its cover, what can be done with it and its tracks; Escape and the button on top go back */
 const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
   const { t } = useTranslation();
-  const shown = useLastDefined(album);
-  const displayed: Partial<Album> = { ...shown };
+  const displayed: Partial<Album> = { ...album };
   const [failedCover, setFailedCover] = useState<string | undefined>(undefined);
   const [tint, setTint] = useState<{ url: string; color: string } | undefined>(undefined);
   const coverUrl = displayed.cover ? getCoverUrl(displayed.cover) : undefined;
@@ -35,23 +33,25 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
     setTint(coverUrl && color ? { url: coverUrl, color } : undefined);
   };
 
-  // Escape closes it, as a click outside does
+  // Escape goes back, unless it closed the menu of the cover, which marks it as used
   useEffect(() => {
     if (!album) return undefined;
 
-    const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && close();
+    const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && !event.defaultPrevented && close();
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [album, close]);
 
+  if (!album) return null;
+
   return (
-    <>
-      {album && <div className={style.backdrop} onClick={close} aria-hidden />}
-      <div className={classNames(style.albumDetails, { [style.hasAlbum]: album })}>
-        <div className={style.header} style={headerColor ? { background: `linear-gradient(135deg, ${headerColor}, #333333)` } : undefined}>
-          <button type="button" className={style.close} aria-label={t('album.close')} onClick={close}>
-            <FontAwesomeIcon icon={faTimes} size="lg" />
-          </button>
+    <div className={style.albumDetails}>
+      <div className={style.header} style={headerColor ? { background: `linear-gradient(135deg, ${headerColor}, var(--panel-solid))` } : undefined}>
+        <button type="button" className={style.close} aria-label={t('album.close')} onClick={close}>
+          <FontAwesomeIcon icon={faArrowLeft} size="sm" />
+          {t('album.close')}
+        </button>
+        <div className={style.top}>
           <div className={style.cover}>
             {coverUrl && coverUrl !== failedCover && (
               <img
@@ -66,14 +66,10 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
           <div className={style.info}>
             <div className={style.artist}>{displayed.artist}</div>
             <div className={style.title}>{displayed.title}</div>
-            {shown && (
-              <div className={style.actions}>
-                <FavouriteButton item={albumFavourite(shown)} className={style.favourite} />
-                <AddToPlaylist source={shown} className={style.addToPlaylist} />
-                {/* another album starts with its own text and results */}
-                <AlbumCoverMenu key={shown.id} path={shown.path} title={shown.title} artist={shown.artist} />
-              </div>
-            )}
+            <div className={style.actions}>
+              <FavouriteButton item={albumFavourite(album)} className={style.favourite} />
+              <AddToPlaylist source={album} className={style.addToPlaylist} />
+            </div>
             <div className={style.meta}>
               {displayed.year && <span>{displayed.year}</span>}
               <Time seconds={displayed.duration} />
@@ -88,6 +84,10 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
             </div>
           </div>
         </div>
+      </div>
+      <div className={style.body}>
+        {/* another album starts with its own text and results */}
+        <AlbumCoverMenu key={album.id} path={album.path} title={album.title} artist={album.artist} />
         <div className={style.tracks}>
           {displayed.tracks?.map((track) => (
             <div key={track.path} className={style.track}>
@@ -101,7 +101,7 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
           ))}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

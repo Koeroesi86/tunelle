@@ -63,10 +63,10 @@ export const visible = (page: Page, text: string) => page.getByText(text, { exac
 
 export const currentTime = (page: Page) => page.evaluate(() => window.activeAudio?.()?.currentTime ?? 0);
 
-// the dialog of an album is mounted all the time, its Close button is the one that can be seen
+// the page of an album is there only while an album is open, its back button is the one that can be seen
 export const closeDialog = (page: Page) => page.locator('[class*="AlbumDetails__close"]').filter({ visible: true }).click();
 
-// plays a whole album from its dialog: the dialog has its tracks before the button is pressed, the first track runs before it is closed again
+// plays a whole album from its page: the page has its tracks before the button is pressed, the first track runs before it is left again
 export const playAlbum = async (page: Page, { title, tracks }: Album) => {
   await navigate(page, 'Albums');
   await visible(page, title).click();

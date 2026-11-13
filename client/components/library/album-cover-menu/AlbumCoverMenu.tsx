@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import classNames from 'classnames';
 import { MdPhotoCamera as CoverIcon } from 'react-icons/md';
 import type { AlbumCoverCandidates, AlbumCoverFailure } from '@shared/types/album-cover';
 import { useTranslation } from '../../../i18n';
@@ -39,7 +40,13 @@ const AlbumCoverMenu = ({ failure, candidates, initialQuery, change, search, dow
   useEffect(() => {
     if (!opened) return undefined;
 
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && close();
+    // Escape closes the menu only: the page of the album, which also listens, leaves it alone
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+
+      event.preventDefault();
+      close();
+    };
     const onPointer = (event: PointerEvent) => event.target instanceof Node && !root.current?.contains(event.target) && close();
     document.addEventListener('keydown', onKey);
     document.addEventListener('pointerdown', onPointer);
@@ -89,7 +96,7 @@ const AlbumCoverMenu = ({ failure, candidates, initialQuery, change, search, dow
         </div>
       )}
       {opened && searching && (
-        <div className={style.menu}>
+        <div className={classNames(style.menu, style.searching)}>
           <form className={style.searchForm} onSubmit={submit}>
             <input
               type="search"

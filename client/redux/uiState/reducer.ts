@@ -101,6 +101,8 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
         view: action.payload.view,
         librarySearch: '',
         openGroup: undefined,
+        // the page of an album is over the pages of the library: another view or tab leaves it
+        selectedAlbum: null,
         groupFilter: '',
         selectedTracks: state.librarySearch === '' ? state.selectedTracks : {},
       };
@@ -319,7 +321,7 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
     case 'MAXIMIZED_APP':
       return { ...state, maximized: action.payload.maximized };
     case 'SET_TAB':
-      return { ...state, tab: action.payload.tab };
+      return { ...state, tab: action.payload.tab, selectedAlbum: null };
     case 'SET_NAVIGATION_GROUP': {
       const { group, open } = action.payload;
       return group === 'library' ? { ...state, libraryOpen: open } : { ...state, playlistsOpen: open };

@@ -103,7 +103,7 @@ describe('AlbumDetails', () => {
 
     fireEvent.load(screen.getByRole('img'));
 
-    expect(screen.getByRole('button', { name: 'Close' }).parentElement?.getAttribute('style')).toContain('rgb(40, 20, 10)');
+    expect(screen.getByRole('button', { name: 'Back to the albums' }).parentElement?.getAttribute('style')).toContain('rgb(40, 20, 10)');
   });
 
   it('keeps the default header when the cover cannot be read', () => {
@@ -112,35 +112,35 @@ describe('AlbumDetails', () => {
 
     fireEvent.load(screen.getByRole('img'));
 
-    expect(screen.getByRole('button', { name: 'Close' }).parentElement?.getAttribute('style')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Back to the albums' }).parentElement?.getAttribute('style')).toBeNull();
   });
 
-  it('keeps showing the album while it closes', () => {
-    const { rerender } = setup(album);
+  it('shows nothing while no album is open', () => {
+    const { container } = render(<AlbumDetails album={null} playTracks={vi.fn()} close={vi.fn()} />);
 
-    rerender(<AlbumDetails album={null} playTracks={vi.fn()} close={vi.fn()} />);
-
-    expect(screen.getByText('Title')).toBeTruthy();
-    expect(screen.getByRole('img').getAttribute('src')).toBe(getCoverUrl('/data/albumart/abc123.jpg'));
+    expect(container.children).toHaveLength(0);
   });
 
-  it('closes on a click outside the dialog, and not on a click inside it', () => {
+  it('goes back with the button on top, and not with a click inside the page', () => {
     const close = vi.fn();
-    const { container } = render(<AlbumDetails album={album} playTracks={vi.fn()} close={close} />);
+    render(<AlbumDetails album={album} playTracks={vi.fn()} close={close} />);
 
     fireEvent.click(screen.getByText('One'));
     expect(close).not.toHaveBeenCalled();
 
-    fireEvent.click(container.firstElementChild as Element);
+    fireEvent.click(screen.getByRole('button', { name: 'Back to the albums' }));
     expect(close).toHaveBeenCalledTimes(1);
   });
 
-  it('has no layer over the window while no album is open, so the title bar can drag it', () => {
-    const { container, rerender } = render(<AlbumDetails album={null} playTracks={vi.fn()} close={vi.fn()} />);
-    expect(container.children).toHaveLength(1);
+  it('leaves an Escape that something else used, as the menu of the cover that closes with it', () => {
+    const close = vi.fn();
+    render(<AlbumDetails album={album} playTracks={vi.fn()} close={close} />);
 
-    rerender(<AlbumDetails album={album} playTracks={vi.fn()} close={vi.fn()} />);
-    expect(container.children).toHaveLength(2);
+    const used = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+    used.preventDefault();
+    document.dispatchEvent(used);
+
+    expect(close).not.toHaveBeenCalled();
   });
 
   it('closes with Escape while an album is open, and listens no more once it is closed', () => {

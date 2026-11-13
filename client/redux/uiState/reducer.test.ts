@@ -185,6 +185,13 @@ describe('uiState reducer', () => {
     expect(run({ type: 'SELECT_ALBUM', payload: { album: null } }, state).selectedAlbum).toBeNull();
   });
 
+  it('leaves the page of the album when the view or the tab changes', () => {
+    const open = run({ type: 'SELECT_ALBUM', payload: { album: { id: 'a' } as Album } });
+
+    expect(run({ type: 'SET_VIEW', payload: { view: 'artists' } }, open).selectedAlbum).toBeNull();
+    expect(run({ type: 'SET_TAB', payload: { tab: 'settings' } }, open).selectedAlbum).toBeNull();
+  });
+
   it('shows the new cover of the album that is open, with its tracks, and not of another', () => {
     const track = { path: '/music/one/01.flac', picture: 'old.jpg' } as Track;
     const album = { id: 'a', path: '/music/one', title: 'Songs', cover: 'old.jpg', tracks: [track] } as Album;

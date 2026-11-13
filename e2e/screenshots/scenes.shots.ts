@@ -41,7 +41,7 @@ const like = (page: Page, text: string) =>
     { label: text, heart: `[aria-label="${ui('Add to favourites')}"]` }
   );
 
-// a playlist of the albums, built through the dialog of each: the dialog is the last of the page, so is its menu
+// a playlist of the albums, built through the page of each album: the menu opens at the end of the document
 const playlist = async (page: Page, name: string, listed: Album[]) => {
   await page.getByRole('button', { name: ui('New playlist') }).click();
   await page.getByLabel(ui('Playlist name')).first().fill(name);
@@ -52,8 +52,8 @@ const playlist = async (page: Page, name: string, listed: Album[]) => {
     await visible(page, title).click();
     await expect(visible(page, tracks.at(-1) ?? '')).toBeVisible();
     await page
+      .locator('[class*="AlbumDetails__albumDetails"]')
       .getByRole('button', { name: ui('Add to a playlist') })
-      .last()
       .click();
     await page.getByRole('menuitem', { name }).last().click();
     await closeDialog(page);
@@ -86,7 +86,7 @@ test('album', async ({ window: page }) => {
 });
 
 test('radio', async ({ window: page }) => {
-  // the dialog of the album before is still open
+  // the page of the album before may still be open
   const open = page.locator('[class*="AlbumDetails__close"]').filter({ visible: true });
   if (await open.count()) await open.click();
   // two more albums played, so the history of Home has more than one row

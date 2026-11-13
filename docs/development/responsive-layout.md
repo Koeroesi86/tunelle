@@ -39,4 +39,4 @@ It belongs to the `screenshots` project, not to `e2e`, so CI does not run it: a 
 
 What it does not do: a touch screen (`pointer: coarse` and `hover: none` are not emulated), zoom and a large system font, and a window moved between displays of different density. Check these by hand.
 
-Findings from the first run: the clock of the player has to be held (`holdAt`), or the picture is never the same twice; the album dialog covers the player bar by design, so the buttons are checked only outside it; a window that is taller than its list shows all of it, so the portrait size of the scroll test is kept low on purpose.
+Findings from the first run: the clock of the player has to be held (`holdAt`), or the picture is never the same twice; the page of an album takes the library area only (the player bar stays), and the buttons are checked as everywhere; a window that is taller than its list shows all of it, so the portrait size of the scroll test is kept low on purpose.
