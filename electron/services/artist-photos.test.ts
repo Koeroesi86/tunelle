@@ -77,7 +77,10 @@ describe('createArtistPhotoQueue', () => {
   let clock: number;
   const onFound = vi.fn();
   const records = () =>
-    executeQuery<{ key: string; picture: string | null; checkedAt: number; manual: number }>(database, { query: 'SELECT * FROM artist_photos ORDER BY key', variables: [] });
+    executeQuery<{ key: string; picture: string | null; checkedAt: number; manual: number }>(database, {
+      query: 'SELECT * FROM artist_photos ORDER BY key',
+      variables: [],
+    });
   /** The queue waits between two lookups, which the fake clock passes at once while the database answers in real time */
   const queueOf = () => {
     const queue = createArtistPhotoQueue({ database, getFolder: () => folder, onFound });

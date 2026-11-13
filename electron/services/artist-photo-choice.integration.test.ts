@@ -15,7 +15,8 @@ const webp = Buffer.concat([Buffer.from('RIFF'), Buffer.from([0, 0, 0, 0]), Buff
 describe('the photo of an artist the user chooses', () => {
   let database: Database;
   let folder: string;
-  const records = () => executeQuery<{ key: string; picture: string | null; manual: number }>(database, { query: 'SELECT key, picture, manual FROM artist_photos', variables: [] });
+  const records = () =>
+    executeQuery<{ key: string; picture: string | null; manual: number }>(database, { query: 'SELECT key, picture, manual FROM artist_photos', variables: [] });
   const files = () => fs.readdirSync(folder).sort();
 
   beforeEach(async () => {
@@ -50,7 +51,10 @@ describe('the photo of an artist the user chooses', () => {
   });
 
   it('keeps the image as a manual photo, in a file that another image does not reuse, and deletes the one it replaces', async () => {
-    await executeQuery(database, { query: "INSERT INTO artist_photos (key, picture, checkedAt) VALUES ('adam', 'artist-0123456789abcdef.jpg', 1)", variables: [] });
+    await executeQuery(database, {
+      query: "INSERT INTO artist_photos (key, picture, checkedAt) VALUES ('adam', 'artist-0123456789abcdef.jpg', 1)",
+      variables: [],
+    });
     fs.writeFileSync(path.join(folder, 'artist-0123456789abcdef.jpg'), 'looked up');
     fs.writeFileSync(path.join(folder, 'artist-0123456789abcdef-optimized.png'), 'small');
 
