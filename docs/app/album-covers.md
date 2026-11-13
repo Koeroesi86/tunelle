@@ -11,7 +11,7 @@ The page of an open album (`client/components/library/album-details/`) has the b
 - **Remove the cover** keeps no cover for the album.
 - **Reset the cover** forgets the choice and reads the tags of the tracks again, so the cover of the tags is back.
 
-The search is the one the user starts by pressing Search, so it has no setting; the text goes to MusicBrainz as the covers of the radio do (`searchAlbums` of `electron/services/radio-art.ts`, which shares their queue and the limit of one request a second, so a search can wait a moment behind a radio lookup). The photos of the artists come from Deezer instead, see [artist-photos.md](artist-photos.md).
+The search is the one the user starts by pressing Search, so it has no setting; the text goes to MusicBrainz as the covers of the radio do (`searchAlbums` of `electron/services/radio-art.ts`, which shares their queue and the limit of one request a second, so a search can wait a moment behind a radio lookup; the gap is counted from the end of the answer before, and a 503, which is how MusicBrainz declines a request over its limit, is asked again twice after a longer wait before the search fails; the panel shows a spinner meanwhile). The photos of the artists come from Deezer instead, see [artist-photos.md](artist-photos.md).
 
 ## How it is kept
 

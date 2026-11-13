@@ -19,7 +19,7 @@ const answers = (routes: Record<string, (url: string) => Response>) =>
 /** Lets the fake clock pass the pause between two searches, so a lookup that makes several does not wait for them */
 const settle = async <T>(promise: Promise<T>) => {
   promise.catch(() => undefined);
-  await vi.advanceTimersByTimeAsync(10_000);
+  await vi.advanceTimersByTimeAsync(60_000);
   return promise;
 };
 
@@ -260,10 +260,26 @@ describe('radio art', () => {
       expect(await search(fetcher, 'songs')).toEqual([{ name: 'Songs', picture: `https://coverartarchive.org/release-group/${group}/front-250` }]);
     });
 
-    it('fails when MusicBrainz does', async () => {
+    it('fails when MusicBrainz keeps declining, after asking again a few times', async () => {
       const fetcher = answers({ 'musicbrainz.org': () => new Response(null, { status: 503 }) });
 
       await expect(search(fetcher, 'songs')).rejects.toThrow('503');
+      expect(fetcher).toHaveBeenCalledTimes(3);
+    });
+
+    it('asks again when MusicBrainz declines once because of its limit', async () => {
+      let calls = 0;
+      const fetcher = answers({ 'musicbrainz.org': () => (calls++ === 0 ? new Response(null, { status: 503 }) : groups([{ id: group, title: 'Songs' }])) });
+
+      expect(await search(fetcher, 'songs')).toHaveLength(1);
+      expect(fetcher).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not ask again after another failure', async () => {
+      const fetcher = vi.fn<Fetcher>().mockRejectedValue(new Error('offline'));
+
+      await expect(search(fetcher, 'songs')).rejects.toThrow('offline');
+      expect(fetcher).toHaveBeenCalledTimes(1);
     });
   });
 });

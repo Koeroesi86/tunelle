@@ -104,20 +104,31 @@ const coverUrlsOf = (answer: unknown) => {
     .map((path) => `https://coverartarchive.org/${path}/front-500`);
 };
 
-/** The requests to MusicBrainz one after the other, each gap counted from the start of the request before it, so they stay under its limit */
+/** The requests to MusicBrainz one after the other, each gap counted from the end of the request before it, so they stay under its limit */ const createQueue =
+  () => {
+    let tail: Promise<unknown> = Promise.resolve();
 
-const createQueue = () => {
-  let tail: Promise<unknown> = Promise.resolve();
-
-  return <T>(task: () => Promise<T>) => {
-    let gap: Promise<unknown> = Promise.resolve();
-    const result = tail.then(() => {
-      gap = wait(searchGap);
-      return task();
-    });
-    tail = result.catch(() => undefined).then(() => gap);
-    return result;
+    return <T>(task: () => Promise<T>) => {
+      const result = tail.then(() => task());
+      tail = result.catch(() => undefined).then(() => wait(searchGap));
+      return result;
+    };
   };
+
+const busyRetries = 2;
+
+const isBusy = (error: unknown) => error instanceof Error && error.message.endsWith('answered 503');
+
+/** An answer of MusicBrainz as JSON; a 503 means that its limit was reached, so the request is made again after a longer wait. See docs/app/album-covers.md */
+const musicBrainzJson = async (url: string, userAgent: string, attempt = 0): Promise<unknown> => {
+  const answer = await fetchOk(url, { headers: { 'User-Agent': userAgent }, timeout: lookupTimeout }).then(
+    (response) => response.json(),
+    (error: unknown) => (isBusy(error) && attempt < busyRetries ? undefined : Promise.reject(error))
+  );
+  if (answer !== undefined) return answer;
+
+  await wait(searchGap * (attempt + 2));
+  return musicBrainzJson(url, userAgent, attempt + 1);
 };
 
 const releaseGroupUrl = (query: string) => `https://musicbrainz.org/ws/2/release-group?${new URLSearchParams({ query, fmt: 'json', limit: '8' })}`;
@@ -159,7 +170,7 @@ export const createRadioArt = (userAgent: string) => {
   const images = new Map<string, RadioArtImage>();
 
   const fromQuery = async (query: string) => {
-    const answer: unknown = await queue(async () => (await fetchOk(searchUrl(query), { headers: { 'User-Agent': userAgent }, timeout: lookupTimeout })).json());
+    const answer: unknown = await queue(() => musicBrainzJson(searchUrl(query), userAgent));
 
     return firstImage(coverUrlsOf(answer));
   };
@@ -208,9 +219,7 @@ export const createRadioArt = (userAgent: string) => {
       if (terms.length === 0) return [];
 
       const query = terms.map((term) => `(releasegroup:${term} OR artist:${term})`).join(' AND ');
-      const answer: unknown = await queue(async () =>
-        (await fetchOk(releaseGroupUrl(query), { headers: { 'User-Agent': userAgent }, timeout: lookupTimeout })).json()
-      );
+      const answer: unknown = await queue(() => musicBrainzJson(releaseGroupUrl(query), userAgent));
       return albumCandidatesOf(answer);
     },
   };
