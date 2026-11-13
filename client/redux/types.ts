@@ -2,7 +2,7 @@ import type { Album, AlbumSummary, Folder, GroupSummary, Track } from '@shared/t
 import type { Favourite, FavouriteKey, HistoryItem, NewFavourite } from '@shared/types/favourites';
 import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
 import type { FailedLoudnessTrack, LoudnessProgress } from '@shared/types/loudness';
-import type { AlbumCoverChange, AlbumCoverChanged, AlbumCoverFailure } from '@shared/types/album-cover';
+import type { AlbumCoverCandidates, AlbumCoverChange, AlbumCoverChanged, AlbumCoverFailure } from '@shared/types/album-cover';
 import type { ArtistPhotoCandidates, ArtistPhotoChange, ArtistPhotoFailure } from '@shared/types/artist-photo';
 import type { BackgroundTask } from '@shared/schemas/background-tasks';
 import type { Playlist } from '@shared/types/playlists';
@@ -49,6 +49,8 @@ export interface UiState extends PersistedSettings {
   artistPhotoCandidates: ArtistPhotoCandidates | undefined;
   /** Why the last cover picked for an album could not be used, undefined when it could or nothing was picked; not saved */
   albumCoverFailure: AlbumCoverFailure | undefined;
+  /** What the last search of a cover found, undefined until it answers or when nothing was searched; not saved */
+  albumCoverCandidates: AlbumCoverCandidates | undefined;
   /** Counts the changes of the photos, so what shows one fetches it again; not saved */
   artistPhotoRevision: number;
   /** The artist, album artist or genre that is open, and the text the artists, album artists and genres are filtered by; neither is saved */
@@ -165,6 +167,8 @@ export type AppAction =
   | PayloadAction<'SET_ARTIST_PHOTOS', { enabled: boolean }>
   | PayloadAction<'CHANGE_ARTIST_PHOTO', ArtistPhotoChange>
   | PayloadAction<'CHANGE_ALBUM_COVER', AlbumCoverChange>
+  | PayloadAction<'SEARCH_ALBUM_COVERS', { query: string }>
+  | PayloadAction<'ALBUM_COVER_CANDIDATES', AlbumCoverCandidates>
   | PayloadAction<'ALBUM_COVER_CHANGED', AlbumCoverChanged>
   | PayloadAction<'ALBUM_COVER_FAILED', { reason: AlbumCoverFailure }>
   | PayloadAction<'SEARCH_ARTIST_PHOTOS', { query: string }>

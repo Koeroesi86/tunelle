@@ -223,4 +223,47 @@ describe('radio art', () => {
 
     expect(art.get(first ?? '')).toBeUndefined();
   });
+
+  describe('the search of albums', () => {
+    const groups = (items: unknown[]) => Response.json({ 'release-groups': items });
+    const search = (fetcher: Fetcher, text: string) => {
+      vi.stubGlobal('fetch', fetcher);
+      return settle(createRadioArt(userAgent).searchAlbums(text));
+    };
+
+    it('asks for the words in the title or the artist, with the user agent, and lists the albums with the small cover they may have', async () => {
+      const fetcher = answers({
+        'musicbrainz.org': () =>
+          groups([
+            { id: group, title: 'Songs', 'artist-credit': [{ name: 'Adam' }, { name: 'Eve' }] },
+            { id: secondRelease, title: 'Untitled', 'artist-credit': [] },
+          ]),
+      });
+
+      const found = await search(fetcher, 'adam "songs"');
+
+      const [url, init] = fetcher.mock.calls[0];
+      expect(new URL(url).pathname).toBe('/ws/2/release-group');
+      expect(new URL(url).searchParams.get('query')).toBe('(releasegroup:adam OR artist:adam) AND (releasegroup:songs OR artist:songs)');
+      expect(init.headers).toEqual({ 'User-Agent': userAgent });
+      expect(found).toEqual([
+        { name: 'Adam, Eve – Songs', picture: `https://coverartarchive.org/release-group/${group}/front-250` },
+        { name: 'Untitled', picture: `https://coverartarchive.org/release-group/${secondRelease}/front-250` },
+      ]);
+    });
+
+    it('asks nothing for a text without a word, and leaves out what is not an album', async () => {
+      const fetcher = answers({ 'musicbrainz.org': () => groups([{ id: 'x', title: 'Bad id' }, 7, { id: group, title: 'Songs' }]) });
+
+      expect(await search(fetcher, '  "…" ')).toEqual([]);
+      expect(fetcher).not.toHaveBeenCalled();
+      expect(await search(fetcher, 'songs')).toEqual([{ name: 'Songs', picture: `https://coverartarchive.org/release-group/${group}/front-250` }]);
+    });
+
+    it('fails when MusicBrainz does', async () => {
+      const fetcher = answers({ 'musicbrainz.org': () => new Response(null, { status: 503 }) });
+
+      await expect(search(fetcher, 'songs')).rejects.toThrow('503');
+    });
+  });
 });

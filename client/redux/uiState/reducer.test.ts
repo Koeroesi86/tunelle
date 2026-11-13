@@ -204,6 +204,16 @@ describe('uiState reducer', () => {
     expect(run({ type: 'SELECT_ALBUM', payload: { album: null } }, failed).albumCoverFailure).toBeUndefined();
   });
 
+  it('keeps what a search of covers found until the next change or search, or another album', () => {
+    const candidates = { query: 'adam', candidates: [{ name: 'Adam – Songs', picture: 'https://coverartarchive.org/release-group/a/front-250' }] };
+    const found = run({ type: 'ALBUM_COVER_CANDIDATES', payload: candidates });
+
+    expect(found.albumCoverCandidates).toEqual(candidates);
+    expect(run({ type: 'SEARCH_ALBUM_COVERS', payload: { query: 'eve' } }, found).albumCoverCandidates).toBeUndefined();
+    expect(run({ type: 'CHANGE_ALBUM_COVER', payload: { path: '/m', title: 'A', change: 'reset' } }, found).albumCoverCandidates).toBeUndefined();
+    expect(run({ type: 'SELECT_ALBUM', payload: { album: null } }, found).albumCoverCandidates).toBeUndefined();
+  });
+
   it('sets a single equalizer gain in dB without mutating the previous state', () => {
     const state = run({ type: 'SET_GAIN', payload: { value: '6.5', index: 2 } });
 

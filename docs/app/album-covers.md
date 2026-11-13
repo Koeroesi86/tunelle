@@ -7,10 +7,11 @@ The cover of an album is the picture in the tags of its tracks (`electron/librar
 The panel of an open album has the button **Change cover**, with these entries:
 
 - **Choose an image…** takes a JPEG, PNG or WebP file of up to 2 MB, checked as for the photos of the artists (`readPhotoFile`, see [artist-photos.md](artist-photos.md)). A file that cannot be used shows its reason beside the button (`ALBUM_COVER_FAILED`) and changes nothing.
+- **Search online…** searches MusicBrainz for release groups (`ALBUM_COVER_SEARCH`, answered by `ALBUM_COVER_CANDIDATES` with the text that was searched, so an answer for an older text is ignored). The text starts as the artist and the title and can be changed; each word must be in the title or the artist. The results show the small front cover of the Cover Art Archive (`front-250`), which the renderer loads itself; an album that has none does not load and is left out. The one picked is downloaded by the main process (`change: 'download'`, `front-500`) and kept like a picked file. A picture to download must be a `https://coverartarchive.org/release-group/<id>/front-250|500` address (`albumCoverChangeSchema`), so the page cannot make the main process fetch another server.
 - **Remove the cover** keeps no cover for the album.
 - **Reset the cover** forgets the choice and reads the tags of the tracks again, so the cover of the tags is back.
 
-There is no search online for covers; the photos of the artists are the only thing the app looks up.
+The search is the one the user starts by pressing Search, so it has no setting; the text goes to MusicBrainz as the covers of the radio do (`searchAlbums` of `electron/services/radio-art.ts`, which shares their queue and the limit of one request a second, so a search can wait a moment behind a radio lookup). The photos of the artists come from Deezer instead, see [artist-photos.md](artist-photos.md).
 
 ## How it is kept
 

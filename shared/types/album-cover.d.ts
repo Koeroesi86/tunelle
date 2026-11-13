@@ -10,3 +10,6 @@ export type AlbumCoverChanged = z.infer<typeof messageSchemas.ALBUM_COVER_CHANGE
 
 /** A change of the cover of an album, as the page asks for it */
 export type AlbumCoverChange = z.infer<typeof albumCoverChangeSchema>;
+
+/** The albums a search of covers found, with the text that was searched */
+export type AlbumCoverCandidates = z.infer<typeof messageSchemas.ALBUM_COVER_CANDIDATES>;

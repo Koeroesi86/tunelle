@@ -9,7 +9,7 @@ import { radioSearchSchema } from '../types/radio-query';
 // what the main process sends to the page, by channel; a message of the wrong shape is dropped by the page (client/services/on-message.ts)
 export const artistPhotoFailureSchema = z.enum(['unreadable', 'tooLarge', 'notImage', 'searchFailed', 'downloadFailed']);
 
-export const albumCoverFailureSchema = artistPhotoFailureSchema.exclude(['searchFailed', 'downloadFailed']);
+export const albumCoverFailureSchema = artistPhotoFailureSchema;
 
 const radioStreamSchema = radioStationSchema.pick({ uuid: true });
 
@@ -21,6 +21,7 @@ export const messageSchemas = {
   LOUDNESS_FAILED: z.object({ tracks: z.array(failedLoudnessTrackSchema) }),
   ARTIST_PHOTO_FAILED: z.object({ reason: artistPhotoFailureSchema }),
   ALBUM_COVER_FAILED: z.object({ reason: albumCoverFailureSchema }),
+  ALBUM_COVER_CANDIDATES: z.object({ query: z.string(), candidates: z.array(z.object({ name: z.string(), picture: z.string() })) }),
   ALBUM_COVER_CHANGED: z.object({ path: z.string(), title: z.string(), cover: z.string().nullable() }),
   ARTIST_PHOTO_CANDIDATES: z.object({ query: z.string(), candidates: z.array(z.object({ name: z.string(), picture: z.string() })) }),
   BACKGROUND_TASKS: backgroundTasksSchema,

@@ -17,6 +17,7 @@ const searchGap = 1100;
 // a doubtful match shows no cover instead of a wrong one
 const minScore = 90;
 const maxCandidates = 6;
+const maxSearchTerms = 8;
 
 const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -119,6 +120,25 @@ const createQueue = () => {
   };
 };
 
+const releaseGroupUrl = (query: string) => `https://musicbrainz.org/ws/2/release-group?${new URLSearchParams({ query, fmt: 'json', limit: '8' })}`;
+
+const releaseGroupSchema = z.object({
+  id: z.string().regex(idPattern),
+  title: z.string(),
+  'artist-credit': z.array(z.object({ name: z.string() })).catch([]),
+});
+
+/** The albums of an answer of the search of release groups, each with the address of the small front cover the Cover Art Archive may have for it */
+const albumCandidatesOf = (answer: unknown) =>
+  z
+    .object({ 'release-groups': z.array(z.unknown()).catch([]) })
+    .safeParse(answer)
+    .data?.['release-groups'].flatMap((item) => releaseGroupSchema.safeParse(item).data ?? [])
+    .map((group) => ({
+      name: [group['artist-credit'].map(({ name }) => name).join(', '), group.title].filter(Boolean).join(' – '),
+      picture: `https://coverartarchive.org/release-group/${group.id}/front-250`,
+    })) ?? [];
+
 /** The best ranked of the images that load: all are requested at once, the ones that lose are cancelled */
 const firstImage = async (urls: string[]) => {
   const cancel = new AbortController();
@@ -178,5 +198,22 @@ export const createRadioArt = (userAgent: string) => {
       return lookup;
     },
     get: (key: string) => images.get(key),
+    /** The albums MusicBrainz finds for the words of a text, through the same queue as the lookups of the art (its limit is for all of them); a search that fails throws */
+    searchAlbums: async (text: string) => {
+      const terms = text
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, maxSearchTerms);
+      if (terms.length === 0) return [];
+
+      const query = terms.map((term) => `(releasegroup:${term} OR artist:${term})`).join(' AND ');
+      const answer: unknown = await queue(async () =>
+        (await fetchOk(releaseGroupUrl(query), { headers: { 'User-Agent': userAgent }, timeout: lookupTimeout })).json()
+      );
+      return albumCandidatesOf(answer);
+    },
   };
 };
+
+export type RadioArt = ReturnType<typeof createRadioArt>;

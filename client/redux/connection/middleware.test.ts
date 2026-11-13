@@ -499,10 +499,22 @@ describe('connection middleware', () => {
 
         store.dispatch({ type: 'CHANGE_ALBUM_COVER', payload: { path: '/music/one', title: 'Songs', change: 'pick' } });
         listen('ALBUM_COVER_FAILED', { reason: 'tooLarge' });
-        listen('ALBUM_COVER_FAILED', { reason: 'searchFailed' });
+        listen('ALBUM_COVER_FAILED', { reason: 'other' });
 
         expect(send).toHaveBeenCalledWith('ALBUM_COVER_CHANGE', { path: '/music/one', title: 'Songs', change: 'pick' });
         expect(store.getState().uiState.albumCoverFailure).toBe('tooLarge');
+      });
+
+      it('sends the search of covers, and keeps what it found', async () => {
+        const { store, send, listen } = await setup();
+        const candidates = { query: 'adam', candidates: [{ name: 'Adam – Songs', picture: 'https://coverartarchive.org/release-group/a/front-250' }] };
+
+        store.dispatch({ type: 'SEARCH_ALBUM_COVERS', payload: { query: 'adam' } });
+        listen('ALBUM_COVER_CANDIDATES', candidates);
+        listen('ALBUM_COVER_CANDIDATES', { query: 1 });
+
+        expect(send).toHaveBeenCalledWith('ALBUM_COVER_SEARCH', { query: 'adam' });
+        expect(store.getState().uiState.albumCoverCandidates).toEqual(candidates);
       });
 
       it('shows the cover an album has after a change, and drops a message of the wrong shape', async () => {

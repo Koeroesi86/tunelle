@@ -107,7 +107,7 @@
   "artistPhoto.error.downloadFailed": "The photo could not be downloaded.",
   "artistPhoto.error.notImage": "The file is not a JPEG, PNG or WebP image.",
   "radioSources.title": "Radio and covers",
-  "radioSources.text": "Stations come from radio-browser.info, a directory that anyone can add stations to; Tunelle does not run, check or endorse them. The stream and the logo of a station are loaded from the servers of the station. When a station gives no cover for the song it announces, the title of the song is sent to MusicBrainz to find one, and the Cover Art Archive serves it. Tunelle is not affiliated with radio-browser.info, Deezer or MusicBrainz. More: koeroesi86.github.io/tunelle/privacy.html",
+  "radioSources.text": "Stations come from radio-browser.info, a directory that anyone can add stations to; Tunelle does not run, check or endorse them. The stream and the logo of a station are loaded from the servers of the station. When a station gives no cover for the song it announces, the title of the song is sent to MusicBrainz to find one, and the Cover Art Archive serves it. The same happens when you search for the cover of an album: the text you typed is sent to MusicBrainz. Tunelle is not affiliated with radio-browser.info, Deezer or MusicBrainz. More: koeroesi86.github.io/tunelle/privacy.html",
   "watchFolders.title": "Watch library folders",
   "watchFolders.on": "Songs that are added to, changed in or removed from your library folders are picked up without a rescan. The folders are looked at every 10 seconds, and less often the longer a look takes, as on a big library or a network or removable drive, and when you come back to the window. A drive that is back is scanned.",
   "watchFolders.off": "The library folders are not watched or looked at while the app runs. Use Rescan to pick up changes; they are also looked for when the app starts and when a drive is back.",
@@ -398,5 +398,12 @@
   "albumCover.filter": "Images",
   "albumCover.error.unreadable": "The file could not be read.",
   "albumCover.error.tooLarge": "The image is larger than 2 MB.",
-  "albumCover.error.notImage": "The file is not a JPEG, PNG or WebP image."
+  "albumCover.error.notImage": "The file is not a JPEG, PNG or WebP image.",
+  "albumCover.search": "Search online…",
+  "albumCover.searchButton": "Search",
+  "albumCover.searchLabel": "Search for an album",
+  "albumCover.noResults": "No covers found.",
+  "albumCover.back": "Back",
+  "albumCover.error.searchFailed": "The search did not work. Try again in a moment.",
+  "albumCover.error.downloadFailed": "The cover could not be downloaded."
 }

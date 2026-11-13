@@ -21,4 +21,4 @@ The header of an open artist or album artist shows its photo (or, with none, the
 
 - Refreshing a photo that changed on Deezer (the issue #211 asks how a change is detected; the file name by content is ready for it).
 - A menu on the tile; the button is on the page of the artist, which a touch screen has too.
-- Album covers have their own choice, see [album-covers.md](album-covers.md); a search online is not offered for them.
+- Album covers have their own choice, see [album-covers.md](album-covers.md), and a search online of them on MusicBrainz.

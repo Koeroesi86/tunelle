@@ -37,6 +37,7 @@ function addListeners(store: Store) {
   onMessage('FOLDER_REMOVED_FROM_LIBRARY', emptyMessage, (payload) => store.dispatch({ type: 'FOLDER_REMOVED_FROM_LIBRARY', payload }));
   onMessage('ARTIST_PHOTO_FAILED', messageSchemas.ARTIST_PHOTO_FAILED, (payload) => store.dispatch({ type: 'ARTIST_PHOTO_FAILED', payload }));
   onMessage('ALBUM_COVER_FAILED', messageSchemas.ALBUM_COVER_FAILED, (payload) => store.dispatch({ type: 'ALBUM_COVER_FAILED', payload }));
+  onMessage('ALBUM_COVER_CANDIDATES', messageSchemas.ALBUM_COVER_CANDIDATES, (payload) => store.dispatch({ type: 'ALBUM_COVER_CANDIDATES', payload }));
   onMessage('ALBUM_COVER_CHANGED', messageSchemas.ALBUM_COVER_CHANGED, (payload) => store.dispatch({ type: 'ALBUM_COVER_CHANGED', payload }));
   onMessage('ARTIST_PHOTO_CANDIDATES', messageSchemas.ARTIST_PHOTO_CANDIDATES, (payload) => store.dispatch({ type: 'ARTIST_PHOTO_CANDIDATES', payload }));
   onMessage('ARTIST_PHOTOS_READY', emptyMessage, (payload) => store.dispatch({ type: 'ARTIST_PHOTOS_READY', payload }));
@@ -258,6 +259,7 @@ const handleActions = actionMiddleware((store) => [
   }),
   onAction('CHANGE_ARTIST_PHOTO', ({ payload }) => electronAPI.send('ARTIST_PHOTO_CHANGE', payload)),
   onAction('CHANGE_ALBUM_COVER', ({ payload }) => electronAPI.send('ALBUM_COVER_CHANGE', payload)),
+  onAction('SEARCH_ALBUM_COVERS', ({ payload }) => electronAPI.send('ALBUM_COVER_SEARCH', payload)),
   onAction('SEARCH_ARTIST_PHOTOS', ({ payload }) => electronAPI.send('ARTIST_PHOTO_SEARCH', payload)),
   onAction('SET_WATCH_FOLDERS', ({ payload }) => saveSettings({ ...store.getState().uiState, watchFolders: payload.enabled })),
   onAction('SET_MEASURE_LOUDNESS', ({ payload }) => saveSettings({ ...store.getState().uiState, measureLoudness: payload.enabled })),

@@ -1,5 +1,6 @@
 import type { Database } from 'sqlite3';
 import type { AppWindows } from '@shared/types/global';
+import type { RadioArt } from '../services/radio-art';
 import type { RadioBrowser } from '../services/radio-browser';
 import type { UpdateManager } from '../services/update-manager';
 import type { ListenerContext } from './listener-context';
@@ -41,8 +42,15 @@ const registrars: ((context: ListenerContext) => void)[] = [
   registerMediaPermission,
 ];
 
-function setupListeners(database: Database, windows: AppWindows, radio: RadioBrowser, updates: UpdateManager, loudness: ListenerContext['loudness']) {
-  registrars.forEach((register) => register({ database, windows, radio, updates, loudness }));
+function setupListeners(
+  database: Database,
+  windows: AppWindows,
+  radio: RadioBrowser,
+  radioArt: RadioArt,
+  updates: UpdateManager,
+  loudness: ListenerContext['loudness']
+) {
+  registrars.forEach((register) => register({ database, windows, radio, radioArt, updates, loudness }));
 }
 
 export default setupListeners;

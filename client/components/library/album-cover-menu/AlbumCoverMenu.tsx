@@ -1,28 +1,46 @@
 import { useEffect, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import { MdPhotoCamera as CoverIcon } from 'react-icons/md';
-import type { AlbumCoverFailure } from '@shared/types/album-cover';
+import type { AlbumCoverCandidates, AlbumCoverFailure } from '@shared/types/album-cover';
 import { useTranslation } from '../../../i18n';
 import style from './AlbumCoverMenu.scss';
 
 interface AlbumCoverMenuProps {
   /** Why the file that was picked last cannot be used; undefined when nothing failed */
   failure: AlbumCoverFailure | undefined;
+  /** What the last search found, undefined until it answers */
+  candidates: AlbumCoverCandidates | undefined;
+  /** The text a search starts with: the artist and the title of the album */
+  initialQuery: string;
   change: (change: 'pick' | 'remove' | 'reset') => void;
+  search: (query: string) => void;
+  download: (picture: string) => void;
 }
 
 const changes = ['pick', 'remove', 'reset'] as const;
 
-/** The button of an open album that changes its cover: pick an image from the computer, take the cover away, or get the cover of the tags back */
-const AlbumCoverMenu = ({ failure, change }: AlbumCoverMenuProps) => {
+/** The button of an open album that changes its cover: pick an image from the computer, take the cover away, get the cover of the tags back, or search MusicBrainz by a text */
+const AlbumCoverMenu = ({ failure, candidates, initialQuery, change, search, download }: AlbumCoverMenuProps) => {
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [query, setQuery] = useState(initialQuery);
+  // the text that was searched last, as an answer for another text is not the one that is waited for
+  const [searched, setSearched] = useState<string>();
+  // an album may have no cover on the Cover Art Archive, its thumbnail does not load and it is left out
+  const [missing, setMissing] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
+
+  const close = () => {
+    setOpened(false);
+    setSearching(false);
+  };
 
   useEffect(() => {
     if (!opened) return undefined;
 
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setOpened(false);
-    const onPointer = (event: PointerEvent) => event.target instanceof Node && !root.current?.contains(event.target) && setOpened(false);
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && close();
+    const onPointer = (event: PointerEvent) => event.target instanceof Node && !root.current?.contains(event.target) && close();
     document.addEventListener('keydown', onKey);
     document.addEventListener('pointerdown', onPointer);
     return () => {
@@ -31,13 +49,25 @@ const AlbumCoverMenu = ({ failure, change }: AlbumCoverMenuProps) => {
     };
   }, [opened]);
 
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const text = query.trim();
+    if (!text) return;
+
+    setSearched(text);
+    setMissing([]);
+    search(text);
+  };
+
+  const results = candidates && candidates.query === searched ? candidates.candidates.filter(({ picture }) => !missing.includes(picture)) : undefined;
+
   return (
     <div ref={root} className={style.albumCoverMenu}>
-      <button type="button" className={style.toggle} aria-haspopup="menu" aria-expanded={opened} onClick={() => setOpened(!opened)}>
+      <button type="button" className={style.toggle} aria-haspopup="menu" aria-expanded={opened} onClick={() => (opened ? close() : setOpened(true))}>
         <CoverIcon size="14px" aria-hidden />
         {t('albumCover.change')}
       </button>
-      {opened && (
+      {opened && !searching && (
         <div className={style.menu} role="menu">
           {changes.map((item) => (
             <button
@@ -46,13 +76,53 @@ const AlbumCoverMenu = ({ failure, change }: AlbumCoverMenuProps) => {
               role="menuitem"
               className={style.item}
               onClick={() => {
-                setOpened(false);
+                close();
                 change(item);
               }}
             >
               {t(`albumCover.${item}`)}
             </button>
           ))}
+          <button type="button" role="menuitem" className={style.item} onClick={() => setSearching(true)}>
+            {t('albumCover.search')}
+          </button>
+        </div>
+      )}
+      {opened && searching && (
+        <div className={style.menu}>
+          <form className={style.searchForm} onSubmit={submit}>
+            <input
+              type="search"
+              className={style.searchInput}
+              value={query}
+              aria-label={t('albumCover.searchLabel')}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <button type="submit" className={style.searchButton}>
+              {t('albumCover.searchButton')}
+            </button>
+          </form>
+          {results?.length === 0 && candidates && <p className={style.empty}>{t('albumCover.noResults')}</p>}
+          <ul className={style.results}>
+            {results?.map(({ name, picture }) => (
+              <li key={picture}>
+                <button
+                  type="button"
+                  className={style.result}
+                  onClick={() => {
+                    close();
+                    download(picture);
+                  }}
+                >
+                  <img className={style.thumbnail} src={picture} alt="" loading="lazy" onError={() => setMissing((previous) => [...previous, picture])} />
+                  <span className={style.resultName}>{name}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button type="button" className={style.item} onClick={() => setSearching(false)}>
+            {t('albumCover.back')}
+          </button>
         </div>
       )}
       {failure && (

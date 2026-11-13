@@ -59,6 +59,7 @@ const initialState: UiState = {
   artistPhotoFailure: undefined,
   artistPhotoCandidates: undefined,
   albumCoverFailure: undefined,
+  albumCoverCandidates: undefined,
   artistPhotoRevision: 0,
   watchFolders: true,
   measureLoudness: true,
@@ -268,9 +269,12 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return currentTime === state.currentTime ? state : { ...state, currentTime };
     }
     case 'SELECT_ALBUM':
-      return { ...state, selectedAlbum: action.payload.album || null, albumCoverFailure: undefined };
+      return { ...state, selectedAlbum: action.payload.album || null, albumCoverFailure: undefined, albumCoverCandidates: undefined };
     case 'CHANGE_ALBUM_COVER':
-      return { ...state, albumCoverFailure: undefined };
+    case 'SEARCH_ALBUM_COVERS':
+      return { ...state, albumCoverFailure: undefined, albumCoverCandidates: undefined };
+    case 'ALBUM_COVER_CANDIDATES':
+      return { ...state, albumCoverCandidates: action.payload };
     case 'ALBUM_COVER_FAILED':
       return { ...state, albumCoverFailure: action.payload.reason };
     case 'ALBUM_COVER_CHANGED': {

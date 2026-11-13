@@ -49,7 +49,20 @@ export const artistPhotoChangeSchema = z.discriminatedUnion('change', [
 ]);
 
 /** A change of the cover of one album (its folder and title as the library lists it): a file the user picks, no cover, or the cover of the tags again */
-export const albumCoverChangeSchema = z.object({ path: z.string(), title: z.string(), change: z.enum(['pick', 'remove', 'reset']) });
+const albumSchema = { path: z.string(), title: z.string() };
+
+// a cover to download is one of the search results, which are on the Cover Art Archive: a front cover of a release group
+const coverArchivePictureSchema = z
+  .url({ protocol: /^https$/ })
+  .refine((url) => /^https:\/\/coverartarchive\.org\/release-group\/[0-9a-f-]{36}\/front-(250|500)$/.test(url));
+
+export const albumCoverChangeSchema = z.discriminatedUnion('change', [
+  z.object({ ...albumSchema, change: z.enum(['pick', 'remove', 'reset']) }),
+  z.object({ ...albumSchema, change: z.literal('download'), picture: coverArchivePictureSchema }),
+]);
+
+/** The text to search the covers of albums by on MusicBrainz */
+export const albumCoverSearchSchema = z.object({ query: z.string().trim().min(1).max(100) });
 
 /** The text to search the photos of artists by on Deezer */
 export const artistPhotoSearchSchema = z.object({ query: z.string().trim().min(1).max(100) });
