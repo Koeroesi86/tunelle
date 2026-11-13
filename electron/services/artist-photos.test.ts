@@ -77,7 +77,7 @@ describe('createArtistPhotoQueue', () => {
   let clock: number;
   const onFound = vi.fn();
   const records = () =>
-    executeQuery<{ key: string; picture: string | null; checkedAt: number }>(database, { query: 'SELECT * FROM artist_photos ORDER BY key', variables: [] });
+    executeQuery<{ key: string; picture: string | null; checkedAt: number; manual: number }>(database, { query: 'SELECT * FROM artist_photos ORDER BY key', variables: [] });
   /** The queue waits between two lookups, which the fake clock passes at once while the database answers in real time */
   const queueOf = () => {
     const queue = createArtistPhotoQueue({ database, getFolder: () => folder, onFound });
@@ -129,7 +129,7 @@ describe('createArtistPhotoQueue', () => {
 
     await queue.enqueue([adam]);
     await queue.enqueue([adam]);
-    expect(await records()).toEqual([{ key: 'adam', picture: null, checkedAt: around(clock) }]);
+    expect(await records()).toEqual([{ key: 'adam', picture: null, checkedAt: around(clock), manual: 0 }]);
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(onFound).not.toHaveBeenCalled();
 
@@ -137,6 +137,29 @@ describe('createArtistPhotoQueue', () => {
     vi.setSystemTime(clock);
     await queue.enqueue([adam]);
     expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('never looks up a name whose photo the user chose or removed, however old the record is', async () => {
+    const fetcher = deezer(found);
+    await executeQuery(database, { query: "INSERT INTO artist_photos (key, picture, checkedAt, manual) VALUES ('adam', NULL, 1, 1)", variables: [] });
+    clock += 1000 * 60 * 60 * 24 * 365;
+    vi.setSystemTime(clock);
+
+    await queueOf().enqueue([adam]);
+
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('keeps the photo the user chose while a lookup of the name is on', async () => {
+    const chosen = "INSERT OR REPLACE INTO artist_photos (key, picture, checkedAt, manual) VALUES ('adam', 'artist-chosen.png', 1, 1)";
+    stubFetch(async (url: string) => {
+      await executeQuery(database, { query: chosen, variables: [] });
+      return new URL(url).pathname === '/search/artist' ? answer(found.Adam) : image();
+    });
+
+    await queueOf().enqueue([adam]);
+
+    expect(await records()).toEqual([{ key: 'adam', picture: 'artist-chosen.png', checkedAt: 1, manual: 1 }]);
   });
 
   it('does not look up a name that has its photo already, or no name at all', async () => {

@@ -15,11 +15,15 @@ import { getCachedItem } from '../../../redux/library/pages';
 import type { PageCache } from '../../../redux/library/pages';
 import type { OpenGroup } from '../../../redux/types';
 import AlbumSort from '../album-sort';
+import ArtistPhotoMenu from '../artist-photo-menu';
 import CoverSizeSlider from '../../ui/cover-size-slider';
 import GenreCard from '../genre-card';
 import GroupAlbums from '../group-albums';
 import GroupTile from '../group-tile';
 import style from './GroupView.scss';
+
+/** The groups that have a photo, which can be changed */
+const photoKinds: GroupKind[] = ['artist', 'albumArtist'];
 
 /** The gap between two tiles in px, the tiles grow to fill the width; matching .tileRow in GroupView.scss */
 const tileGap = 18;
@@ -164,6 +168,7 @@ const GroupView = ({ open, closeGroup, playTracks, ...list }: GroupViewProps) =>
             <ShuffleIcon size="14px" aria-hidden />
             {t('favourites.shuffle')}
           </button>
+          {photoKinds.includes(open.kind) && open.key && <ArtistPhotoMenu photoKey={open.key} />}
           <AlbumSort />
         </div>
       }

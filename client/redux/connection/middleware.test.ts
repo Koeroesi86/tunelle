@@ -482,6 +482,17 @@ describe('connection middleware', () => {
         expect(send).toHaveBeenLastCalledWith('ARTIST_PHOTOS_WANTED', { artists: [{ key: 'adam', name: 'Adam' }] });
       });
 
+      it('sends the change of the photo of an artist, and shows why a picked file failed', async () => {
+        const { store, send, listen } = await setup();
+
+        store.dispatch({ type: 'CHANGE_ARTIST_PHOTO', payload: { key: 'adam', change: 'pick' } });
+        listen('ARTIST_PHOTO_FAILED', { reason: 'tooLarge' });
+        listen('ARTIST_PHOTO_FAILED', { reason: 'other' });
+
+        expect(send).toHaveBeenCalledWith('ARTIST_PHOTO_CHANGE', { key: 'adam', change: 'pick' });
+        expect(store.getState().uiState.artistPhotoFailure).toBe('tooLarge');
+      });
+
       it('saves the setting that turns the watching of the library folders off', async () => {
         const { store, send } = await setup();
 

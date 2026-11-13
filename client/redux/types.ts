@@ -2,6 +2,7 @@ import type { Album, AlbumSummary, Folder, GroupSummary, Track } from '@shared/t
 import type { Favourite, FavouriteKey, HistoryItem, NewFavourite } from '@shared/types/favourites';
 import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
 import type { FailedLoudnessTrack, LoudnessProgress } from '@shared/types/loudness';
+import type { ArtistPhotoFailure } from '@shared/types/artist-photo';
 import type { BackgroundTask } from '@shared/schemas/background-tasks';
 import type { Playlist } from '@shared/types/playlists';
 import type { ThemeMode } from '@shared/types/theme';
@@ -41,6 +42,8 @@ export interface PlaylistItem {
 export interface UiState extends PersistedSettings {
   /** The text the albums and the tracks are searched for, it is not saved and starts empty with every view */
   librarySearch: string;
+  /** Why the last photo picked for an artist could not be used, undefined when it could or nothing was picked; not saved */
+  artistPhotoFailure: ArtistPhotoFailure | undefined;
   /** The artist, album artist or genre that is open, and the text the artists, album artists and genres are filtered by; neither is saved */
   openGroup: OpenGroup | undefined;
   groupFilter: string;
@@ -153,6 +156,8 @@ export type AppAction =
   | PayloadAction<'STORE_GROUP_PAGE', { kind: GroupKind; page: number; items: GroupSummary[]; total: number }>
   | PayloadAction<'STORE_GROUP_ALBUM_PAGE', { page: number; items: AlbumSummary[]; total: number }>
   | PayloadAction<'SET_ARTIST_PHOTOS', { enabled: boolean }>
+  | PayloadAction<'CHANGE_ARTIST_PHOTO', { key: string; change: 'pick' | 'remove' | 'reset' }>
+  | PayloadAction<'ARTIST_PHOTO_FAILED', { reason: ArtistPhotoFailure }>
   | PayloadAction<'SET_WATCH_FOLDERS', { enabled: boolean }>
   | PayloadAction<'SET_MEASURE_LOUDNESS', { enabled: boolean }>
   | EmptyAction<'LOAD_LOUDNESS_STATUS'>

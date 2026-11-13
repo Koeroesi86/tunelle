@@ -24,8 +24,8 @@ const lookupTimeout = 5000;
 // how long to wait between two lookups, Deezer limits the requests
 const lookupGap = 250;
 
-const maxImageBytes = 2_000_000;
-// a name without a match is looked up again after this long, the artist may have a photo by then
+export const maxImageBytes = 2_000_000;
+// a name without a match is looked up again after this long, the artist may have a photo by then; a photo the user chose is never looked up
 const retryAfter = 1000 * 60 * 60 * 24 * 30;
 const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 
@@ -90,18 +90,18 @@ const storePhoto = async (folder: string, key: string, { extension, data }: Phot
   return fileName;
 };
 
-const getRecords = (database: Database, keys: string[]) =>
+export const getRecords = (database: Database, keys: string[]) =>
   keys.length === 0
     ? Promise.resolve([])
     : executeQuery(
         database,
-        { query: `SELECT key, picture, checkedAt FROM artist_photos WHERE key IN (${keys.map(() => '?').join(', ')})`, variables: keys },
+        { query: `SELECT key, picture, checkedAt, manual FROM artist_photos WHERE key IN (${keys.map(() => '?').join(', ')})`, variables: keys },
         artistPhotosRowSchema
       );
 
 const saveRecord = (database: Database, key: string, picture: string | null, checkedAt: number) =>
   executeQuery(database, {
-    query: `INSERT INTO artist_photos (key, picture, checkedAt) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET picture = excluded.picture, checkedAt = excluded.checkedAt`,
+    query: `INSERT INTO artist_photos (key, picture, checkedAt) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET picture = excluded.picture, checkedAt = excluded.checkedAt WHERE artist_photos.manual = 0`,
     variables: [key, picture, checkedAt],
   });
 
@@ -177,7 +177,7 @@ export const createArtistPhotoQueue = ({ database, getFolder, onFound }: QueueOp
       );
       const due = fresh.filter(({ key }) => {
         const record = records.get(key);
-        return !record || (!record.picture && record.checkedAt < Date.now() - retryAfter);
+        return !record || (!record.manual && !record.picture && record.checkedAt < Date.now() - retryAfter);
       });
       fresh.filter((artist) => !due.includes(artist)).forEach(({ key }) => queued.delete(key));
 

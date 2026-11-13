@@ -61,7 +61,7 @@
   "tour.albums.text": "A grid of covers that fills the window, with a slider for the size. Click a cover for the track list, a format badge on each track and a Play album button; sort by title, artist, year, length or number of tracks.",
   "tour.albums.alt": "The albums page of Tunelle: five album covers in a grid with artist, year, number of tracks, length and a FLAC badge, a search box, folder filter, sort menu and a cover size slider.",
   "tour.genre.title": "Artists, album artists and genres",
-  "tour.genre.text": "Browse by who made it or what it is. Genres get a colour and a fan of covers; open one and press <b>Play all</b> or <b>Shuffle</b> to queue everything in it.",
+  "tour.genre.text": "Browse by who made it or what it is. Genres get a colour and a fan of covers; open one and press <b>Play all</b> or <b>Shuffle</b> to queue everything in it. Open an artist and press <b>Change photo</b> to pick an image from your computer when the photo is wrong.",
   "tour.genre.alt": "An opened genre in Tunelle with Play all and Shuffle buttons in the header and the two albums of the genre below.",
   "tour.songs.title": "Everything you own, in one list",
   "tour.songs.text": "Every file in your folders with its artist, year, album, track number and format. Tick several songs and play just those. Open a folder once and the library keeps itself in step with it: files you add, change or remove show up within about ten seconds, with no rescan, and big libraries and folders on a slow network or removable drive are looked at less often.",

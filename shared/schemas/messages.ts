@@ -7,6 +7,8 @@ import { updateStateSchema } from './update';
 import { radioSearchSchema } from '../types/radio-query';
 
 // what the main process sends to the page, by channel; a message of the wrong shape is dropped by the page (client/services/on-message.ts)
+export const artistPhotoFailureSchema = z.enum(['unreadable', 'tooLarge', 'notImage']);
+
 const radioStreamSchema = radioStationSchema.pick({ uuid: true });
 
 export const messageSchemas = {
@@ -15,6 +17,7 @@ export const messageSchemas = {
   OFFLINE_FOLDERS: z.object({ folders: z.array(z.string()) }),
   LOUDNESS_STATUS: loudnessProgressSchema,
   LOUDNESS_FAILED: z.object({ tracks: z.array(failedLoudnessTrackSchema) }),
+  ARTIST_PHOTO_FAILED: z.object({ reason: artistPhotoFailureSchema }),
   BACKGROUND_TASKS: backgroundTasksSchema,
   MAXIMIZED_APP: z.object({ maximized: z.boolean() }),
   SET_PLAYING: z.object({ isPlaying: z.boolean() }),

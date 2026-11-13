@@ -471,6 +471,15 @@ describe('uiState reducer', () => {
       expect(run({ type: 'SET_GROUP_FILTER', payload: { filter: 'po' } }).groupFilter).toBe('po');
     });
 
+    it('keeps why a picked photo failed until another change, another group or the way back', () => {
+      const failed = run({ type: 'ARTIST_PHOTO_FAILED', payload: { reason: 'notImage' } });
+
+      expect(failed.artistPhotoFailure).toBe('notImage');
+      expect(run({ type: 'CHANGE_ARTIST_PHOTO', payload: { key: 'a', change: 'pick' } }, failed).artistPhotoFailure).toBeUndefined();
+      expect(run({ type: 'OPEN_GROUP', payload: { group: { kind: 'artist', key: 'a', name: 'A' } } }, failed).artistPhotoFailure).toBeUndefined();
+      expect(run({ type: 'CLOSE_GROUP', payload: {} }, failed).artistPhotoFailure).toBeUndefined();
+    });
+
     it('starts another view without the open group and the filter of the names', () => {
       const state = run(
         { type: 'SET_GROUP_FILTER', payload: { filter: 'po' } },

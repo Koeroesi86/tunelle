@@ -37,5 +37,8 @@ export const artistNamesSchema = z
   .transform(({ artists }) => artists.flatMap((item) => artistNameSchema.safeParse(item).data ?? []).slice(0, maxArtistNames))
   .catch([]);
 
+/** A change of the photo of one name: a file the user picks, no photo (the cover of an album shows), or the lookup again */
+export const artistPhotoChangeSchema = z.object({ key: z.string().min(1), change: z.enum(['pick', 'remove', 'reset']) });
+
 /** The settings as the page saves them: what is in them is read key by key by whoever needs it (shared/schemas/settings.ts) */
 export const savedSettingsSchema = z.record(z.string(), z.unknown());
