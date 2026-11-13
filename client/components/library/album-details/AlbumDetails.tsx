@@ -70,7 +70,8 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
               <div className={style.actions}>
                 <FavouriteButton item={albumFavourite(shown)} className={style.favourite} />
                 <AddToPlaylist source={shown} className={style.addToPlaylist} />
-                <AlbumCoverMenu path={shown.path} title={shown.title} artist={shown.artist} />
+                {/* another album starts with its own text and results */}
+                <AlbumCoverMenu key={shown.id} path={shown.path} title={shown.title} artist={shown.artist} />
               </div>
             )}
             <div className={style.meta}>
