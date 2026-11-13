@@ -138,6 +138,13 @@ describe('workflows', () => {
     expect(action).toContain('fail-on-cache-miss: true');
   });
 
+  it('every workflow that reaches ffmpeg.yml grants actions: read, as a called workflow gets at most what its caller has (else the run fails to start)', () => {
+    const callers = workflows.filter(([name, text]) => name !== 'ffmpeg.yml' && /uses: \.\/\.github\/workflows\/(test|dist)\.yml/.test(text));
+
+    expect(callers.map(([name]) => name).sort()).toEqual(['build.yml', 'pr-checks.yml', 'release.yml']);
+    callers.forEach(([, text]) => expect(text).toMatch(/\npermissions:\n(\s+#[^\n]*\n)?\s+actions: read\n/));
+  });
+
   it('the planning job of ffmpeg.yml lists every system that the callers restore', () => {
     const planned = [...read('ffmpeg.yml').matchAll(/"platform":"(\w+)","arch":"(\w+)"/g)].map((match) => `${match[1]}-${match[2]}`).sort();
     const used = ['test.yml', 'dist.yml'].flatMap((name) =>

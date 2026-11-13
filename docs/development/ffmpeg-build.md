@@ -18,6 +18,7 @@ A decode-only ffmpeg and ffprobe, built by us from the source tarball of ffmpeg.
 
 - The build is kept in a cache keyed on the platform, the architecture, `ffmpeg-source.json` and `ffmpeg-build.js` (not on the runner image, so the Flatpak job on `ubuntu-latest` uses the build that the AppImage system, Ubuntu 22.04, made).
 - The job `plan` runs first on one Ubuntu runner and lists with `gh cache list` the systems that have no cache for the current key, on the ref of the run or on the default branch (the two a run can read). `build` runs for those systems only, so a run with every build cached starts no macOS or Windows runner, which wait for a long time for a machine. A failed lookup counts as a missing cache, and the build runs.
+- `plan` needs `actions: read`, and a called workflow gets at most what its caller has, so `pr-checks.yml`, `build.yml` and `release.yml` grant it at the top. Without it the run ends with `startup_failure` and no job starts, with nothing in the logs to read.
 - The restore fails on a miss (`fail-on-cache-miss`): a cache that GitHub evicted between `plan` and the job is a rerun, not a silent wrong binary. `plan` is the one list of the systems; `workflows.test.ts` checks that the callers only restore systems in it.
 - The checked source tarball is kept in a second cache keyed on the system and its sha256 (the folder is the second argument of the script), so a change of the build script or the flags builds again without downloading it.
 
