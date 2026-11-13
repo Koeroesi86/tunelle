@@ -1,11 +1,8 @@
 @use '../../../styles/breakpoints' as *;
 
+// no box of its own: the button and the failure are items of the row of the actions, and the menu takes a row under them, so the panel of the album never clips it
 .albumCoverMenu {
-  position: relative;
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+  display: contents;
 
   .toggle {
     -webkit-app-region: no-drag;
@@ -39,14 +36,11 @@
   }
 
   .menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 10;
+    order: 1;
     display: flex;
+    flex: 0 0 100%;
     flex-direction: column;
-    width: min(240px, calc(100vw - 24px));
-    margin-top: 4px;
+    box-sizing: border-box;
     padding: 4px;
     background: var(--panel-solid);
     border-radius: 6px;
