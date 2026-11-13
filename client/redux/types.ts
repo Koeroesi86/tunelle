@@ -1,7 +1,7 @@
 import type { Album, AlbumSummary, Folder, GroupSummary, Track } from '@shared/types/library';
 import type { Favourite, FavouriteKey, HistoryItem, NewFavourite } from '@shared/types/favourites';
 import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
-import type { LoudnessProgress } from '@shared/types/loudness';
+import type { FailedLoudnessTrack, LoudnessProgress } from '@shared/types/loudness';
 import type { BackgroundTask } from '@shared/schemas/background-tasks';
 import type { Playlist } from '@shared/types/playlists';
 import type { ThemeMode } from '@shared/types/theme';
@@ -46,6 +46,8 @@ export interface UiState extends PersistedSettings {
   groupFilter: string;
   /** How far the measurement of the loudness of the library is, undefined until the main process tells; not saved */
   loudnessStatus: LoudnessProgress | undefined;
+  /** The tracks that could not be measured, undefined until the list is asked for; not saved */
+  loudnessFailed: FailedLoudnessTrack[] | undefined;
   /** What the background queue of the main process runs and what waits */
   backgroundTasks: BackgroundTask[];
   notifyLibraryChanges: boolean;
@@ -154,6 +156,8 @@ export type AppAction =
   | PayloadAction<'SET_WATCH_FOLDERS', { enabled: boolean }>
   | PayloadAction<'SET_MEASURE_LOUDNESS', { enabled: boolean }>
   | EmptyAction<'LOAD_LOUDNESS_STATUS'>
+  | EmptyAction<'LOAD_LOUDNESS_FAILED'>
+  | PayloadAction<'LOUDNESS_FAILED', { tracks: FailedLoudnessTrack[] }>
   | PayloadAction<'BACKGROUND_TASKS', { tasks: BackgroundTask[] }>
   | PayloadAction<'SET_NOTIFY_LIBRARY_CHANGES', { enabled: boolean }>
   | PayloadAction<'LOUDNESS_STATUS', LoudnessProgress>

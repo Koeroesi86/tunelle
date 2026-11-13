@@ -1,26 +1,35 @@
-import { useEffect } from 'react';
-import type { LoudnessProgress } from '@shared/types/loudness';
+import { useEffect, useState } from 'react';
+import type { FailedLoudnessTrack, LoudnessProgress } from '@shared/types/loudness';
 import { useTranslation } from '../../../i18n';
+import FailedTracksModal from './FailedTracksModal';
 import Switch from '../../ui/switch/Switch';
 import style from './MeasureLoudness.scss';
 
 interface MeasureLoudnessProps {
   enabled: boolean;
   status: LoudnessProgress | undefined;
+  failed: FailedLoudnessTrack[] | undefined;
   setEnabled: (enabled: boolean) => void;
   loadStatus: () => void;
+  loadFailed: () => void;
   clear: () => void;
 }
 
 /** Turns the measurement of the loudness of the tracks without ReplayGain tags on and off, shows how far it is, and forgets what it measured */
-const MeasureLoudness = ({ enabled, status, setEnabled, loadStatus, clear }: MeasureLoudnessProps) => {
+const MeasureLoudness = ({ enabled, status, failed, setEnabled, loadStatus, loadFailed, clear }: MeasureLoudnessProps) => {
   const { t } = useTranslation();
+  const [showFailed, setShowFailed] = useState(false);
   const waiting = status ? status.total - status.measured - status.failed : 0;
 
   // when it opens, and when it is turned on or off: the library may have changed, and turning it on starts it again
   useEffect(() => {
     loadStatus();
   }, [enabled]);
+
+  const openFailed = () => {
+    setShowFailed(true);
+    loadFailed();
+  };
 
   return (
     <section className={style.measureLoudness}>
@@ -36,11 +45,17 @@ const MeasureLoudness = ({ enabled, status, setEnabled, loadStatus, clear }: Mea
           </div>
           <div>{waiting === 0 ? t('measureLoudness.done') : t('measureLoudness.progress', { count: status.total, measured: status.measured })}</div>
           {status.failed > 0 && <div>{t('measureLoudness.failed', { count: status.failed })}</div>}
+          {status.failed > 0 && (
+            <button type="button" className={style.link} onClick={openFailed}>
+              {t('measureLoudness.showFailed')}
+            </button>
+          )}
         </div>
       )}
       <button type="button" className={style.clear} onClick={clear} disabled={!status || status.measured + status.failed === 0}>
         {t('measureLoudness.clear')}
       </button>
+      {showFailed && <FailedTracksModal tracks={failed} close={() => setShowFailed(false)} />}
     </section>
   );
 };

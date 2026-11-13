@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Database } from 'sqlite3';
 import type { LoudnessProgress, TrackLoudness } from '@shared/types/loudness';
-import { loudnessAnalysisSchema, loudnessProgressSchema } from '@shared/schemas/loudness';
+import { failedLoudnessTrackSchema, loudnessAnalysisSchema, loudnessProgressSchema } from '@shared/schemas/loudness';
 import { libraryRowSchema } from '../schemas/database/library';
 import { jsonOf } from '../schemas/rows';
 import executeQuery from '../database/execute-query';
@@ -164,6 +164,21 @@ export const getLoudnessProgress = (database: Database, version: number) =>
     },
     loudnessProgressSchema
   ).then(([status]): LoudnessProgress => status);
+
+/** The tracks that could not be measured, by path, under the same rule as the count: a failure counts until the file changes or the version rises */
+export const getFailedLoudnessTracks = (database: Database, version: number) =>
+  executeQuery(
+    database,
+    {
+      query: `SELECT library.path AS path, track_loudness.reason AS reason
+      FROM library JOIN track_loudness ON track_loudness.path = library.path
+        AND track_loudness.analysisVersion = ? AND track_loudness.fileModified IS library.fileModified AND track_loudness.fileSize IS library.fileSize
+      WHERE track_loudness.status = 'failed'
+      ORDER BY library.path`,
+      variables: [version],
+    },
+    failedLoudnessTrackSchema
+  );
 
 /** Forget every measurement: the tracks are measured again, and play at their tag gains until they are */
 export const clearTrackLoudness = (database: Database) => executeQuery(database, { query: `DELETE FROM track_loudness`, variables: [] });

@@ -1,6 +1,6 @@
-import type { LoudnessAnalysis, LoudnessProgress, MeasureResult } from '../schemas/loudness';
+import type { FailedLoudnessTrack, LoudnessAnalysis, LoudnessProgress, MeasureResult } from '../schemas/loudness';
 
-export type { LoudnessAnalysis, LoudnessProgress, MeasureResult };
+export type { FailedLoudnessTrack, LoudnessAnalysis, LoudnessProgress, MeasureResult };
 
 export type LoudnessStatus = 'measured' | 'failed';
 

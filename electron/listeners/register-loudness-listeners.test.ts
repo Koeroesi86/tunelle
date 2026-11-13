@@ -19,13 +19,15 @@ describe('registerLoudnessListeners', () => {
   const send = vi.fn();
   const event = { sender: { send, isDestroyed: () => false } } as unknown as IpcMainEvent;
   const status = { total: 4, measured: 3, failed: 1 };
-  const loudness = { status: vi.fn(), restart: vi.fn(), prioritise: vi.fn() };
+  const failed = [{ path: '/music/a.flac', reason: 'silent' }];
+  const loudness = { status: vi.fn(), failed: vi.fn(), restart: vi.fn(), prioritise: vi.fn() };
   let database: Database;
 
   beforeEach(async () => {
     listeners.clear();
     send.mockReset();
     loudness.status.mockReset().mockResolvedValue(status);
+    loudness.failed.mockReset().mockResolvedValue(failed);
     loudness.restart.mockReset().mockResolvedValue(undefined);
     loudness.prioritise.mockReset().mockResolvedValue(undefined);
     database = await createTestDatabase();
@@ -37,6 +39,13 @@ describe('registerLoudnessListeners', () => {
     await vi.waitFor(() => expect(send).toHaveBeenCalled());
 
     expect(send).toHaveBeenCalledWith('LOUDNESS_STATUS', status);
+  });
+
+  it('lists the tracks that could not be measured when the window asks', async () => {
+    listeners.get('LOUDNESS_FAILED_LOAD')?.(event);
+    await vi.waitFor(() => expect(send).toHaveBeenCalled());
+
+    expect(send).toHaveBeenCalledWith('LOUDNESS_FAILED', { tracks: failed });
   });
 
   it('measures the tracks that the window queued or started first, and refuses a message of another shape', () => {

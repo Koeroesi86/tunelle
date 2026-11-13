@@ -413,6 +413,15 @@ describe('uiState reducer', () => {
       expect(run({ type: 'CLEAR_MEASURED_LOUDNESS', payload: {} }).loudnessStatus).toBeUndefined();
     });
 
+    it('keeps the tracks that could not be measured, which are not saved, and forgets them when the values are cleared', () => {
+      const tracks = [{ path: '/music/a.flac', reason: 'silent' }];
+      const told = run({ type: 'LOUDNESS_FAILED', payload: { tracks } });
+
+      expect(initial.loudnessFailed).toBeUndefined();
+      expect(told.loudnessFailed).toEqual(tracks);
+      expect(run({ type: 'CLEAR_MEASURED_LOUDNESS', payload: {} }, told).loudnessFailed).toBeUndefined();
+    });
+
     it('keeps what the background queue runs, which is not saved', () => {
       const tasks = [{ kind: 'scan' as const, running: true, waiting: 0 }];
 
