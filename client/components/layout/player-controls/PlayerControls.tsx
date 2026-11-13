@@ -44,6 +44,8 @@ interface PlayerControlsProps {
   setPlaying: (isPlaying: boolean) => void;
   setVolume: (volume: number | string) => void;
   openEqualizer: () => void;
+  /** The track area opens the page of what plays, which is the way to the full view from the mini player of the compact size */
+  openNowPlaying: () => void;
   toggleRepeat: () => void;
   toggleShuffle: () => void;
   nextSong: () => void;
@@ -65,14 +67,19 @@ const IconButton = ({ label, className = style.icon, onClick, children }: IconBu
   </button>
 );
 
-const TrackDetails = ({ currentSong, streamTitle, streamArt }: Pick<PlayerControlsProps, 'currentSong' | 'streamTitle' | 'streamArt'>) => {
+const TrackDetails = ({
+  currentSong,
+  streamTitle,
+  streamArt,
+  openNowPlaying,
+}: Pick<PlayerControlsProps, 'currentSong' | 'streamTitle' | 'streamArt' | 'openNowPlaying'>) => {
   const { t } = useTranslation();
   const shown = currentSong ? toNowPlaying(currentSong, streamTitle, streamArt) : undefined;
 
   useMediaSession(shown && { title: shown.track.title, artist: shown.track.artist, album: shown.track.album, cover: shown.cover });
 
   return (
-    <div className={style.meta}>
+    <button type="button" className={style.meta} title={t('player.openNowPlaying')} aria-label={t('player.openNowPlaying')} onClick={openNowPlaying}>
       <CoverFade className={style.picture} src={shown?.cover} />
       <div className={style.details}>
         <div className={style.title}>{shown ? shown.track.title : t('player.none')}</div>
@@ -84,7 +91,7 @@ const TrackDetails = ({ currentSong, streamTitle, streamArt }: Pick<PlayerContro
           </div>
         )}
       </div>
-    </div>
+    </button>
   );
 };
 
@@ -109,7 +116,7 @@ const TransportButtons = ({
 
   return (
     <div className={style.mainControlButtons}>
-      <button className={classNames(style.controlButton, { [style.active]: shuffle })} onClick={toggleShuffle} title={t('player.shuffle')}>
+      <button className={classNames(style.controlButton, style.secondary, { [style.active]: shuffle })} onClick={toggleShuffle} title={t('player.shuffle')}>
         <ShuffleIcon size={'12px'} />
       </button>
       <button className={style.controlButton} onClick={previousSong} title={t('player.previous')}>
@@ -126,7 +133,7 @@ const TransportButtons = ({
       <button className={style.controlButton} onClick={nextSong} title={t('player.next')}>
         <ForwardIcon size={'16px'} />
       </button>
-      <button className={classNames(style.controlButton, { [style.active]: repeat })} onClick={toggleRepeat} title={t('player.repeat')}>
+      <button className={classNames(style.controlButton, style.secondary, { [style.active]: repeat })} onClick={toggleRepeat} title={t('player.repeat')}>
         <RepeatIcon size={'12px'} />
       </button>
     </div>
@@ -227,7 +234,7 @@ const PlayerControls = (props: PlayerControlsProps) => {
 
   return (
     <div className={style.controls}>
-      <TrackDetails currentSong={currentSong} streamTitle={props.streamTitle} streamArt={props.streamArt} />
+      <TrackDetails currentSong={currentSong} streamTitle={props.streamTitle} streamArt={props.streamArt} openNowPlaying={props.openNowPlaying} />
       <div className={style.center}>
         <TransportButtons {...props} />
         {currentSong && radioUuidOf(currentSong.path) ? (

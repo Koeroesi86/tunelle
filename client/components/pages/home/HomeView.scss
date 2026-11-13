@@ -1,3 +1,4 @@
+@use '../../../styles/breakpoints' as *;
 .home {
   position: absolute;
   top: 0;
@@ -123,7 +124,7 @@
       border-radius: 50%;
       background: var(--overlay);
       cursor: pointer;
-      opacity: 0;
+      @include hover-hidden;
       transition: color .15s ease-in-out, background-color .15s ease-in-out, transform .15s ease-in-out, opacity .15s ease-in-out;
 
       &:hover:not(:disabled),
@@ -449,7 +450,7 @@
       color: var(--accent-contrast);
       border-radius: 50%;
       background: var(--accent);
-      opacity: 0;
+      @include hover-hidden;
       transition: opacity .15s ease-in-out;
     }
 

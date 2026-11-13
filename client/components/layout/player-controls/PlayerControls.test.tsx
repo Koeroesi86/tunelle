@@ -25,6 +25,7 @@ const renderControls = (volume: number, currentSong: Track | null = null, curren
     setPlaying: vi.fn(),
     setVolume: vi.fn(),
     openEqualizer: vi.fn(),
+    openNowPlaying: vi.fn(),
     toggleRepeat: vi.fn(),
     toggleShuffle: vi.fn(),
     nextSong: vi.fn(),
@@ -94,5 +95,20 @@ describe('PlayerControls', () => {
 
     expect(props.setVolume).toHaveBeenCalledWith(1);
     expect(props.openEqualizer).toHaveBeenCalled();
+  });
+
+  it('opens the page of what plays from the track, which is the way from the mini player to the full view', () => {
+    const { props } = renderControls(0.5);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open now playing' }));
+
+    expect(props.openNowPlaying).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks the shuffle and repeat buttons as the ones the mini player drops', () => {
+    renderControls(0.5);
+
+    const secondary = Array.from(document.querySelectorAll('.secondary')).map((button) => button.getAttribute('title'));
+    expect(secondary).toEqual(['Shuffle', 'Repeat']);
   });
 });

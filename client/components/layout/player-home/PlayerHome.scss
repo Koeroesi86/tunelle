@@ -1,4 +1,5 @@
 @use '../../../styles/scrollbar' as *;
+@use '../../../styles/breakpoints' as *;
 
 $FontName: "Open Sans";
 
@@ -151,6 +152,60 @@ html, body {
           min-height: 0;
         }
       }
+    }
+  }
+
+  // medium: the navigation is a column of icons
+  &.medium .library .manageLibrary {
+    width: 64px;
+  }
+
+  // compact: the navigation is a drawer over the content, opened from the title bar
+  &.compact {
+    --title-bar-height: 48px;
+    --player-bar-height: 96px;
+
+    .library {
+      position: relative;
+      min-width: 0;
+
+      .manageLibrary {
+        position: absolute;
+        z-index: 20;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: min(280px, 85%);
+        background: var(--panel-solid);
+        box-shadow: 8px 0 24px -8px var(--shadow);
+        transform: translateX(-100%);
+        visibility: hidden;
+        transition: transform .2s ease-in-out, visibility 0s linear .2s;
+
+        @media (prefers-reduced-motion: reduce) {
+          transition: none;
+        }
+      }
+    }
+
+    &.drawerOpen .library .manageLibrary {
+      transform: translateX(0);
+      visibility: visible;
+      transition: transform .2s ease-in-out;
+
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+      }
+    }
+
+    .scrim {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      padding: 0;
+      border: 0;
+      background: var(--scrim);
+      cursor: default;
     }
   }
 }

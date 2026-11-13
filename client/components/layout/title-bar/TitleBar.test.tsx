@@ -69,4 +69,23 @@ describe('TitleBar', () => {
 
     expect(screen.getByRole('button', { name: /On Air/ })).toBeTruthy();
   });
+
+  it('has no menu button unless the window needs a drawer', () => {
+    render(<TitleBar />);
+
+    expect(screen.queryByRole('button', { name: 'Menu' })).toBeNull();
+  });
+
+  it('opens the drawer from the menu button, and says whether it is open', () => {
+    const onMenu = vi.fn();
+    const { rerender } = render(<TitleBar onMenu={onMenu} />);
+    const button = screen.getByRole('button', { name: 'Menu' });
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(button);
+    rerender(<TitleBar onMenu={onMenu} menuOpen />);
+
+    expect(onMenu).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Menu' }).getAttribute('aria-expanded')).toBe('true');
+  });
 });

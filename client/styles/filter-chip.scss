@@ -60,7 +60,7 @@
   top: 100%;
   right: 0;
   z-index: 10;
-  min-width: 220px;
+  min-width: min(220px, 100%);
   max-width: 420px;
   margin-top: 6px;
   padding: 6px;

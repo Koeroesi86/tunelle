@@ -20,6 +20,7 @@ const mapState = (state: RootState) => ({
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   setCurrentTime: (currentTime: number) => dispatch({ type: 'SET_CURRENT_TIME', payload: { currentTime } }),
   openEqualizer: () => dispatch({ type: 'SET_TAB', payload: { tab: 'equalizer' } }),
+  openNowPlaying: () => dispatch({ type: 'SET_TAB', payload: { tab: 'now-playing' } }),
   setPlaying: (isPlaying: boolean) => dispatch({ type: 'SET_PLAYING', payload: { isPlaying } }),
   setVolume: (volume: number | string) => dispatch({ type: 'SET_VOLUME', payload: { volume } }),
   toggleRepeat: () => dispatch({ type: 'TOGGLE_REPEAT', payload: {} }),

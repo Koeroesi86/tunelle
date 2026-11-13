@@ -1,3 +1,5 @@
+@use '../../../styles/breakpoints' as *;
+
 .navigation {
   position: relative;
   display: flex;
@@ -158,5 +160,49 @@
 
   .newPlaylist {
     padding: 4px 12px 8px 15px;
+  }
+
+  // only the icons; the labels stay for a screen reader
+  &.rail {
+    .item {
+      justify-content: center;
+      gap: 0;
+      margin-left: 6px;
+      margin-right: 6px;
+      padding-left: 0;
+      padding-right: 0;
+
+      .label,
+      .count {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+    }
+
+    .item.child {
+      padding-left: 0;
+    }
+
+    .item.group .chevron,
+    .item.group .add,
+    .spectrum {
+      display: none;
+    }
+  }
+
+  // the size of a finger, and a label to read in the drawer
+  @include touch {
+    .item {
+      min-height: $touch-target;
+    }
+
+    .item.group .add {
+      width: $touch-target;
+      height: $touch-target;
+    }
   }
 }

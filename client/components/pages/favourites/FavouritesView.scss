@@ -1,3 +1,4 @@
+@use '../../../styles/breakpoints' as *;
 $columns: 22px 26px minmax(0, 1.5fr) minmax(0, 1.2fr) 96px 52px 84px;
 
 .favourites {
@@ -267,7 +268,7 @@ $columns: 22px 26px minmax(0, 1.5fr) minmax(0, 1.2fr) 96px 52px 84px;
       gap: 8px;
       justify-content: flex-end;
       color: var(--text-muted);
-      opacity: 0;
+      @include hover-hidden;
 
       button {
         display: inline-flex;
@@ -331,6 +332,29 @@ $columns: 22px 26px minmax(0, 1.5fr) minmax(0, 1.2fr) 96px 52px 84px;
       flex: 1 1 100%;
       font-size: 11px;
       color: var(--text-faint);
+    }
+  }
+
+  // the narrower the window, the fewer columns: first the date it was liked, then the details and the format
+  // (the cells of a row are the heart, the kind, the name, the details, the format, the actions and the date)
+  @include below-expanded {
+    .row {
+      grid-template-columns: 22px 26px minmax(0, 1.5fr) minmax(0, 1.2fr) 96px 52px;
+
+      > :nth-child(7) {
+        display: none;
+      }
+    }
+  }
+
+  @include compact {
+    .row {
+      grid-template-columns: 22px 26px minmax(0, 1fr) 52px;
+
+      > :nth-child(4),
+      > :nth-child(5) {
+        display: none;
+      }
     }
   }
 }

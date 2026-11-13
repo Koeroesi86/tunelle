@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import type { Folder } from '@shared/types/library';
 import { electronAPI } from '../../../services/electron-api';
 import { useLatest } from '../../../hooks/use-latest';
+import { useBreakpoint } from '../../../hooks/use-breakpoint';
 import { useTranslation } from '../../../i18n';
 import style from './PlayerHome.scss';
 import AlbumDetails from '../../library/album-details';
@@ -40,6 +41,24 @@ const PlayerHome = ({ maximized, enableTransparency = true, blurred, loaded, fol
   const { t } = useTranslation();
   const [confirmation, setConfirmation] = useState<Confirmation>();
   const latestOnUnload = useLatest(onUnload);
+  const breakpoint = useBreakpoint();
+  const compact = breakpoint === 'compact';
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerShown = compact && drawerOpen;
+
+  // a window that grows out of the compact size has the sidebar, so the drawer starts closed when it shrinks again
+  useEffect(() => {
+    if (!compact) setDrawerOpen(false);
+  }, [compact]);
+
+  useEffect(() => {
+    if (!drawerShown) return undefined;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDrawerOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [drawerShown]);
 
   useEffect(() => {
     const save = () => latestOnUnload.current();
@@ -60,19 +79,27 @@ const PlayerHome = ({ maximized, enableTransparency = true, blurred, loaded, fol
       className={classNames(style.playerHome, {
         [style.opaque]: enableTransparency,
         [style.maximized]: maximized,
+        [style.compact]: compact,
+        [style.medium]: breakpoint === 'medium',
+        [style.drawerOpen]: drawerShown,
         [style.loaded]: loaded,
         [style.blurred]: blurred,
         [style.noBlur]: !blurred,
       })}
     >
       <div className={style.wrapper}>
-        <TitleBar />
+        <TitleBar onMenu={compact ? () => setDrawerOpen((open) => !open) : undefined} menuOpen={drawerShown} />
         <div className={style.mainPanel}>
           <div className={style.library}>
+            {drawerShown && <button type="button" className={style.scrim} aria-label={t('nav.closeMenu')} onClick={() => setDrawerOpen(false)} />}
             <div className={style.manageLibrary}>
               <div className={style.manageLibraryPanel}>
                 <div className={style.navigationContainer}>
-                  <Navigation spectrum={<AudioSpectrum width={180} height={32} capHeight={1} meterCount={45} meterWidth={2} gap={2} />} />
+                  <Navigation
+                    rail={breakpoint === 'medium'}
+                    onNavigate={() => setDrawerOpen(false)}
+                    spectrum={<AudioSpectrum width={180} height={32} capHeight={1} meterCount={45} meterWidth={2} gap={2} />}
+                  />
                 </div>
               </div>
             </div>

@@ -1,3 +1,4 @@
+@use '../../../styles/breakpoints' as *;
 .nowPlaying {
   position: absolute;
   top: 0;
@@ -172,7 +173,7 @@
         border-radius: 50%;
         color: inherit;
         background: transparent;
-        opacity: 0;
+        @include hover-hidden;
         cursor: pointer;
 
         &:hover {

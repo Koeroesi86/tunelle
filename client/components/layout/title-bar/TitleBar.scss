@@ -1,3 +1,5 @@
+@use '../../../styles/breakpoints' as *;
+
 .titleBar {
   flex: 0 0 var(--title-bar-height);
   display: grid;
@@ -89,5 +91,51 @@
     flex: 0 0 auto;
     margin-left: auto;
     display: flex;
+  }
+
+  .menu {
+    -webkit-app-region: no-drag;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--overlay);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+    }
+  }
+
+  // the wordmark and the artist give way, so the window buttons and the track keep their room
+  @include compact {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 0 8px;
+
+    .wordmark,
+    .artist,
+    .spectrum {
+      display: none;
+    }
+
+    .track {
+      justify-self: center;
+      max-width: 100%;
+    }
+
+    .menu {
+      width: $touch-target;
+      height: $touch-target;
+    }
   }
 }
