@@ -92,7 +92,7 @@
   "artistPhoto.change": "Fotó módosítása",
   "artistPhoto.pick": "Kép kiválasztása…",
   "artistPhoto.remove": "Az album borítójának használata",
-  "artistPhoto.reset": "A fotó keresése újra",
+  "artistPhoto.reset": "A fotó visszaállítása",
   "artistPhoto.dialog": "Fotó kiválasztása",
   "artistPhoto.filter": "Képek",
   "artistPhoto.error.unreadable": "A fájl nem olvasható.",
