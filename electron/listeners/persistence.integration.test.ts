@@ -45,7 +45,11 @@ const start = async (database?: Database) => {
   if (database) await closeDatabase(database);
   const opened = await createTestDatabase(file);
   const sent: { channel: string; payload: unknown }[] = [];
-  const sender = { send: (channel: string, payload: unknown) => sent.push({ channel, payload }), isDestroyed: () => false, once: () => undefined } as unknown as WebContents;
+  const sender = {
+    send: (channel: string, payload: unknown) => sent.push({ channel, payload }),
+    isDestroyed: () => false,
+    once: () => undefined,
+  } as unknown as WebContents;
   const loudness = { checkSetting: async () => undefined } as unknown as ListenerContext['loudness'];
   const context = { database: opened, radio: { findStations: async () => [] }, loudness } as unknown as ListenerContext;
 
