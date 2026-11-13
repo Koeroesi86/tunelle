@@ -19,3 +19,11 @@ The repository's cache is limited to 10 GiB, and GitHub evicts the oldest entrie
 The `test` job keeps `.cache/vitest` (the transformed modules of Vitest, `fsModuleCachePath` in `vitest.config.ts`, about 11 MB) for each system, and the `static` job keeps `.cache/eslint` (`npm run lint`). Both are saved under a key with the commit and restored from the newest one with the same lock file, so a run only transforms or lints what changed; the daily cleanup keeps the newest of each name and ref.
 
 On the `ubuntu-26.04` runner image apt failed with `Temporary failure resolving` for the Ubuntu mirrors while the mirrors were up. The Ubuntu test job prints the resolver, and when `archive.ubuntu.com` does not resolve it adds 1.1.1.1, 8.8.8.8 and 9.9.9.9 as DNS servers of `systemd-resolved` (or to `/etc/resolv.conf`) before apt runs. `dist.yml` and `pages.yml` have no such step yet.
+
+## Reading a red run
+
+- `npx tsx scripts/checks/ci-failure.ts <run id>` prints the failed jobs. It shows `UNKNOWN STEP` for the log lines and the step name in its first line (here `Integration tests`); `gh run view <run> --json jobs` lists each step with its conclusion.
+- A failed step skips the ones after it in the same job: when `Integration tests` fails, `npm run build` and the end to end tests of that system did not run, so a green rest of the run says nothing about them.
+- `required-checks` only reports that another job failed.
+- Compare with `master` first (`gh run list --workflow pr-checks.yml`): it is red often, with failures that are not in the change (`unit-test-isolation` on macos-15-intel, the `vi.waitFor` of `electron/listeners/persistence.integration.test.ts` on windows-2025, which timed out waiting for a reply on a slow runner and passed on the other systems). Run the failed job again (`gh run rerun <run> --failed`) before changing code for a failure like that.
+- `digest-mismatch: error` in the log of a test job is the cache restore and not the failure.

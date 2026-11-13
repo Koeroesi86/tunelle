@@ -24,3 +24,9 @@ The app has one window from the first moment. The splash is not a window of its 
 - Closing the window while the library opens quits the app, and the database that was opened is closed first.
 - The splash has no window buttons: the window can be closed with the keyboard shortcut of the system, as the splash window could.
 - The theme and language are applied after the window opened, as they are read from the library. The splash looks the same in both themes.
+
+## Measured
+
+On a Linux machine with no display (`--ozone-platform=headless`), an empty profile and `TUNELLE_NO_UPDATE=1`, the window is shown after about 0.25 s, the player is mounted after 0.6 s (0.9 s with the development server) and the splash is gone after 1.4 s (1.7 s). The CPU of the whole process tree is about 1.6 s for the start with the development server and 0.2 s over the next 10 s idle. A production build uses less than a second. These do not include a large library (migrations and backfills run as before, behind the splash), the GPU, or a webpack compile that is still running when Electron starts (`devServer.config.js` spawns it as soon as the server listens). The method: start the page and read `/proc/<pid>/stat` of the process tree, with a script that waits for `#root` to have children and for `#splash` to be gone; `ps -o cputimes` only has whole seconds.
+
+A slow first `npm run dev` is the compile: `prebuild.js` removes `build/` and the icons are generated, then tsc and webpack run. `build/` is gone after a build that stopped halfway, which makes every window an empty document (see [the end to end tests](../development/end-to-end-tests.md)).
