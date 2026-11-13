@@ -13,6 +13,7 @@ import { askOnSplash } from './electron/services/splash-confirm';
 import { copyOldLibrary, copyOldUserData, getAppName } from './electron/utils/user-data';
 import createWindow from './electron/windows/create-window';
 import { createStartupSignal } from './electron/services/startup-signal';
+import loadPage from './electron/windows/load-page';
 import createDatabase from './electron/database/create-database';
 import { libraryErrorMessage } from './electron/utils/library-error-message';
 import setupListeners from './electron/listeners/setup-listeners';
@@ -257,7 +258,7 @@ app
   .then(async () => {
     const main = openWindow();
     startup = createStartupSignal(main);
-    await main.loadURL(windowLocation);
+    await loadPage(main, windowLocation);
     // the splash is static and shows the text the main process sends; the picked language is in the library, which opens after the splash
     sendIfAlive(main.webContents, 'SPLASH_PROGRESS', { text: getMainTranslator().t('splash.loading', { title: 'Tunelle' }) });
 

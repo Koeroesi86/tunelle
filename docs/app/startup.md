@@ -16,12 +16,13 @@ The app has one window from the first moment. The splash is not a window of its 
 
 - The page must not talk to the main process before `APP_STARTED`. The listeners and the database are registered just before it, a message sent earlier is lost without an error. The store is created in `mount` (`createAppStore`, `client/redux/store.ts`) and not when the script loads, as the connection middleware sends `APP_READY` and asks for the favourites, history and playlists the moment it is created. When it was created at load, the player stayed empty of folders and saved its default settings over the real ones on the next unload.
 - A page that saves its settings (`beforeunload`) before they were restored overwrites them. Nothing reloads the page in the app; the end to end tests do, see [the end to end tests](../development/end-to-end-tests.md).
-- `loadURL` of the window rejects when a navigation interrupts it, and the start up chain ends in `process.exit(1)`. Do not reload the page before the splash has gone.
+- `loadURL` rejects with `ERR_ABORTED` when a navigation interrupts it (a reload of the development server, the page reloading itself), and an error in the start up chain ends in `process.exit(1)`. `loadPage` (`electron/windows/load-page.ts`) lets that one through and fails for any other error.
 
 ## Notes
 
 - Nothing in the player talks to the main process before step 4: the listeners and the database are not there, which is why the player is not mounted earlier.
 - Closing the window while the library opens quits the app, and the database that was opened is closed first.
+- The preload script that fills the splash (`electron/preload.ts`) is tested in `electron/preload.test.ts` with a page of the same ids; the question and its answer are not covered by an end to end test.
 - The splash has no window buttons: the window can be closed with the keyboard shortcut of the system, as the splash window could.
 - The theme and language are applied after the window opened, as they are read from the library. The splash looks the same in both themes.
 
