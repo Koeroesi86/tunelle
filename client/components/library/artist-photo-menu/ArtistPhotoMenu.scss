@@ -1,12 +1,24 @@
 @use '../../../styles/breakpoints' as *;
 
-.artistPhotoMenu {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  margin-right: 8px;
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 
-  .toggle {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+$ease: cubic-bezier(.2, .8, .2, 1);
+
+// the button stays in the bar of the artist, and the entries or the search open as a row of their own under it, in the flow, so a narrow window wraps them and nothing is clipped
+.artistPhotoMenu {
+  display: contents;
+
+  %pill {
     -webkit-app-region: no-drag;
     display: inline-flex;
     align-items: center;
@@ -21,10 +33,15 @@
     border-radius: 14px;
     box-shadow: inset 0 0 0 1px var(--overlay);
     cursor: pointer;
+    transition: color .2s ease-in-out, background-color .2s ease-in-out, transform .15s $ease;
 
     &:hover {
       color: var(--text);
       background: var(--overlay);
+    }
+
+    &:active {
+      transform: scale(.97);
     }
 
     &:focus-visible {
@@ -37,71 +54,58 @@
     }
   }
 
-  .menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    width: min(320px, calc(100vw - 24px));
-    margin-top: 4px;
-    padding: 4px;
-    background: var(--panel-solid);
-    border-radius: 6px;
-    border: 1px solid var(--overlay-strong);
-    box-shadow: var(--shadow);
+  .toggle {
+    @extend %pill;
+
+    margin-right: 8px;
   }
 
   .item {
-    min-height: $touch-target;
-    padding: 0 12px;
-    font: inherit;
-    font-size: 13px;
-    color: var(--text-soft);
-    text-align: left;
-    background: none;
-    border: 0;
-    border-radius: 4px;
-    cursor: pointer;
+    @extend %pill;
+  }
 
-    &:hover,
-    &:focus-visible {
-      color: var(--text);
-      background: var(--overlay);
-      outline: none;
-    }
+  .menu {
+    order: 10;
+    flex: 0 0 calc(100% - 12px);
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-right: 12px;
+    animation: reveal .2s $ease both;
   }
 
   .failure {
-    max-width: 220px;
-    margin-left: 8px;
+    order: 10;
+    flex: 0 0 calc(100% - 12px);
     font-size: 12px;
     color: var(--warning);
+    animation: reveal .2s $ease both;
   }
-}
 
-.artistPhotoMenu {
   .searchForm {
     display: flex;
-    gap: 6px;
-    padding: 4px;
+    flex: 1 0 100%;
+    gap: 8px;
   }
 
   .searchInput {
     flex: 1;
     min-width: 0;
-    min-height: 32px;
-    padding: 0 8px;
+    min-height: 36px;
+    padding: 0 16px;
     font: inherit;
     font-size: 13px;
     color: var(--text);
     background: var(--overlay-faint);
-    border: 1px solid var(--overlay-strong);
-    border-radius: 4px;
+    border: 0;
+    border-radius: 18px;
+    box-shadow: inset 0 0 0 1px var(--overlay-strong);
+    transition: box-shadow .2s ease-out;
 
     &:focus-visible {
-      outline: 2px solid var(--accent);
+      outline: none;
+      box-shadow: inset 0 0 0 2px var(--accent);
     }
 
     @include compact {
@@ -110,14 +114,15 @@
   }
 
   .searchButton {
-    min-height: 32px;
-    padding: 0 12px;
+    min-height: 36px;
+    padding: 0 18px;
     font: inherit;
     font-size: 12px;
+    font-weight: 600;
     color: var(--accent-contrast);
     background: var(--accent);
     border: 0;
-    border-radius: 4px;
+    border-radius: 18px;
     cursor: pointer;
 
     @include compact {
@@ -126,10 +131,12 @@
   }
 
   .results {
-    max-height: 260px;
+    display: grid;
+    flex: 1 0 100%;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 4px;
     margin: 0;
     padding: 0;
-    overflow-y: auto;
     list-style: none;
   }
 
@@ -146,8 +153,9 @@
     text-align: left;
     background: none;
     border: 0;
-    border-radius: 4px;
+    border-radius: 22px;
     cursor: pointer;
+    transition: color .2s ease-in-out, background-color .2s ease-in-out;
 
     &:hover,
     &:focus-visible {
@@ -172,9 +180,21 @@
   }
 
   .empty {
+    flex: 1 0 100%;
     margin: 0;
-    padding: 8px 12px;
     font-size: 12px;
     color: var(--text-muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .menu,
+    .failure,
+    .toggle,
+    .item,
+    .result,
+    .searchInput {
+      animation: none;
+      transition: none;
+    }
   }
 }

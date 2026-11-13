@@ -85,9 +85,12 @@
 
 .albumsBar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  height: 40px;
-  padding-left: 12px;
+  row-gap: 6px;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 5px 0 5px 12px;
 
   .back {
     -webkit-app-region: no-drag;
@@ -152,7 +155,7 @@
   }
 
   .openName {
-    max-width: 240px;
+    max-width: min(240px, 40vw);
     margin: 0 8px 0 12px;
     font-weight: 600;
     white-space: nowrap;
