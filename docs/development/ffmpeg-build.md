@@ -14,11 +14,18 @@ A decode-only ffmpeg and ffprobe, built by us from the source tarball of ffmpeg.
 
 ## CI
 
-`.github/workflows/ffmpeg.yml` builds on Linux (x64, arm64), macOS (arm64, x64) and Windows (x64 with gcc, arm64 with clang, both in MSYS2). `dist.yml` calls it, so every pull request and release has the binary of each system as the artifact `ffmpeg-<platform>-<arch>`; the checked source tarball is kept in a second cache keyed on the system and its sha256 (the folder is the second argument of the script), so a change of the build script or the flags builds again without downloading it; the build is kept in a cache keyed on the runner, `ffmpeg-source.json` and `ffmpeg-build.js`, so it only runs when one of them changes. It can be started by hand too. Updating ffmpeg means changing the version, URL and sha256 together (and the same three in `packaging/ffmpeg/NOTICE.txt`, which `dist.test.ts` checks).
+`.github/workflows/ffmpeg.yml` builds on Linux (x64, arm64), macOS (arm64, x64) and Windows (x64 with gcc, arm64 with clang, both in MSYS2). `dist.yml` and `test.yml` call it before their system jobs, and those jobs get the binary with the action `.github/actions/restore-ffmpeg`, which restores the cache and copies it to `.cache/ffmpeg/install/bin`. There is no artifact.
+
+- The build is kept in a cache keyed on the platform, the architecture, `ffmpeg-source.json` and `ffmpeg-build.js` (not on the runner image, so the Flatpak job on `ubuntu-latest` uses the build that the AppImage system, Ubuntu 22.04, made).
+- The job `plan` runs first on one Ubuntu runner and lists with `gh cache list` the systems that have no cache for the current key, on the ref of the run or on the default branch (the two a run can read). `build` runs for those systems only, so a run with every build cached starts no macOS or Windows runner, which wait for a long time for a machine. A failed lookup counts as a missing cache, and the build runs.
+- The restore fails on a miss (`fail-on-cache-miss`): a cache that GitHub evicted between `plan` and the job is a rerun, not a silent wrong binary. `plan` is the one list of the systems; `workflows.test.ts` checks that the callers only restore systems in it.
+- The checked source tarball is kept in a second cache keyed on the system and its sha256 (the folder is the second argument of the script), so a change of the build script or the flags builds again without downloading it.
+
+It can be started by hand too. Updating ffmpeg means changing the version, URL and sha256 together (and the same three in `packaging/ffmpeg/NOTICE.txt`, which `dist.test.ts` checks).
 
 ## Packaging
 
-`npm run ffmpeg` builds it for the machine into `.cache/ffmpeg/install/bin`, and `dist.yml` downloads the artifact there. `npm run dist` fails without it, and `package.json` (`build.extraResources`) copies `ffmpeg` (not `ffprobe`) and `packaging/ffmpeg/` into `ffmpeg/` of the resources of the app, outside `app.asar`, so it can be run:
+`npm run ffmpeg` builds it for the machine into `.cache/ffmpeg/install/bin`, and `dist.yml` restores the cached build there. `npm run dist` fails without it, and `package.json` (`build.extraResources`) copies `ffmpeg` (not `ffprobe`) and `packaging/ffmpeg/` into `ffmpeg/` of the resources of the app, outside `app.asar`, so it can be run:
 
 - `ffmpeg` (`ffmpeg.exe` on Windows), the program; replacing it with another build of ffmpeg is allowed, as the LGPL asks.
 - `NOTICE.txt`: what it is, the version, the source URL and sha256, and where the build script and flags are. This is the source offer: the pinned tarball of ffmpeg.org plus `scripts/ffmpeg/` in the repository, no patch.

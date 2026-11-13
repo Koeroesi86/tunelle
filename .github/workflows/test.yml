@@ -11,9 +11,9 @@ jobs:
   # the end to end tests play what the ffmpeg of the app decodes (docs/app/decoder-proxy.md); its build is cached, so this only builds when the source changed
   ffmpeg:
     uses: ./.github/workflows/ffmpeg.yml
-    with:
-      artifact-prefix: test-
     permissions:
+      # the planning job of ffmpeg.yml lists the caches
+      actions: read
       contents: read
 
   # the checks that do not depend on the system run once; the system jobs start at the same time, as waiting for these would add their duration to every run
@@ -49,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # platform and arch are the ones of process.platform and process.arch, which name the ffmpeg artifact
+        # platform and arch are the ones of process.platform and process.arch, which name the cached ffmpeg
         include:
           - { os: ubuntu-latest, platform: linux, arch: x64 }
           - { os: ubuntu-24.04-arm, platform: linux, arch: arm64 }
@@ -118,14 +118,10 @@ jobs:
         run: |
           appstreamcli validate --no-net packaging/flatpak/*.metainfo.xml
           desktop-file-validate packaging/flatpak/*.desktop packaging/appimage/*.desktop
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: ./.github/actions/restore-ffmpeg
         with:
-          name: test-ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}
-          path: .cache/ffmpeg/install/bin
-      # the artifact does not keep the executable bit
-      - name: Make ffmpeg executable
-        if: runner.os != 'Windows'
-        run: chmod +x .cache/ffmpeg/install/bin/*
+          platform: ${{ matrix.platform }}
+          arch: ${{ matrix.arch }}
       - run: npm run test:coverage
       # real SQLite, real files and the real ffmpeg of this system, without Electron (docs/development/integration-tests.md)
       - name: Integration tests
