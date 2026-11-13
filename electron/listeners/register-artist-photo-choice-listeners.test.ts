@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Database } from 'sqlite3';
 import type { IpcMainEvent } from 'electron';
 import type { ListenerContext } from './listener-context';
 import registerArtistPhotoChoiceListeners from './register-artist-photo-choice-listeners';
@@ -15,7 +14,6 @@ const read = vi.fn();
 const getImage = vi.fn();
 const searchPhotos = vi.fn();
 
-vi.mock('sqlite3', () => ({ Database: class {} }));
 vi.mock('electron', () => ({
   ipcMain: { on: (channel: string, listener: Listener) => listeners.set(channel, listener) },
   dialog: { showOpenDialog: (...args: unknown[]) => showOpenDialog(...args) },
@@ -38,7 +36,8 @@ vi.mock('../utils/log-error', () => ({ logError: vi.fn() }));
 describe('registerArtistPhotoChoiceListeners', () => {
   const sender = { send: vi.fn(), isDestroyed: () => false };
   const event = { sender } as unknown as IpcMainEvent;
-  const database = new Database(':memory:');
+  // the database is not used by what is tested: the services that would use it are replaced
+  const database = {};
   const change = async (payload: unknown) => {
     listeners.get('ARTIST_PHOTO_CHANGE')?.(event, payload);
     await vi.waitFor(() => expect(sender.send).toHaveBeenCalled());

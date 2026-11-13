@@ -18,17 +18,20 @@ const extensionOf = (data: Buffer) => {
   return data.subarray(0, 4).toString('latin1') === 'RIFF' && data.subarray(8, 12).toString('latin1') === 'WEBP' ? 'webp' : undefined;
 };
 
-/** The image in a file the user picked, or why it cannot be used: the size is checked before the file is read */
-export const readPhotoFile = async (filePath: string): Promise<PhotoFile> => {
-  const size = await fs.promises.stat(filePath).then(
-    (stats) => stats.size,
-    () => undefined
-  );
-  if (size === undefined) return { reason: 'unreadable' };
-  if (size > maxImageBytes) return { reason: 'tooLarge' };
+const readWithin = async (handle: fs.promises.FileHandle) => {
+  const { size } = await handle.stat();
+  return size > maxImageBytes ? ('tooLarge' as const) : handle.readFile();
+};
 
-  const data = await fs.promises.readFile(filePath).catch(() => undefined);
-  if (!data) return { reason: 'unreadable' };
+/** The image in a file the user picked, or why it cannot be used: the file is opened once, so the size that is checked is the one that is read */
+export const readPhotoFile = async (filePath: string): Promise<PhotoFile> => {
+  const handle = await fs.promises.open(filePath, 'r').catch(() => undefined);
+  if (!handle) return { reason: 'unreadable' };
+
+  const data = await readWithin(handle)
+    .catch(() => 'unreadable' as const)
+    .finally(() => handle.close());
+  if (typeof data === 'string') return { reason: data };
   if (data.length > maxImageBytes) return { reason: 'tooLarge' };
 
   const extension = extensionOf(data);
