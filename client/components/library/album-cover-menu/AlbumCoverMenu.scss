@@ -243,7 +243,12 @@ $ease: cubic-bezier(.2, .8, .2, 1);
     border-radius: 8px;
     background: var(--art-placeholder);
     box-shadow: 0 4px 12px var(--shadow);
-    transition: transform .25s $ease, box-shadow .25s $ease;
+    opacity: 0;
+    transition: transform .25s $ease, box-shadow .25s $ease, opacity .35s ease-out;
+
+    &.loaded {
+      opacity: 1;
+    }
   }
 
   .resultName {

@@ -44,6 +44,16 @@ describe('AlbumDetails', () => {
     expect(screen.getByRole('img').getAttribute('src')).toBe(getCoverUrl('/data/albumart/abc123.jpg'));
   });
 
+  it('shows the cover only once it has loaded', () => {
+    setup(album);
+    const image = screen.getByRole('img');
+    expect(image.className).not.toContain('loaded');
+
+    fireEvent.load(image);
+
+    expect(image.className).toContain('loaded');
+  });
+
   it('shows the format of each track', () => {
     setup({ ...album, tracks: [{ ...album.tracks![0], codec: 'FLAC', lossless: 1, bitDepth: 24, sampleRate: 96000 }] });
 

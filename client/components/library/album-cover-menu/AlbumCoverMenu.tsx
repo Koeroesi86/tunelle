@@ -30,6 +30,7 @@ const AlbumCoverMenu = ({ failure, candidates, initialQuery, change, search, dow
   const [searched, setSearched] = useState<string>();
   // an album may have no cover on the Cover Art Archive, its thumbnail does not load and it is left out
   const [missing, setMissing] = useState<string[]>([]);
+  const [loaded, setLoaded] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
 
   const close = () => {
@@ -63,6 +64,7 @@ const AlbumCoverMenu = ({ failure, candidates, initialQuery, change, search, dow
 
     setSearched(text);
     setMissing([]);
+    setLoaded([]);
     search(text);
   };
 
@@ -129,7 +131,14 @@ const AlbumCoverMenu = ({ failure, candidates, initialQuery, change, search, dow
                     download(picture);
                   }}
                 >
-                  <img className={style.thumbnail} src={picture} alt="" loading="lazy" onError={() => setMissing((previous) => [...previous, picture])} />
+                  <img
+                    className={classNames(style.thumbnail, loaded.includes(picture) && style.loaded)}
+                    src={picture}
+                    alt=""
+                    loading="lazy"
+                    onLoad={() => setLoaded((previous) => [...previous, picture])}
+                    onError={() => setMissing((previous) => [...previous, picture])}
+                  />
                   <span className={style.resultName}>{name}</span>
                 </button>
               </li>

@@ -25,6 +25,7 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
   const { t } = useTranslation();
   const displayed: Partial<Album> = { ...album };
   const [failedCover, setFailedCover] = useState<string | undefined>(undefined);
+  const [loadedCover, setLoadedCover] = useState<string | undefined>(undefined);
   const [tint, setTint] = useState<{ url: string; color: string } | undefined>(undefined);
   const coverUrl = displayed.cover ? getCoverUrl(displayed.cover) : undefined;
   const headerColor = tint?.url === coverUrl ? tint?.color : undefined;
@@ -59,7 +60,11 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
                 alt={t('album.cover')}
                 crossOrigin="anonymous"
                 onError={() => setFailedCover(coverUrl)}
-                onLoad={(event) => readTint(event.currentTarget)}
+                className={coverUrl === loadedCover ? style.loaded : undefined}
+                onLoad={(event) => {
+                  setLoadedCover(coverUrl);
+                  readTint(event.currentTarget);
+                }}
               />
             )}
           </div>
