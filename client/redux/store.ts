@@ -9,4 +9,5 @@ const middlewares = [connectionMiddleware, uiStateMiddleware, outputDevicesMiddl
 const middlewareEnhancers = applyMiddleware(...middlewares);
 const enhancers = compose(middlewareEnhancers);
 
-export const store = createStore(reducers, enhancers);
+/** The middleware talks to the main process as soon as it is created, so the store is created when the app has started (client/app.tsx) */
+export const createAppStore = () => createStore(reducers, enhancers);

@@ -67,12 +67,14 @@ export const quit = async (app: ElectronApplication) => {
 
 const pageUrl = 'tunelle://app/index.html';
 
-// the splash window opens first, then the page: the one that has loaded the page is the one the tests use
+// the window shows the splash first: the player is mounted into #root once the app has started
 const findPage = async (app: ElectronApplication) => {
   await expect.poll(() => app.windows().some((window) => window.url() === pageUrl), { message: 'the window of the app', timeout: 60_000 }).toBe(true);
   const page = app.windows().find((window) => window.url() === pageUrl);
   if (!page) throw new Error('The window of the app closed');
   await page.waitForFunction(() => (document.getElementById('root')?.childElementCount ?? 0) > 0);
+  // the splash goes once the first page of tracks is in: a page that is loaded again before that saves its settings on the way out, before the saved ones were restored
+  await page.waitForFunction(() => !document.getElementById('splash'));
   return page;
 };
 
@@ -193,12 +195,23 @@ export const launchApp = async ({ home, radioDirectory, initScripts, offline = f
   const startTimes = measureStart ? await readStartTimes(page, spawnedAt) : undefined;
   // a window of the same size on every system, or the layout of a small display moves the controls out of reach
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().forEach((window) => window.setContentSize(1360, 850)));
-  // the init scripts run on the next load; the first one may have been before them
-  if (!(await page.evaluate(() => Boolean(window.activeAudio)))) await page.reload();
-  await page.waitForFunction(() => (document.getElementById('root')?.childElementCount ?? 0) > 0);
-  // the tests measure the page through them: without them a check would pass on defaults
-  const installed = await page.evaluate(() => Boolean(window.activeAudio) && Boolean(window.audioProbe));
-  if (!installed) throw new Error('The init scripts (window.activeAudio, window.audioProbe) did not run on the page, even after a reload');
+  // the init scripts run on the next load, and the window opens as soon as the app is ready: the first load may have been before some of them or all, so the page is
+  // loaded again until they ran. The tests measure the page through them: without them a check would pass on defaults
+  // the context can miss a window that opened before it knew the scripts, so the page gets them too
+  await Promise.all([installNoNotifications, ...initScripts].map((script) => page.addInitScript(script)));
+  const installed = () => page.evaluate(() => Boolean(window.activeAudio) && Boolean(window.audioProbe));
+  await expect
+    .poll(
+      async () => {
+        if (await installed()) return true;
+
+        await page.reload();
+        await page.waitForFunction(() => (document.getElementById('root')?.childElementCount ?? 0) > 0);
+        return installed();
+      },
+      { message: 'the init scripts (window.activeAudio, window.audioProbe) on the page', timeout: 30_000 }
+    )
+    .toBe(true);
   return { app, page, startTimes };
 };
 

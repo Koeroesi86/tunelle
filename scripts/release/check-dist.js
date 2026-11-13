@@ -26,7 +26,7 @@ const forbidden = [
   [/^\/index\.ts$/, 'source file']
 ]
 // the required files, so that a changed glob in package.json can not silently drop them
-const required = ['/package.json', '/out/index.js', '/out/electron/preload.js', '/out/electron/splash-preload.js', '/out/electron/loudness-preload.js', '/build/index.html', '/build/loading.html', '/build/loudness.html', '/build/loudness.js', '/migrations']
+const required = ['/package.json', '/out/index.js', '/out/electron/preload.js', '/out/electron/loudness-preload.js', '/build/index.html', '/build/loudness.html', '/build/loudness.js', '/migrations']
 
 if (!existsSync(archive)) {
   console.error(`${archive} does not exist, run npm run dist first`)

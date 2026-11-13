@@ -22,7 +22,7 @@ The version check is small and always runs; the download asks first when the sys
 - `navigator.connection` is not used, it does not read the setting of the system on a desktop.
 - `TUNELLE_METERED=1` makes every platform metered, for a hotspot the system does not know and for testing.
 
-**On the splash** (`confirmDownload` of `runUpdate`) the splash shows "Download" and "Not now" (`askOnSplash` in `electron/services/splash-confirm.ts`). "Download" goes on as without the question; "Not now", and closing the splash, start the installed version for this start only. The next start asks again.
+**On the splash** (`confirmDownload` of `runUpdate`) the splash shows "Download" and "Not now" (`askOnSplash` in `electron/services/splash-confirm.ts`). "Download" goes on as without the question; "Not now" starts the installed version for this start only (closing the window quits the app, as the splash is part of the player window, see [startup](startup.md)). The next start asks again.
 
 **In the settings** the manager sets the status `metered` before it checks, and the page asks to continue (`CONFIRM_METERED_UPDATE`) or not (`CANCEL_METERED_UPDATE`, back to idle). A check later asks again.
 

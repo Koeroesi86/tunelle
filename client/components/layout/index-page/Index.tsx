@@ -1,3 +1,5 @@
+import LoadingSplash from '../loading-splash/LoadingSplash';
+
 export interface PageLocals {
   title: string;
   doctype: string;
@@ -20,6 +22,7 @@ function IndexPage(props: { locals: PageLocals }) {
       </head>
       <body>
         <div id="root" />
+        <LoadingSplash />
         <script src={props.locals.assets.client} />
       </body>
     </html>

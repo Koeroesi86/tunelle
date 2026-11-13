@@ -49,8 +49,15 @@ const createConfig = ({ name, entry, target, resolveFallback, plugins }) => ({
         }
       },
       // webpack's asset modules emit the file itself, file-loader would emit a JavaScript module next to the url() of the css
+      // the splash is in the page and paints before anything else is fetched, so its logo is a data URI (import 'x.svg?inline')
+      {
+        test: /\.svg$/,
+        resourceQuery: /inline/,
+        type: 'asset/inline'
+      },
       {
         test: /\.(woff(2)?|ttf|eot|svg|png|jpg|webm|mp4)$/,
+        resourceQuery: { not: [/inline/] },
         type: 'asset/resource',
         generator: {
           filename: 'bundle/[name]-[hash][ext]'

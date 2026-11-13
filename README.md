@@ -21,6 +21,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [Unit tests](docs/development/unit-tests.md)
 - [Checks in CI](docs/development/ci.md)
 - [The decode-only ffmpeg build](docs/development/ffmpeg-build.md)
+- [Startup and the splash](docs/app/startup.md)
 - [The updater](docs/app/updater.md)
 - [The app data folder](docs/app/user-data.md)
 - [The `tunelle://app` protocol](docs/app/tunelle-protocol.md)

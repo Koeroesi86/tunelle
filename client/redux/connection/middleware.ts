@@ -20,6 +20,7 @@ import { toPlaylist } from '../../domain/playlists';
 import { radioUuidOf } from '../../domain/radio-track';
 import { fetchAlbumPage, fetchGroupPage, fetchTrackPage } from '../../services/library-api';
 import { selectAlbumQuery, selectGroupAlbumQuery, selectGroupQuery, selectTrackQuery } from '../../domain/library-query';
+import { hideSplash } from '../../startup';
 import { actionMiddleware, onAction } from '../on-action';
 
 import type { Store } from '../on-action';
@@ -75,7 +76,7 @@ function rescanLibrary(forced = false) {
 }
 
 const appLoaded = debounce(() => {
-  electronAPI.send('APP_LOADED', {});
+  hideSplash();
 }, 500);
 
 const groupFetcher = (kind: GroupKind) => (state: RootState, page: number) =>

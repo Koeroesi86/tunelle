@@ -12,7 +12,7 @@ import { isMeteredConnection } from './electron/services/metered-connection';
 import { askOnSplash } from './electron/services/splash-confirm';
 import { copyOldLibrary, copyOldUserData, getAppName } from './electron/utils/user-data';
 import createWindow from './electron/windows/create-window';
-import getLoadingWindow from './electron/windows/get-loading-window';
+import { createStartupSignal } from './electron/services/startup-signal';
 import createDatabase from './electron/database/create-database';
 import { libraryErrorMessage } from './electron/utils/library-error-message';
 import setupListeners from './electron/listeners/setup-listeners';
@@ -28,8 +28,6 @@ import { sendIfAlive } from './electron/utils/send-if-alive';
 import { cancelScans } from './electron/library/scan/scan-cancellation';
 import { backgroundQueue } from './electron/library/tasks/background-queue';
 import { registerLoudness } from './electron/library/loudness/loudness-source';
-import closeSplash from './electron/windows/close-splash';
-import releaseWindows from './electron/windows/release-windows';
 import { getMainTranslator, setPickedLanguage } from './electron/language';
 import { applyThemeMode } from './electron/theme';
 import { getSettings } from './electron/repositories/settings-repository';
@@ -54,7 +52,7 @@ const isDev = process.env.NODE_ENV === 'development';
 // app.exit does not stop the start up that follows, which would meet the lock of the first start and fail
 holdSingleInstance(
   app,
-  () => windows.main ?? windows.loading,
+  () => windows.main,
   (code) => process.exit(code)
 );
 
@@ -98,14 +96,12 @@ const appDataPath = global._appDataPath;
 
 const windows: AppWindows = {
   main: null,
-  loading: null,
 };
 
 // the page is served by the tunelle protocol; a development run loads it from the dev server, which asks the protocol across origins
 const devOrigin = argv.webpackPort ? `http://localhost:${argv.webpackPort}` : undefined;
 const pageOrigin = devOrigin ?? tunelleOrigin;
 const windowLocation = `${pageOrigin}/index.html`;
-const loadingLocation = `${pageOrigin}/loading.html`;
 const loudnessLocation = `${pageOrigin}/loudness.html`;
 
 // before the app is ready
@@ -143,12 +139,21 @@ function setAppId() {
   }
 }
 
-const initWindow = () => {
+// the window opens at once with the splash that is in its page, the player is mounted under it when the app has started. See docs/app/startup.md
+const openWindow = () => {
   setAppId();
-  windows.main = createWindow();
-  windows.main.loadURL(windowLocation);
+  const main = createWindow();
+  windows.main = main;
 
-  windows.main.on('closed', () => releaseWindows(windows));
+  main.once('ready-to-show', () => {
+    main.show();
+    if (isWin) main.setBackgroundMaterial('acrylic');
+  });
+  main.on('closed', () => {
+    windows.main = null;
+  });
+
+  return main;
 };
 
 if (!fs.existsSync(appDataPath)) {
@@ -221,44 +226,42 @@ const updates = createUpdateManager({
 });
 
 // the splash stays up while the update is checked and downloaded, the app starts once it is done; the user can turn this off and update from the settings
-const updateOnSplash = async (loading: BrowserWindow) => {
+const updateOnSplash = async (main: BrowserWindow) => {
   if (!updateSource || !updates.getState().automatic) return;
 
-  return runUpdate(updateSource, (progress) => loading.webContents.send('SPLASH_PROGRESS', progress), {
+  return runUpdate(updateSource, (progress) => sendIfAlive(main.webContents, 'SPLASH_PROGRESS', progress), {
     install: !isMockUpdate,
     translate: getMainTranslator().t,
     // a metered connection asks on the splash first, the version check above is small and stays as it is
     confirmDownload: async (version) => {
       if (updates.getState().allowMetered || !(await isMeteredConnection())) return true;
 
-      const download = await askOnSplash(loading, {
+      const download = await askOnSplash(main, {
         text: getMainTranslator().t('update.metered', { version }),
         download: getMainTranslator().t('update.metered.download'),
         notNow: getMainTranslator().t('update.metered.notNow'),
       });
       // the question goes away with the answer: the download reports its own text next, "Not now" falls back to the loading text
-      sendIfAlive(loading.webContents, 'SPLASH_PROGRESS', { text: getMainTranslator().t('splash.loading', { title: 'Tunelle' }) });
+      sendIfAlive(main.webContents, 'SPLASH_PROGRESS', { text: getMainTranslator().t('splash.loading', { title: 'Tunelle' }) });
 
       return download;
     },
   });
 };
 
+let startup: ReturnType<typeof createStartupSignal> | undefined;
+
 app
   .whenReady()
   .then(serveApp)
   .then(async () => {
-    const loading = getLoadingWindow();
-    windows.loading = loading;
-    loading.once('ready-to-show', () => {
-      loading.show();
-      if (isWin) loading.setBackgroundMaterial('acrylic');
-    });
-    await loading.loadURL(loadingLocation);
-    // the splash page is static and shows the text the main process sends; the picked language is in the library, which opens after the splash
-    loading.webContents.send('SPLASH_PROGRESS', { text: getMainTranslator().t('splash.loading', { title: 'Tunelle' }) });
+    const main = openWindow();
+    startup = createStartupSignal(main);
+    await main.loadURL(windowLocation);
+    // the splash is static and shows the text the main process sends; the picked language is in the library, which opens after the splash
+    sendIfAlive(main.webContents, 'SPLASH_PROGRESS', { text: getMainTranslator().t('splash.loading', { title: 'Tunelle' }) });
 
-    return updateOnSplash(loading);
+    return updateOnSplash(main);
   })
   .then(() =>
     createDatabase(libraryLocation).catch((error) => {
@@ -281,7 +284,9 @@ app
       .then(() => d);
   })
   .then((d) => {
-    initWindow();
+    // the window was closed while the library opened: the app is quitting, and the database is closed before that
+    if (!windows.main) return closeDatabase(d);
+
     // the hidden window of the measurement is a window too: the app does not quit while it is open
     const loudness = registerLoudness(d, loudnessLocation, (status) => windows.main && sendIfAlive(windows.main.webContents, 'LOUDNESS_STATUS', status));
     windows.main?.on('closed', loudness.stop);
@@ -304,7 +309,6 @@ app
       backgroundQueue.stop();
       loudness.stop();
       cancelScans();
-      closeSplash(windows);
     });
 
     app.on('window-all-closed', () => {
@@ -312,6 +316,8 @@ app
         app.quit();
       }
     });
+
+    startup?.start();
   })
   .catch((msg) => {
     console.error(msg);

@@ -3,7 +3,7 @@ import type { App, BrowserWindow } from 'electron';
 type SingleInstanceApp = Pick<App, 'requestSingleInstanceLock' | 'on'>;
 type FocusableWindow = Pick<BrowserWindow, 'isMinimized' | 'restore' | 'show' | 'focus'>;
 
-/** A second start (the launcher, a notification of the system) brings the window of the running one forward; while the app is still loading that is the splash */
+/** A second start (the launcher, a notification of the system) brings the window of the running one forward */
 export const focusWindow = (window: FocusableWindow | null | undefined) => {
   if (!window) return;
 
