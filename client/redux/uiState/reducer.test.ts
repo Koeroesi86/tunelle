@@ -471,6 +471,26 @@ describe('uiState reducer', () => {
       expect(run({ type: 'SET_GROUP_FILTER', payload: { filter: 'po' } }).groupFilter).toBe('po');
     });
 
+    it('keeps why a picked photo failed until another change, another group or the way back', () => {
+      const failed = run({ type: 'ARTIST_PHOTO_FAILED', payload: { reason: 'notImage' } });
+
+      expect(failed.artistPhotoFailure).toBe('notImage');
+      expect(run({ type: 'CHANGE_ARTIST_PHOTO', payload: { key: 'a', change: 'pick' } }, failed).artistPhotoFailure).toBeUndefined();
+      expect(run({ type: 'OPEN_GROUP', payload: { group: { kind: 'artist', key: 'a', name: 'A' } } }, failed).artistPhotoFailure).toBeUndefined();
+      expect(run({ type: 'CLOSE_GROUP', payload: {} }, failed).artistPhotoFailure).toBeUndefined();
+    });
+
+    it('keeps what a search of photos found until the next change or search, and counts the photos that changed', () => {
+      const candidates = { query: 'adam', candidates: [{ name: 'Adam', picture: 'https://cdn.dzcdn.net/a.jpg' }] };
+      const found = run({ type: 'ARTIST_PHOTO_CANDIDATES', payload: candidates });
+
+      expect(found.artistPhotoCandidates).toEqual(candidates);
+      expect(run({ type: 'SEARCH_ARTIST_PHOTOS', payload: { query: 'eve' } }, found).artistPhotoCandidates).toBeUndefined();
+      expect(run({ type: 'CHANGE_ARTIST_PHOTO', payload: { key: 'adam', change: 'reset' } }, found).artistPhotoCandidates).toBeUndefined();
+      expect(run({ type: 'CLOSE_GROUP', payload: {} }, found).artistPhotoCandidates).toBeUndefined();
+      expect(run({ type: 'ARTIST_PHOTOS_READY', payload: {} }, run({ type: 'ARTIST_PHOTOS_READY', payload: {} })).artistPhotoRevision).toBe(2);
+    });
+
     it('starts another view without the open group and the filter of the names', () => {
       const state = run(
         { type: 'SET_GROUP_FILTER', payload: { filter: 'po' } },

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { Database } from 'sqlite3';
 import { analysisVersion } from '@shared/constants/loudness';
 import { findLoudnessAnalysis } from '../repositories/loudness-repository';
-import { findTrackFormat, getAlbumPage, getAlbumTrackList, getGroupPage, getTrackList, getTrackPage } from '../repositories/library-repository';
+import { findTrackFormat, getAlbumPage, getAlbumTrackList, getGroupCover, getGroupPage, getTrackList, getTrackPage } from '../repositories/library-repository';
 import { parseAlbumSort, parseFolders, parseGroupKind, parseGroupSort, parseSearch, parseTrackSort } from '@shared/types/library-query';
 import type { AlbumGroup, LibraryQuery } from '@shared/types/library-query';
 import { clamp } from '@shared/utils/clamp';
@@ -84,6 +84,12 @@ export const libraryRoutes: Record<string, ReturnType<typeof fromLibrary>> = {
     const query = toLibraryQuery(params, parseGroupSort);
     const kind = parseGroupKind(params.get('by'));
     return query && kind ? getGroupPage(database, kind, offset, limit, { ...query, filter: params.get('q') ?? '' }) : undefined;
+  }),
+  // the photo or cover that the tile of one group shows, for the header of the open group
+  '/library/group-cover': fromLibrary((database, params) => {
+    const kind = parseGroupKind(params.get('by'));
+    const key = params.get('key');
+    return kind && key ? getGroupCover(database, kind, key) : undefined;
   }),
   '/library/album': fromLibrary((database, params) => {
     const parsed = albumKeySchema.safeParse({ path: params.get('path'), title: params.get('title') });

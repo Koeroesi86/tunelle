@@ -56,6 +56,9 @@ const initialState: UiState = {
   coverSize: coverSizes.default,
   groupSort: undefined,
   artistPhotos: true,
+  artistPhotoFailure: undefined,
+  artistPhotoCandidates: undefined,
+  artistPhotoRevision: 0,
   watchFolders: true,
   measureLoudness: true,
   loudnessStatus: undefined,
@@ -163,9 +166,18 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
     case 'SET_GROUP_FILTER':
       return { ...state, groupFilter: action.payload.filter };
     case 'OPEN_GROUP':
-      return { ...state, openGroup: action.payload.group };
+      return { ...state, openGroup: action.payload.group, artistPhotoFailure: undefined, artistPhotoCandidates: undefined };
     case 'CLOSE_GROUP':
-      return { ...state, openGroup: undefined };
+      return { ...state, openGroup: undefined, artistPhotoFailure: undefined, artistPhotoCandidates: undefined };
+    case 'CHANGE_ARTIST_PHOTO':
+    case 'SEARCH_ARTIST_PHOTOS':
+      return { ...state, artistPhotoFailure: undefined, artistPhotoCandidates: undefined };
+    case 'ARTIST_PHOTO_CANDIDATES':
+      return { ...state, artistPhotoCandidates: action.payload };
+    case 'ARTIST_PHOTOS_READY':
+      return { ...state, artistPhotoRevision: state.artistPhotoRevision + 1 };
+    case 'ARTIST_PHOTO_FAILED':
+      return { ...state, artistPhotoFailure: action.payload.reason };
     case 'SET_LIBRARY_FOLDERS':
       return { ...state, libraryFolders: parseFolders(action.payload.folders), selectedTracks: {} };
     // a folder that is not in the library any more is dropped from the selection

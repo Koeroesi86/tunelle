@@ -13,5 +13,6 @@
   "012-add-file-stat.sql": "4b0ad4a7d41fedc12846a2d91ea310004cd1e2cb3986a0ef1686b06a2c949331",
   "013-create-album-art-table.sql": "ab689caffb83c927d728aa3abba54390e5bf440f2ae7ccc0e6322cb23e2f7da1",
   "014-create-track-loudness-table.sql": "ec8923f6290e87e38385462916a93400a4321ed37e7bae8d53f6ab775f97a8df",
-  "015-add-album-tracks-to-track-loudness.sql": "20343fb191a3e4fd2e29484c455fc2fb50ee863173fb418c1a0b31391164a8d4"
+  "015-add-album-tracks-to-track-loudness.sql": "20343fb191a3e4fd2e29484c455fc2fb50ee863173fb418c1a0b31391164a8d4",
+  "016-add-manual-to-artist-photos.sql": "0abfe77a0c7bf8c27a4c9637e48833f567738eaf467304da2f66f23c7ba23252"
 }

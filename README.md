@@ -29,6 +29,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [Database migrations](docs/app/migrations.md)
 - [The audio context and the sample rate](docs/app/audio-context.md)
 - [Library queries](docs/app/library-queries.md)
+- [Artist photos](docs/app/artist-photos.md)
 - [Supported formats](docs/app/supported-formats.md)
 - [The background task queue](docs/app/task-queue.md)
 - [Loudness measurement](docs/app/loudness-measurement.md)

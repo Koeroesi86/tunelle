@@ -337,6 +337,16 @@ export const getGroupPage = (
   });
 };
 
+/** The photo of an artist or album artist, else the cover of one of its albums: what its tile shows; null when it has neither */
+export const getGroupCover = (database: Database, kind: GroupKind, key: string) => {
+  const column = groupColumns[kind];
+  return executeQuery(
+    database,
+    { query: `SELECT ${column.cover('?')} AS cover FROM library WHERE ${column.key} = ?`, variables: [key, key] },
+    z.object({ cover: z.string().nullable() })
+  ).then(([row]) => ({ cover: row?.cover ?? null }));
+};
+
 /** The condition that limits the tracks to the ones of a group, none when the albums are not of a group */
 // what the albums read: the columns they show, the keys they are filtered and ordered by, and the path for the folder
 const albumSourceColumns = columnList([

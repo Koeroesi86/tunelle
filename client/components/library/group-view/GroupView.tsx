@@ -15,11 +15,16 @@ import { getCachedItem } from '../../../redux/library/pages';
 import type { PageCache } from '../../../redux/library/pages';
 import type { OpenGroup } from '../../../redux/types';
 import AlbumSort from '../album-sort';
+import ArtistPhoto from '../artist-photo';
+import ArtistPhotoMenu from '../artist-photo-menu';
 import CoverSizeSlider from '../../ui/cover-size-slider';
 import GenreCard from '../genre-card';
 import GroupAlbums from '../group-albums';
 import GroupTile from '../group-tile';
 import style from './GroupView.scss';
+
+/** The groups that have a photo, which can be changed */
+const photoKinds: GroupKind[] = ['artist', 'albumArtist'];
 
 /** The gap between two tiles in px, the tiles grow to fill the width; matching .tileRow in GroupView.scss */
 const tileGap = 18;
@@ -133,6 +138,7 @@ const GroupList = ({
 const GroupView = ({ open, closeGroup, playTracks, ...list }: GroupViewProps) => {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
+  const hasPhoto = !!open?.key && photoKinds.includes(open.kind);
   const openName = open && (open.name || t(`groups.unknown.${open.kind}`));
 
   // the albums of the group are fetched for the queue, which can take a moment for a big group
@@ -153,6 +159,7 @@ const GroupView = ({ open, closeGroup, playTracks, ...list }: GroupViewProps) =>
           <button type="button" className={style.back} onClick={closeGroup} aria-label={t('groups.back')} title={t('groups.back')}>
             <FaChevronLeft aria-hidden />
           </button>
+          {hasPhoto && <ArtistPhoto kind={open.kind} photoKey={open.key} />}
           <span className={style.openName} title={openName}>
             {openName}
           </span>
@@ -164,6 +171,7 @@ const GroupView = ({ open, closeGroup, playTracks, ...list }: GroupViewProps) =>
             <ShuffleIcon size="14px" aria-hidden />
             {t('favourites.shuffle')}
           </button>
+          {hasPhoto && <ArtistPhotoMenu photoKey={open.key} name={open.name} />}
           <AlbumSort />
         </div>
       }

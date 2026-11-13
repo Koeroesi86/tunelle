@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { addedFilesSchema, artistNamesSchema, enabledRequestSchema, prioritiseLoudnessSchema, rescanRequestSchema, savedSettingsSchema } from './requests';
+import {
+  addedFilesSchema,
+  artistNamesSchema,
+  artistPhotoChangeSchema,
+  artistPhotoSearchSchema,
+  enabledRequestSchema,
+  prioritiseLoudnessSchema,
+  rescanRequestSchema,
+  savedSettingsSchema,
+} from './requests';
 import { readMainSettings } from './settings';
 import { loudnessAnalysisSchema, measureResultSchema } from './loudness';
 import { messageSchemas } from './messages';
@@ -33,6 +42,25 @@ describe('requests', () => {
 
     expect(artistNamesSchema.parse({ artists })).toHaveLength(200);
     expect(artistNamesSchema.parse({ artists: 'x' })).toEqual([]);
+  });
+
+  it('reads a change of the photo of an artist, and a picture to download only from the servers of Deezer', () => {
+    const picture = 'https://cdn-images.dzcdn.net/images/artist/x/500x500.jpg';
+
+    expect(artistPhotoChangeSchema.parse({ key: 'adam', change: 'reset' })).toEqual({ key: 'adam', change: 'reset' });
+    expect(artistPhotoChangeSchema.parse({ key: 'adam', change: 'download', picture })).toEqual({ key: 'adam', change: 'download', picture });
+    expect(artistPhotoChangeSchema.safeParse({ key: '', change: 'pick' }).success).toBe(false);
+    expect(artistPhotoChangeSchema.safeParse({ key: 'adam', change: 'delete' }).success).toBe(false);
+    expect(artistPhotoChangeSchema.safeParse({ key: 'adam', change: 'download' }).success).toBe(false);
+    ['http://cdn-images.dzcdn.net/a.jpg', 'https://example.com/a.jpg', 'https://dzcdn.net.example.com/a.jpg', 'file:///etc/passwd'].forEach((url) =>
+      expect(artistPhotoChangeSchema.safeParse({ key: 'adam', change: 'download', picture: url }).success).toBe(false)
+    );
+  });
+
+  it('reads the text of a search of photos trimmed, not empty and not too long', () => {
+    expect(artistPhotoSearchSchema.parse({ query: '  Adam ' })).toEqual({ query: 'Adam' });
+    expect(artistPhotoSearchSchema.safeParse({ query: '   ' }).success).toBe(false);
+    expect(artistPhotoSearchSchema.safeParse({ query: 'a'.repeat(101) }).success).toBe(false);
   });
 
   it('takes settings that are an object and nothing else', () => {

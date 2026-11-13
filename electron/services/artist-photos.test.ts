@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Database } from 'sqlite3';
-import { createArtistPhotoQueue, findArtistPhoto } from './artist-photos';
+import { createArtistPhotoQueue, findArtistPhoto, searchArtistPhotos } from './artist-photos';
 import executeQuery from '../database/execute-query';
 import { createTestDatabase } from '../test-database';
 
@@ -71,13 +71,42 @@ describe('findArtistPhoto', () => {
   });
 });
 
+describe('searchArtistPhotos', () => {
+  it('lists the artists with a photo that Deezer finds for a text, whatever they are called', async () => {
+    const fetcher = deezer({
+      'ad dam': [
+        { name: 'Adam', picture_big: photoUrl('a') },
+        { name: 'Without', picture_big: 'https://cdn-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg' },
+        { name: 'Adam Two', picture_big: photoUrl('b') },
+      ],
+    });
+
+    expect(await searchArtistPhotos('ad dam')).toEqual([
+      { name: 'Adam', picture: photoUrl('a') },
+      { name: 'Adam Two', picture: photoUrl('b') },
+    ]);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails when Deezer refuses or cannot answer', async () => {
+    stubFetch(async () => Response.json({ error: { code: 4 } }));
+    await expect(searchArtistPhotos('Adam')).rejects.toThrow('refused');
+
+    stubFetch(async () => new Response(undefined, { status: 503 }));
+    await expect(searchArtistPhotos('Adam')).rejects.toThrow('503');
+  });
+});
+
 describe('createArtistPhotoQueue', () => {
   let database: Database;
   let folder: string;
   let clock: number;
   const onFound = vi.fn();
   const records = () =>
-    executeQuery<{ key: string; picture: string | null; checkedAt: number }>(database, { query: 'SELECT * FROM artist_photos ORDER BY key', variables: [] });
+    executeQuery<{ key: string; picture: string | null; checkedAt: number; manual: number }>(database, {
+      query: 'SELECT * FROM artist_photos ORDER BY key',
+      variables: [],
+    });
   /** The queue waits between two lookups, which the fake clock passes at once while the database answers in real time */
   const queueOf = () => {
     const queue = createArtistPhotoQueue({ database, getFolder: () => folder, onFound });
@@ -129,7 +158,7 @@ describe('createArtistPhotoQueue', () => {
 
     await queue.enqueue([adam]);
     await queue.enqueue([adam]);
-    expect(await records()).toEqual([{ key: 'adam', picture: null, checkedAt: around(clock) }]);
+    expect(await records()).toEqual([{ key: 'adam', picture: null, checkedAt: around(clock), manual: 0 }]);
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(onFound).not.toHaveBeenCalled();
 
@@ -137,6 +166,29 @@ describe('createArtistPhotoQueue', () => {
     vi.setSystemTime(clock);
     await queue.enqueue([adam]);
     expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('never looks up a name whose photo the user chose or removed, however old the record is', async () => {
+    const fetcher = deezer(found);
+    await executeQuery(database, { query: "INSERT INTO artist_photos (key, picture, checkedAt, manual) VALUES ('adam', NULL, 1, 1)", variables: [] });
+    clock += 1000 * 60 * 60 * 24 * 365;
+    vi.setSystemTime(clock);
+
+    await queueOf().enqueue([adam]);
+
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('keeps the photo the user chose while a lookup of the name is on', async () => {
+    const chosen = "INSERT OR REPLACE INTO artist_photos (key, picture, checkedAt, manual) VALUES ('adam', 'artist-chosen.png', 1, 1)";
+    stubFetch(async (url: string) => {
+      await executeQuery(database, { query: chosen, variables: [] });
+      return new URL(url).pathname === '/search/artist' ? answer(found.Adam) : image();
+    });
+
+    await queueOf().enqueue([adam]);
+
+    expect(await records()).toEqual([{ key: 'adam', picture: 'artist-chosen.png', checkedAt: 1, manual: 1 }]);
   });
 
   it('does not look up a name that has its photo already, or no name at all', async () => {
