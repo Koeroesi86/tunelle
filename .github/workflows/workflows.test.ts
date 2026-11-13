@@ -73,6 +73,7 @@ describe('workflows', () => {
 
     expect(job).toMatch(/runs-on: ubuntu-latest/);
     expect(job).toContain('run: npm run test:a11y');
+    expect(job).toMatch(/restore-ffmpeg\n\s+with:\n\s+platform: linux\n\s+arch: x64/);
     expect(job).not.toContain('matrix');
     expect(text.slice(0, text.indexOf('\n  accessibility:'))).not.toContain('test:a11y');
     expect(readFileSync(join(__dirname, '../../playwright.config.ts'), 'utf8')).toMatch(/name: 'e2e'.*testIgnore: 'accessibility\.spec\.ts'/);
