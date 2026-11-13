@@ -12,6 +12,8 @@
 
 `persistence.integration.test.ts` (in `electron/listeners/`) registers the listeners of the favourites, the history, the playlists and the settings on a database file, closes it, opens it again and asks as the window does (`FAVOURITES_LOAD`, `APP_READY`), so what the listener keeps is tried across a start of the app. That the window sends the right message is tried by the tests of the client (`middleware.test.ts`, `PlayerHome.test.tsx`), and `e2e/collections.spec.ts` keeps the restart of one playlist for the whole app.
 
+The test once failed on windows-2025 with `expected 1 to be greater than 1` in `ask` ([#377](https://github.com/Koeroesi86/tunelle/issues/377)): the `vi.waitFor` gave up after its default 1 s. The listeners answer only after the database write and the availability check (`register-favourite-listeners.ts`), so the reply was late on a slow runner and not sent before the write; `ask` waits with an explicit `timeout` of 15 s. If the reply is missing after that, look for a `logError` of the listener, as `reply` catches the error of the work.
+
 ## What stays in `e2e/`
 
 One played format per decoder path (`alac.spec.ts`, and `dsd.spec.ts` for 24 bit at 88.2 kHz); the other formats are decoded in the integration tests. Whatever else needs Chromium or the operating system around the app: sound leaving the app, the loudness measurement (it runs in a hidden window, see [loudness-measurement.md](../app/loudness-measurement.md)), the window, the `tunelle://` scheme as Electron registers it, and the preload. A test here cannot see a difference between Node and Electron (`net.fetch`, streams, `app.isPackaged`), so a behaviour that depends on one is an end to end test.
