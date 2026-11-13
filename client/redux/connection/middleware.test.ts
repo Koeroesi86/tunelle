@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { applyMiddleware, createStore } from 'redux';
+import type { Album } from '@shared/types/library';
 
 vi.mock('../../startup', () => ({ hideSplash: vi.fn() }));
 
@@ -491,6 +492,29 @@ describe('connection middleware', () => {
 
         expect(send).toHaveBeenCalledWith('ARTIST_PHOTO_CHANGE', { key: 'adam', change: 'pick' });
         expect(store.getState().uiState.artistPhotoFailure).toBe('tooLarge');
+      });
+
+      it('sends the change of the cover of an album, and shows why a picked file failed', async () => {
+        const { store, send, listen } = await setup();
+
+        store.dispatch({ type: 'CHANGE_ALBUM_COVER', payload: { path: '/music/one', title: 'Songs', change: 'pick' } });
+        listen('ALBUM_COVER_FAILED', { reason: 'tooLarge' });
+        listen('ALBUM_COVER_FAILED', { reason: 'searchFailed' });
+
+        expect(send).toHaveBeenCalledWith('ALBUM_COVER_CHANGE', { path: '/music/one', title: 'Songs', change: 'pick' });
+        expect(store.getState().uiState.albumCoverFailure).toBe('tooLarge');
+      });
+
+      it('shows the cover an album has after a change, and drops a message of the wrong shape', async () => {
+        const { store, listen } = await setup();
+        const album = { id: 'a', path: '/music/one', title: 'Songs', cover: 'old.jpg', tracks: [] } as unknown as Album;
+        store.dispatch({ type: 'SELECT_ALBUM', payload: { album } });
+
+        listen('ALBUM_COVER_CHANGED', { path: '/music/one', title: 'Songs', cover: 1 });
+        expect(store.getState().uiState.selectedAlbum?.cover).toBe('old.jpg');
+        listen('ALBUM_COVER_CHANGED', { path: '/music/one', title: 'Songs', cover: null });
+
+        expect(store.getState().uiState.selectedAlbum?.cover).toBeNull();
       });
 
       it('sends the search of photos, and keeps what it found', async () => {

@@ -1,5 +1,5 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron';
-import type { OpenDialogOptions, WebContents } from 'electron';
+import { ipcMain } from 'electron';
+import type { WebContents } from 'electron';
 import type { Database } from 'sqlite3';
 import type { ListenerContext } from './listener-context';
 import { chooseArtistPhoto, readPhotoFile, removeArtistPhoto, resetArtistPhoto } from '../services/artist-photo-choice';
@@ -7,25 +7,15 @@ import { getImage, searchArtistPhotos } from '../services/artist-photos';
 import { artistPhotoChangeSchema, artistPhotoSearchSchema } from '@shared/schemas/requests';
 import type { ArtistPhotoChange } from '@shared/types/artist-photo';
 import { getMainTranslator } from '../language';
+import { pickImage } from '../utils/pick-image';
 import { getAlbumArtFolder } from '../utils/album-art-folder';
 import { parsePayload } from '../utils/parse-payload';
 import { logError } from '../utils/log-error';
 import { sendIfAlive } from '../utils/send-if-alive';
 
-const pickImage = async (sender: WebContents) => {
-  const { t } = getMainTranslator();
-  const options: OpenDialogOptions = {
-    title: t('artistPhoto.dialog'),
-    properties: ['openFile'],
-    filters: [{ name: t('artistPhoto.filter'), extensions: ['jpg', 'jpeg', 'png', 'webp'] }],
-  };
-  const window = BrowserWindow.fromWebContents(sender);
-  const { canceled, filePaths } = await (window ? dialog.showOpenDialog(window, options) : dialog.showOpenDialog(options));
-  return canceled ? undefined : filePaths[0];
-};
-
 const pick = async (database: Database, sender: WebContents, key: string) => {
-  const filePath = await pickImage(sender);
+  const { t } = getMainTranslator();
+  const filePath = await pickImage(sender, t('artistPhoto.dialog'), t('artistPhoto.filter'));
   if (!filePath) return false;
 
   const file = await readPhotoFile(filePath);

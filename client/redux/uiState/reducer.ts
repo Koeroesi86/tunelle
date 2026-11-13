@@ -58,6 +58,7 @@ const initialState: UiState = {
   artistPhotos: true,
   artistPhotoFailure: undefined,
   artistPhotoCandidates: undefined,
+  albumCoverFailure: undefined,
   artistPhotoRevision: 0,
   watchFolders: true,
   measureLoudness: true,
@@ -267,7 +268,19 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return currentTime === state.currentTime ? state : { ...state, currentTime };
     }
     case 'SELECT_ALBUM':
-      return { ...state, selectedAlbum: action.payload.album || null };
+      return { ...state, selectedAlbum: action.payload.album || null, albumCoverFailure: undefined };
+    case 'CHANGE_ALBUM_COVER':
+      return { ...state, albumCoverFailure: undefined };
+    case 'ALBUM_COVER_FAILED':
+      return { ...state, albumCoverFailure: action.payload.reason };
+    case 'ALBUM_COVER_CHANGED': {
+      const { path, title, cover } = action.payload;
+      const { selectedAlbum } = state;
+      // the album that is open shows the new cover, with its tracks (the queue keeps what it has)
+      return selectedAlbum?.path === path && selectedAlbum.title === title
+        ? { ...state, selectedAlbum: { ...selectedAlbum, cover, tracks: selectedAlbum.tracks.map((track) => ({ ...track, picture: cover })) } }
+        : state;
+    }
     case 'SET_GAIN': {
       const { value, index } = action.payload;
       return { ...state, equalizer: state.equalizer.map((gain, band) => (band === index ? clampGain(toNumber(value)) : gain)) };

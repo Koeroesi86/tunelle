@@ -58,7 +58,7 @@
   "tour.home.text": "A Kezdőlap megőrzi, mit csináltál: gomb a megállított szám folytatásához, a nemrég lejátszottak listája, valamint csempék a Kedvelt számaidhoz, a lejátszási listáidhoz és a kedvenc állomásaidhoz. A listát bármikor törölheted.",
   "tour.home.alt": "A Tunelle Kezdőlapja: csempék a Kedvelthez és egy lejátszási listához, a nemrég lejátszott számok és egy állomás formátumukkal, valamint három kedvenc rádióállomás a logójukkal.",
   "tour.albums.title": "Minden album az első sorban",
-  "tour.albums.text": "Az ablakot kitöltő borítórács, méretcsúszkával. Kattints egy borítóra a számlistáért, a számok formátumjelvényéért és a Lejátszás gombért; rendezhetsz cím, előadó, év, hossz vagy számok száma szerint.",
+  "tour.albums.text": "Az ablakot kitöltő borítórács, méretcsúszkával. Kattints egy borítóra a számlistáért, a számok formátumjelvényéért a Lejátszás gombért, és a <b>Borító módosítása</b> gombért, amellyel a saját gépedről választhatsz másik képet, ha a borító nem jó; rendezhetsz cím, előadó, év, hossz vagy számok száma szerint.",
   "tour.albums.alt": "A Tunelle albumok oldala: öt albumborító rácsban, előadóval, évvel, a számok számával, hosszal és FLAC jelvénnyel, keresőmező, mappaszűrő, rendezés menü és borítóméret-csúszka.",
   "tour.genre.title": "Előadók, albumelőadók és műfajok",
   "tour.genre.text": "Böngéssz aszerint, ki készítette vagy milyen. A műfajok színt és borítóhalmot kapnak; nyiss meg egyet, és az <b>Összes lejátszása</b> vagy a <b>Keverés</b> gombbal sorba teheted az egészet. Egy előadót megnyitva a <b>Fotó módosítása</b> gombbal a saját gépedről választhatsz képet vagy másik fotót kereshetsz, ha a fotó nem jó.",

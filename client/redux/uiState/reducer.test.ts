@@ -185,6 +185,25 @@ describe('uiState reducer', () => {
     expect(run({ type: 'SELECT_ALBUM', payload: { album: null } }, state).selectedAlbum).toBeNull();
   });
 
+  it('shows the new cover of the album that is open, with its tracks, and not of another', () => {
+    const track = { path: '/music/one/01.flac', picture: 'old.jpg' } as Track;
+    const album = { id: 'a', path: '/music/one', title: 'Songs', cover: 'old.jpg', tracks: [track] } as Album;
+    const state = run({ type: 'SELECT_ALBUM', payload: { album } });
+
+    const changed = run({ type: 'ALBUM_COVER_CHANGED', payload: { path: '/music/one', title: 'Songs', cover: 'new.png' } }, state);
+    expect(changed.selectedAlbum).toMatchObject({ cover: 'new.png', tracks: [{ path: track.path, picture: 'new.png' }] });
+    expect(run({ type: 'ALBUM_COVER_CHANGED', payload: { path: '/music/one', title: 'Songs', cover: null } }, state).selectedAlbum?.cover).toBeNull();
+    expect(run({ type: 'ALBUM_COVER_CHANGED', payload: { path: '/music/two', title: 'Songs', cover: 'new.png' } }, state)).toBe(state);
+  });
+
+  it('keeps why a picked cover failed until another change or another album', () => {
+    const failed = run({ type: 'ALBUM_COVER_FAILED', payload: { reason: 'notImage' } });
+
+    expect(failed.albumCoverFailure).toBe('notImage');
+    expect(run({ type: 'CHANGE_ALBUM_COVER', payload: { path: '/music', title: 'A', change: 'pick' } }, failed).albumCoverFailure).toBeUndefined();
+    expect(run({ type: 'SELECT_ALBUM', payload: { album: null } }, failed).albumCoverFailure).toBeUndefined();
+  });
+
   it('sets a single equalizer gain in dB without mutating the previous state', () => {
     const state = run({ type: 'SET_GAIN', payload: { value: '6.5', index: 2 } });
 

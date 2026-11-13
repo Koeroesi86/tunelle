@@ -389,5 +389,14 @@
   "libraryChanges.removed": "{count} removed",
   "notifyLibraryChanges.title": "Library notifications",
   "notifyLibraryChanges.on": "A notification tells you when a scan added, updated or removed songs, while the window is in the background. Clicking it shows the window.",
-  "notifyLibraryChanges.off": "You are not told when a scan changes the library."
+  "notifyLibraryChanges.off": "You are not told when a scan changes the library.",
+  "albumCover.change": "Change cover",
+  "albumCover.pick": "Choose an image…",
+  "albumCover.remove": "Remove the cover",
+  "albumCover.reset": "Reset the cover",
+  "albumCover.dialog": "Choose a cover",
+  "albumCover.filter": "Images",
+  "albumCover.error.unreadable": "The file could not be read.",
+  "albumCover.error.tooLarge": "The image is larger than 2 MB.",
+  "albumCover.error.notImage": "The file is not a JPEG, PNG or WebP image."
 }

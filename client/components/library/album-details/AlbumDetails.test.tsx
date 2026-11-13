@@ -7,6 +7,7 @@ import AlbumDetails from './AlbumDetails';
 
 vi.mock('../../ui/favourite-button', () => ({ default: () => null }));
 vi.mock('../add-to-playlist', () => ({ default: () => null }));
+vi.mock('../album-cover-menu', () => ({ default: () => null }));
 const queued = vi.hoisted(() => vi.fn());
 vi.mock('../add-to-queue', async () => {
   const { createElement } = await import('react');

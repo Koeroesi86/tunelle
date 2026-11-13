@@ -20,6 +20,7 @@ import { libraryRowSchema } from '../schemas/database/library';
 import { folderRowSchema } from '../schemas/rows';
 import executeQueries from '../database/execute-queries';
 import { toSortKey } from '../database/sort-key';
+import { folderOfColumn } from '../database/folder-of-column';
 import { getAlbumArtAccents } from '../library/art/album-art-accents';
 
 // ! is the escape character of the LIKE below, so % and _ in a folder name match themselves
@@ -147,8 +148,6 @@ export const hasTracksInside = (database: Database, folderPath: string) =>
     z.object({ found: z.number() })
   ).then((rows) => rows.length > 0);
 
-// the folder of a track including the trailing separator, for both separators: rtrim drops the characters after the last one
-export const folderOfColumn = (column: string) => `rtrim(${column}, replace(replace(${column}, '/', ''), '\\', ''))`;
 const folderOf = folderOfColumn('path');
 
 const countTotal = (database: Database, query: string, variables: unknown[]) =>

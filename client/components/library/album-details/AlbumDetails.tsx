@@ -12,6 +12,7 @@ import style from './AlbumDetails.scss';
 import FavouriteButton from '../../ui/favourite-button';
 import AddToPlaylist from '../add-to-playlist';
 import AddToQueue from '../add-to-queue';
+import AlbumCoverMenu from '../album-cover-menu';
 import AudioFormatBadge from '../../ui/audio-format-badge';
 import Time from '../../ui/time';
 
@@ -69,6 +70,7 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
               <div className={style.actions}>
                 <FavouriteButton item={albumFavourite(shown)} className={style.favourite} />
                 <AddToPlaylist source={shown} className={style.addToPlaylist} />
+                <AlbumCoverMenu path={shown.path} title={shown.title} />
               </div>
             )}
             <div className={style.meta}>

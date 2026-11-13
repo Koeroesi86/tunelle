@@ -58,7 +58,7 @@
   "tour.home.text": "Home keeps what you were doing: a button to continue the track you paused, the list of what you played lately and tiles for your Liked tracks, your playlists and your favourite stations. Clear the list whenever you like.",
   "tour.home.alt": "The Home page of Tunelle: tiles for Liked and a playlist, the recently played tracks and a station with their formats, and three favourite radio stations with their logos.",
   "tour.albums.title": "Every album, front and centre",
-  "tour.albums.text": "A grid of covers that fills the window, with a slider for the size. Click a cover for the track list, a format badge on each track and a Play album button; sort by title, artist, year, length or number of tracks.",
+  "tour.albums.text": "A grid of covers that fills the window, with a slider for the size. Click a cover for the track list, a format badge on each track and a Play album button, and a <b>Change cover</b> button to pick another image from your computer when the cover is wrong; sort by title, artist, year, length or number of tracks.",
   "tour.albums.alt": "The albums page of Tunelle: five album covers in a grid with artist, year, number of tracks, length and a FLAC badge, a search box, folder filter, sort menu and a cover size slider.",
   "tour.genre.title": "Artists, album artists and genres",
   "tour.genre.text": "Browse by who made it or what it is. Genres get a colour and a fan of covers; open one and press <b>Play all</b> or <b>Shuffle</b> to queue everything in it. Open an artist and press <b>Change photo</b> to pick an image from your computer, or to search for another photo, when the photo is wrong.",

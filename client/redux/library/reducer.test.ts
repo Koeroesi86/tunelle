@@ -122,6 +122,18 @@ describe('library reducer', () => {
       expect(state.groups.genre).toBe(stored.groups.genre);
     });
 
+    it('marks the pages of the albums and of every group stale when the cover of an album changes', () => {
+      const stored = reducer(storeGroups(storeGroups(undefined, 'artist'), 'genre'), {
+        type: 'STORE_GROUP_ALBUM_PAGE',
+        payload: { page: 0, items: [createAlbum('one')], total: 1 },
+      });
+      const state = reducer(stored, { type: 'ALBUM_COVER_CHANGED', payload: { path: '/music', title: 'one', cover: 'new.png' } });
+
+      expect(state.groups.artist.stale).toEqual([0]);
+      expect(state.groups.genre.stale).toEqual([0]);
+      expect(state.groupAlbums.stale).toEqual([0]);
+    });
+
     it('marks the pages of all of them stale on a change of the library', () => {
       const stored = reducer(storeGroups(storeGroups(undefined, 'albumArtist'), 'genre'), {
         type: 'STORE_GROUP_ALBUM_PAGE',

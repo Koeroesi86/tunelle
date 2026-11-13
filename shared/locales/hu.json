@@ -388,5 +388,14 @@
   "libraryChanges.removed": "{count} eltávolítva",
   "notifyLibraryChanges.title": "Könyvtár értesítések",
   "notifyLibraryChanges.on": "Értesítés jelzi, ha egy átvizsgálás számokat adott hozzá, frissített vagy eltávolított, amíg az ablak a háttérben van. Rákattintva megjelenik az ablak.",
-  "notifyLibraryChanges.off": "Nem kapsz értesítést, ha egy átvizsgálás megváltoztatta a könyvtárat."
+  "notifyLibraryChanges.off": "Nem kapsz értesítést, ha egy átvizsgálás megváltoztatta a könyvtárat.",
+  "albumCover.change": "Borító módosítása",
+  "albumCover.pick": "Kép kiválasztása…",
+  "albumCover.remove": "A borító eltávolítása",
+  "albumCover.reset": "A borító visszaállítása",
+  "albumCover.dialog": "Borító kiválasztása",
+  "albumCover.filter": "Képek",
+  "albumCover.error.unreadable": "A fájl nem olvasható.",
+  "albumCover.error.tooLarge": "A kép nagyobb 2 MB-nál.",
+  "albumCover.error.notImage": "A fájl nem JPEG, PNG vagy WebP kép."
 }

@@ -48,6 +48,9 @@ export const artistPhotoChangeSchema = z.discriminatedUnion('change', [
   z.object({ key: photoKeySchema, change: z.literal('download'), picture: deezerPictureSchema }),
 ]);
 
+/** A change of the cover of one album (its folder and title as the library lists it): a file the user picks, no cover, or the cover of the tags again */
+export const albumCoverChangeSchema = z.object({ path: z.string(), title: z.string(), change: z.enum(['pick', 'remove', 'reset']) });
+
 /** The text to search the photos of artists by on Deezer */
 export const artistPhotoSearchSchema = z.object({ query: z.string().trim().min(1).max(100) });
 
