@@ -93,7 +93,7 @@
   "artistPhoto.change": "Change photo",
   "artistPhoto.pick": "Choose an image…",
   "artistPhoto.remove": "Use the album cover",
-  "artistPhoto.reset": "Look the photo up again",
+  "artistPhoto.reset": "Reset the photo",
   "artistPhoto.dialog": "Choose a photo",
   "artistPhoto.filter": "Images",
   "artistPhoto.error.unreadable": "The file could not be read.",

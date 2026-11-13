@@ -25,7 +25,7 @@ describe('ArtistPhotoMenu', () => {
     expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
       'Choose an image…',
       'Use the album cover',
-      'Look the photo up again',
+      'Reset the photo',
       'Search online…',
     ]);
   });
@@ -40,7 +40,7 @@ describe('ArtistPhotoMenu', () => {
   it.each([
     ['Choose an image…', 'pick'],
     ['Use the album cover', 'remove'],
-    ['Look the photo up again', 'reset'],
+    ['Reset the photo', 'reset'],
   ])('asks for the change of %s and closes', (name, expected) => {
     const { change } = renderMenu();
     fireEvent.click(toggle());
