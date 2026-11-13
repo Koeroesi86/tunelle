@@ -3,6 +3,7 @@ import type { Track } from '@shared/types/library';
 import { restoreCoverSize } from '../../utils/cover-size';
 import { knownFolders, parseFolders } from '@shared/types/library-query';
 import { parseRadioQuery } from '@shared/types/radio-query';
+import { defaultPowerSavingMode } from '@shared/schemas/settings';
 import { isAppAction } from '../types';
 import type { OnlineView, UiState } from '../types';
 import { radioUuidOf } from '../../domain/radio-track';
@@ -63,6 +64,8 @@ const initialState: UiState = {
   artistPhotoRevision: 0,
   watchFolders: true,
   measureLoudness: true,
+  powerSaving: defaultPowerSavingMode,
+  savingPower: false,
   loudnessStatus: undefined,
   loudnessFailed: undefined,
   backgroundTasks: [],
@@ -151,6 +154,10 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, watchFolders: action.payload.enabled };
     case 'SET_MEASURE_LOUDNESS':
       return { ...state, measureLoudness: action.payload.enabled };
+    case 'SET_POWER_SAVING':
+      return { ...state, powerSaving: action.payload.mode };
+    case 'POWER_SAVING':
+      return { ...state, savingPower: action.payload.saving };
     case 'BACKGROUND_TASKS':
       return { ...state, backgroundTasks: action.payload.tasks };
     case 'SET_NOTIFY_LIBRARY_CHANGES':

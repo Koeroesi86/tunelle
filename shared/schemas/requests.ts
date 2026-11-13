@@ -24,7 +24,11 @@ export const rescanRequestSchema = z
   .catch(false);
 
 /** The tracks that were queued or started: measured before the rest of the library, the first ones only */
-export const prioritiseLoudnessSchema = z.object({ paths: z.array(z.string()).transform((paths) => paths.slice(0, maxPrioritisedTracks)) });
+export const prioritiseLoudnessSchema = z.object({
+  paths: z.array(z.string()).transform((paths) => paths.slice(0, maxPrioritisedTracks)),
+  /** The first path is the track that plays now, the only one that is measured while power is saved */
+  nowPlaying: z.boolean().optional(),
+});
 
 /** A switch in the settings: the launcher entry, the automatic updates */
 export const enabledRequestSchema = z.object({ enabled: z.boolean() });

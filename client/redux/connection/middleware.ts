@@ -7,6 +7,7 @@ import type { GroupKind } from '@shared/types/library-query';
 import { electronAPI } from '../../services/electron-api';
 import { z } from 'zod';
 import { maxPrioritisedTracks } from '@shared/constants/loudness';
+import { powerSavingFactor } from '@shared/constants/power';
 import { restoredSettingsSchema } from '../persisted-settings';
 import { onMessage } from '../../services/on-message';
 import { emptyMessage, messageSchemas } from '@shared/schemas/messages';
@@ -29,6 +30,7 @@ import type { PageKind, PersistedSettings, PlaylistItem, UiState } from '../type
 function addListeners(store: Store) {
   onMessage('STORE_FOLDERS', messageSchemas.STORE_FOLDERS, (payload) => store.dispatch({ type: 'STORE_FOLDERS', payload }));
   onMessage('BACKGROUND_TASKS', messageSchemas.BACKGROUND_TASKS, (payload) => store.dispatch({ type: 'BACKGROUND_TASKS', payload }));
+  onMessage('POWER_SAVING', messageSchemas.POWER_SAVING, (payload) => store.dispatch({ type: 'POWER_SAVING', payload }));
   onMessage('LOUDNESS_STATUS', messageSchemas.LOUDNESS_STATUS, (payload) => store.dispatch({ type: 'LOUDNESS_STATUS', payload }));
   onMessage('LOUDNESS_FAILED', messageSchemas.LOUDNESS_FAILED, (payload) => store.dispatch({ type: 'LOUDNESS_FAILED', payload }));
   onMessage('OFFLINE_FOLDERS', messageSchemas.OFFLINE_FOLDERS, (payload) => store.dispatch({ type: 'OFFLINE_FOLDERS', payload }));
@@ -141,6 +143,16 @@ const requestPhotos = (groups: GroupSummary[]) => {
   if (artists.length > 0) electronAPI.send('ARTIST_PHOTOS_WANTED', { artists });
 };
 
+/** Runs the task now and then, with the wait that fits the state of the power when it is scheduled, so no timer of the page wakes the computer at the pace of the charger on battery */
+const repeat = (store: Store, ms: number, task: () => unknown) => {
+  const wait = () => ms * (store.getState().uiState.savingPower ? powerSavingFactor : 1);
+  const run = () => {
+    task();
+    setTimeout(run, wait());
+  };
+  setTimeout(run, wait());
+};
+
 const rescanInterval = 1000 * 60 * 60;
 // a drive that is not there is looked for again at this pace, besides every time the window gets the focus
 const offlineRecheckInterval = 1000 * 30;
@@ -172,6 +184,7 @@ const persistedKeys = [
   'artistPhotos',
   'watchFolders',
   'measureLoudness',
+  'powerSaving',
   'notifyLibraryChanges',
   'libraryFolders',
   'radioQuery',
@@ -217,22 +230,18 @@ const start = (store: Store) => {
   electronAPI.send('PLAYLISTS_LOAD');
   electronAPI.send('BACKGROUND_TASKS_LOAD');
 
-  setInterval(() => {
-    if (store.getState().uiState.totalCount === 0) rescanLibrary(false);
-  }, rescanInterval);
+  repeat(store, rescanInterval, () => store.getState().uiState.totalCount === 0 && rescanLibrary(false));
 
   electronAPI.send('CHECK_FOLDERS');
   window.addEventListener('focus', () => electronAPI.send('CHECK_FOLDERS'));
-  setInterval(() => {
-    if (store.getState().offlineFolders.length > 0) electronAPI.send('CHECK_FOLDERS');
-  }, offlineRecheckInterval);
+  repeat(store, offlineRecheckInterval, () => store.getState().offlineFolders.length > 0 && electronAPI.send('CHECK_FOLDERS'));
 
   loadPage(store, 'tracks', 0).then(appLoaded);
 };
 
 /** The tracks that are queued or start are measured before the rest of the library, the first ones only; the main process leaves out the ones that are measured or not in the library */
-const prioritiseLoudness = (tracks: Pick<Track, 'path'>[]) =>
-  electronAPI.send('LOUDNESS_PRIORITISE', { paths: tracks.slice(0, maxPrioritisedTracks).map((track) => track.path) });
+const prioritiseLoudness = (tracks: Pick<Track, 'path'>[], nowPlaying = false) =>
+  electronAPI.send('LOUDNESS_PRIORITISE', { paths: tracks.slice(0, maxPrioritisedTracks).map((track) => track.path), nowPlaying });
 
 const notifyTrack = (store: Store, track: Track) =>
   notifyPlaying(track, () => {
@@ -262,6 +271,7 @@ const handleActions = actionMiddleware((store) => [
   onAction('SEARCH_ALBUM_COVERS', ({ payload }) => electronAPI.send('ALBUM_COVER_SEARCH', payload)),
   onAction('SEARCH_ARTIST_PHOTOS', ({ payload }) => electronAPI.send('ARTIST_PHOTO_SEARCH', payload)),
   onAction('SET_WATCH_FOLDERS', ({ payload }) => saveSettings({ ...store.getState().uiState, watchFolders: payload.enabled })),
+  onAction('SET_POWER_SAVING', ({ payload }) => saveSettings({ ...store.getState().uiState, powerSaving: payload.mode })),
   onAction('SET_MEASURE_LOUDNESS', ({ payload }) => saveSettings({ ...store.getState().uiState, measureLoudness: payload.enabled })),
   onAction('SET_NOTIFY_LIBRARY_CHANGES', ({ payload }) => saveSettings({ ...store.getState().uiState, notifyLibraryChanges: payload.enabled })),
   onAction('LOAD_LOUDNESS_STATUS', () => electronAPI.send('LOUDNESS_STATUS_LOAD')),
@@ -294,7 +304,7 @@ const handleActions = actionMiddleware((store) => [
   onAction('PLAY_TRACK', ({ payload }) => {
     if (!payload.track) return;
 
-    prioritiseLoudness([payload.track]);
+    prioritiseLoudness([payload.track], true);
     notifyTrack(store, payload.track);
     // a station is recorded with all that is known of it when it is picked, the track of the radio knows its name only
     if (!radioUuidOf(payload.track.path)) electronAPI.send('HISTORY_RECORD', trackFavourite(payload.track));

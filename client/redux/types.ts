@@ -11,6 +11,7 @@ import type { NormalizationMode } from '../audio/loudness';
 import type { OutputDevice } from '../audio/output-device';
 import type { AlbumSort, GroupKind, GroupSort, TrackSort } from '@shared/types/library-query';
 import type { UpdateState } from '@shared/types/update';
+import type { PowerSavingMode } from '@shared/schemas/settings';
 import type { LibraryView, OnlineView, PersistedSettings } from './persisted-settings';
 
 export type { LibraryView, OnlineView, PersistedSettings };
@@ -56,6 +57,8 @@ export interface UiState extends PersistedSettings {
   /** The artist, album artist or genre that is open, and the text the artists, album artists and genres are filtered by; neither is saved */
   openGroup: OpenGroup | undefined;
   groupFilter: string;
+  /** Whether the main process lowers the background work (on battery, or as the setting says), as it tells; not saved */
+  savingPower: boolean;
   /** How far the measurement of the loudness of the library is, undefined until the main process tells; not saved */
   loudnessStatus: LoudnessProgress | undefined;
   /** The tracks that could not be measured, undefined until the list is asked for; not saved */
@@ -176,6 +179,8 @@ export type AppAction =
   | PayloadAction<'ARTIST_PHOTO_FAILED', { reason: ArtistPhotoFailure }>
   | PayloadAction<'SET_WATCH_FOLDERS', { enabled: boolean }>
   | PayloadAction<'SET_MEASURE_LOUDNESS', { enabled: boolean }>
+  | PayloadAction<'SET_POWER_SAVING', { mode: PowerSavingMode }>
+  | PayloadAction<'POWER_SAVING', { saving: boolean }>
   | EmptyAction<'LOAD_LOUDNESS_STATUS'>
   | EmptyAction<'LOAD_LOUDNESS_FAILED'>
   | PayloadAction<'LOUDNESS_FAILED', { tracks: FailedLoudnessTrack[] }>

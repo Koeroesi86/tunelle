@@ -102,7 +102,8 @@ const AudioSpectrum = ({
       // the analyser belongs to the audio context, which is replaced for a device at another rate
       analyser.current = createAnalyser() ?? analyser.current;
       if (analyser.current && isSettled()) return settle();
-      if (analyser.current) drawFrame(analyser.current);
+      // nothing is drawn for a window that is hidden or minimised
+      if (analyser.current && !document.hidden) drawFrame(analyser.current);
 
       timer.current = setTimeout(() => {
         animationId.current = window.requestAnimationFrame(drawMeter);

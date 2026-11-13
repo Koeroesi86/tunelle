@@ -191,6 +191,8 @@ export const createTaskQueue = (pause = 2000) => {
     },
     /** Tells the listeners that a source has more or less left than before */
     refresh: changed,
+    /** Looks for a task now, not after the pause: a condition that tasks wait for may have changed */
+    wake,
     isBusy: (kind: string) => (busy.get(kind) ?? 0) > 0,
     /** How long the kind has not been busy, 0 while it is; counted from the start of the queue when it has not been */
     idleFor: (kind: string) => ((busy.get(kind) ?? 0) > 0 ? 0 : Date.now() - (lastEnd.get(kind) ?? createdAt)),

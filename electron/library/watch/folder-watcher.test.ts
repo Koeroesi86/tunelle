@@ -3,6 +3,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { createFolderWatcher, pollInterval, readDirectoryTimes } from './folder-watcher';
+import { savingPower } from '../../power/power-state';
+
+vi.mock('../../power/power-state', () => ({ savingPower: vi.fn(() => false) }));
 
 describe('pollInterval', () => {
   it.each([
@@ -22,6 +25,39 @@ describe('pollInterval', () => {
     vi.stubEnv('TUNELLE_WATCH_MIN_SECONDS', 'soon');
     expect(pollInterval(0.2)).toBe(10_000);
     vi.unstubAllEnvs();
+  });
+});
+
+describe('pollInterval while power is saved', () => {
+  afterEach(() => {
+    vi.mocked(savingPower).mockReturnValue(false);
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    [0.2, 40_000],
+    [500, 200_000],
+    [1000, 400_000],
+    [20_000, 60 * 60_000],
+  ])('waits after a look that took %s ms for %s ms, four times as long', (lookMs, expected) => {
+    vi.mocked(savingPower).mockReturnValue(true);
+
+    expect(pollInterval(lookMs)).toBe(expected);
+  });
+
+  it('multiplies the shortest wait that TUNELLE_WATCH_MIN_SECONDS sets too', () => {
+    vi.stubEnv('TUNELLE_WATCH_MIN_SECONDS', '2');
+    vi.mocked(savingPower).mockReturnValue(true);
+
+    expect(pollInterval(0.2)).toBe(8000);
+  });
+
+  it('goes back to the normal waits when power is not saved any more', () => {
+    vi.mocked(savingPower).mockReturnValue(true);
+    expect(pollInterval(0.2)).toBe(40_000);
+
+    vi.mocked(savingPower).mockReturnValue(false);
+    expect(pollInterval(0.2)).toBe(10_000);
   });
 });
 
@@ -171,6 +207,20 @@ describe('createFolderWatcher', () => {
     await folderWatcher.check();
 
     expect(readTimes).toHaveBeenCalledTimes(2);
+    folderWatcher.close();
+  });
+
+  it('looks at once when it is forced, within the gap too', async () => {
+    const { folderWatcher, readTimes } = setup({ '/music': 3 }, { checkGap: 30_000, lookMs: { '/music': 1000 } });
+    await folderWatcher.update(['/music']);
+    await folderWatcher.check();
+    readTimes.mockClear();
+
+    await folderWatcher.check();
+    expect(readTimes).not.toHaveBeenCalled();
+
+    await folderWatcher.check(true);
+    expect(readTimes).toHaveBeenCalledOnce();
     folderWatcher.close();
   });
 

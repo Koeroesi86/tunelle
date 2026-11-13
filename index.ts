@@ -31,6 +31,7 @@ import { backgroundQueue } from './electron/library/tasks/background-queue';
 import { registerLoudness } from './electron/library/loudness/loudness-source';
 import { getMainTranslator, setPickedLanguage } from './electron/language';
 import { applyThemeMode } from './electron/theme';
+import { applyPowerSetting, startPowerState } from './electron/power/power-state';
 import { getSettings } from './electron/repositories/settings-repository';
 import { autoUpdater } from 'electron-updater';
 import { createMockUpdateSource, getUpdateUnavailableReason, inspectAppImage, inspectMacInstall, runUpdate } from './electron/services/updater';
@@ -281,6 +282,8 @@ app
       .then((settings) => {
         setPickedLanguage(settings);
         applyThemeMode(settings);
+        startPowerState();
+        applyPowerSetting(settings);
       })
       .then(() => d);
   })

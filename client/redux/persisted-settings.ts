@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Album, Track } from '@shared/types/library';
 import { albumSortSchema, groupSortSchema, trackSortSchema } from '@shared/types/library-query';
 import { radioQuerySchema } from '@shared/types/radio-query';
+import { powerSavingModeSchema } from '@shared/schemas/settings';
 import { normalizationModes } from '../audio/loudness';
 
 /** A track the player can show; the rest of what a track from an older version carries is not needed, so only these are checked */
@@ -55,6 +56,8 @@ const persistedShape = {
   watchFolders: z.boolean(),
   /** Whether the loudness of the tracks without ReplayGain tags is measured in the background (the main process reads it) */
   measureLoudness: z.boolean(),
+  /** When the background work is lowered: with the power source, always or never (the main process reads it) */
+  powerSaving: powerSavingModeSchema,
   /** Whether a notification tells what a scan changed in the library while the window is in the background (the main process reads it) */
   notifyLibraryChanges: z.boolean(),
   /** The library folders the local collection is limited to, none is all of them */

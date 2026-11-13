@@ -9,6 +9,8 @@ import rescanChanges from '../scan/rescan-changes';
 import rescanLibrary from '../scan/rescan-library';
 import { getSettings } from '../../repositories/settings-repository';
 import { queueTask } from '../tasks/queue-task';
+import { onPowerSavingChange } from '../../power/power-state';
+import { logError } from '../../utils/log-error';
 
 const watchKind = 'watch';
 const watchPriority = 5;
@@ -17,6 +19,7 @@ interface Watching {
   database: Database;
   watcher: ReturnType<typeof createFolderWatcher>;
   scheduler: ReturnType<typeof createRescanScheduler>;
+  stopPowerWatch: () => void;
 }
 
 let watching: Watching | undefined;
@@ -28,6 +31,7 @@ const isOff = (settings: unknown) => readMainSettings(settings).watchFolders ===
 const stop = () => {
   watching?.watcher.close();
   watching?.scheduler.cancel();
+  watching?.stopPowerWatch();
   watching = undefined;
 };
 
@@ -51,7 +55,9 @@ export const startLibraryWatching = async (database: Database, sender: WebConten
   enabled = !isOff(await getSettings(database));
 
   const scheduler = createRescanScheduler((changes) => rescanChanges(sender, changes));
-  const current = { database, scheduler, watcher: createFolderWatcher(scheduler.schedule) };
+  // the charger is plugged in: a change of the long wait on battery is not missed for long
+  const stopPowerWatch = onPowerSavingChange((saving) => !saving && checkLibraryWatching(true).catch(logError));
+  const current = { database, scheduler, watcher: createFolderWatcher(scheduler.schedule), stopPowerWatch };
   watching = current;
   sender.once('destroyed', () => watching === current && stop());
 
@@ -60,9 +66,9 @@ export const startLibraryWatching = async (database: Database, sender: WebConten
 };
 
 /** Look at the watched folders for a change the watch did not report, as on a network drive; a look a moment ago is not repeated */
-export const checkLibraryWatching = async () => {
+export const checkLibraryWatching = async (force = false) => {
   const current = watching;
-  if (current) await queueTask(watchKind, 'check-library-watching', watchPriority, () => current.watcher.check());
+  if (current) await queueTask(watchKind, 'check-library-watching', watchPriority, () => current.watcher.check(force));
 };
 
 /** Follow the setting of the window */

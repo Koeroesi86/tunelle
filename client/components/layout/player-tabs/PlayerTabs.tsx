@@ -15,6 +15,7 @@ import LoudnessNormalization from '../../settings/loudness-normalization';
 import MeasureLoudness from '../../settings/measure-loudness';
 import OutputDevice from '../../settings/output-device';
 import WatchFolders from '../../settings/watch-folders';
+import PowerSaving from '../../settings/power-saving';
 import NotifyLibraryChanges from '../../settings/notify-library-changes';
 import LauncherIntegration from '../../settings/launcher-integration';
 import WindowBlur from '../../settings/window-blur';
@@ -94,6 +95,7 @@ function PlayerTabs({ tab = 'home', addFiles = () => {} }: PlayerTabsProps) {
           <LoudnessNormalization />
           <MeasureLoudness />
           <WatchFolders />
+          <PowerSaving />
           <NotifyLibraryChanges />
           <ArtistPhotos />
           <RadioSources />

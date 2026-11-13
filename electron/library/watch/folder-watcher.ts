@@ -5,6 +5,8 @@ import { clamp } from '@shared/utils/clamp';
 import { logError } from '../../utils/log-error';
 import { mapAsync } from '@shared/utils/map-async';
 import { secondsSchema } from '../../schemas/environment';
+import { savingPower } from '../../power/power-state';
+import { powerSavingFactor } from '@shared/constants/power';
 
 type DirectoryTimes = Map<string, number>;
 
@@ -41,7 +43,10 @@ const waitPerLookMs = 100;
 const readMinInterval = (value = process.env.TUNELLE_WATCH_MIN_SECONDS) => secondsSchema(defaultMinSeconds).parse(value) * 1000;
 
 /** How long to wait before the next look at a folder, from how long the last looks took (the whole tree of folders, a folder that does not answer takes the time it was waited for): a look takes about one hundredth of the time, so a small library on the disk of the computer is looked at every 10 seconds, a big tree or a network or removable drive less often, never rarer than every 15 minutes */
-export const pollInterval = (lookMs: number) => clamp(Math.round(lookMs * waitPerLookMs), readMinInterval(), maxInterval);
+export const pollInterval = (lookMs: number) => {
+  const factor = savingPower() ? powerSavingFactor : 1;
+  return clamp(Math.round(lookMs * waitPerLookMs * factor), readMinInterval() * factor, maxInterval * factor);
+};
 
 /** What differs between two looks: the folders with another time or that are new are scanned for their own files, a folder that is gone is looked at with what was below it */
 const differences = (before: DirectoryTimes, after: DirectoryTimes): Change[] => [
@@ -135,9 +140,9 @@ export const createFolderWatcher = (onChange: (changes: Change[]) => void, optio
     await Promise.all(folders.filter((folder) => !tracked.has(folder)).map(track));
   };
 
-  /** Look at the folders now, unless it was done a moment ago */
-  const check = async () => {
-    if (Date.now() - lastCheck < checkGap) return;
+  /** Look at the folders now, unless it was done a moment ago; `force` looks at once, as when the charger is plugged in */
+  const check = async (force = false) => {
+    if (!force && Date.now() - lastCheck < checkGap) return;
 
     lastCheck = Date.now();
     await Promise.all([...tracked].map(([folder, entry]) => look(folder, entry)));

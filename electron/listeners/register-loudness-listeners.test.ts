@@ -52,7 +52,13 @@ describe('registerLoudnessListeners', () => {
     listeners.get('LOUDNESS_PRIORITISE')?.(event, { paths: ['/music/a.flac', '/music/b.flac'] });
     listeners.get('LOUDNESS_PRIORITISE')?.(event, { paths: 'x' });
 
-    expect(loudness.prioritise).toHaveBeenCalledExactlyOnceWith(['/music/a.flac', '/music/b.flac']);
+    expect(loudness.prioritise).toHaveBeenCalledExactlyOnceWith(['/music/a.flac', '/music/b.flac'], undefined);
+  });
+
+  it('tells the source which track plays now', () => {
+    listeners.get('LOUDNESS_PRIORITISE')?.(event, { paths: ['/music/a.flac'], nowPlaying: true });
+
+    expect(loudness.prioritise).toHaveBeenCalledExactlyOnceWith(['/music/a.flac'], true);
   });
 
   it('forgets every measurement and starts over when the window asks to clear them', async () => {

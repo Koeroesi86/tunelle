@@ -17,6 +17,11 @@ const watching = vi.hoisted(() => ({ startLibraryWatching: vi.fn(async () => und
 
 vi.mock('../library/watch/library-watching', () => watching);
 
+const power = vi.hoisted(() => ({ applyPowerSetting: vi.fn(), sendPowerSaving: vi.fn() }));
+
+vi.mock('../power/power-state', () => ({ applyPowerSetting: power.applyPowerSetting }));
+vi.mock('../power/send-power-saving', () => ({ sendPowerSaving: power.sendPowerSaving }));
+
 vi.mock('../repositories/library-repository', () => ({ getFolders: async () => ['/music'] }));
 
 const saveSettings = vi.fn(async () => undefined);
@@ -54,6 +59,20 @@ describe('registerStateListeners', () => {
     listeners.get('APP_READY')?.({ sender } as unknown as IpcMainEvent);
 
     expect(watching.startLibraryWatching).toHaveBeenCalledWith(context.database, sender);
+  });
+
+  it('tells the window whether power is saved when it is ready', () => {
+    const sender = { send, isDestroyed: () => false };
+
+    listeners.get('APP_READY')?.({ sender } as unknown as IpcMainEvent);
+
+    expect(power.sendPowerSaving).toHaveBeenCalledWith(sender);
+  });
+
+  it('gives the saved settings to the power state', () => {
+    listeners.get('SAVE_SETTINGS')?.({ sender: destroyedSender } as unknown as IpcMainEvent, { powerSaving: 'always' });
+
+    expect(power.applyPowerSetting).toHaveBeenCalledWith({ powerSaving: 'always' });
   });
 
   it('gives the saved settings to the watching of the library', async () => {
