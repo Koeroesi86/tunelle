@@ -1,0 +1,26 @@
+name: Restore the ffmpeg of this system
+description: Restores the decode-only ffmpeg that ffmpeg.yml cached for this system into .cache/ffmpeg/install/bin, where npm run dist and the tests look for it (docs/development/ffmpeg-build.md)
+
+inputs:
+  platform:
+    description: process.platform of the system
+    required: true
+  arch:
+    description: process.arch of the system
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # the key is the one of ffmpeg.yml; the job fails on a miss, as ffmpeg.yml has built what was missing before this job started
+    - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/ffmpeg/install
+        key: ffmpeg-${{ inputs.platform }}-${{ inputs.arch }}-${{ hashFiles('scripts/ffmpeg/ffmpeg-source.json', 'scripts/ffmpeg/ffmpeg-build.js') }}
+        fail-on-cache-miss: true
+    - name: Put it where the app looks for it
+      shell: bash
+      run: |
+        mkdir -p .cache/ffmpeg/install
+        cp -R "$RUNNER_TEMP/ffmpeg/install/bin" .cache/ffmpeg/install/
+        [ "$RUNNER_OS" = "Windows" ] || chmod +x .cache/ffmpeg/install/bin/*

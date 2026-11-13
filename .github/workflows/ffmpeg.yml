@@ -1,35 +1,67 @@
 name: ffmpeg
 
 # Builds the decode-only LGPL ffmpeg of #302 from the pinned source (scripts/ffmpeg/ffmpeg-source.json); dist.yml packages the artifact of each system.
-# The build is kept in a cache keyed on the source and the build script, so it only runs when one of them changes. See docs/development/ffmpeg-build.md.
+# The build is kept in a cache keyed on the system, the source and the build script; the jobs that need the binary restore it from there
+# (.github/actions/restore-ffmpeg), and only a system whose cache is missing is built. See docs/development/ffmpeg-build.md.
 on:
   workflow_call:
-    inputs:
-      # a run that calls this workflow twice (the pull request checks) needs two names, an artifact name is taken once per run
-      artifact-prefix:
-        type: string
-        default: ''
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  # names the systems whose build is not in the cache yet, on one cheap runner, so a run with every build cached starts no macOS or Windows runner at all
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      # gh cache list
+      actions: read
+      contents: read
+    outputs:
+      missing: ${{ steps.plan.outputs.missing }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Find the systems without a cached build
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HASH: ${{ hashFiles('scripts/ffmpeg/ffmpeg-source.json', 'scripts/ffmpeg/ffmpeg-build.js') }}
+          REF: ${{ github.ref }}
+          DEFAULT_REF: refs/heads/${{ github.event.repository.default_branch }}
+        # the AppImage runs on Ubuntu 22.04, so the Linux build is made there (see dist.yml); platform and arch are the ones of process.platform and process.arch
+        # a cache is read from the ref of the run and from the default branch; a failed lookup counts as missing, so the build runs
+        run: |
+          matrix='[
+            {"platform":"linux","arch":"x64","os":"ubuntu-22.04"},
+            {"platform":"linux","arch":"arm64","os":"ubuntu-22.04-arm"},
+            {"platform":"darwin","arch":"arm64","os":"macos-15"},
+            {"platform":"darwin","arch":"x64","os":"macos-15-intel"},
+            {"platform":"win32","arch":"x64","os":"windows-2025"},
+            {"platform":"win32","arch":"arm64","os":"windows-11-arm"}
+          ]'
+          missing='[]'
+          for entry in $(jq -c '.[]' <<< "$matrix"); do
+            key="ffmpeg-$(jq -r '"\(.platform)-\(.arch)"' <<< "$entry")-$HASH"
+            found=$(gh cache list --repo "$GITHUB_REPOSITORY" --key "$key" --json key,ref \
+              --jq "map(select(.key == \"$key\" and (.ref == \"$REF\" or .ref == \"$DEFAULT_REF\"))) | length" || echo 0)
+            [ "$found" != "0" ] || missing=$(jq -c ". + [$entry]" <<< "$missing")
+          done
+          echo "missing=$missing" >> "$GITHUB_OUTPUT"
+
   build:
     name: build (${{ matrix.platform }} ${{ matrix.arch }})
+    needs: plan
+    if: needs.plan.outputs.missing != '[]'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # the AppImage runs on Ubuntu 22.04, so the Linux build is made there (see dist.yml); platform and arch are the ones of process.platform and process.arch
-          - { platform: linux, arch: x64, os: ubuntu-22.04 }
-          - { platform: linux, arch: arm64, os: ubuntu-22.04-arm }
-          - { platform: darwin, arch: arm64, os: macos-15 }
-          - { platform: darwin, arch: x64, os: macos-15-intel }
-          - { platform: win32, arch: x64, os: windows-2025 }
-          - { platform: win32, arch: arm64, os: windows-11-arm }
+        include: ${{ fromJSON(needs.plan.outputs.missing) }}
     defaults:
       run:
         shell: ${{ startsWith(matrix.os, 'windows') && 'msys2 {0}' || 'bash' }}
@@ -41,7 +73,7 @@ jobs:
         id: cache
         with:
           path: ${{ runner.temp }}/ffmpeg/install
-          key: ffmpeg-${{ matrix.os }}-${{ hashFiles('scripts/ffmpeg/ffmpeg-source.json', 'scripts/ffmpeg/ffmpeg-build.js') }}
+          key: ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('scripts/ffmpeg/ffmpeg-source.json', 'scripts/ffmpeg/ffmpeg-build.js') }}
       # the source tarball is kept apart from the build, so a change of the build script or the flags does not download it again
       - name: Read the pinned sha256
         id: pin
@@ -86,8 +118,3 @@ jobs:
         with:
           path: ${{ runner.temp }}/ffmpeg-source
           key: ffmpeg-source-${{ matrix.os }}-${{ steps.pin.outputs.sha256 }}
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: ${{ inputs.artifact-prefix }}ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}
-          path: ${{ runner.temp }}/ffmpeg/install/bin/
-          retention-days: 7

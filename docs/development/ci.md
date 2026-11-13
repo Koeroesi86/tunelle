@@ -6,7 +6,7 @@ Checks 1, 2, 3 and 7 run once on Linux (the `static` job of `test.yml`). The `te
 
 Pull requests also run `fallow audit --base` (findings of the changed files), CodeQL, dependency review (high severity, GPL/AGPL licences denied) and OSV.
 
-The decode-only ffmpeg has its own workflow, `ffmpeg.yml`, which `dist.yml` calls before packaging and `test.yml` calls before the end to end tests, which play what it decodes (the second call names its artifacts `test-ffmpeg-…`, as a run takes an artifact name once; the build is cached, so the wait is short unless the source changed) ([ffmpeg-build.md](ffmpeg-build.md)).
+The decode-only ffmpeg has its own workflow, `ffmpeg.yml`, which `dist.yml` calls before packaging and `test.yml` calls before the end to end tests, which play what it decodes (the build is cached per system: a planning job on one Ubuntu runner builds only the systems without a cache, so nothing starts on macOS or Windows unless the source changed) ([ffmpeg-build.md](ffmpeg-build.md)).
 
 How pull requests are rebased and released is in [releases.md](../release/releases.md).
 

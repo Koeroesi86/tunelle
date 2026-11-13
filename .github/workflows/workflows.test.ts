@@ -96,33 +96,65 @@ describe('workflows', () => {
     expect(text).toMatch(/if: matrix\.package == 'appimage'\n\s+run: \|\n\s+install\(\).*zsync/);
   });
 
-  it('dist.yml packages the ffmpeg that ffmpeg.yml built for the system of the job, before npm run dist', () => {
+  it('dist.yml packages the ffmpeg that ffmpeg.yml cached for the system of the job, before npm run dist', () => {
     const text = read('dist.yml');
-    const download = text.indexOf('name: ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}');
+    const restore = text.indexOf('uses: ./.github/actions/restore-ffmpeg');
 
     expect(text).toMatch(/\n  ffmpeg:\n\s+uses: \.\/\.github\/workflows\/ffmpeg\.yml/);
     expect(text).toMatch(/\n  dist:\n\s+needs: ffmpeg\n/);
-    expect(download).toBeGreaterThan(0);
-    expect(download).toBeLessThan(text.indexOf('run: npm run dist'));
-    expect(read('ffmpeg.yml')).toMatch(/ffmpeg-\$\{\{ matrix\.platform \}\}-\$\{\{ matrix\.arch \}\}/);
+    expect(restore).toBeGreaterThan(0);
+    expect(restore).toBeLessThan(text.indexOf('run: npm run dist'));
   });
 
   it('test.yml runs the integration tests of every system after it got the ffmpeg of the system, so required-checks waits for them', () => {
     const text = read('test.yml');
 
-    expect(text.indexOf('run: npm run test:integration')).toBeGreaterThan(text.indexOf('name: test-ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}'));
+    expect(text.indexOf('run: npm run test:integration')).toBeGreaterThan(text.indexOf('uses: ./.github/actions/restore-ffmpeg'));
     expect(read('pr-checks.yml')).toMatch(/needs: \[test, /);
   });
 
-  it('test.yml gets the ffmpeg of the system of the job under a name of its own, before the end to end tests', () => {
+  it('test.yml gets the ffmpeg of the system of the job before the end to end tests', () => {
     const text = read('test.yml');
-    const download = text.indexOf('name: test-ffmpeg-${{ matrix.platform }}-${{ matrix.arch }}');
+    const restore = text.indexOf('uses: ./.github/actions/restore-ffmpeg');
 
-    expect(text).toMatch(/\n  ffmpeg:\n\s+uses: \.\/\.github\/workflows\/ffmpeg\.yml\n\s+with:\n\s+artifact-prefix: test-/);
+    expect(text).toMatch(/\n  ffmpeg:\n\s+uses: \.\/\.github\/workflows\/ffmpeg\.yml\n/);
     expect(text).toMatch(/\n  test:\n\s+name: [^\n]+\n\s+needs: ffmpeg\n/);
-    expect(download).toBeGreaterThan(0);
-    expect(download).toBeLessThan(text.indexOf('run: npm run test:e2e'));
-    expect(read('ffmpeg.yml')).toMatch(/name: \$\{\{ inputs\.artifact-prefix \}\}ffmpeg-/);
+    expect(restore).toBeGreaterThan(0);
+    expect(restore).toBeLessThan(text.indexOf('run: npm run test:e2e'));
+  });
+
+  it('ffmpeg.yml builds only the systems that its planning job found without a cache, and the consumers restore the key it saves', () => {
+    const text = read('ffmpeg.yml');
+    const hash = "hashFiles('scripts/ffmpeg/ffmpeg-source.json', 'scripts/ffmpeg/ffmpeg-build.js')";
+
+    expect(text).toMatch(/\n  build:\n\s+name: [^\n]+\n\s+needs: plan\n\s+if: needs\.plan\.outputs\.missing != '\[\]'\n/);
+    expect(text).toContain('include: ${{ fromJSON(needs.plan.outputs.missing) }}');
+    expect(text).toContain('actions: read');
+    expect(text).toContain(`key: ffmpeg-\${{ matrix.platform }}-\${{ matrix.arch }}-\${{ ${hash} }}`);
+    expect(text).toContain(`HASH: \${{ ${hash} }}`);
+    const action = readFileSync(join(directory, '../actions/restore-ffmpeg/action.yml'), 'utf8');
+
+    expect(action).toContain(`key: ffmpeg-\${{ inputs.platform }}-\${{ inputs.arch }}-\${{ ${hash} }}`);
+    expect(action).toContain('fail-on-cache-miss: true');
+  });
+
+  it('every workflow that reaches ffmpeg.yml grants actions: read, as a called workflow gets at most what its caller has (else the run fails to start)', () => {
+    const callers = workflows.filter(([name, text]) => name !== 'ffmpeg.yml' && /uses: \.\/\.github\/workflows\/(test|dist)\.yml/.test(text));
+
+    expect(callers.map(([name]) => name).sort()).toEqual(['build.yml', 'pr-checks.yml', 'release.yml']);
+    callers.forEach(([, text]) => expect(text).toMatch(/\npermissions:\n(\s+#[^\n]*\n)?\s+actions: read\n/));
+  });
+
+  it('the planning job of ffmpeg.yml lists every system that the callers restore', () => {
+    const planned = [...read('ffmpeg.yml').matchAll(/"platform":"(\w+)","arch":"(\w+)"/g)].map((match) => `${match[1]}-${match[2]}`).sort();
+    const used = ['test.yml', 'dist.yml'].flatMap((name) =>
+      [...read(name).matchAll(/platform: (linux|darwin|win32)\n\s+arch: (x64|arm64)|platform: (linux|darwin|win32), arch: (x64|arm64)/g)].map(
+        (match) => `${match[1] ?? match[3]}-${match[2] ?? match[4]}`
+      )
+    );
+
+    expect(planned).toHaveLength(6);
+    expect([...new Set(used)].every((system) => planned.includes(system))).toBe(true);
   });
 
   it('ffmpeg.yml keeps the source tarball by its sha256, apart from the build, and passes the place to the script', () => {
