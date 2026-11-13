@@ -1,3 +1,4 @@
+@use '../../../styles/breakpoints' as *;
 @use '../../../styles/scrollbar' as *;
 @use '../../../styles/overlay' as *;
 
@@ -184,7 +185,7 @@
     // shown with the mouse over the row, a keyboard reaches it all the same
     .trackQueue {
       margin-left: 12px;
-      opacity: 0;
+      @include hover-hidden;
     }
 
     &:hover .trackQueue,
@@ -195,6 +196,24 @@
     // the badge and the duration after it
     .trackTitle + span {
       margin-right: 12px;
+    }
+  }
+
+  // the cover goes above the title, and the dialog takes the window
+  @include compact {
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .cover {
+      width: min(160px, 40vw);
+      height: min(160px, 40vw);
     }
   }
 }

@@ -1,4 +1,6 @@
+@use '../../../styles/breakpoints' as *;
 .favouriteButton {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -19,5 +21,18 @@
   &.active {
     color: var(--favourite);
     opacity: 1;
+  }
+}
+
+// the button is 20px, and the area that takes the touch is 44px around its middle
+@include touch {
+  .favouriteButton::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: $touch-target;
+    height: $touch-target;
+    transform: translate(-50%, -50%);
   }
 }

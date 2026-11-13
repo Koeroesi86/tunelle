@@ -201,4 +201,43 @@ describe('Navigation', () => {
       expect(movePlaylist).toHaveBeenCalledWith(2, 0);
     });
   });
+
+  describe('as a drawer or a column of icons', () => {
+    it.each([
+      ['an item', () => fireEvent.click(screen.getByText('Home'))],
+      ['a view of the library', () => fireEvent.click(screen.getByText('Albums'))],
+      ['a playlist', () => fireEvent.click(screen.getByText('Night'))],
+    ])('reports that %s took the app somewhere', (_name, click) => {
+      const onNavigate = vi.fn();
+      render(<Navigation libraryOpen playlists={[{ id: 1, name: 'Night' } as never]} onNavigate={onNavigate} />);
+
+      click();
+
+      expect(onNavigate).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not report the opening of a group, so the drawer stays for the next choice', () => {
+      const onNavigate = vi.fn();
+      render(<Navigation onNavigate={onNavigate} />);
+
+      fireEvent.click(screen.getByText('Library'));
+      fireEvent.click(screen.getByText('Playlists'));
+
+      expect(onNavigate).not.toHaveBeenCalled();
+    });
+
+    it('marks the column of icons, and gives each item its label as a title for a pointer and a screen reader', () => {
+      const { container } = render(<Navigation rail libraryOpen />);
+
+      expect(container.firstElementChild?.className).toContain('rail');
+      expect(screen.getByText('Settings').closest('[title]')?.getAttribute('title')).toBe('Settings');
+      expect(screen.getByText('Albums').closest('[title]')?.getAttribute('title')).toBe('Albums');
+    });
+
+    it('is not a column of icons by default', () => {
+      const { container } = render(<Navigation />);
+
+      expect(container.firstElementChild?.className).not.toContain('rail');
+    });
+  });
 });

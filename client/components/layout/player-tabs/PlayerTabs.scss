@@ -1,4 +1,5 @@
 @use '../../../styles/tab-motion' as *;
+@use '../../../styles/breakpoints' as *;
 
 .collection {
   flex: 1 1 auto;
@@ -16,18 +17,34 @@
     }
   }
 
-  // the tiles of the settings page, two to a row
+  // the tiles of the settings page, as many to a row as fit, none narrower than a phone can show
   .settings {
     height: 100%;
     overflow-y: auto;
     padding: 16px 20px 20px;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
     align-content: start;
     gap: 12px;
 
-    @media (max-width: 720px) {
-      grid-template-columns: minmax(0, 1fr);
+    @include compact {
+      padding: 12px;
+    }
+  }
+
+  // on an ultrawide display the page keeps a width it can be read at, in the middle of the room
+  @media (min-width: #{$content-max + 240px}) {
+    .tab {
+      display: flex;
+      justify-content: center;
+
+      > * {
+        position: relative;
+        inset: auto;
+        flex: 0 1 $content-max;
+        width: 100%;
+        height: 100%;
+      }
     }
   }
 }

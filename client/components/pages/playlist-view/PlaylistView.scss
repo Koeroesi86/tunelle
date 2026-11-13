@@ -1,3 +1,4 @@
+@use '../../../styles/breakpoints' as *;
 .playlist {
   position: absolute;
   top: 0;
@@ -195,7 +196,7 @@
       border: 0;
       background: transparent;
       cursor: pointer;
-      opacity: 0;
+      @include hover-hidden;
 
       &:disabled {
         cursor: default;

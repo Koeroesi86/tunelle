@@ -30,6 +30,10 @@ import { useTranslation } from '../../../i18n';
 interface NavigationProps {
   /** The spectrum of what plays, in a strip of its own between the playlists and the footer */
   spectrum?: ReactNode;
+  /** Only the icons, in a narrow column: the medium size of the window */
+  rail?: boolean;
+  /** Called after an item took the app somewhere, so a drawer can close */
+  onNavigate?: () => void;
   setTab?: (tab: Tab) => void;
   tab?: Tab;
   view?: LibraryView;
@@ -61,7 +65,7 @@ interface ItemProps {
 }
 
 const Item = ({ label, icon, active = false, onClick }: ItemProps) => (
-  <div onClick={onClick} className={classNames(style.item, { [style.active]: active })}>
+  <div onClick={onClick} title={label} className={classNames(style.item, { [style.active]: active })}>
     {icon}
     <span className={style.label}>{label}</span>
   </div>
@@ -79,7 +83,7 @@ interface GroupProps {
 
 /** The row of a group that opens and closes, with the number of what is in it while it is closed, and an action of its own */
 const Group = ({ label, icon, open, active = false, count, onClick, action }: GroupProps) => (
-  <div onClick={onClick} aria-expanded={open} className={classNames(style.item, style.group, { [style.active]: active })}>
+  <div onClick={onClick} title={label} aria-expanded={open} className={classNames(style.item, style.group, { [style.active]: active })}>
     {icon}
     <span className={style.label}>{label}</span>
     {!open && count !== undefined && <span className={style.count}>{count}</span>}
@@ -90,22 +94,37 @@ const Group = ({ label, icon, open, active = false, count, onClick, action }: Gr
 
 function Navigation({
   spectrum,
-  setTab = () => {},
+  rail = false,
+  onNavigate = () => {},
+  setTab: setTabOf = () => {},
   tab = 'home',
   view = 'albums',
   libraryOpen = false,
   playlistsOpen = true,
   playlists = [],
   playlistId = null,
-  openLibraryView = () => {},
+  openLibraryView: openLibraryViewOf = () => {},
   setGroupOpen = () => {},
-  openPlaylist = () => {},
+  openPlaylist: openPlaylistOf = () => {},
   createPlaylist = () => {},
   movePlaylist = () => {},
 }: NavigationProps) {
   const { t } = useTranslation();
   const [name, setName] = useState<string | undefined>(undefined);
   const { itemProps, overIndex } = useDragReorder(movePlaylist);
+
+  const setTab = (next: Tab) => {
+    setTabOf(next);
+    onNavigate();
+  };
+  const openLibraryView = (next: LibraryView) => {
+    openLibraryViewOf(next);
+    onNavigate();
+  };
+  const openPlaylist = (id: number) => {
+    openPlaylistOf(id);
+    onNavigate();
+  };
 
   const submit = () => {
     if (name?.trim()) createPlaylist(name.trim());
@@ -115,7 +134,7 @@ function Navigation({
   // opening the group shows the library as well, closing it keeps where the app is
   const toggleLibrary = () => {
     setGroupOpen('library', !libraryOpen);
-    if (!libraryOpen) setTab('local');
+    if (!libraryOpen) setTabOf('local');
   };
 
   const startPlaylist = () => {
@@ -124,7 +143,7 @@ function Navigation({
   };
 
   return (
-    <div className={style.navigation}>
+    <div className={classNames(style.navigation, { [style.rail]: rail })}>
       <div className={style.top}>
         <Item label={t('nav.home')} icon={<HomeIcon size={'14px'} />} active={tab === 'home'} onClick={() => setTab('home')} />
         <Item label={t('nav.nowPlaying')} icon={<NowPlayingIcon size={'14px'} />} active={tab === 'now-playing'} onClick={() => setTab('now-playing')} />
@@ -139,6 +158,7 @@ function Navigation({
           libraryViews.map(({ view: libraryView, label, Icon }) => (
             <div
               key={libraryView}
+              title={t(label)}
               onClick={() => openLibraryView(libraryView)}
               className={classNames(style.item, style.child, { [style.active]: tab === 'local' && view === libraryView })}
             >

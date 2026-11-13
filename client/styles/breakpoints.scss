@@ -1,0 +1,49 @@
+// The widths the layout changes at; client/constants/breakpoints.ts holds the same numbers (a test keeps them equal).
+// See docs/development/responsive-layout.md
+$compact-max: 599px;
+$medium-min: 600px;
+$medium-max: 1023px;
+$expanded-min: 1024px;
+
+// the widest the content grows to on an ultrawide display
+$content-max: 1600px;
+$touch-target: 44px;
+
+@mixin compact {
+  @media (max-width: $compact-max) {
+    @content;
+  }
+}
+
+@mixin medium {
+  @media (min-width: $medium-min) and (max-width: $medium-max) {
+    @content;
+  }
+}
+
+// medium and compact: the sizes where the navigation is not the full sidebar
+@mixin below-expanded {
+  @media (max-width: $medium-max) {
+    @content;
+  }
+}
+
+@mixin expanded {
+  @media (min-width: $expanded-min) {
+    @content;
+  }
+}
+
+// hidden until the pointer is over it, where there is a pointer that hovers; a touch screen always shows it
+@mixin hover-hidden {
+  @media (hover: hover) {
+    opacity: 0;
+  }
+}
+
+// a coarse pointer: the targets get the size of a finger
+@mixin touch {
+  @media (pointer: coarse) {
+    @content;
+  }
+}

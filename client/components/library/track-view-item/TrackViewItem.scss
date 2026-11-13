@@ -1,3 +1,4 @@
+@use '../../../styles/breakpoints' as *;
 .trackViewItem {
   display: flex;
   flex-grow: 0;
@@ -134,7 +135,7 @@
 
       .heart:not([aria-pressed='true']),
       .action {
-        opacity: 0;
+        @include hover-hidden;
       }
     }
 
@@ -228,6 +229,22 @@
     &.lossless {
       color: var(--accent);
       background: var(--accent-tint);
+    }
+  }
+
+  // the narrower the window, the fewer columns: first the album, the year and the format, then the artist
+  // (the title takes what is left, so nothing is cut off)
+  @include below-expanded {
+    .field.album,
+    .field.year,
+    .field.format {
+      display: none;
+    }
+  }
+
+  @include compact {
+    .field.artist {
+      display: none;
     }
   }
 }

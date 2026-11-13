@@ -1,3 +1,4 @@
+@use '../../../styles/breakpoints' as *;
 .radioStations {
   position: absolute;
   top: 0;
@@ -230,7 +231,7 @@
       .playButton {
         display: inline-flex;
         color: var(--text-muted);
-        opacity: 0;
+        @include hover-hidden;
       }
 
       &:hover .playButton,

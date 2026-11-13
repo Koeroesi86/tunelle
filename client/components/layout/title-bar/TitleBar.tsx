@@ -1,3 +1,4 @@
+import { MdMenu as MenuIcon } from 'react-icons/md';
 import type { Track } from '@shared/types/library';
 import { toNowPlaying } from '../../../domain/now-playing';
 import { useTranslation } from '../../../i18n';
@@ -14,16 +15,24 @@ interface TitleBarProps {
   streamTitle?: string | null;
   streamArt?: string | null;
   openNowPlaying?: () => void;
+  /** The button that opens the navigation drawer, which the compact size of the window has instead of a sidebar */
+  onMenu?: () => void;
+  menuOpen?: boolean;
 }
 
 /** The bar across the top of the window: the app, the track that plays in the middle, and the window buttons; the empty part of it drags the window */
-function TitleBar({ currentSong = null, streamTitle = null, streamArt = null, openNowPlaying = () => {} }: TitleBarProps) {
+function TitleBar({ currentSong = null, streamTitle = null, streamArt = null, openNowPlaying = () => {}, onMenu, menuOpen = false }: TitleBarProps) {
   const { t } = useTranslation();
   const shown = currentSong ? toNowPlaying(currentSong, streamTitle, streamArt) : undefined;
 
   return (
     <div className={style.titleBar}>
       <div className={style.title}>
+        {onMenu && (
+          <button type="button" className={style.menu} title={t('nav.menu')} aria-label={t('nav.menu')} aria-expanded={menuOpen} onClick={onMenu}>
+            <MenuIcon size={'20px'} />
+          </button>
+        )}
         <img className={style.icon} src={appIcon} alt="" />
         <Wordmark className={style.wordmark} />
       </div>

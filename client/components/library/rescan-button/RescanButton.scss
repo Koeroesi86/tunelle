@@ -65,7 +65,7 @@
     right: 0;
     display: grid;
     gap: 7px;
-    width: 240px;
+    width: min(240px, calc(100vw - 24px));
     padding: 10px 12px 12px;
     font-size: 12px;
     background: var(--panel-solid);

@@ -1,3 +1,5 @@
+@use '../../../styles/breakpoints' as *;
+
 // the dock: the track on the left, transport and seek bar in the middle, volume on the right
 .controls {
   position: relative;
@@ -30,8 +32,19 @@
     flex-direction: row;
     align-items: center;
     gap: 12px;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
     text-align: left;
     font-size: 12px;
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
 
     .picture {
       flex: 0 0 auto;
@@ -250,6 +263,81 @@
 
     .slider {
       width: 96px;
+    }
+  }
+}
+
+// what is shown on a touch screen is as large as a finger
+@include touch {
+  .controls {
+    .controlButton,
+    .volume .icon {
+      width: $touch-target;
+      height: $touch-target;
+    }
+
+    .playToggleButton {
+      width: $touch-target;
+      height: $touch-target;
+    }
+  }
+}
+
+// the mini player: the track and the transport on one row, the seek bar under them; volume is the system's and the equalizer is in the navigation
+@include compact {
+  .controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-content: center;
+    gap: 0 8px;
+    padding: 0 12px;
+
+    .center {
+      display: contents;
+    }
+
+    .meta {
+      grid-column: 1;
+      grid-row: 1;
+
+      .picture {
+        width: 48px;
+        height: 48px;
+      }
+
+      .format,
+      .album {
+        display: none;
+      }
+    }
+
+    .mainControlButtons {
+      grid-column: 2;
+      grid-row: 1;
+      gap: 0;
+    }
+
+    .secondary,
+    .right {
+      display: none;
+    }
+
+    .controlButton,
+    .playToggleButton {
+      width: $touch-target;
+      height: $touch-target;
+    }
+
+    .seek,
+    .live {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      min-height: 24px;
+    }
+
+    .time {
+      min-width: 0;
     }
   }
 }
