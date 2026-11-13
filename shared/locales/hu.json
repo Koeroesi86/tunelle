@@ -402,6 +402,7 @@
   "albumCover.searchButton": "Keresés",
   "albumCover.searchLabel": "Album keresése",
   "albumCover.noResults": "Nem található borító.",
+  "albumCover.searching": "Keresés…",
   "albumCover.back": "Vissza",
   "albumCover.error.searchFailed": "A keresés nem sikerült. Próbáld újra egy pillanat múlva.",
   "albumCover.error.downloadFailed": "A borítót nem sikerült letölteni."

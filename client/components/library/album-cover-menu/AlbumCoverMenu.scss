@@ -24,6 +24,12 @@
   }
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 $ease: cubic-bezier(.2, .8, .2, 1);
 
 // the button, and under it the entries or the search, which open in the flow of the page
@@ -248,6 +254,35 @@ $ease: cubic-bezier(.2, .8, .2, 1);
     line-height: 1.35;
   }
 
+  .waiting {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 4px 2px;
+    font-size: 12px;
+    color: var(--text-muted);
+    animation: reveal .2s $ease both;
+  }
+
+  .spinner {
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 2px solid var(--accent-tint);
+    border-top-color: var(--accent);
+    animation: spin .9s linear infinite;
+  }
+
+  .searchButton:disabled {
+    opacity: .6;
+    cursor: progress;
+    filter: none;
+    transform: none;
+  }
+
   .empty {
     margin: 0;
     padding: 4px 2px;
@@ -260,6 +295,8 @@ $ease: cubic-bezier(.2, .8, .2, 1);
     .menu,
     .failure,
     .empty,
+    .waiting,
+    .spinner,
     .results li {
       animation: none;
     }

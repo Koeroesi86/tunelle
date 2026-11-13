@@ -59,13 +59,15 @@ const AlbumCoverMenu = ({ failure, candidates, initialQuery, change, search, dow
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const text = query.trim();
-    if (!text) return;
+    if (!text || waiting) return;
 
     setSearched(text);
     setMissing([]);
     search(text);
   };
 
+  // the answer takes a while when other lookups are queued before it (the main process spaces them out): the search is waited for, and not asked twice
+  const waiting = searched !== undefined && !failure && !(candidates && candidates.query === searched);
   const results = candidates && candidates.query === searched ? candidates.candidates.filter(({ picture }) => !missing.includes(picture)) : undefined;
 
   return (
@@ -105,10 +107,16 @@ const AlbumCoverMenu = ({ failure, candidates, initialQuery, change, search, dow
               aria-label={t('albumCover.searchLabel')}
               onChange={(event) => setQuery(event.target.value)}
             />
-            <button type="submit" className={style.searchButton}>
+            <button type="submit" className={style.searchButton} disabled={waiting}>
               {t('albumCover.searchButton')}
             </button>
           </form>
+          {waiting && (
+            <p className={style.waiting} role="status">
+              <span className={style.spinner} aria-hidden />
+              {t('albumCover.searching')}
+            </p>
+          )}
           {results?.length === 0 && candidates && <p className={style.empty}>{t('albumCover.noResults')}</p>}
           <ul className={style.results}>
             {results?.map(({ name, picture }) => (

@@ -128,6 +128,35 @@ describe('AlbumCoverMenu', () => {
       expect(screen.getByText('No covers found.')).not.toBeNull();
     });
 
+    it('keeps spinning, and does not search again, until the answer or a failure comes', () => {
+      const { search, view } = renderMenu();
+      startSearch();
+      submit();
+
+      expect(screen.getByRole('status').textContent).toBe('Searching…');
+      expect(screen.getByRole('button', { name: 'Search' })).toHaveProperty('disabled', true);
+      fireEvent.submit(screen.getByRole('searchbox'));
+      expect(search).toHaveBeenCalledTimes(1);
+
+      view.rerender(
+        <AlbumCoverMenu failure="searchFailed" candidates={undefined} initialQuery="Adam Songs" change={vi.fn()} search={vi.fn()} download={vi.fn()} />
+      );
+      expect(screen.queryByRole('status')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Search' })).toHaveProperty('disabled', false);
+    });
+
+    it('stops spinning when the answer comes', () => {
+      const { view } = renderMenu();
+      startSearch();
+      submit();
+
+      view.rerender(
+        <AlbumCoverMenu failure={undefined} candidates={candidates} initialQuery="Adam Songs" change={vi.fn()} search={vi.fn()} download={vi.fn()} />
+      );
+
+      expect(screen.queryByRole('status')).toBeNull();
+    });
+
     it('goes back to the menu', () => {
       renderMenu();
       startSearch();

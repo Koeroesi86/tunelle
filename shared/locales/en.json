@@ -403,6 +403,7 @@
   "albumCover.searchButton": "Search",
   "albumCover.searchLabel": "Search for an album",
   "albumCover.noResults": "No covers found.",
+  "albumCover.searching": "Searching…",
   "albumCover.back": "Back",
   "albumCover.error.searchFailed": "The search did not work. Try again in a moment.",
   "albumCover.error.downloadFailed": "The cover could not be downloaded."
