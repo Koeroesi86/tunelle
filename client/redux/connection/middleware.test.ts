@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { applyMiddleware, createStore } from 'redux';
 
+vi.mock('../../startup', () => ({ hideSplash: vi.fn() }));
+
 const setup = async (
   fetchImpl: (url: string) => Promise<unknown> = () => Promise.resolve({ ok: true, json: () => Promise.resolve({ items: [], total: 0 }) })
 ) => {

@@ -10,7 +10,6 @@ const appConfig = {
     }
   },
   paths: [
-    '/loading.html',
     '/loudness.html',
     '/index.html'
   ]

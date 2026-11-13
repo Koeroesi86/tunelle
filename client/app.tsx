@@ -3,9 +3,11 @@ import { Provider } from 'react-redux';
 import PlayerHome from './components/layout/player-home';
 import ThemeProvider from './components/layout/theme-provider';
 import LanguageProvider from './components/layout/language-provider';
-import { store } from './redux/store';
+import { createAppStore } from './redux/store';
+import { onAppStarted } from './startup';
 
 const mount = () => {
+  const store = createAppStore();
   store.dispatch({ type: 'APP_INIT' });
 
   const root = document.getElementById('root');
@@ -22,4 +24,5 @@ const mount = () => {
   );
 };
 
-if (typeof document !== 'undefined') mount();
+// the splash in the page covers the window until the main process has the library open and answers
+if (typeof document !== 'undefined') onAppStarted(window.electronAPI, mount);

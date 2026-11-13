@@ -14,7 +14,6 @@ export interface ElectronApi {
 
 export interface AppWindows {
   main: BrowserWindow | null;
-  loading: BrowserWindow | null;
 }
 
 declare global {
