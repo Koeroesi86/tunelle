@@ -56,7 +56,8 @@ const start = async (database?: Database) => {
   const ask = async (channel: string, reply: string, payload?: unknown) => {
     const before = sent.filter((message) => message.channel === reply).length;
     listeners.get(channel)?.({ sender } as unknown as IpcMainEvent, payload);
-    await vi.waitFor(() => expect(sent.filter((message) => message.channel === reply).length).toBeGreaterThan(before));
+    // the default of 1 s is short for a real database on a slow runner, see docs/development/integration-tests.md
+    await vi.waitFor(() => expect(sent.filter((message) => message.channel === reply).length).toBeGreaterThan(before), { timeout: 15_000 });
     return sent.filter((message) => message.channel === reply).at(-1)?.payload;
   };
 

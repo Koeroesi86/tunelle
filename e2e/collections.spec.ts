@@ -22,7 +22,8 @@ test('keeps a playlist of an album, and plays it', async ({ start, session }) =>
 test('lists a liked album under Liked', async ({ session }) => {
   const { page } = session;
   await navigate(page, 'Albums');
-  await page.getByRole('button', { name: 'Add to favourites' }).first().click();
+  // the tabs of the other pages stay in the page, and the first button belongs to the radio stations while the tab changes
+  await page.locator('[class*="PlayerTabs__active"]').getByRole('button', { name: 'Add to favourites' }).first().click();
   await navigate(page, 'Liked');
   await expect(page.getByText('Pitch Perfect').filter({ visible: true }).first()).toBeVisible();
 });
