@@ -39,39 +39,57 @@
     }
   }
 
+  // the entries are a row of pills under the button, which wraps in a narrow window
   .menu {
-    box-sizing: border-box;
     display: flex;
-    flex-direction: column;
-    width: min(100%, 560px);
-    padding: 4px;
-    background: var(--panel-solid);
-    border: 1px solid var(--overlay-strong);
-    border-radius: 6px;
-  }
-
-  // the search takes the width of the page, its results are a grid of covers
-  .searching {
-    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .item {
-    min-height: $touch-target;
-    padding: 0 12px;
+    min-height: 32px;
+    padding: 0 14px;
     font: inherit;
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-soft);
-    text-align: left;
-    background: none;
+    background: var(--overlay-faint);
     border: 0;
-    border-radius: 4px;
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px var(--overlay);
     cursor: pointer;
 
     &:hover,
     &:focus-visible {
       color: var(--text);
       background: var(--overlay);
-      outline: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    @include compact {
+      min-height: $touch-target;
+    }
+  }
+
+  // the search takes the width of the page, its results are a grid of covers
+  .searching {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 8px;
+    gap: 4px;
+    background: var(--panel-solid);
+    border: 1px solid var(--overlay-strong);
+    border-radius: 8px;
+
+    // the way back is the last pill, at the left
+    .item {
+      align-self: flex-start;
     }
   }
 
