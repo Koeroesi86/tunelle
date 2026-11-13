@@ -54,6 +54,14 @@ const reducer: Reducer<LibraryState> = (state = initialState, action) => {
     // the covers of the artists and the album artists changed: the pages are fetched again when they are shown
     case 'ARTIST_PHOTOS_READY':
       return { ...state, groups: { ...state.groups, artist: markStale(state.groups.artist), albumArtist: markStale(state.groups.albumArtist) } };
+    // the cover of an album changed: the lists that show it fetch their pages again when they are shown
+    case 'ALBUM_COVER_CHANGED':
+      return {
+        ...state,
+        albums: markStale(state.albums),
+        groups: { artist: markStale(state.groups.artist), albumArtist: markStale(state.groups.albumArtist), genre: markStale(state.groups.genre) },
+        groupAlbums: markStale(state.groupAlbums),
+      };
     case 'INVALIDATE_LIBRARY':
       return {
         ...state,

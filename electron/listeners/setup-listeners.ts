@@ -1,5 +1,6 @@
 import type { Database } from 'sqlite3';
 import type { AppWindows } from '@shared/types/global';
+import type { RadioArt } from '../services/radio-art';
 import type { RadioBrowser } from '../services/radio-browser';
 import type { UpdateManager } from '../services/update-manager';
 import type { ListenerContext } from './listener-context';
@@ -15,6 +16,7 @@ import registerLauncherListeners from './register-launcher-listeners';
 import registerUpdateListeners from './register-update-listeners';
 import registerArtistPhotoListeners from './register-artist-photo-listeners';
 import registerArtistPhotoChoiceListeners from './register-artist-photo-choice-listeners';
+import registerAlbumCoverListeners from './register-album-cover-listeners';
 import registerLoudnessListeners from './register-loudness-listeners';
 import registerBackgroundTaskListeners from './register-background-task-listeners';
 import registerMprisListeners from './register-mpris-listeners';
@@ -33,14 +35,22 @@ const registrars: ((context: ListenerContext) => void)[] = [
   registerUpdateListeners,
   registerArtistPhotoListeners,
   registerArtistPhotoChoiceListeners,
+  registerAlbumCoverListeners,
   registerLoudnessListeners,
   registerBackgroundTaskListeners,
   registerMprisListeners,
   registerMediaPermission,
 ];
 
-function setupListeners(database: Database, windows: AppWindows, radio: RadioBrowser, updates: UpdateManager, loudness: ListenerContext['loudness']) {
-  registrars.forEach((register) => register({ database, windows, radio, updates, loudness }));
+function setupListeners(
+  database: Database,
+  windows: AppWindows,
+  radio: RadioBrowser,
+  radioArt: RadioArt,
+  updates: UpdateManager,
+  loudness: ListenerContext['loudness']
+) {
+  registrars.forEach((register) => register({ database, windows, radio, radioArt, updates, loudness }));
 }
 
 export default setupListeners;

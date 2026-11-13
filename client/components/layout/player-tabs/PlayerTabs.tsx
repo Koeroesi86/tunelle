@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 import type { Tab } from '../../../redux/types';
+import AlbumDetails from '../../library/album-details';
 import Home from '../../pages/home';
 import LocalCollection from '../../pages/local-collection';
 import NowPlaying from '../../pages/now-playing';
@@ -100,6 +101,7 @@ function PlayerTabs({ tab = 'home', addFiles = () => {} }: PlayerTabsProps) {
           <LauncherIntegration />
         </div>
       </div>
+      <AlbumDetails />
     </div>
   );
 }

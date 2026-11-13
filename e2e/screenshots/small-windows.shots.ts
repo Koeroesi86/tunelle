@@ -108,9 +108,11 @@ for (const { name, width, height } of sizes) {
       await go(page, 'Albums');
       await visible(page, albums[1].title).click();
       await expect(visible(page, albums[1].tracks.at(-1) ?? '')).toBeVisible();
-      // the dialog covers the player bar: it has to fit the window, and the way out of it is on the window
+      // the tracks of the album can be seen on the page of the songs that is on its way out: the page of the album has its back button
+      await expect(page.getByRole('button', { name: ui('Back to the albums') })).toBeVisible();
+      // the page of the album has to fit the window, and the way out of it is on the window
       expect(await outside(page)).toEqual([]);
-      expect(await blockedBy(page, ui('Close'))).toBe('');
+      expect(await blockedBy(page, ui('Back to the albums'))).toBe('');
       await capture(page, `${name}-album-dialog`, folder);
       await closeDialog(page);
     });

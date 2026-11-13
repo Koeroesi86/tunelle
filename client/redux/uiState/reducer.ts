@@ -58,6 +58,8 @@ const initialState: UiState = {
   artistPhotos: true,
   artistPhotoFailure: undefined,
   artistPhotoCandidates: undefined,
+  albumCoverFailure: undefined,
+  albumCoverCandidates: undefined,
   artistPhotoRevision: 0,
   watchFolders: true,
   measureLoudness: true,
@@ -99,6 +101,8 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
         view: action.payload.view,
         librarySearch: '',
         openGroup: undefined,
+        // the page of an album is over the pages of the library: another view or tab leaves it
+        selectedAlbum: null,
         groupFilter: '',
         selectedTracks: state.librarySearch === '' ? state.selectedTracks : {},
       };
@@ -267,7 +271,22 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return currentTime === state.currentTime ? state : { ...state, currentTime };
     }
     case 'SELECT_ALBUM':
-      return { ...state, selectedAlbum: action.payload.album || null };
+      return { ...state, selectedAlbum: action.payload.album || null, albumCoverFailure: undefined, albumCoverCandidates: undefined };
+    case 'CHANGE_ALBUM_COVER':
+    case 'SEARCH_ALBUM_COVERS':
+      return { ...state, albumCoverFailure: undefined, albumCoverCandidates: undefined };
+    case 'ALBUM_COVER_CANDIDATES':
+      return { ...state, albumCoverCandidates: action.payload };
+    case 'ALBUM_COVER_FAILED':
+      return { ...state, albumCoverFailure: action.payload.reason };
+    case 'ALBUM_COVER_CHANGED': {
+      const { path, title, cover } = action.payload;
+      const { selectedAlbum } = state;
+      // the album that is open shows the new cover, with its tracks (the queue keeps what it has)
+      return selectedAlbum?.path === path && selectedAlbum.title === title
+        ? { ...state, selectedAlbum: { ...selectedAlbum, cover, tracks: selectedAlbum.tracks.map((track) => ({ ...track, picture: cover })) } }
+        : state;
+    }
     case 'SET_GAIN': {
       const { value, index } = action.payload;
       return { ...state, equalizer: state.equalizer.map((gain, band) => (band === index ? clampGain(toNumber(value)) : gain)) };
@@ -302,7 +321,7 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
     case 'MAXIMIZED_APP':
       return { ...state, maximized: action.payload.maximized };
     case 'SET_TAB':
-      return { ...state, tab: action.payload.tab };
+      return { ...state, tab: action.payload.tab, selectedAlbum: null };
     case 'SET_NAVIGATION_GROUP': {
       const { group, open } = action.payload;
       return group === 'library' ? { ...state, libraryOpen: open } : { ...state, playlistsOpen: open };

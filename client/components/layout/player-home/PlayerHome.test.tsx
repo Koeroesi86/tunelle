@@ -3,7 +3,6 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import PlayerHome from './PlayerHome';
 
 // the parts of the window are replaced: the test is about what the window does when the page is left
-vi.mock('../../library/album-details', () => ({ default: () => null }));
 vi.mock('../../ui/confirm', () => ({ default: () => null }));
 vi.mock('../player-controls', () => ({ default: () => null }));
 vi.mock('../audio-component', () => ({ default: () => null }));

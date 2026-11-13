@@ -185,6 +185,42 @@ describe('uiState reducer', () => {
     expect(run({ type: 'SELECT_ALBUM', payload: { album: null } }, state).selectedAlbum).toBeNull();
   });
 
+  it('leaves the page of the album when the view or the tab changes', () => {
+    const open = run({ type: 'SELECT_ALBUM', payload: { album: { id: 'a' } as Album } });
+
+    expect(run({ type: 'SET_VIEW', payload: { view: 'artists' } }, open).selectedAlbum).toBeNull();
+    expect(run({ type: 'SET_TAB', payload: { tab: 'settings' } }, open).selectedAlbum).toBeNull();
+  });
+
+  it('shows the new cover of the album that is open, with its tracks, and not of another', () => {
+    const track = { path: '/music/one/01.flac', picture: 'old.jpg' } as Track;
+    const album = { id: 'a', path: '/music/one', title: 'Songs', cover: 'old.jpg', tracks: [track] } as Album;
+    const state = run({ type: 'SELECT_ALBUM', payload: { album } });
+
+    const changed = run({ type: 'ALBUM_COVER_CHANGED', payload: { path: '/music/one', title: 'Songs', cover: 'new.png' } }, state);
+    expect(changed.selectedAlbum).toMatchObject({ cover: 'new.png', tracks: [{ path: track.path, picture: 'new.png' }] });
+    expect(run({ type: 'ALBUM_COVER_CHANGED', payload: { path: '/music/one', title: 'Songs', cover: null } }, state).selectedAlbum?.cover).toBeNull();
+    expect(run({ type: 'ALBUM_COVER_CHANGED', payload: { path: '/music/two', title: 'Songs', cover: 'new.png' } }, state)).toBe(state);
+  });
+
+  it('keeps why a picked cover failed until another change or another album', () => {
+    const failed = run({ type: 'ALBUM_COVER_FAILED', payload: { reason: 'notImage' } });
+
+    expect(failed.albumCoverFailure).toBe('notImage');
+    expect(run({ type: 'CHANGE_ALBUM_COVER', payload: { path: '/music', title: 'A', change: 'pick' } }, failed).albumCoverFailure).toBeUndefined();
+    expect(run({ type: 'SELECT_ALBUM', payload: { album: null } }, failed).albumCoverFailure).toBeUndefined();
+  });
+
+  it('keeps what a search of covers found until the next change or search, or another album', () => {
+    const candidates = { query: 'adam', candidates: [{ name: 'Adam – Songs', picture: 'https://coverartarchive.org/release-group/a/front-250' }] };
+    const found = run({ type: 'ALBUM_COVER_CANDIDATES', payload: candidates });
+
+    expect(found.albumCoverCandidates).toEqual(candidates);
+    expect(run({ type: 'SEARCH_ALBUM_COVERS', payload: { query: 'eve' } }, found).albumCoverCandidates).toBeUndefined();
+    expect(run({ type: 'CHANGE_ALBUM_COVER', payload: { path: '/m', title: 'A', change: 'reset' } }, found).albumCoverCandidates).toBeUndefined();
+    expect(run({ type: 'SELECT_ALBUM', payload: { album: null } }, found).albumCoverCandidates).toBeUndefined();
+  });
+
   it('sets a single equalizer gain in dB without mutating the previous state', () => {
     const state = run({ type: 'SET_GAIN', payload: { value: '6.5', index: 2 } });
 

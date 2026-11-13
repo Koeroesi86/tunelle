@@ -7,6 +7,7 @@ import { albumArtRowSchema } from '../../schemas/database/album-art';
 import { sampleSize } from '@shared/constants/accent';
 import { getAlbumArtFolder } from '../../utils/album-art-folder';
 import { mapAsync } from '@shared/utils/map-async';
+import { applyAlbumCovers } from './apply-album-covers';
 import { backgroundQueue, scanKind } from '../tasks/background-queue';
 
 /** Pictures written to the table in one statement, so a long run is saved as it goes */
@@ -57,7 +58,10 @@ export const queueAlbumArtAccents = (database: Database) =>
     key: 'album-art-accents',
     priority: 2,
     canRun: () => !backgroundQueue.isBusy(scanKind),
-    run: () => storeAlbumArtAccents(database).catch((error) => console.error('Picking the colours of the album art failed', error)),
+    run: () =>
+      applyAlbumCovers(database)
+        .then(() => storeAlbumArtAccents(database))
+        .catch((error) => console.error('Picking the colours of the album art failed', error)),
   });
 
 /** The colour of each picture of a list that has one, by the name of the picture */

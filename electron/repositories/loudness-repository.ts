@@ -6,7 +6,7 @@ import { libraryRowSchema } from '../schemas/database/library';
 import { jsonOf } from '../schemas/rows';
 import executeQuery from '../database/execute-query';
 import executeQueries from '../database/execute-queries';
-import { folderOfColumn } from './library-repository';
+import { folderOfColumn } from '../database/folder-of-column';
 import { trackLoudnessRowSchema } from '../schemas/database/track-loudness';
 
 /** Store the measurement of a track, replacing the row it had */

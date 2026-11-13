@@ -1,0 +1,326 @@
+@use '../../../styles/breakpoints' as *;
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+$ease: cubic-bezier(.2, .8, .2, 1);
+
+// the button, and under it the entries or the search, which open in the flow of the page
+.albumCoverMenu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+
+  // a pill: the button, the entries and the way back
+  %pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 16px;
+    font: inherit;
+    font-size: 12px;
+    color: var(--text-soft);
+    background: var(--overlay-faint);
+    border: 0;
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px var(--overlay);
+    cursor: pointer;
+    transition: color .15s ease-out, background-color .15s ease-out, transform .15s $ease;
+
+    &:hover {
+      color: var(--text);
+      background: var(--overlay);
+    }
+
+    &:active {
+      transform: scale(.97);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    @include compact {
+      min-height: $touch-target;
+    }
+  }
+
+  .toggle {
+    @extend %pill;
+
+    -webkit-app-region: no-drag;
+  }
+
+  .menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    animation: reveal .2s $ease both;
+  }
+
+  .item {
+    @extend %pill;
+  }
+
+  // the search takes the width of the page, its results are a grid of covers
+  .searching {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 14px;
+    gap: 12px;
+    background: var(--overlay-faint);
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px var(--overlay);
+
+    .item {
+      align-self: flex-start;
+    }
+  }
+
+  .failure {
+    font-size: 12px;
+    color: var(--warning);
+    animation: reveal .2s $ease both;
+  }
+
+  .searchForm {
+    display: flex;
+    gap: 8px;
+    max-width: 560px;
+  }
+
+  .searchInput {
+    flex: 1;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 16px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--panel-solid);
+    border: 0;
+    border-radius: 20px;
+    box-shadow: inset 0 0 0 1px var(--overlay-strong);
+    transition: box-shadow .15s ease-out;
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: inset 0 0 0 2px var(--accent);
+    }
+
+    @include compact {
+      min-height: $touch-target;
+    }
+  }
+
+  .searchButton {
+    min-height: 40px;
+    padding: 0 20px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-contrast);
+    background: var(--accent);
+    border: 0;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: transform .15s $ease, filter .15s ease-out;
+
+    &:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: scale(.97);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    @include compact {
+      min-height: $touch-target;
+    }
+  }
+
+  .results {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      animation: rise .3s $ease both;
+
+      @for $index from 2 through 12 {
+        &:nth-child(#{$index}) {
+          animation-delay: #{($index - 1) * 40}ms;
+        }
+      }
+    }
+  }
+
+  .result {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding: 8px;
+    font: inherit;
+    font-size: 12px;
+    color: var(--text-soft);
+    text-align: left;
+    background: none;
+    border: 0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: color .15s ease-out, background-color .15s ease-out, transform .2s $ease;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--text);
+      background: var(--overlay);
+      transform: translateY(-3px);
+      outline: none;
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    &:active {
+      transform: scale(.98);
+    }
+
+    &:hover .thumbnail,
+    &:focus-visible .thumbnail {
+      transform: scale(1.03);
+      box-shadow: 0 10px 24px var(--shadow);
+    }
+  }
+
+  .thumbnail {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 8px;
+    background: var(--art-placeholder);
+    box-shadow: 0 4px 12px var(--shadow);
+    opacity: 0;
+    transition: transform .25s $ease, box-shadow .25s $ease, opacity .35s ease-out;
+
+    &.loaded {
+      opacity: 1;
+    }
+  }
+
+  .resultName {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.35;
+  }
+
+  .waiting {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 4px 2px;
+    font-size: 12px;
+    color: var(--text-muted);
+    animation: reveal .2s $ease both;
+  }
+
+  .spinner {
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 2px solid var(--accent-tint);
+    border-top-color: var(--accent);
+    animation: spin .9s linear infinite;
+  }
+
+  .searchButton:disabled {
+    opacity: .6;
+    cursor: progress;
+    filter: none;
+    transform: none;
+  }
+
+  .empty {
+    margin: 0;
+    padding: 4px 2px;
+    font-size: 12px;
+    color: var(--text-muted);
+    animation: reveal .2s $ease both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .menu,
+    .failure,
+    .empty,
+    .waiting,
+    .spinner,
+    .results li {
+      animation: none;
+    }
+
+    .toggle,
+    .item,
+    .searchInput,
+    .searchButton,
+    .result,
+    .thumbnail {
+      transition: none;
+    }
+
+    .result:hover,
+    .result:focus-visible,
+    .result:hover .thumbnail,
+    .result:focus-visible .thumbnail,
+    .searchButton:hover {
+      transform: none;
+    }
+  }
+}

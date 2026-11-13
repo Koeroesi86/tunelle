@@ -291,7 +291,7 @@ app
     // the hidden window of the measurement is a window too: the app does not quit while it is open
     const loudness = registerLoudness(d, loudnessLocation, (status) => windows.main && sendIfAlive(windows.main.webContents, 'LOUDNESS_STATUS', status));
     windows.main?.on('closed', loudness.stop);
-    setupListeners(d, windows, radio, updates, loudness);
+    setupListeners(d, windows, radio, radioArt, updates, loudness);
     backgroundQueue.start();
 
     // the native sqlite3 addon aborts the process when it is torn down with the database open, so it is closed before the app exits

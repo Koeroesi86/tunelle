@@ -6,7 +6,6 @@ import { useLatest } from '../../../hooks/use-latest';
 import { useBreakpoint } from '../../../hooks/use-breakpoint';
 import { useTranslation } from '../../../i18n';
 import style from './PlayerHome.scss';
-import AlbumDetails from '../../library/album-details';
 import Confirm from '../../ui/confirm';
 import PlayerControls from '../player-controls';
 import AudioComponent from '../audio-component';
@@ -108,7 +107,6 @@ const PlayerHome = ({ maximized, enableTransparency = true, blurred, loaded, fol
         </div>
         <PlayerControls />
       </div>
-      <AlbumDetails />
       <Confirm
         message={confirmation?.message ?? null}
         confirm={() => {

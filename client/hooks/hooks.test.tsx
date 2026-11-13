@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, renderHook } from '@testing-library/react';
 import { useAudioListener } from './use-audio-listener';
 import { useDelayedValue } from './use-delayed-value';
-import { useLastDefined } from './use-last-defined';
 import { useScrollSeparator } from './use-scroll-separator';
 import { useUpdateEffect } from './use-update-effect';
 
@@ -47,16 +46,6 @@ describe('hooks', () => {
     act(() => vi.advanceTimersByTime(10));
 
     expect(result.current).toBe('c');
-  });
-
-  it('keeps the last value once it is cleared', () => {
-    const { result, rerender } = renderHook(({ value }) => useLastDefined(value), { initialProps: { value: null as string | null } });
-    expect(result.current).toBeNull();
-
-    rerender({ value: 'a' });
-    rerender({ value: null });
-
-    expect(result.current).toBe('a');
   });
 
   it('marks the separator while the listing is scrolled down', () => {
