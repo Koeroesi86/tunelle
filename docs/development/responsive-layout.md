@@ -28,6 +28,15 @@ Use a media query (the mixins) for what depends on the window, and a container q
 - **Ultrawide.** From 1840 px (`$content-max` plus the sidebar) a page is centered with a width of at most 1600 px (`PlayerTabs.scss`).
 - **Dialogs** (the album details) take the window in the compact size: `max-width: calc(100vw - 16px)`.
 
-## Not covered by the tests
+## Checking the layout
 
-The unit tests check the logic (the breakpoints, the drawer, the bounds, the props of the components). A stylesheet is stubbed in them, so whether a layout overflows or clips is not tested. Check it by hand: `npm run build`, start the app, resize the window to 360 px wide and 480 px high, and go through every page at 100%, 150% and 200% zoom (`Ctrl` and `+`). The end to end spec (`e2e/responsive.spec.ts`) that opens each page at the three sizes and asserts there is no horizontal overflow is still to be written.
+The unit tests check the logic (the breakpoints, the drawer, the bounds, the props of the components). A stylesheet is stubbed in them, so whether a layout overflows or clips is not tested there. `e2e/screenshots/small-windows.shots.ts` does, on the built app (`npm run build`, then `npm run screenshots -- small-windows`):
+
+- every page (home, now playing, radio, liked, equalizer, settings, albums, songs) and the album dialog at a compact (390 x 844), a medium (800 x 600), an expanded (1360 x 850) and an ultrawide (2560 x 1080) window. Each is checked (no element is drawn past the edge of the window unless a box that scrolls holds it, and the play and next buttons are what a click at their middle reaches) and its picture is taken;
+- the window turning from landscape to portrait and back (900 x 520, 520 x 640, 360 x 480) with a list scrolled (the scroll position stays) and the album dialog open (it stays open, fits the window, and the track keeps playing).
+
+It belongs to the `screenshots` project, not to `e2e`, so CI does not run it: a person runs it after a change of the layout and looks at the pictures in `.cache/responsive-layout/` (`SCREENSHOTS_OUT` writes elsewhere). It shares the app, the library and the steps with the pictures of the website through `e2e/screenshots/screenshot-steps.ts`. The pictures are not in `site/screenshots/`, as the website does not show the app on a small screen.
+
+What it does not do: a touch screen (`pointer: coarse` and `hover: none` are not emulated), zoom and a large system font, and a window moved between displays of different density. Check these by hand.
+
+Findings from the first run: the clock of the player has to be held (`holdAt`), or the picture is never the same twice; the album dialog covers the player bar by design, so the buttons are checked only outside it; a window that is taller than its list shows all of it, so the portrait size of the scroll test is kept low on purpose.
