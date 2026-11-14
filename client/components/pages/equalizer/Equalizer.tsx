@@ -6,7 +6,7 @@ import type { MessageKey } from '@shared/locales/translate';
 import Slider from '../../ui/slider/Slider';
 import EqualizerCurve from './EqualizerCurve';
 import { useLatest } from '../../../hooks/use-latest';
-import { bandType, defaultGains, equalizerPresets, formatGain, matchingPreset } from '../../../audio/equalizer';
+import { bandType, defaultGains, equalizerPresets, formatGain, frequencyText, matchingPreset } from '../../../audio/equalizer';
 import { equalizerBands, minGain, maxGain } from '../../../constants/equalizer';
 
 // the names of the presets of client/audio/equalizer.ts
@@ -107,7 +107,7 @@ const Equalizer = ({
         </div>
         {showFaders && (
           <div className={classNames(style.card, style.faders)}>
-            {equalizerBands.map(({ label }, index) => (
+            {equalizerBands.map(({ label, frequency }, index) => (
               <div className={style.slider} key={label}>
                 <div className={classNames(style.value, { [style.changed]: (gains[index] ?? 0) !== 0 })}>{formatGain(gains[index] ?? 0)}</div>
                 <div className={style.input}>
@@ -117,6 +117,8 @@ const Equalizer = ({
                     step={0.5}
                     value={gains[index] ?? 0}
                     orientation={'vertical'}
+                    label={t('equalizer.band', { band: frequencyText(frequency) })}
+                    valueText={`${formatGain(gains[index] ?? 0)} dB`}
                     onInput={(e) => setGain(index, e.currentTarget.value)}
                   />
                 </div>

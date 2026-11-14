@@ -22,3 +22,12 @@ Two automated checks show the accessibility problems of the renderer (tracking i
 - The track list is a `grid`: Tab reaches one row (roving `tabindex`, the row that had the focus last, or the first shown), Enter plays, Space selects, and the arrows move to the row above and below. The list is windowed, so the arrows only reach rows that are rendered.
 - The page of an album is a modal dialog (`role="dialog"`, `aria-modal`, named by the title). `use-dialog-focus.ts` moves the focus in, keeps Tab inside, and gives the focus back to the element that had it on close. Use it for any new dialog.
 - Not done yet: arrow keys across album tiles, and the app-wide shortcuts (Space, seeking, volume, a skip link).
+
+## Names, values and announcements
+
+- Every control has an accessible name. An icon button has an `aria-label` (and a `title` for the tooltip), and the icon is `aria-hidden`. Shuffle and repeat are toggles and say so with `aria-pressed`.
+- `Slider` takes a required `label` and an optional `valueText` (the seek bar reads `00:01:05 / 00:03:00`, the volume `50%`, a fader `+3 dB`). A range input without a name is read as an unnamed slider (axe `label`).
+- Symptom: axe `label-content-name-mismatch`. Cause: an `aria-label` that does not contain the text the button shows, so a person who says the visible text to a voice control finds nothing. Either leave the `aria-label` out and let the text name the button (the sort chip), or put the extra words in a visually hidden `span` inside the button (the track area of the player, `visuallyHidden` in `PlayerControls.scss`).
+- Symptom: axe `aria-required-parent`. Cause: a `columnheader` outside a `row` in a `table` (the header of the radio list). Give the header `role="row"` and its container `role="table"`.
+- The player has a polite `role="status"` that is empty without a track and reads "Now playing: title by artist" when the track changes. Pausing does not change the text, so it is not announced again.
+- Not done yet: announcements for radio errors and scan progress, the app-wide shortcuts, motion and contrast (`color-contrast` is the one axe violation left on every page).

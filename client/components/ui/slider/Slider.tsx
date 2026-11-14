@@ -9,10 +9,14 @@ interface SliderProps {
   step?: number;
   orientation?: 'horizontal' | 'vertical';
   value: number;
+  /** The accessible name: a range input without one is read as an unnamed slider */
+  label: string;
+  /** What the value means in words (a time, a gain), where the number alone says too little */
+  valueText?: string;
   onInput: FormEventHandler<HTMLInputElement>;
 }
 
-const Slider = ({ min = 0, max = 1, step = 0.01, orientation = 'horizontal', value, onInput }: SliderProps) => {
+const Slider = ({ min = 0, max = 1, step = 0.01, orientation = 'horizontal', value, label, valueText, onInput }: SliderProps) => {
   const slider = useRef<HTMLInputElement>(null);
   const vertical = orientation === 'vertical';
   const fill = max > min ? ((value - min) / (max - min)) * 100 : 0;
@@ -23,7 +27,18 @@ const Slider = ({ min = 0, max = 1, step = 0.01, orientation = 'horizontal', val
 
   return (
     <div className={classNames(style.slider, { [style.vertical]: vertical })}>
-      <input type="range" min={min} max={max} step={step} className={style.range} onInput={onInput} ref={slider} />
+      <input
+        type="range"
+        aria-label={label}
+        aria-valuetext={valueText}
+        aria-orientation={orientation}
+        min={min}
+        max={max}
+        step={step}
+        className={style.range}
+        onInput={onInput}
+        ref={slider}
+      />
       <div className={style.lowerFill} style={vertical ? { height: `${fill}%` } : { width: `${fill}%` }} />
     </div>
   );

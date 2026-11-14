@@ -100,7 +100,7 @@ describe('PlayerControls', () => {
   it('opens the page of what plays from the track, which is the way from the mini player to the full view', () => {
     const { props } = renderControls(0.5);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open now playing' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Open now playing/ }));
 
     expect(props.openNowPlaying).toHaveBeenCalledTimes(1);
   });
@@ -110,5 +110,33 @@ describe('PlayerControls', () => {
 
     const secondary = Array.from(document.querySelectorAll('.secondary')).map((button) => button.getAttribute('title'));
     expect(secondary).toEqual(['Shuffle', 'Repeat']);
+  });
+
+  it('names every button and slider, and says what the toggles and the sliders are at', () => {
+    const song: Track = {
+      ...toRadioTrack({ uuid: 'u4', name: 'Teardrop', country: '', tags: [], codec: 'FLAC', bitrate: 0 }),
+      path: '/music/teardrop.flac',
+      duration: 180,
+    };
+    renderControls(0.5, song, 65);
+
+    const unnamed = screen.getAllByRole('button').filter((button) => !button.getAttribute('aria-label') && !button.textContent);
+    expect(unnamed).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Shuffle' }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByRole('button', { name: 'Repeat' }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByRole('slider', { name: 'Seek' }).getAttribute('aria-valuetext')).toBe('00:01:05 / 00:03:00');
+    expect(screen.getByRole('slider', { name: 'Volume' }).getAttribute('aria-valuetext')).toBe('50%');
+  });
+
+  it('announces the track that plays in a polite status', () => {
+    const song: Track = {
+      ...toRadioTrack({ uuid: 'u5', name: 'Teardrop', country: '', tags: [], codec: 'FLAC', bitrate: 0 }),
+      path: '/music/teardrop.flac',
+      title: 'Teardrop',
+      artist: 'Massive Attack',
+    };
+    renderControls(0.5, song);
+
+    expect(screen.getByRole('status').textContent).toBe('Now playing: Teardrop by Massive Attack');
   });
 });

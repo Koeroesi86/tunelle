@@ -38,15 +38,7 @@ const SortSelect = <F extends string>({ fields, labels, sort, setSort }: SortSel
 
   return (
     <div className={style.sortSelect} {...rootProps}>
-      <button
-        type="button"
-        className={style.toggle}
-        aria-label={`${labels.field}: ${current}`}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={toggle}
-      >
+      <button type="button" className={style.toggle} aria-haspopup="menu" aria-expanded={open} aria-controls={panelId} onClick={toggle}>
         <FaSort aria-hidden />
         <span className={style.hint}>{labels.prefix}</span>
         {current}

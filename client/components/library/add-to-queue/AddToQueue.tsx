@@ -44,7 +44,7 @@ const AddToQueue = ({ getTracks, add, next = false, withLabel = false, className
       type="button"
       className={classNames(style.addToQueue, { [style.withLabel]: withLabel, [style.added]: added }, className)}
       title={label}
-      aria-label={label}
+      aria-label={withLabel && !added ? undefined : label}
       // the button sits in rows that select and play on click
       onClick={(event) => {
         event.stopPropagation();

@@ -182,8 +182,8 @@ const RadioStations = ({ radio, currentStation, search, loadTags, loadOptions, p
         </div>
       </div>
       {stations.length > 0 && (
-        <div className={classNames(style.stations, style.headerRow)}>
-          <div className={classNames(style.station, style.header)}>
+        <div className={classNames(style.stations, style.headerRow)} role="table" aria-label={t('nav.radio')}>
+          <div className={classNames(style.station, style.header)} role="row">
             <span />
             {columns.map(({ column, sort }) => (
               <span

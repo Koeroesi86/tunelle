@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import GroupSort from './GroupSort';
 
-const open = () => fireEvent.click(screen.getByRole('button', { name: /^Sort by/ }));
+const open = () => fireEvent.click(screen.getByRole('button', { name: /^Sort/ }));
 const item = (name: string) => screen.getByRole('menuitemradio', { name });
 
 describe('GroupSort', () => {
