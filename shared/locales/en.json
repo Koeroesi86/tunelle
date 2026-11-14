@@ -338,6 +338,7 @@
   "radio.ascending": "Ascending",
   "radio.loadMore": "Load more",
   "scan.title": "Scanning library",
+  "scan.done": "Library scan finished",
   "scan.count": "{current} of {total} files",
   "scan.open": "Click to open {folder}",
   "library.error.title": "The library could not be opened",

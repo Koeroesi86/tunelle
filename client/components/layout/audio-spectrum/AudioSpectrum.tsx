@@ -130,7 +130,7 @@ const AudioSpectrum = ({
   useEffect(connectCanvas);
   useEffect(() => stopAnimation, []);
 
-  return <canvas className={style.audioSpectrum} ref={canvas} width={width} height={height} />;
+  return <canvas aria-hidden="true" className={style.audioSpectrum} ref={canvas} width={width} height={height} />;
 };
 
 export default AudioSpectrum;

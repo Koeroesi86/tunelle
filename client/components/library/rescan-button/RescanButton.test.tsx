@@ -24,14 +24,15 @@ describe('RescanButton', () => {
     expect(onRescan).toHaveBeenCalledTimes(1);
     expect(rescan().disabled).toBe(false);
     expect(rescan().querySelector('circle')).toBeNull();
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryByRole('group')).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('');
   });
 
   it('waits while a folder is scanned, and says how far it is with the folder', () => {
     renderButton({ current: 1284, total: 3050, scanningFolder: '/music/jazz' });
 
     expect(rescan().disabled).toBe(true);
-    const status = screen.getByRole('status');
+    const status = screen.getByRole('group');
     expect(status.textContent).toContain('Scanning library');
     expect(status.textContent).toContain('42%');
     expect(status.textContent).toContain('1,284 of 3,050 files');
@@ -51,14 +52,14 @@ describe('RescanButton', () => {
 
     const fill = rescan().querySelectorAll('circle')[1];
     expect(fill.getAttribute('stroke-dashoffset')).toBe(fill.getAttribute('stroke-dasharray'));
-    expect(screen.getByRole('status').textContent).not.toContain('files');
-    expect(screen.getByRole('status').textContent).not.toContain('%');
+    expect(screen.getByRole('group').textContent).not.toContain('files');
+    expect(screen.getByRole('group').textContent).not.toContain('%');
   });
 
   it('never draws past a full ring when the count is behind', () => {
     renderButton({ current: 5, total: 4, scanningFolder: '/music' });
 
-    expect(screen.getByRole('status').textContent).toContain('100%');
+    expect(screen.getByRole('group').textContent).toContain('100%');
   });
 
   it('opens the folder that is scanned', () => {
@@ -72,13 +73,24 @@ describe('RescanButton', () => {
   it('shows the folder that was picked instead of the path of the Flatpak document portal', () => {
     renderButton({ current: 1, total: 2, scanningFolder: '/run/user/1000/doc/a1b2c3d4/Music/jazz' });
 
-    expect(screen.getByRole('status').textContent).toContain('Music/jazz');
-    expect(screen.getByRole('status').textContent).not.toContain('/run/user');
+    expect(screen.getByRole('group').textContent).toContain('Music/jazz');
+    expect(screen.getByRole('group').textContent).not.toContain('/run/user');
   });
 
   it('scales the bar to the share that is scanned', () => {
     const { container } = renderButton({ current: 1, total: 4, scanningFolder: '/music' });
 
-    expect(container.querySelector<HTMLElement>('[role="status"] > div:nth-child(2) > div')?.style.transform).toBe('scaleX(0.25)');
+    expect(container.querySelector<HTMLElement>('[role="progressbar"] > div')?.style.transform).toBe('scaleX(0.25)');
+  });
+
+  it('announces the start and the end of a scan, and the progress only to a reader that asks', () => {
+    const { rerender } = renderButton({ current: 1, total: 4, scanningFolder: '/music' });
+
+    expect(screen.getByRole('status').textContent).toBe('Scanning library');
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('25');
+
+    rerender(<RescanButton current={4} total={4} scanningFolder={null} onRescan={vi.fn()} />);
+
+    expect(screen.getByRole('status').textContent).toBe('Library scan finished');
   });
 });

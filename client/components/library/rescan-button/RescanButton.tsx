@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { FaSyncAlt } from 'react-icons/fa';
 import { electronAPI } from '../../../services/electron-api';
@@ -22,9 +23,19 @@ const ringLength = 2 * Math.PI * ringRadius;
 const RescanButton = ({ current, total, scanningFolder, onRescan }: RescanButtonProps) => {
   const { t, formatNumber } = useTranslation();
   const fraction = total === 0 ? 0 : Math.min(1, current / total);
+  const wasScanning = useRef(false);
+  const [finished, setFinished] = useState(false);
+
+  useEffect(() => {
+    setFinished(wasScanning.current && !scanningFolder);
+    wasScanning.current = !!scanningFolder;
+  }, [scanningFolder]);
 
   return (
     <div className={style.rescanButton}>
+      <div role="status" className={style.visuallyHidden}>
+        {scanningFolder ? t('scan.title') : finished ? t('scan.done') : ''}
+      </div>
       <button
         type="button"
         title={t('library.rescan')}
@@ -50,12 +61,19 @@ const RescanButton = ({ current, total, scanningFolder, onRescan }: RescanButton
         <FaSyncAlt />
       </button>
       {scanningFolder && (
-        <div className={style.popover} role="status">
+        <div className={style.popover} role="group" aria-label={t('scan.title')}>
           <div className={style.heading}>
             <span>{t('scan.title')}</span>
             {total > 0 && <span className={style.percent}>{Math.floor(fraction * 100)}%</span>}
           </div>
-          <div className={style.bar}>
+          <div
+            className={style.bar}
+            role="progressbar"
+            aria-label={t('scan.title')}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.floor(fraction * 100)}
+          >
             <div className={style.barFill} style={{ transform: `scaleX(${fraction})` }} />
           </div>
           {total > 0 && <div className={style.muted}>{t('scan.count', { current: formatNumber(current), total: formatNumber(total) })}</div>}
