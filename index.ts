@@ -13,7 +13,6 @@ import { askOnSplash } from './electron/services/splash-confirm';
 import { copyOldLibrary, copyOldUserData, getAppName } from './electron/utils/user-data';
 import createWindow from './electron/windows/create-window';
 import { createStartupSignal } from './electron/services/startup-signal';
-import { isWindowTransparent } from './electron/windows/window-transparency';
 import loadPage from './electron/windows/load-page';
 import createDatabase from './electron/database/create-database';
 import { libraryErrorMessage } from './electron/utils/library-error-message';
@@ -150,7 +149,7 @@ const openWindow = () => {
 
   main.once('ready-to-show', () => {
     main.show();
-    if (isWin && isWindowTransparent(false, appDataPath)) main.setBackgroundMaterial('acrylic');
+    if (isWin) main.setBackgroundMaterial('acrylic');
   });
   main.on('closed', () => {
     windows.main = null;

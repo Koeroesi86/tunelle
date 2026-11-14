@@ -83,13 +83,10 @@ html, body {
     background: var(--window-tint);
   }
 
-  // nothing blurs behind the window, so use a denser tint to keep text readable
-  &.opaque.noBlur {
-    background: var(--window-tint-dense);
-  }
-
+  // nothing blurs behind the window, so it has a background of its own instead of showing the desktop (the window stays transparent, so the setting applies at once)
+  &.opaque.noBlur,
   &.maximized.opaque.noBlur {
-    background: var(--window-tint-densest);
+    background: var(--app-background);
   }
 
   &.loaded {

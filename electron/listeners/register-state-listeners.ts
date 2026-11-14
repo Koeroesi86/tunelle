@@ -5,7 +5,6 @@ import { getFolders } from '../repositories/library-repository';
 import { getSettings, saveSettings } from '../repositories/settings-repository';
 import { setPickedLanguage } from '../language';
 import { applyThemeMode } from '../theme';
-import { saveDesktopBlur } from '../windows/window-transparency';
 import { applyWatchSetting, startLibraryWatching } from '../library/watch/library-watching';
 import { applyPowerSetting } from '../power/power-state';
 import { sendPowerSaving } from '../power/send-power-saving';
@@ -34,7 +33,6 @@ const registerStateListeners = (context: ListenerContext) => {
 
     setPickedLanguage(settings);
     applyThemeMode(settings);
-    saveDesktopBlur(global._appDataPath, settings);
     applyPowerSetting(settings);
     applyWatchSetting(settings).catch(logError);
     saveSettings(context.database, settings)

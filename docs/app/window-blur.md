@@ -9,9 +9,7 @@ The parts of the window that are translucent show a blurred backdrop where the s
 | GNOME on Linux | Through the [Blur my Shell](https://extensions.gnome.org/extension/3193/blur-my-shell/) extension, see below. |
 | Other Linux desktops | Only if the desktop blurs windows itself (for example a KDE Plasma blur rule); the app cannot ask for it. |
 
-Electron cannot blur behind a window on Linux and the app cannot tell whether the desktop does, so it starts with opaque panels and a darker tint. Once the desktop blurs the window, choose **Use translucent panels** under **Window blur** on the Settings tab (**Use opaque panels** goes back). The choice is saved with the other settings.
-
-The window itself is transparent only where the panels can be translucent: always on macOS, and on Linux and Windows once **Use translucent panels** is saved. With the opaque panels the window is a normal one with a background of its own (and no acrylic on Windows). Electron fixes `transparent` when the window is created, which is before the library opens, so the choice is also kept as an empty file `window-transparent` in the app data folder (`electron/windows/window-transparency.ts`) and the window changes at the next start, not when the switch is turned. Until then the panels follow the window that is open: translucent panels on an opaque window stay solid.
+Electron cannot blur behind a window on Linux and the app cannot tell whether the desktop does, so it starts with opaque panels and a solid window background. Once the desktop blurs the window, choose **Use translucent panels** under **Window blur** on the Settings tab (**Use opaque panels** goes back). The choice is saved with the other settings. The window itself stays transparent, so the choice applies at once without a restart: with the opaque panels the page paints the background of the theme over the whole window, with the translucent ones only a light tint (`PlayerHome.scss`).
 
 ## GNOME with Blur my Shell
 

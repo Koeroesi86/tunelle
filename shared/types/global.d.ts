@@ -8,8 +8,6 @@ export interface ElectronApi {
   getPathForFile: (file: File) => string;
   /** Something blurs behind the translucent parts of the window (see window-backdrop.ts) */
   blurred: boolean;
-  /** The window itself is transparent, the desktop shows through its tint (see window-transparency.ts); an opaque window has a background of its own */
-  transparent: boolean;
   /** The main process shows the player in the media controls of the desktop (MPRIS, Linux), so the page does not use navigator.mediaSession */
   mpris: boolean;
 }

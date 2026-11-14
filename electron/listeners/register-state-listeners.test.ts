@@ -19,8 +19,6 @@ vi.mock('../library/watch/library-watching', () => watching);
 
 const power = vi.hoisted(() => ({ applyPowerSetting: vi.fn(), sendPowerSaving: vi.fn() }));
 
-const transparency = vi.hoisted(() => ({ saveDesktopBlur: vi.fn() }));
-vi.mock('../windows/window-transparency', () => transparency);
 vi.mock('../power/power-state', () => ({ applyPowerSetting: power.applyPowerSetting }));
 vi.mock('../power/send-power-saving', () => ({ sendPowerSaving: power.sendPowerSaving }));
 
@@ -81,14 +79,6 @@ describe('registerStateListeners', () => {
     listeners.get('SAVE_SETTINGS')?.({ sender: destroyedSender } as unknown as IpcMainEvent, { watchFolders: false });
 
     expect(watching.applyWatchSetting).toHaveBeenCalledWith({ watchFolders: false });
-  });
-
-  it('keeps the translucent panels for the next start of the window', async () => {
-    vi.stubGlobal('_appDataPath', '/data');
-    listeners.get('SAVE_SETTINGS')?.({ sender: destroyedSender } as unknown as IpcMainEvent, { desktopBlur: true });
-
-    expect(transparency.saveDesktopBlur).toHaveBeenCalledWith('/data', { desktopBlur: true });
-    vi.unstubAllGlobals();
   });
 
   it('does not send to a window that was closed while the settings were saved', async () => {

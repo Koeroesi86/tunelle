@@ -9,7 +9,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // the media controls of the desktop are the MPRIS service of the main process (electron/services/mpris.ts)
   mpris: process.platform === 'linux',
   blurred: process.argv.includes('--window-blur'),
-  transparent: process.argv.includes('--window-transparent'),
 });
 
 // the splash is in the page (LoadingSplash.tsx) and the main process reports what it is doing while it starts (see updater.ts and docs/app/startup.md)
