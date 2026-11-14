@@ -39,6 +39,8 @@ const persistedShape = {
   equalizer: z.array(z.number()),
   /** The desktop blurs behind the window (Blur my Shell on GNOME), so the panels can be translucent */
   desktopBlur: z.boolean(),
+  /** Whether the motion of the app is stopped, besides when the system asks for it */
+  reduceMotion: z.boolean(),
   /** The language picked in the settings, undefined follows the system language */
   language: z.string().optional(),
   /** The mode and the accent colour picked in the settings; a part that is not valid is the default */

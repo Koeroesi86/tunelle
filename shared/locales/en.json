@@ -144,6 +144,8 @@
   "launcher.offer": "Add Tunelle to the application menu? You can change this later in the settings.",
   "launcher.offerAdd": "Add",
   "launcher.offerLater": "Not now",
+  "motion.title": "Reduce motion",
+  "motion.hint": "Stops the animations and the spectrum. It is always on when the system asks for reduced motion.",
   "blur.title": "Window blur",
   "blur.hint": "Needs a blur from the desktop, for example the Blur my Shell extension on GNOME.",
   "outputDevice.title": "Output device",

@@ -143,6 +143,8 @@
   "launcher.offer": "Hozzáadod a Tunellét az alkalmazásmenühöz? Ezt később a beállításokban módosíthatod.",
   "launcher.offerAdd": "Hozzáadás",
   "launcher.offerLater": "Most nem",
+  "motion.title": "Kevesebb mozgás",
+  "motion.hint": "Leállítja az animációkat és a spektrumot. Mindig be van kapcsolva, ha a rendszer csökkentett mozgást kér.",
   "blur.title": "Ablak elmosása",
   "blur.hint": "Az asztali környezet elmosására van szükség, például a Blur my Shell bővítményre GNOME alatt.",
   "outputDevice.title": "Kimeneti eszköz",

@@ -266,6 +266,13 @@ describe('uiState reducer', () => {
     expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { desktopBlur: true } } }).desktopBlur).toBe(true);
   });
 
+  it('toggles whether the motion is stopped, off until it is turned on', () => {
+    expect(initial.reduceMotion).toBe(false);
+    expect(run({ type: 'TOGGLE_REDUCE_MOTION' }).reduceMotion).toBe(true);
+    expect(run({ type: 'TOGGLE_REDUCE_MOTION' }, { ...initial, reduceMotion: true }).reduceMotion).toBe(false);
+    expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { reduceMotion: true } } }).reduceMotion).toBe(true);
+  });
+
   it('follows the system with the colour of the cover until a theme is picked', () => {
     expect(initial.theme).toEqual({ mode: 'system', accent: 'auto' });
   });

@@ -19,6 +19,7 @@ import PowerSaving from '../../settings/power-saving';
 import NotifyLibraryChanges from '../../settings/notify-library-changes';
 import LauncherIntegration from '../../settings/launcher-integration';
 import WindowBlur from '../../settings/window-blur';
+import ReduceMotion from '../../settings/reduce-motion';
 import About from '../../pages/about';
 import LanguageSelect from '../../settings/language-select';
 import ThemeSelect from '../../settings/theme-select';
@@ -100,6 +101,7 @@ function PlayerTabs({ tab = 'home', addFiles = () => {} }: PlayerTabsProps) {
           <ArtistPhotos />
           <RadioSources />
           <WindowBlur />
+          <ReduceMotion />
           <LauncherIntegration />
         </div>
       </div>
