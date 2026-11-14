@@ -180,6 +180,7 @@
   "player.seek": "Seek",
   "player.volume": "Volume",
   "player.nowPlaying": "Now playing: {title} by {artist}",
+  "player.failed": "Could not play this track",
   "equalizer.band": "{band} band gain",
   "favourites.add": "Add to favourites",
   "favourites.remove": "Remove from favourites",

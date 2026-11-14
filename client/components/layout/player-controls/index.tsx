@@ -33,12 +33,13 @@ const connector = connect(mapState, mapDispatch);
 
 const ContextualPlayerControls = (props: ConnectedProps<typeof connector>) => (
   <Audio.Consumer>
-    {({ addPlayStatusListener, play, pause, seek, addTimeChangeListener }) => (
+    {({ addPlayStatusListener, addPlayFailureListener, play, pause, seek, addTimeChangeListener }) => (
       <PlayerControls
         {...props}
         play={play}
         pause={pause}
         addPlayStatusListener={addPlayStatusListener}
+        addPlayFailureListener={addPlayFailureListener}
         addTimeChangeListener={addTimeChangeListener}
         seek={seek}
       />

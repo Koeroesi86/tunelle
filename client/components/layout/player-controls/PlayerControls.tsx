@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import classNames from 'classnames';
 import {
@@ -37,6 +37,7 @@ interface PlayerControlsProps {
   repeat: boolean;
   isPlaying: boolean;
   addPlayStatusListener: (listener: (isPlaying: boolean) => void) => void;
+  addPlayFailureListener: (listener: (value: undefined) => void) => void;
   addTimeChangeListener: (listener: (currentTime: number) => void) => void;
   seek: (to: number) => void;
   play: () => void;
@@ -249,7 +250,19 @@ const VolumeControls = ({ volume, setVolume, openEqualizer }: Pick<PlayerControl
 };
 
 const PlayerControls = (props: PlayerControlsProps) => {
-  const { currentSong, currentTime, isPlaying, seek, play, pause, setCurrentTime, setPlaying, addPlayStatusListener, addTimeChangeListener } = props;
+  const {
+    currentSong,
+    currentTime,
+    isPlaying,
+    seek,
+    play,
+    pause,
+    setCurrentTime,
+    setPlaying,
+    addPlayStatusListener,
+    addPlayFailureListener,
+    addTimeChangeListener,
+  } = props;
 
   const { t } = useTranslation();
 
@@ -284,6 +297,11 @@ const PlayerControls = (props: PlayerControlsProps) => {
     if (isPlaying !== playing) setPlaying(playing);
   });
 
+  // the alert says it once for a track that does not play and goes with the next one
+  const [failed, setFailed] = useState(false);
+  useAudioListener(addPlayFailureListener, () => setFailed(true));
+  useEffect(() => setFailed(false), [currentSong]);
+
   useAudioListener(addTimeChangeListener, (time) => {
     if (round(time) !== round(currentTime)) setCurrentTime(time);
   });
@@ -298,6 +316,9 @@ const PlayerControls = (props: PlayerControlsProps) => {
     <div id={playerId} tabIndex={-1} className={style.controls}>
       <div role="status" className={style.visuallyHidden}>
         {shown && t('player.nowPlaying', { title: shown.track.title, artist: shown.track.artist })}
+      </div>
+      <div role="alert" className={style.visuallyHidden}>
+        {failed && t('player.failed')}
       </div>
       <TrackDetails currentSong={currentSong} streamTitle={props.streamTitle} streamArt={props.streamArt} openNowPlaying={props.openNowPlaying} />
       <div className={style.center}>

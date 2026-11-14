@@ -81,3 +81,19 @@
     border-bottom-right-radius: 3px;
   }
 }
+
+@media (forced-colors: active) {
+  .slider .lowerFill {
+    background-color: Highlight;
+    forced-color-adjust: none;
+  }
+
+  .slider .range::-webkit-slider-runnable-track {
+    border: 1px solid ButtonText;
+  }
+
+  .slider .range::-webkit-slider-thumb {
+    background: ButtonText;
+    forced-color-adjust: none;
+  }
+}

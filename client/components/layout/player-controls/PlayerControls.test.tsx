@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { Track } from '@shared/types/library';
 import { toRadioTrack } from '../../../domain/radio-track';
 import PlayerControls from './PlayerControls';
@@ -17,6 +17,7 @@ const renderControls = (volume: number, currentSong: Track | null = null, curren
     repeat: false,
     isPlaying: false,
     addPlayStatusListener: vi.fn(),
+    addPlayFailureListener: vi.fn(),
     addTimeChangeListener: vi.fn(),
     seek: vi.fn(),
     play: vi.fn(),
@@ -36,6 +37,22 @@ const renderControls = (volume: number, currentSong: Track | null = null, curren
 };
 
 describe('PlayerControls', () => {
+  it('says in an alert that a track does not play, and stops saying it with the next track', () => {
+    const song: Track = {
+      ...toRadioTrack({ uuid: 'u9', name: 'Jazz FM', country: '', tags: [], codec: 'MP3', bitrate: 128 }),
+      path: '/music/a.flac',
+      duration: 10,
+    };
+    const { props, rerender } = renderControls(0.5, song);
+    expect(screen.getByRole('alert').textContent).toBe('');
+
+    act(() => props.addPlayFailureListener.mock.calls[0][0]());
+    expect(screen.getByRole('alert').textContent).toBe('Could not play this track');
+
+    rerender(<PlayerControls {...props} currentSong={{ ...song, path: '/music/b.flac' }} />);
+    expect(screen.getByRole('alert').textContent).toBe('');
+  });
+
   it('shows the format of a station', () => {
     renderControls(0.5, toRadioTrack({ uuid: 'u1', name: 'Jazz FM', country: '', tags: [], codec: 'MP3', bitrate: 128 }));
 
