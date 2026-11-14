@@ -49,6 +49,7 @@ const initialState: UiState = {
   repeat: false,
   equalizer: defaultGains,
   desktopBlur: false,
+  reduceMotion: false,
   language: undefined,
   // a saved theme restores as it was, so the cover colour is only what a theme that was never picked starts with
   theme: { ...defaultTheme, accent: autoAccent },
@@ -358,6 +359,8 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, repeat: !state.repeat };
     case 'TOGGLE_SHUFFLE':
       return { ...state, shuffle: !state.shuffle };
+    case 'TOGGLE_REDUCE_MOTION':
+      return { ...state, reduceMotion: !state.reduceMotion };
     case 'TOGGLE_DESKTOP_BLUR':
       return { ...state, desktopBlur: !state.desktopBlur };
     case 'CLEAR_PLAYED':

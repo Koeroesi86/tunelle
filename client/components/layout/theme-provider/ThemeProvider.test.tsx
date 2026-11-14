@@ -44,14 +44,22 @@ describe('ThemeProvider', () => {
   });
 
   it('shows its children', () => {
-    render(<ThemeProvider theme={{ mode: 'system', accent: undefined }}>content</ThemeProvider>);
+    render(
+      <ThemeProvider reduceMotion={false} theme={{ mode: 'system', accent: undefined }}>
+        content
+      </ThemeProvider>
+    );
 
     expect(screen.getByText('content')).toBeTruthy();
   });
 
   it('follows the system in the system mode, live', () => {
     system.dark = true;
-    render(<ThemeProvider theme={{ mode: 'system', accent: undefined }}>content</ThemeProvider>);
+    render(
+      <ThemeProvider reduceMotion={false} theme={{ mode: 'system', accent: undefined }}>
+        content
+      </ThemeProvider>
+    );
     expect(root.dataset.theme).toBe('dark');
 
     changeSystem(false);
@@ -68,7 +76,11 @@ describe('ThemeProvider', () => {
     ['dark', false],
   ] as const)('shows %s whatever the system is (dark %s)', (mode, systemDark) => {
     system.dark = systemDark;
-    render(<ThemeProvider theme={{ mode, accent: undefined }}>content</ThemeProvider>);
+    render(
+      <ThemeProvider reduceMotion={false} theme={{ mode, accent: undefined }}>
+        content
+      </ThemeProvider>
+    );
     changeSystem(!systemDark);
 
     expect(root.dataset.theme).toBe(mode);
@@ -76,44 +88,68 @@ describe('ThemeProvider', () => {
 
   it('switches when the picked mode changes, and follows the system again with system', () => {
     system.dark = true;
-    const { rerender } = render(<ThemeProvider theme={{ mode: 'light', accent: undefined }}>content</ThemeProvider>);
+    const { rerender } = render(
+      <ThemeProvider reduceMotion={false} theme={{ mode: 'light', accent: undefined }}>
+        content
+      </ThemeProvider>
+    );
     expect(root.dataset.theme).toBe('light');
 
-    rerender(<ThemeProvider theme={{ mode: 'system', accent: undefined }}>content</ThemeProvider>);
+    rerender(
+      <ThemeProvider reduceMotion={false} theme={{ mode: 'system', accent: undefined }}>
+        content
+      </ThemeProvider>
+    );
     expect(root.dataset.theme).toBe('dark');
   });
 
   it('puts the accent on the root, readable on the theme, and back to the default with undefined', () => {
-    const { rerender } = render(<ThemeProvider theme={{ mode: 'dark', accent: '#0000ff' }}>content</ThemeProvider>);
+    const { rerender } = render(
+      <ThemeProvider reduceMotion={false} theme={{ mode: 'dark', accent: '#0000ff' }}>
+        content
+      </ThemeProvider>
+    );
     const blue = accentTokens('#0000ff', 'dark');
     expect(root.style.getPropertyValue('--accent')).toBe(blue['--accent']);
     expect(root.style.getPropertyValue('--accent-contrast')).toBe(blue['--accent-contrast']);
 
-    rerender(<ThemeProvider theme={{ mode: 'light', accent: '#0000ff' }}>content</ThemeProvider>);
+    rerender(
+      <ThemeProvider reduceMotion={false} theme={{ mode: 'light', accent: '#0000ff' }}>
+        content
+      </ThemeProvider>
+    );
     expect(root.style.getPropertyValue('--accent')).toBe(accentTokens('#0000ff', 'light')['--accent']);
 
-    rerender(<ThemeProvider theme={{ mode: 'dark', accent: undefined }}>content</ThemeProvider>);
+    rerender(
+      <ThemeProvider reduceMotion={false} theme={{ mode: 'dark', accent: undefined }}>
+        content
+      </ThemeProvider>
+    );
     expect(root.style.getPropertyValue('--accent')).toBe(defaultAccent);
   });
 
   it('takes the accent from the cover in the automatic setting, and the default without one', async () => {
     coverAccent.mockResolvedValue('#0000ff');
     const { rerender } = render(
-      <ThemeProvider theme={{ mode: 'dark', accent: 'auto' }} cover="tunelle://app/albumart/a-optimized.png">
+      <ThemeProvider reduceMotion={false} theme={{ mode: 'dark', accent: 'auto' }} cover="tunelle://app/albumart/a-optimized.png">
         content
       </ThemeProvider>
     );
     await waitFor(() => expect(root.style.getPropertyValue('--accent')).toBe(accentTokens('#0000ff', 'dark')['--accent']));
     expect(coverAccent).toHaveBeenCalledWith('tunelle://app/albumart/a-optimized.png');
 
-    rerender(<ThemeProvider theme={{ mode: 'dark', accent: 'auto' }}>content</ThemeProvider>);
+    rerender(
+      <ThemeProvider reduceMotion={false} theme={{ mode: 'dark', accent: 'auto' }}>
+        content
+      </ThemeProvider>
+    );
     await waitFor(() => expect(root.style.getPropertyValue('--accent')).toBe(defaultAccent));
   });
 
   it('does not read the cover with a picked accent', () => {
     coverAccent.mockClear();
     render(
-      <ThemeProvider theme={{ mode: 'dark', accent: '#0000ff' }} cover="tunelle://app/albumart/a-optimized.png">
+      <ThemeProvider reduceMotion={false} theme={{ mode: 'dark', accent: '#0000ff' }} cover="tunelle://app/albumart/a-optimized.png">
         content
       </ThemeProvider>
     );
@@ -122,10 +158,30 @@ describe('ThemeProvider', () => {
   });
 
   it('stops listening to the system once it is gone', () => {
-    const { unmount } = render(<ThemeProvider theme={{ mode: 'system', accent: undefined }}>content</ThemeProvider>);
+    const { unmount } = render(
+      <ThemeProvider reduceMotion={false} theme={{ mode: 'system', accent: undefined }}>
+        content
+      </ThemeProvider>
+    );
     unmount();
 
     expect(system.listeners.size).toBe(0);
+  });
+
+  it('puts the setting for reduced motion on the root element', () => {
+    const { rerender } = render(
+      <ThemeProvider reduceMotion theme={{ mode: 'dark', accent: undefined }}>
+        content
+      </ThemeProvider>
+    );
+    expect(root.hasAttribute('data-reduce-motion')).toBe(true);
+
+    rerender(
+      <ThemeProvider reduceMotion={false} theme={{ mode: 'dark', accent: undefined }}>
+        content
+      </ThemeProvider>
+    );
+    expect(root.hasAttribute('data-reduce-motion')).toBe(false);
   });
 });
 

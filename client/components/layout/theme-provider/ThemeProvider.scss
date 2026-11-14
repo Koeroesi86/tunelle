@@ -159,9 +159,9 @@
   outline-offset: 2px;
 }
 
-// Motion that is not essential stops with the system setting; the components that stop their own animation keep doing so.
+// Motion that is not essential stops with the system setting or the one of the app (data-reduce-motion, set by ThemeProvider.tsx).
 // See docs/development/accessibility.md
-@media (prefers-reduced-motion: reduce) {
+@mixin still {
   *,
   *::before,
   *::after {
@@ -170,6 +170,14 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @include still;
+}
+
+:root[data-reduce-motion] {
+  @include still;
 }
 
 // More contrast: the dimmed text is the text, and the faint fills and edges take a stronger step

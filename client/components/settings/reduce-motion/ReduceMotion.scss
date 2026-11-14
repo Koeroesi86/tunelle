@@ -1,0 +1,13 @@
+@use '../../../styles/settings-tile' as *;
+
+.reduceMotion {
+  @include tile;
+
+  .sectionTitle {
+    @include tile-title;
+  }
+
+  .hint {
+    @include tile-hint;
+  }
+}

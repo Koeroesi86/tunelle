@@ -175,6 +175,7 @@ const persistedKeys = [
   'repeat',
   'equalizer',
   'desktopBlur',
+  'reduceMotion',
   'language',
   'theme',
   'trackSort',

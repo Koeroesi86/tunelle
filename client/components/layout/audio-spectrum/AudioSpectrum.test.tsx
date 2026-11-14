@@ -11,6 +11,7 @@ describe('AudioSpectrum', () => {
     cancelAnimationFrame.mockReset();
     vi.stubGlobal('requestAnimationFrame', () => ++frame);
     vi.stubGlobal('cancelAnimationFrame', cancelAnimationFrame);
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
       () => ({ createLinearGradient: () => ({ addColorStop: vi.fn() }), clearRect: vi.fn(), fillRect: vi.fn() }) as unknown as CanvasRenderingContext2D
     );
@@ -74,6 +75,21 @@ describe('AudioSpectrum', () => {
     };
 
     afterEach(() => root.removeAttribute('style'));
+
+    it('draws nothing while the motion is reduced by the setting of the app', () => {
+      root.setAttribute('data-reduce-motion', '');
+      drawOneFrame();
+      root.removeAttribute('data-reduce-motion');
+
+      expect(fills).toEqual([]);
+    });
+
+    it('draws nothing while the system asks for reduced motion', () => {
+      vi.stubGlobal('matchMedia', () => ({ matches: true }));
+      drawOneFrame();
+
+      expect(fills).toEqual([]);
+    });
 
     it('draws the caps and the meters with the colors of the theme', () => {
       root.style.setProperty('--spectrum-cap', '#112233');
