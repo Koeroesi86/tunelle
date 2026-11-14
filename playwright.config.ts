@@ -16,7 +16,7 @@ export default defineConfig({
   use: { trace: 'retain-on-failure' },
   projects: [
     { name: 'e2e', testDir: 'e2e/functional' },
-    // the warnings of axe, on Linux only and beside the end to end tests (docs/development/accessibility.md): npm run test:a11y
+    // axe, on Linux only and beside the end to end tests (docs/development/accessibility.md): npm run test:a11y
     { name: 'a11y', testDir: 'e2e/accessibility' },
     // measurements, not checks: npm run perf
     // PERF_REPEAT runs each measurement that many times, and the summary takes the median of the runs

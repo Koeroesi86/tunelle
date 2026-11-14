@@ -20,19 +20,12 @@ const scenes: { name: string; open: (page: Page) => Promise<void> }[] = [
 
 const cases = (['light', 'dark'] as const).flatMap((colorScheme) => scenes.map((scene) => ({ colorScheme, ...scene })));
 
-// warnings until the issue is done (#317): the violations are annotations in the report and a line in the log, and the test does not fail on them
 for (const { colorScheme, name, open } of cases) {
-  test(`${name} in ${colorScheme} mode reports its serious accessibility violations`, async ({ session: { page } }) => {
+  test(`${name} in ${colorScheme} mode has no serious accessibility violations`, async ({ session: { page } }) => {
     // animations that are on their way give a colour that is not the one at rest
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     await open(page);
 
-    const violations = await accessibilityViolations(page);
-
-    violations.forEach((violation) => {
-      test.info().annotations.push({ type: 'accessibility warning', description: violation });
-      console.warn(`[accessibility] ${colorScheme} ${name}: ${violation}`);
-    });
-    expect(page.url()).toContain('tunelle://app');
+    expect(await accessibilityViolations(page)).toEqual([]);
   });
 }

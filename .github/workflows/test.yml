@@ -155,7 +155,7 @@ jobs:
             test-results
           if-no-files-found: ignore
 
-  # the accessibility warnings of axe (docs/development/accessibility.md): on Linux only and beside the other jobs, so the end to end tests of every system stay as short as they are
+  # axe (docs/development/accessibility.md): on Linux only and beside the other jobs, so the end to end tests of every system stay as short as they are
   accessibility:
     name: Accessibility (axe)
     needs: ffmpeg
