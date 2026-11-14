@@ -29,3 +29,15 @@ for (const { colorScheme, name, open } of cases) {
     expect(await accessibilityViolations(page)).toEqual([]);
   });
 }
+
+test('the album tiles are one tab stop, and the arrow keys move between them', async ({ session: { page } }) => {
+  await navigate(page, 'Albums');
+  const stops = page.locator('[data-tile-index][tabindex="0"]');
+
+  await expect(stops).toHaveCount(1);
+  await stops.focus();
+  await page.keyboard.press('ArrowRight');
+
+  await expect(page.locator('[data-tile-index="1"]')).toBeFocused();
+  await expect(stops).toHaveAttribute('data-tile-index', '1');
+});

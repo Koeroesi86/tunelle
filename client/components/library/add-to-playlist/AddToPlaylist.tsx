@@ -17,12 +17,13 @@ interface AddToPlaylistProps {
   add: (id: number, source: PlaylistSource) => void;
   create: (name: string, source: PlaylistSource) => void;
   className?: string;
+  tabIndex?: number;
 }
 
 const menuWidth = 220;
 
 /** The button of a track or album that opens a menu of the playlists, with a field to start a new one */
-const AddToPlaylist = ({ source, playlists, add, create, className }: AddToPlaylistProps) => {
+const AddToPlaylist = ({ source, playlists, add, create, className, tabIndex }: AddToPlaylistProps) => {
   const { t } = useTranslation();
   const button = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -89,6 +90,7 @@ const AddToPlaylist = ({ source, playlists, add, create, className }: AddToPlayl
       <button
         ref={button}
         type="button"
+        tabIndex={tabIndex}
         className={classNames(style.addToPlaylist, className)}
         title={t('playlists.add')}
         aria-label={t('playlists.add')}

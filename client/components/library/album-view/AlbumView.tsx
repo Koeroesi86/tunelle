@@ -6,6 +6,7 @@ import type { AlbumSort as AlbumSortValue } from '@shared/types/library-query';
 import { useTranslation } from '../../../i18n';
 import { useScrollSeparator } from '../../../hooks/use-scroll-separator';
 import { usePageLoader } from '../../../hooks/use-page-loader';
+import { useTileGrid } from '../../../hooks/use-tile-grid';
 import { useWindowedList } from '../../../hooks/use-windowed-list';
 import { fetchAlbum } from '../../../services/library-api';
 import { getCachedItem } from '../../../redux/library/pages';
@@ -51,6 +52,7 @@ const AlbumView = ({ playTracks, selectAlbum, albums, sort, selected, folders, s
     gap: columnGap,
   });
   usePageLoader(albums, firstIndex, lastIndex, loadPage);
+  const { tileProps } = useTileGrid({ listing, itemCount: albums.total ?? 0, columns, rowHeight, firstIndex, lastIndex });
 
   const queryKey = JSON.stringify([sort, selectedFolders(selected, folders), search]);
   // another sort, other folders or another search are another list, which starts from its top
@@ -92,7 +94,7 @@ const AlbumView = ({ playTracks, selectAlbum, albums, sort, selected, folders, s
               {indexes.map((index) => {
                 const album = getCachedItem(albums, index);
                 return album ? (
-                  <AlbumViewThumbnail key={album.id} album={album} selectAlbum={openAlbum} playAlbum={playAlbum} />
+                  <AlbumViewThumbnail key={album.id} album={album} selectAlbum={openAlbum} playAlbum={playAlbum} tile={tileProps(index)} />
                 ) : (
                   <div key={index} className={style.placeholder} />
                 );

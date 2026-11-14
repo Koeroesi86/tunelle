@@ -5,6 +5,14 @@ import GroupTile from './GroupTile';
 const group = { key: 'adam', name: 'Adam', albumCount: 1, trackCount: 12, cover: null, covers: [] };
 
 describe('GroupTile', () => {
+  it('takes its place in the grid of the arrow keys and its tab stop', () => {
+    render(<GroupTile group={group} unknownName="Unknown artist" open={vi.fn()} tile={{ 'data-tile-index': 2, tabIndex: -1 }} />);
+
+    const tile = screen.getByRole('button', { name: /Adam/ });
+    expect(tile.dataset.tileIndex).toBe('2');
+    expect(tile.tabIndex).toBe(-1);
+  });
+
   it('shows the name with the number of albums and tracks, and opens the group when it is clicked', () => {
     const open = vi.fn();
     render(<GroupTile group={group} unknownName="Unknown artist" open={open} />);

@@ -25,6 +25,19 @@ const renderTile = (props: Partial<Parameters<typeof AlbumViewThumbnail>[0]> = {
   render(<AlbumViewThumbnail album={album} offlineFolders={[]} selectAlbum={vi.fn()} playAlbum={vi.fn()} {...props} />);
 
 describe('AlbumViewThumbnail', () => {
+  it('is a tile of the grid that opens on Enter, and its buttons are tab stops only on the tab stop tile', () => {
+    const selectAlbum = vi.fn();
+    renderTile({ selectAlbum, tile: { 'data-tile-index': 3, tabIndex: -1 } });
+    const tile = screen.getByRole('group', { name: 'Night Shift' });
+
+    expect(tile.tabIndex).toBe(-1);
+    expect(screen.getByRole('button', { name: 'Play Night Shift' }).tabIndex).toBe(-1);
+
+    fireEvent.keyDown(tile, { key: 'Enter' });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Play Night Shift' }), { key: 'Enter' });
+    expect(selectAlbum).toHaveBeenCalledTimes(1);
+  });
+
   it('shows the title and the artist, then the year, the number of tracks and the length', () => {
     renderTile();
 

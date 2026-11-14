@@ -10,10 +10,11 @@ interface FavouriteButtonProps {
   add: (item: NewFavourite) => void;
   remove: (key: FavouriteKey) => void;
   className?: string;
+  tabIndex?: number;
 }
 
 /** The heart of a track, album or station: the same everywhere the item shows, because the favourites are in the store */
-const FavouriteButton = ({ item, active, add, remove, className }: FavouriteButtonProps) => {
+const FavouriteButton = ({ item, active, add, remove, className, tabIndex }: FavouriteButtonProps) => {
   const { t } = useTranslation();
   const label = t(active ? 'favourites.remove' : 'favourites.add');
 
@@ -21,6 +22,7 @@ const FavouriteButton = ({ item, active, add, remove, className }: FavouriteButt
     <button
       type="button"
       className={classNames(style.favouriteButton, { [style.active]: active }, className)}
+      tabIndex={tabIndex}
       title={label}
       aria-label={label}
       aria-pressed={active}

@@ -7,6 +7,7 @@ import type { GroupKind, GroupSort } from '@shared/types/library-query';
 import { useTranslation } from '../../../i18n';
 import { usePageLoader } from '../../../hooks/use-page-loader';
 import { useScrollSeparator } from '../../../hooks/use-scroll-separator';
+import { useTileGrid } from '../../../hooks/use-tile-grid';
 import { useWindowedList } from '../../../hooks/use-windowed-list';
 import { fetchGroupTracks } from '../../../domain/group-tracks';
 import { selectedFolders } from '../../../domain/library-query';
@@ -83,6 +84,7 @@ const GroupList = ({
     gap: cards ? cardGap : tileGap,
   });
   usePageLoader(groups, firstIndex, lastIndex, loadPage);
+  const { tileProps } = useTileGrid({ listing, itemCount: groups.total ?? 0, columns, rowHeight, firstIndex, lastIndex });
 
   const queryKey = JSON.stringify([sort, filter, selectedFolders(selected, folders)]);
   // another sort, filter or other folders are another list, which starts from its top
@@ -111,9 +113,9 @@ const GroupList = ({
         const group = getCachedItem(groups, index);
         if (!group) return <div key={index} className={cards ? style.cardPlaceholder : style.tilePlaceholder} />;
         return cards ? (
-          <GenreCard key={group.key} group={group} unknownName={nameOf('')} open={openOne} />
+          <GenreCard key={group.key} group={group} unknownName={nameOf('')} open={openOne} tile={tileProps(index)} />
         ) : (
-          <GroupTile key={group.key} group={group} unknownName={nameOf('')} open={openOne} />
+          <GroupTile key={group.key} group={group} unknownName={nameOf('')} open={openOne} tile={tileProps(index)} />
         );
       })}
     </div>

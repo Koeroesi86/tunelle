@@ -1,6 +1,7 @@
 import classNames from 'classnames';
 import type { GroupSummary } from '@shared/types/library';
 import { getCoverUrl } from '../../../utils/cover-url';
+import type { TileProps } from '../../../hooks/use-tile-grid';
 import { useTranslation } from '../../../i18n';
 import style from './GenreCard.scss';
 
@@ -15,18 +16,25 @@ interface GenreCardProps {
   /** What a genre without a name is called */
   unknownName: string;
   open: (group: GroupSummary) => void;
+  /** The place in the grid of the arrow keys, which tabs to one tile only */
+  tile?: TileProps;
 }
 
 /** The colour of a genre: the same name has the same one in every library and every run */
 const toneOf = (key: string) => Array.from(key).reduce((sum, character) => (sum * 31 + (character.codePointAt(0) ?? 0)) % toneCount, 0);
 
 /** A genre as a card with its own colour: the name, how many albums and tracks it has, and up to three covers of its albums fanned out in the corner */
-const GenreCard = ({ group, unknownName, open }: GenreCardProps) => {
+const GenreCard = ({ group, unknownName, open, tile }: GenreCardProps) => {
   const { t } = useTranslation();
   const name = group.name || unknownName;
 
   return (
-    <button type="button" className={classNames(style.genreCard, group.key ? style[`tone${toneOf(group.key)}`] : style.unknown)} onClick={() => open(group)}>
+    <button
+      type="button"
+      className={classNames(style.genreCard, group.key ? style[`tone${toneOf(group.key)}`] : style.unknown)}
+      onClick={() => open(group)}
+      {...tile}
+    >
       <span className={style.fan} aria-hidden="true">
         {group.covers.map((cover, index) => (
           <span
