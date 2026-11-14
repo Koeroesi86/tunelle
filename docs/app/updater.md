@@ -43,4 +43,4 @@ The private key is the secret `UPDATE_SIGNING_KEY` (PEM) of the environment `rel
 
 An ad hoc signature has no stable identity, so macOS may ask again for access to protected folders after an update ([Apple Developer Forums](https://developer.apple.com/forums/thread/795739)). A library folder that is not readable then is offline, and its tracks stay in the library ([mount-guard.md](mount-guard.md)).
 
-`npm run test:updater` (after `npm run dist`, macOS only) runs `e2e/updater/updater.updater.ts` on the packaged app: a signed update is installed and started; an update that installs and does not start is rolled back; a changed zip, a signature of another key, a folder that is not writable and a translocated path leave the app untouched. `dist.yml` runs it on both macOS runners.
+`npm run test:updater` (after `npm run dist`, macOS only) runs `e2e/updater/updater.spec.ts` on the packaged app: a signed update is installed and started; an update that installs and does not start is rolled back; a changed zip, a signature of another key, a folder that is not writable and a translocated path leave the app untouched. `dist.yml` runs it on both macOS runners.

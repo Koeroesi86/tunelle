@@ -1,10 +1,10 @@
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { addFolder, expect, navigate, quit, test } from './support/app';
-import { albums, writeTrack } from './support/library';
-import { expectTone, levelNow, steadyLevel } from './support/audio';
-import { player } from './support/player';
+import { addFolder, expect, navigate, quit, test } from '../support/app';
+import { albums, writeTrack } from '../support/library';
+import { expectTone, levelNow, steadyLevel } from '../support/audio';
+import { player } from '../support/player';
 
 // -6.02 dB is half the amplitude, -12.04 dB a quarter
 const trackGain = '-6.02 dB';

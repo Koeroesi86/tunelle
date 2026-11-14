@@ -1,9 +1,9 @@
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { installActiveAudio } from './support/active-audio';
-import { installAudioProbe } from './support/audio-probe';
-import { expect, launchApp, navigate, quit, test, ui } from './support/app';
+import { installActiveAudio } from '../support/active-audio';
+import { installAudioProbe } from '../support/audio-probe';
+import { expect, launchApp, navigate, quit, test, ui } from '../support/app';
 
 // the AppImage catalogues start the app on a machine without a network and reject one that exits or shows an error instead of its window
 test('starts and shows its pages without a network', async () => {

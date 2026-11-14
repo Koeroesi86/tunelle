@@ -31,7 +31,7 @@ const { playableFile } = await import('./decoded-track');
 const trackSchema = z.object({ path: z.string(), codec: z.string() });
 
 // The measurement as the hidden window of the app does it (client/loudness/measure-track.ts), with the samples resampled to the rate of the measurement where Chromium's
-// decodeAudioData does it. A sine of half the full scale in one channel is at -9.7 LUFS (BS.1770, e2e/loudness.spec.ts); a quarter of that amplitude is 12 dB under.
+// decodeAudioData does it. A sine of half the full scale in one channel is at -9.7 LUFS (BS.1770, e2e/functional/loudness.spec.ts); a quarter of that amplitude is 12 dB under.
 const measureSamples = (channels: Float32Array[]) => {
   const measured = summarise([measureBlocks(channels)]);
   if (!measured) throw new Error('The sound is silent');

@@ -21,7 +21,7 @@ Chromium registers `org.mpris.MediaPlayer2.chromium.instance<pid>` and never set
 
 ## Tests
 
-The service and the cover files have unit tests, and the end to end test of the media controls (`e2e/system.spec.ts`) reads on Linux what the page sends to the main process, as the CI runners have no session bus. What the desktop shows is tried by hand in a Flatpak of the build (`docs/development/try-flatpak.md`).
+The service and the cover files have unit tests, and the end to end test of the media controls (`e2e/functional/system.spec.ts`) reads on Linux what the page sends to the main process, as the CI runners have no session bus. What the desktop shows is tried by hand in a Flatpak of the build (`docs/development/try-flatpak.md`).
 
 ## Not done
 
