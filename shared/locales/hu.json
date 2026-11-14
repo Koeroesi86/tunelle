@@ -144,7 +144,7 @@
   "launcher.offerAdd": "Hozzáadás",
   "launcher.offerLater": "Most nem",
   "blur.title": "Ablak elmosása",
-  "blur.hint": "Az asztali környezet elmosására van szükség, például a Blur my Shell bővítményre GNOME alatt.",
+  "blur.hint": "Az asztali környezet elmosására van szükség, például a Blur my Shell bővítményre GNOME alatt. Az ablak a Tunelle következő indításakor válik átlátszóvá vagy átlátszatlanná.",
   "outputDevice.title": "Kimeneti eszköz",
   "outputDevice.system": "Rendszer alapértelmezése",
   "outputDevice.unnamed": "{number}. kimeneti eszköz",

@@ -11,6 +11,8 @@ The parts of the window that are translucent show a blurred backdrop where the s
 
 Electron cannot blur behind a window on Linux and the app cannot tell whether the desktop does, so it starts with opaque panels and a darker tint. Once the desktop blurs the window, choose **Use translucent panels** under **Window blur** on the Settings tab (**Use opaque panels** goes back). The choice is saved with the other settings.
 
+The window itself is transparent only where the panels can be translucent: always on macOS, and on Linux and Windows once **Use translucent panels** is saved. With the opaque panels the window is a normal one with a background of its own (and no acrylic on Windows). Electron fixes `transparent` when the window is created, which is before the library opens, so the choice is also kept as an empty file `window-transparent` in the app data folder (`electron/windows/window-transparency.ts`) and the window changes at the next start, not when the switch is turned. Until then the panels follow the window that is open: translucent panels on an opaque window stay solid.
+
 ## GNOME with Blur my Shell
 
 1. Install Blur my Shell from [extensions.gnome.org](https://extensions.gnome.org/extension/3193/blur-my-shell/) or the Extension Manager app, and turn it on.

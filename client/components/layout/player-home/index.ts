@@ -8,7 +8,8 @@ import PlayerHome from './PlayerHome';
 const mapState = (state: RootState) => ({
   loaded: state.library.loaded,
   maximized: state.uiState.maximized,
-  blurred: electronAPI.blurred || state.uiState.desktopBlur,
+  blurred: electronAPI.blurred || (electronAPI.transparent && state.uiState.desktopBlur),
+  transparent: electronAPI.transparent,
   folders: state.folders,
 });
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({

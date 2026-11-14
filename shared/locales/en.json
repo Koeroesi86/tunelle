@@ -145,7 +145,7 @@
   "launcher.offerAdd": "Add",
   "launcher.offerLater": "Not now",
   "blur.title": "Window blur",
-  "blur.hint": "Needs a blur from the desktop, for example the Blur my Shell extension on GNOME.",
+  "blur.hint": "Needs a blur from the desktop, for example the Blur my Shell extension on GNOME. The window turns transparent or opaque the next time Tunelle starts.",
   "outputDevice.title": "Output device",
   "outputDevice.system": "System default",
   "outputDevice.unnamed": "Output device {number}",

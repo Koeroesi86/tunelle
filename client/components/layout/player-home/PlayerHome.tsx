@@ -20,6 +20,7 @@ interface PlayerHomeProps {
   maximized: boolean;
   enableTransparency?: boolean;
   blurred: boolean;
+  transparent: boolean;
   loaded: boolean;
   folders: Folder[];
   addFiles: (files: FileList) => void;
@@ -37,7 +38,7 @@ const findContainedPath = (files: FileList, folders: Folder[]) =>
     .map((file) => electronAPI.getPathForFile(file))
     .findLast((filePath) => folders.some((folder) => folder.path.startsWith(filePath) || filePath.startsWith(folder.path)));
 
-const PlayerHome = ({ maximized, enableTransparency = true, blurred, loaded, folders, addFiles, onUnload }: PlayerHomeProps) => {
+const PlayerHome = ({ maximized, enableTransparency = true, blurred, transparent, loaded, folders, addFiles, onUnload }: PlayerHomeProps) => {
   const { t } = useTranslation();
   const [confirmation, setConfirmation] = useState<Confirmation>();
   const latestOnUnload = useLatest(onUnload);
@@ -77,7 +78,7 @@ const PlayerHome = ({ maximized, enableTransparency = true, blurred, loaded, fol
   return (
     <div
       className={classNames(style.playerHome, {
-        [style.opaque]: enableTransparency,
+        [style.opaque]: enableTransparency && transparent,
         [style.maximized]: maximized,
         [style.compact]: compact,
         [style.medium]: breakpoint === 'medium',

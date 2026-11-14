@@ -14,6 +14,7 @@ const mainSettingsSchema = z.object({
     .object({ mode: z.enum(['light', 'dark']).optional().catch(undefined) })
     .optional()
     .catch(undefined),
+  desktopBlur: flag,
   watchFolders: flag,
   measureLoudness: flag,
   notifyLibraryChanges: flag,

@@ -25,7 +25,9 @@ vi.mock('../audio-spectrum', () => ({ default: () => null }));
 vi.mock('../player-tabs', () => ({ default: () => null }));
 vi.mock('../launcher-offer', () => ({ default: () => null }));
 
-const window = (onUnload: () => void) => <PlayerHome maximized={false} blurred={false} loaded folders={[]} addFiles={vi.fn()} onUnload={onUnload} />;
+const window = (onUnload: () => void) => (
+  <PlayerHome maximized={false} blurred={false} transparent loaded folders={[]} addFiles={vi.fn()} onUnload={onUnload} />
+);
 
 describe('PlayerHome', () => {
   it('has a skip link that moves the focus to the player controls', () => {
