@@ -102,6 +102,23 @@ html, body {
 
   @include thin-scrollbar;
 
+  .skipLink {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 100;
+    padding: 8px 14px;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--text);
+    background: var(--panel-solid);
+    transform: translateY(-200%);
+
+    &:focus-visible {
+      transform: none;
+    }
+  }
+
   .wrapper {
     position: relative;
     display: flex;

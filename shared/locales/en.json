@@ -163,6 +163,7 @@
   "theme.custom": "Custom accent colour",
   "theme.auto": "Automatic (from album art)",
   "theme.reset": "Reset",
+  "a11y.skipToPlayer": "Skip to the player controls",
   "player.none": "None",
   "player.previous": "Previous",
   "player.play": "Play",

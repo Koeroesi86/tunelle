@@ -8,6 +8,7 @@ import { useTranslation } from '../../../i18n';
 import style from './PlayerHome.scss';
 import Confirm from '../../ui/confirm';
 import PlayerControls from '../player-controls';
+import { playerId } from '../player-controls/PlayerControls';
 import AudioComponent from '../audio-component';
 import TitleBar from '../title-bar';
 import Navigation from '../navigation';
@@ -86,6 +87,9 @@ const PlayerHome = ({ maximized, enableTransparency = true, blurred, loaded, fol
         [style.noBlur]: !blurred,
       })}
     >
+      <button type="button" className={style.skipLink} onClick={() => document.getElementById(playerId)?.focus()}>
+        {t('a11y.skipToPlayer')}
+      </button>
       <div className={style.wrapper}>
         <TitleBar onMenu={compact ? () => setDrawerOpen((open) => !open) : undefined} menuOpen={drawerShown} />
         <div className={style.mainPanel}>
