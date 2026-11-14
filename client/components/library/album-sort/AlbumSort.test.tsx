@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import AlbumSort from './AlbumSort';
 
-const chip = () => screen.getByRole('button', { name: /^Sort albums by/ });
+const chip = () => screen.getByRole('button', { name: /^Sort/ });
 const open = () => fireEvent.click(chip());
 const field = (name: string) => screen.getByRole('menuitemradio', { name });
 const direction = (name: string) => screen.getByRole('menuitemradio', { name });
@@ -34,7 +34,7 @@ describe('AlbumSort', () => {
     render(<AlbumSort sort={{ field: 'year', direction: 'desc' }} setSort={vi.fn()} />);
     open();
 
-    expect(chip().getAttribute('aria-label')).toBe('Sort albums by: Year');
+    expect(chip().textContent).toBe('SortYear');
     expect(field('Year').getAttribute('aria-checked')).toBe('true');
     expect(direction('Descending').getAttribute('aria-checked')).toBe('true');
     expect((direction('Ascending') as HTMLButtonElement).disabled).toBe(false);

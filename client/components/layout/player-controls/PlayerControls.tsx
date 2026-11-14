@@ -54,6 +54,11 @@ interface PlayerControlsProps {
 
 const round = (number: number) => Math.floor(number * 100);
 
+const formatClock = (seconds: number) => {
+  const total = Math.max(0, Math.floor(seconds) || 0);
+  return [Math.floor(total / 3600), Math.floor(total / 60) % 60, total % 60].map((part) => `${part}`.padStart(2, '0')).join(':');
+};
+
 interface IconButtonProps {
   label: string;
   className?: string;
@@ -62,7 +67,7 @@ interface IconButtonProps {
 }
 
 const IconButton = ({ label, className = style.icon, onClick, children }: IconButtonProps) => (
-  <button className={className} onClick={onClick} title={label} aria-label={label}>
+  <button type="button" className={className} onClick={onClick} title={label} aria-label={label}>
     {children}
   </button>
 );
@@ -79,7 +84,8 @@ const TrackDetails = ({
   useMediaSession(shown && { title: shown.track.title, artist: shown.track.artist, album: shown.track.album, cover: shown.cover });
 
   return (
-    <button type="button" className={style.meta} title={t('player.openNowPlaying')} aria-label={t('player.openNowPlaying')} onClick={openNowPlaying}>
+    <button type="button" className={style.meta} title={t('player.openNowPlaying')} onClick={openNowPlaying}>
+      <span className={style.visuallyHidden}>{t('player.openNowPlaying')}</span>
       <CoverFade className={style.picture} src={shown?.cover} />
       <div className={style.details}>
         <div className={style.title}>{shown ? shown.track.title : t('player.none')}</div>
@@ -116,25 +122,41 @@ const TransportButtons = ({
 
   return (
     <div className={style.mainControlButtons}>
-      <button className={classNames(style.controlButton, style.secondary, { [style.active]: shuffle })} onClick={toggleShuffle} title={t('player.shuffle')}>
-        <ShuffleIcon size={'12px'} />
+      <button
+        type="button"
+        className={classNames(style.controlButton, style.secondary, { [style.active]: shuffle })}
+        onClick={toggleShuffle}
+        title={t('player.shuffle')}
+        aria-label={t('player.shuffle')}
+        aria-pressed={shuffle}
+      >
+        <ShuffleIcon size={'12px'} aria-hidden="true" />
       </button>
-      <button className={style.controlButton} onClick={previousSong} title={t('player.previous')}>
-        <BackIcon size={'16px'} />
+      <button type="button" className={style.controlButton} onClick={previousSong} title={t('player.previous')} aria-label={t('player.previous')}>
+        <BackIcon size={'16px'} aria-hidden="true" />
       </button>
       <button
+        type="button"
         onClick={isPlaying ? pause : play}
         className={style.playToggleButton}
         disabled={!currentSong}
         title={isPlaying ? t('player.pause') : t('player.play')}
+        aria-label={isPlaying ? t('player.pause') : t('player.play')}
       >
-        {isPlaying ? <PauseIcon size={'22px'} /> : <PlayIcon size={'22px'} />}
+        {isPlaying ? <PauseIcon size={'22px'} aria-hidden="true" /> : <PlayIcon size={'22px'} aria-hidden="true" />}
       </button>
-      <button className={style.controlButton} onClick={nextSong} title={t('player.next')}>
-        <ForwardIcon size={'16px'} />
+      <button type="button" className={style.controlButton} onClick={nextSong} title={t('player.next')} aria-label={t('player.next')}>
+        <ForwardIcon size={'16px'} aria-hidden="true" />
       </button>
-      <button className={classNames(style.controlButton, style.secondary, { [style.active]: repeat })} onClick={toggleRepeat} title={t('player.repeat')}>
-        <RepeatIcon size={'12px'} />
+      <button
+        type="button"
+        className={classNames(style.controlButton, style.secondary, { [style.active]: repeat })}
+        onClick={toggleRepeat}
+        title={t('player.repeat')}
+        aria-label={t('player.repeat')}
+        aria-pressed={repeat}
+      >
+        <RepeatIcon size={'12px'} aria-hidden="true" />
       </button>
     </div>
   );
@@ -147,7 +169,7 @@ const LiveRow = ({ isPlaying, currentTime }: Pick<PlayerControlsProps, 'isPlayin
   return (
     <div className={classNames(style.live, { [style.playing]: isPlaying })}>
       <span className={style.liveLabel}>
-        <i className={style.liveDot} />
+        <i className={style.liveDot} aria-hidden="true" />
         {t('player.live')}
       </span>
       <div className={style.progress}>
@@ -160,19 +182,32 @@ const LiveRow = ({ isPlaying, currentTime }: Pick<PlayerControlsProps, 'isPlayin
   );
 };
 
-const SeekBar = ({ currentSong, currentTime, setCurrentTime }: Pick<PlayerControlsProps, 'currentSong' | 'currentTime' | 'setCurrentTime'>) => (
-  <div className={style.seek}>
-    <span className={style.time}>
-      <Time seconds={currentTime} />
-    </span>
-    <div className={style.progress}>
-      <Slider min={0} max={currentSong?.duration ?? 0} step={0.0001} value={currentTime} onInput={(e) => setCurrentTime(parseFloat(e.currentTarget.value))} />
+const SeekBar = ({ currentSong, currentTime, setCurrentTime }: Pick<PlayerControlsProps, 'currentSong' | 'currentTime' | 'setCurrentTime'>) => {
+  const { t } = useTranslation();
+  const duration = currentSong?.duration ?? 0;
+
+  return (
+    <div className={style.seek}>
+      <span className={style.time}>
+        <Time seconds={currentTime} />
+      </span>
+      <div className={style.progress}>
+        <Slider
+          min={0}
+          max={duration}
+          step={0.0001}
+          value={currentTime}
+          label={t('player.seek')}
+          valueText={`${formatClock(currentTime)} / ${formatClock(duration)}`}
+          onInput={(e) => setCurrentTime(parseFloat(e.currentTarget.value))}
+        />
+      </div>
+      <span className={classNames(style.time, style.total)}>
+        <Time seconds={currentSong ? currentSong.duration : 0} />
+      </span>
     </div>
-    <span className={classNames(style.time, style.total)}>
-      <Time seconds={currentSong ? currentSong.duration : 0} />
-    </span>
-  </div>
-);
+  );
+};
 
 const VolumeControls = ({ volume, setVolume, openEqualizer }: Pick<PlayerControlsProps, 'volume' | 'setVolume' | 'openEqualizer'>) => {
   const { t } = useTranslation();
@@ -186,16 +221,24 @@ const VolumeControls = ({ volume, setVolume, openEqualizer }: Pick<PlayerControl
   return (
     <div className={style.volume}>
       <IconButton label={t('player.equalizer')} onClick={openEqualizer}>
-        <EQIcon size={'16px'} />
+        <EQIcon size={'16px'} aria-hidden="true" />
       </IconButton>
       <IconButton label={volume > 0 ? t('player.mute') : t('player.unmute')} onClick={toggleMute}>
-        <VolumeOffIcon size={'16px'} />
+        <VolumeOffIcon size={'16px'} aria-hidden="true" />
       </IconButton>
       <div className={style.slider}>
-        <Slider min={0} max={1} step={0.01} value={volume} onInput={(e) => setVolume(e.currentTarget.value)} />
+        <Slider
+          min={0}
+          max={1}
+          step={0.01}
+          value={volume}
+          label={t('player.volume')}
+          valueText={`${round(volume)}%`}
+          onInput={(e) => setVolume(e.currentTarget.value)}
+        />
       </div>
       <IconButton label={t('player.fullVolume')} onClick={() => setVolume(1)}>
-        <VolumeFullIcon size={'16px'} />
+        <VolumeFullIcon size={'16px'} aria-hidden="true" />
       </IconButton>
     </div>
   );
@@ -203,6 +246,8 @@ const VolumeControls = ({ volume, setVolume, openEqualizer }: Pick<PlayerControl
 
 const PlayerControls = (props: PlayerControlsProps) => {
   const { currentSong, currentTime, isPlaying, seek, play, pause, setCurrentTime, setPlaying, addPlayStatusListener, addTimeChangeListener } = props;
+
+  const { t } = useTranslation();
 
   useMediaSessionActions({ play, pause, previousSong: props.previousSong, nextSong: props.nextSong });
   useMprisCommands({ play, pause, isPlaying, previousSong: props.previousSong, nextSong: props.nextSong, setCurrentTime });
@@ -234,6 +279,9 @@ const PlayerControls = (props: PlayerControlsProps) => {
 
   return (
     <div className={style.controls}>
+      <div role="status" className={style.visuallyHidden}>
+        {shown && t('player.nowPlaying', { title: shown.track.title, artist: shown.track.artist })}
+      </div>
       <TrackDetails currentSong={currentSong} streamTitle={props.streamTitle} streamArt={props.streamArt} openNowPlaying={props.openNowPlaying} />
       <div className={style.center}>
         <TransportButtons {...props} />
