@@ -2,6 +2,7 @@ import classNames from 'classnames';
 import { FaPlay } from 'react-icons/fa';
 import type { AlbumSummary } from '@shared/types/library';
 import { isOffline } from '../../../domain/offline-folders';
+import type { TileProps } from '../../../hooks/use-tile-grid';
 import { useTranslation } from '../../../i18n';
 import style from './AlbumViewThumbnail.scss';
 import { getCoverUrl } from '../../../utils/cover-url';
@@ -17,9 +18,11 @@ interface AlbumViewThumbnailProps {
   offlineFolders: string[];
   selectAlbum: (album: AlbumSummary) => void;
   playAlbum: (album: AlbumSummary) => void;
+  /** The place in the grid of the arrow keys: the tile takes the focus, and its buttons are tab stops only while it is the tab stop */
+  tile?: TileProps;
 }
 
-const AlbumViewThumbnail = ({ album, offlineFolders, selectAlbum, playAlbum }: AlbumViewThumbnailProps) => {
+const AlbumViewThumbnail = ({ album, offlineFolders, selectAlbum, playAlbum, tile }: AlbumViewThumbnailProps) => {
   const { t } = useTranslation();
   const offline = isOffline(`${album.path}/`, offlineFolders);
   const cover = album.cover ? { backgroundImage: `url("${getCoverUrl(album.cover)}")` } : undefined;
@@ -31,21 +34,32 @@ const AlbumViewThumbnail = ({ album, offlineFolders, selectAlbum, playAlbum }: A
   // a narrow cover has no room for the number of tracks
   const shortFacts = [year, length].filter(Boolean).join(' · ');
 
+  const tabIndex = tile?.tabIndex;
+
   return (
     <div
+      {...tile}
+      role="group"
+      aria-label={album.title}
       title={offline ? t('folders.offlineHint') : undefined}
       className={classNames(style.albumViewThumbnail, { [style.offline]: offline })}
       onClick={() => selectAlbum(album)}
       onDoubleClick={() => playAlbum(album)}
       onTouchEnd={() => playAlbum(album)}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' || event.target !== event.currentTarget) return;
+        event.preventDefault();
+        selectAlbum(album);
+      }}
     >
       <div className={style.frame} ref={tileAccent(album.accent)}>
         <div title={album.title} className={style.cover} style={cover}>
-          <FavouriteButton item={albumFavourite(album)} className={style.favourite} />
-          <AddToPlaylist source={album} className={style.playlist} />
+          <FavouriteButton item={albumFavourite(album)} className={style.favourite} tabIndex={tabIndex} />
+          <AddToPlaylist source={album} className={style.playlist} tabIndex={tabIndex} />
           <button
             type="button"
             className={style.play}
+            tabIndex={tabIndex}
             aria-label={t('albums.play', { title: album.title })}
             onClick={(event) => {
               event.stopPropagation();
@@ -60,6 +74,7 @@ const AlbumViewThumbnail = ({ album, offlineFolders, selectAlbum, playAlbum }: A
       <button
         type="button"
         className={style.title}
+        tabIndex={tabIndex}
         title={album.title}
         onClick={(event) => {
           event.stopPropagation();
