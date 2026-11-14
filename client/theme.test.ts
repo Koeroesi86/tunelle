@@ -6,7 +6,7 @@ import {
   contrastRatio,
   defaultAccent,
   defaultTheme,
-  panelSurfaces,
+  accentSurfaces,
   parseAccent,
   pickContrastColor,
   readableAccent,
@@ -96,19 +96,19 @@ describe('readableAccent', () => {
     const readable = readableAccent(defaultAccent, 'light');
 
     expect(readable).not.toBe(defaultAccent);
-    expect(contrastRatio(readable, panelSurfaces.light)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(readable, accentSurfaces.light)).toBeGreaterThanOrEqual(4.5);
   });
 
   it.each(accentPresets.flatMap((preset) => (['dark', 'light'] as const).map((theme) => [preset, theme] as const)))(
     'reads %s on %s panels',
     (preset, theme) => {
-      expect(contrastRatio(readableAccent(preset, theme), panelSurfaces[theme])).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(readableAccent(preset, theme), accentSurfaces[theme])).toBeGreaterThanOrEqual(4.5);
     }
   );
 
   it.each(['#000000', '#ffffff', '#808080', '#ffff00', '#0000ff', '#010101', '#fefefe'])('reads the extreme %s in both modes', (accent) => {
-    expect(contrastRatio(readableAccent(accent, 'dark'), panelSurfaces.dark)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(readableAccent(accent, 'light'), panelSurfaces.light)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(readableAccent(accent, 'dark'), accentSurfaces.dark)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(readableAccent(accent, 'light'), accentSurfaces.light)).toBeGreaterThanOrEqual(4.5);
   });
 });
 

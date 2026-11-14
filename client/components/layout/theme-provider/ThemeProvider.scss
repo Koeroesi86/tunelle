@@ -11,10 +11,9 @@
   --app-background: #1f1f1f;
   --panel-solid: #333333;
   --panel-glass: rgba(51, 51, 51, 0.4);
-  // what lies over a transparent window: the desktop shows through, so it is tinted more where nothing blurs it
+  // what lies over a transparent window where the desktop blurs it
   --window-tint: rgba(0, 0, 0, 0.3);
   --window-tint-dense: rgba(0, 0, 0, 0.8);
-  --window-tint-densest: rgba(0, 0, 0, 0.88);
   --bar-background: rgba(0, 0, 0, 0.3);
 
   --text: #ffffff;
@@ -43,7 +42,7 @@
 @mixin light {
   color-scheme: light;
 
-  --accent: #a65757;
+  --accent: #995050;
   --accent-contrast: #ffffff;
 
   --app-background: #f2f2f2;
@@ -51,7 +50,6 @@
   --panel-glass: rgba(255, 255, 255, 0.55);
   --window-tint: rgba(255, 255, 255, 0.3);
   --window-tint-dense: rgba(255, 255, 255, 0.6);
-  --window-tint-densest: rgba(255, 255, 255, 0.75);
   --bar-background: rgba(255, 255, 255, 0.5);
 
   --text: #1f1f1f;

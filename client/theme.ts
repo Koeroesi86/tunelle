@@ -14,6 +14,9 @@ export const defaultTheme: ThemeSettings = { mode: 'system', accent: undefined }
 /** The panel colours of client/components/layout/theme-provider/ThemeProvider.scss, which text in the accent has to stand out from */
 export const panelSurfaces: Record<ResolvedTheme, string> = { dark: '#333333', light: '#fafafa' };
 
+/** The darkest surface the accent text sits on: the window background under the accent tint of the active navigation item (the light one is `--app-background` with 6% of the accent), which is darker than a panel */
+export const accentSurfaces: Record<ResolvedTheme, string> = { dark: '#333333', light: '#e6e6e6' };
+
 /** WCAG contrast for normal text */
 const minTextContrast = 4.5;
 
@@ -63,13 +66,13 @@ export const contrastRatio = (first: string, second: string) => {
 /** Black or white, whichever reads better on the colour (for a label on an accent background) */
 export const pickContrastColor = (background: string) => (contrastRatio(background, '#ffffff') >= contrastRatio(background, '#000000') ? '#ffffff' : '#000000');
 
-/** The accent, moved toward white on dark panels and toward black on light ones just far enough to be readable as text there */
+/** The accent, moved toward white on dark surfaces and toward black on light ones just far enough to be readable as text there */
 export const readableAccent = (accent: string, theme: ResolvedTheme) => {
   const toward = theme === 'dark' ? '#ffffff' : '#000000';
 
   return (
     Array.from({ length: 21 }, (_, step) => mix(accent, toward, step / 20)).find(
-      (candidate) => contrastRatio(candidate, panelSurfaces[theme]) >= minTextContrast
+      (candidate) => contrastRatio(candidate, accentSurfaces[theme]) >= minTextContrast
     ) ?? toward
   );
 };

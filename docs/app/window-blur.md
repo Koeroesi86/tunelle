@@ -9,7 +9,7 @@ The parts of the window that are translucent show a blurred backdrop where the s
 | GNOME on Linux | Through the [Blur my Shell](https://extensions.gnome.org/extension/3193/blur-my-shell/) extension, see below. |
 | Other Linux desktops | Only if the desktop blurs windows itself (for example a KDE Plasma blur rule); the app cannot ask for it. |
 
-Electron cannot blur behind a window on Linux and the app cannot tell whether the desktop does, so it starts with opaque panels and a darker tint. Once the desktop blurs the window, choose **Use translucent panels** under **Window blur** on the Settings tab (**Use opaque panels** goes back). The choice is saved with the other settings.
+Electron cannot blur behind a window on Linux and the app cannot tell whether the desktop does, so it starts with opaque panels and a solid window background. Once the desktop blurs the window, choose **Use translucent panels** under **Window blur** on the Settings tab (**Use opaque panels** goes back). The choice is saved with the other settings. The window itself stays transparent, so the choice applies at once without a restart: with the opaque panels the page paints the background of the theme over the whole window, with the translucent ones only a light tint (`PlayerHome.scss`).
 
 ## GNOME with Blur my Shell
 

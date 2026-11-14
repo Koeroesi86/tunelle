@@ -6,7 +6,7 @@ They are taken with the Playwright setup of `e2e/` (the `screenshots` project, `
 
 - generated tagged FLAC files with drawn covers, no real artists, covers or stations;
 - a fake station directory through `TUNELLE_RADIO_DIRECTORY` whose stream names its cover in `StreamUrl`, otherwise the app looks one up online and may show someone else's art;
-- a clean profile (`HOME` and `XDG_CONFIG_HOME`), English, reduced motion, the colour scheme of the system, 1360×850, the pointer parked off the page, saved as WebP.
+- a clean profile (`HOME` and `XDG_CONFIG_HOME`), English, reduced motion, the dark theme (`SCREENSHOTS_THEME=light` starts light), the window blur off so the window has the solid background of the theme, 1360×850, the pointer parked off the page, saved as WebP.
 
 ## A new picture
 
