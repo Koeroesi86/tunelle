@@ -14,7 +14,14 @@ const read = (name: string) => {
   return found[1];
 };
 
+const actionsDirectory = join(directory, '..', 'actions');
+const actions = readdirSync(actionsDirectory).map((name) => [name, readFileSync(join(actionsDirectory, name, 'action.yml'), 'utf8')]);
+
 describe('workflows', () => {
+  it.each(actions)('the action %s has no unquoted value with a colon and a space, which is not valid YAML', (_name, text) => {
+    expect(text).not.toMatch(/^\s*[\w-]+: [^'"|>\n][^\n]*: /m);
+  });
+
   it.each(workflows)('%s skips no check to pass', (name, text) => {
     expect(text).not.toMatch(/continue-on-error|--no-verify/);
   });
