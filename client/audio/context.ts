@@ -33,6 +33,8 @@ const normalizationRamp = 0.05;
 let analyser: AnalyserNode | undefined;
 let mounted = false;
 const playStatus = createListeners<boolean>();
+// a track or a station that does not play: the status only says it is not playing, which a listener cannot tell from a pause
+const playFailure = createListeners<undefined>();
 const timeChange = createListeners<number>();
 const audioMountListeners = new Set<() => void>();
 const outputChange = createListeners<ContextResume>();
@@ -63,6 +65,7 @@ const listenToPlayStatus = (node: HTMLAudioElement) => {
 
     console.warn('error playing', node.src);
     playStatus.notify(false);
+    playFailure.notify(undefined);
   });
 };
 
@@ -214,7 +217,10 @@ const play = () => {
     .then(() => console.log('playing', audioNode?.src))
     .catch((err) => {
       // a play that a new source or a pause interrupted is not a failure
-      if (!(err instanceof DOMException && err.name === 'AbortError')) console.error(err);
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+
+      console.error(err);
+      playFailure.notify(undefined);
     });
 };
 
@@ -242,6 +248,7 @@ const connectDestination = (node: AudioNode) => node.connect(audioContext.destin
 export const Audio = createContext({
   addPlayStatusListener: (listener: PlayStatusListener) => void playStatus.add(listener),
   removePlayStatusListener: (listener: PlayStatusListener) => void playStatus.remove(listener),
+  addPlayFailureListener: (listener: (value: undefined) => void) => void playFailure.add(listener),
   addTimeChangeListener: (listener: TimeChangeListener) => void timeChange.add(listener),
   connectNode,
   connectStandbyNode,

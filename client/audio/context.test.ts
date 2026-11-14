@@ -356,6 +356,33 @@ describe('audio context', () => {
 
       expect(error).toHaveBeenCalledWith(failure);
     });
+
+    it('tells the listeners of failures about a play that failed, not about one that was interrupted', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const listener = vi.fn();
+      const failing = await connectPlayable(() => Promise.reject(new DOMException('not allowed', 'NotAllowedError')));
+      failing.audio.addPlayFailureListener(listener);
+      failing.audio.play();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      const interrupted = await connectPlayable(() => Promise.reject(new DOMException('interrupted', 'AbortError')));
+      interrupted.audio.addPlayFailureListener(listener);
+      interrupted.audio.play();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+
+    it('tells the listeners of failures when the element fails to load its source', async () => {
+      const { audio, node } = await connectPlayable(() => Promise.resolve());
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const listener = vi.fn();
+      audio.addPlayFailureListener(listener);
+
+      node.dispatchEvent(new Event('error'));
+
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('shares one analyser however often it is asked for', async () => {

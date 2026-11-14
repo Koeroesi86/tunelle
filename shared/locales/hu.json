@@ -179,6 +179,7 @@
   "player.seek": "Tekerés",
   "player.volume": "Hangerő",
   "player.nowPlaying": "Szól: {title}, {artist}",
+  "player.failed": "Ezt a számot nem sikerült lejátszani",
   "equalizer.band": "{band} sáv erősítése",
   "favourites.add": "Hozzáadás a kedvencekhez",
   "favourites.remove": "Eltávolítás a kedvencek közül",

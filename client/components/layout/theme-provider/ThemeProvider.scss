@@ -158,3 +158,49 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+// Motion that is not essential stops with the system setting; the components that stop their own animation keep doing so.
+// See docs/development/accessibility.md
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// More contrast: the dimmed text is the text, and the faint fills and edges take a stronger step
+@media (prefers-contrast: more) {
+  :root {
+    --text-muted: var(--text);
+    --text-faint: var(--text-soft);
+    --overlay: var(--overlay-strong);
+    --overlay-faint: var(--overlay-strong);
+  }
+}
+
+// Forced colours drop every background, so what a fill or a colour says needs an edge or a system colour of its own
+@media (forced-colors: active) {
+  :where(:root) :focus-visible {
+    outline-color: Highlight;
+  }
+
+  [aria-current]:not([aria-current='false']),
+  [aria-pressed='true'],
+  [aria-selected='true'] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  [role='switch'] {
+    border: 1px solid ButtonText;
+  }
+
+  [role='switch'][aria-checked='true'] {
+    background-color: Highlight;
+    forced-color-adjust: none;
+  }
+}
