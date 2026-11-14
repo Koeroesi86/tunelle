@@ -9,7 +9,9 @@ describe('unit tests', () => {
   });
 
   it('are taken off the baseline once they are mocked, so that the baseline only shrinks', () => {
-    expect(readBaseline().filter((file) => !findRealWorldTests().includes(file))).toEqual([]);
+    const found = findRealWorldTests();
+
+    expect(readBaseline().filter((file) => !found.includes(file))).toEqual([]);
   });
 });
 
