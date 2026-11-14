@@ -118,6 +118,7 @@ export type AppAction =
   | EmptyAction<'TOGGLE_REPEAT'>
   | EmptyAction<'TOGGLE_SHUFFLE'>
   | EmptyAction<'TOGGLE_DESKTOP_BLUR'>
+  | EmptyAction<'TOGGLE_REDUCE_MOTION'>
   | EmptyAction<'CLEAR_PLAYED'>
   | EmptyAction<'POP_PLAYED'>
   | EmptyAction<'LOAD_RADIO_TAGS'>

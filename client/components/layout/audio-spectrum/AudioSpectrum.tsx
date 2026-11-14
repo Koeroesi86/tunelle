@@ -22,6 +22,9 @@ export interface AudioSpectrumProps {
 /** A color of the theme as it is now, so the bars follow the accent and the mode as soon as they change */
 const readThemeColor = (property: string) => getComputedStyle(document.documentElement).getPropertyValue(property).trim();
 
+/** The setting of the app (on the root element, see ThemeProvider.tsx) or of the system stops the bars */
+const motionReduced = () => document.documentElement.hasAttribute('data-reduce-motion') || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 // @see https://github.com/hu-ke/react-audio-spectrum
 const AudioSpectrum = ({
   width = 200,
@@ -101,7 +104,7 @@ const AudioSpectrum = ({
     const drawMeter = () => {
       // the analyser belongs to the audio context, which is replaced for a device at another rate
       analyser.current = createAnalyser() ?? analyser.current;
-      if (analyser.current && isSettled()) return settle();
+      if (motionReduced() || (analyser.current && isSettled())) return settle();
       // nothing is drawn for a window that is hidden or minimised
       if (analyser.current && !document.hidden) drawFrame(analyser.current);
 
