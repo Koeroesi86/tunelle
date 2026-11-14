@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/react';
+import { expectNoViolations } from '../../../test/expect-no-violations';
 import Slider from './Slider';
 
 describe('Slider', () => {
@@ -19,5 +20,11 @@ describe('Slider', () => {
 
     expect(input?.getAttribute('aria-label')).toBe('Volume');
     expect(input?.getAttribute('aria-valuetext')).toBe('30%');
+  });
+
+  it('has no accessibility violation', async () => {
+    const { container } = render(<Slider max={100} value={30} label="Volume" valueText="30%" onInput={() => {}} />);
+
+    await expectNoViolations(container);
   });
 });

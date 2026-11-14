@@ -1,10 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { expectNoViolations } from '../../../test/expect-no-violations';
 import GroupTile from './GroupTile';
 
 const group = { key: 'adam', name: 'Adam', albumCount: 1, trackCount: 12, cover: null, covers: [] };
 
 describe('GroupTile', () => {
+  it('has no accessibility violation', async () => {
+    const { container } = render(<GroupTile group={group} unknownName="Unknown artist" open={vi.fn()} />);
+
+    await expectNoViolations(container);
+  });
+
   it('takes its place in the grid of the arrow keys and its tab stop', () => {
     render(<GroupTile group={group} unknownName="Unknown artist" open={vi.fn()} tile={{ 'data-tile-index': 2, tabIndex: -1 }} />);
 
