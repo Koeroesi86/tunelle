@@ -156,3 +156,9 @@
     @include light;
   }
 }
+
+// the ring of the keyboard in the accent, for what has none of its own (:where keeps it below any ring a component sets)
+:where(:root) :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

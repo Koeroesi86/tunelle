@@ -131,12 +131,25 @@
   }
 
   // the three lines are textHeight (AlbumView.tsx) high together, and the title has the gap to the cover above it
+  // a button, so the keyboard opens the album; it looks as the line of text it was
   .title {
+    display: block;
+    width: 100%;
     margin-top: 10px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
     font-size: 13px;
     font-weight: 600;
     line-height: 18px;
     color: var(--text);
+
+    &:focus-visible {
+      outline-offset: -2px;
+    }
   }
 
   .artist {

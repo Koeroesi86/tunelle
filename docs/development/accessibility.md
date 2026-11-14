@@ -14,3 +14,11 @@ Two automated checks show the accessibility problems of the renderer (tracking i
 - Only serious and critical violations are reported. Each is an `accessibility warning` annotation of the test (in the HTML report) and a `[accessibility]` line in the log. The test does not fail on them; to make it fail, assert that the list is empty in the spec.
 - Symptom: `browserContext.newPage: Protocol error (Target.createTarget): Not supported`. Cause: axe opens a second page by default, which Electron cannot. `setLegacyMode()` in `e2e/support/accessibility.ts` runs it in the page itself.
 - The pages of the app stay mounted, so the scenes see the same page-wide violations for now.
+
+## Keyboard and focus
+
+- Anything that does something on a click is a `button` (navigation items, the views of the switcher, the title of an album tile), with `aria-current` on the current one. A row that opens and closes a group keeps its add button beside the toggle, not inside it (a button in a button is invalid).
+- `:focus-visible` has one ring in the accent for what sets none of its own (`ThemeProvider.scss`, in `:where`, so a component can override it). Where the element clips its overflow, the component sets a negative `outline-offset`.
+- The track list is a `grid`: Tab reaches one row (roving `tabindex`, the row that had the focus last, or the first shown), Enter plays, Space selects, and the arrows move to the row above and below. The list is windowed, so the arrows only reach rows that are rendered.
+- The page of an album is a modal dialog (`role="dialog"`, `aria-modal`, named by the title). `use-dialog-focus.ts` moves the focus in, keeps Tab inside, and gives the focus back to the element that had it on close. Use it for any new dialog.
+- Not done yet: arrow keys across album tiles, and the app-wide shortcuts (Space, seeking, volume, a skip link).

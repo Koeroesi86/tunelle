@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { faArrowLeft, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { Album, Track } from '@shared/types/library';
 import { useTranslation } from '../../../i18n';
 import { getCoverUrl } from '../../../utils/cover-url';
+import { useDialogFocus } from '../../../hooks/use-dialog-focus';
 import { getImageTint } from '../../../utils/cover-tint';
 import { albumFavourite } from '../../../domain/favourites';
 import style from './AlbumDetails.scss';
@@ -23,6 +24,8 @@ interface AlbumDetailsProps {
 /** The page of an open album, over the library: its cover, what can be done with it and its tracks; Escape and the button on top go back */
 const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
   const { t } = useTranslation();
+  const titleId = useId();
+  const dialog = useDialogFocus(album !== null);
   const displayed: Partial<Album> = { ...album };
   const [failedCover, setFailedCover] = useState<string | undefined>(undefined);
   const [loadedCover, setLoadedCover] = useState<string | undefined>(undefined);
@@ -46,7 +49,7 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
   if (!album) return null;
 
   return (
-    <div className={style.albumDetails}>
+    <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} className={style.albumDetails}>
       <div className={style.header} style={headerColor ? { background: `linear-gradient(135deg, ${headerColor}, var(--panel-solid))` } : undefined}>
         <button type="button" className={style.close} aria-label={t('album.close')} onClick={close}>
           <FontAwesomeIcon icon={faArrowLeft} size="sm" />
@@ -70,7 +73,9 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
           </div>
           <div className={style.info}>
             <div className={style.artist}>{displayed.artist}</div>
-            <div className={style.title}>{displayed.title}</div>
+            <div id={titleId} className={style.title}>
+              {displayed.title}
+            </div>
             <div className={style.actions}>
               <FavouriteButton item={albumFavourite(album)} className={style.favourite} />
               <AddToPlaylist source={album} className={style.addToPlaylist} />

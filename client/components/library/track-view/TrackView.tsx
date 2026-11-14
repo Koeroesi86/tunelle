@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Folder, Track } from '@shared/types/library';
 import { cycleSort } from '@shared/types/library-query';
 import type { TrackSort, TrackSortField } from '@shared/types/library-query';
@@ -86,6 +86,13 @@ const TrackView = ({
     if (listing.current) listing.current.scrollTop = 0;
   }, [listing, queryKey]);
 
+  // Tab reaches one row of the list, the one that had the focus last, or the first while it is not on screen
+  const [focusedPath, setFocusedPath] = useState<string | undefined>(undefined);
+  const focusTrack = useCallback((track: Track) => setFocusedPath(track.path), []);
+  const shownTracks = Array.from({ length: lastIndex - firstIndex }, (_, offset) => getCachedItem(tracks, firstIndex + offset));
+  const shownPaths = shownTracks.flatMap((track) => (track ? [track.path] : []));
+  const tabStopPath = focusedPath && shownPaths.includes(focusedPath) ? focusedPath : shownPaths[0];
+
   const selectedCount = Object.keys(selectedTracks).length;
   const sortBy = useCallback((field: TrackSortField) => setSort(cycleSort(sort, field)), [setSort, sort]);
 
@@ -101,15 +108,14 @@ const TrackView = ({
   const selectAll = () => fetchLibrary(query).then(selectTracks).catch(console.error);
 
   return (
-    <div className={style.tracks}>
+    <div className={style.tracks} role="grid" aria-label={t('library.songs')}>
       <TrackViewItem track={headerLabels} isHeader sort={sort} onSort={sortBy} />
       <div ref={separator} className={style.separator} />
       {search && tracks.total === 0 && <div className={style.empty}>{t('library.noResults', { search })}</div>}
       <div className={style.listing} ref={setListing}>
         <div className={style.window} style={{ height, paddingTop: offsetTop }}>
-          {Array.from({ length: lastIndex - firstIndex }, (_, offset) => {
-            const track = getCachedItem(tracks, firstIndex + offset);
-            return track ? (
+          {shownTracks.map((track, offset) =>
+            track ? (
               <TrackViewItem
                 key={track.path}
                 track={track}
@@ -118,11 +124,13 @@ const TrackView = ({
                 isOffline={isOffline(track.path, offlineFolders)}
                 clickTrack={toggleTrack}
                 doubleClickTrack={doubleClickTrack}
+                isTabStop={track.path === tabStopPath}
+                focusTrack={focusTrack}
               />
             ) : (
               <div key={firstIndex + offset} className={style.placeholder} />
-            );
-          })}
+            )
+          )}
         </div>
       </div>
       <div className={style.footer}>
