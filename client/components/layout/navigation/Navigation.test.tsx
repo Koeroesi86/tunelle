@@ -26,6 +26,14 @@ describe('Navigation', () => {
     expect(active).toEqual(['Equalizer']);
   });
 
+  it('has real buttons, with aria-current on the current one only', () => {
+    render(<Navigation tab="equalizer" libraryOpen view="tracks" />);
+
+    expect(screen.getByRole('button', { name: 'Equalizer' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('button', { name: 'Home' }).hasAttribute('aria-current')).toBe(false);
+    expect(screen.getByRole('button', { name: 'Library' }).getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('defaults to the home screen', () => {
     render(<Navigation />);
 

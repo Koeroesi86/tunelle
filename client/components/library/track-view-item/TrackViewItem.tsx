@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import type { MouseEventHandler, ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import classNames from 'classnames';
 import { FaCaretDown, FaCaretUp } from 'react-icons/fa';
 import type { Track } from '@shared/types/library';
@@ -17,13 +17,12 @@ import AddToQueue from '../add-to-queue';
 export type TrackLabels = Record<'duration' | 'artist' | 'year' | 'album' | 'track' | 'title', string>;
 
 interface TrackViewItemFieldProps {
-  onClick?: MouseEventHandler<HTMLDivElement>;
   className?: string;
   children?: ReactNode;
 }
 
-const TrackViewItemField = ({ onClick = () => {}, className = '', children = null }: TrackViewItemFieldProps) => (
-  <div className={classNames(style.field, className)} onClick={onClick}>
+const TrackViewItemField = ({ className = '', children = null }: TrackViewItemFieldProps) => (
+  <div role="gridcell" className={classNames(style.field, className)}>
     {children}
   </div>
 );
@@ -65,7 +64,12 @@ interface TrackViewItemProps {
   isOffline?: boolean;
   clickTrack?: (track: Track) => void;
   doubleClickTrack?: (track: Track) => void;
+  /** The one row of the list that Tab reaches, the arrow keys move from it to the others */
+  isTabStop?: boolean;
+  focusTrack?: (track: Track) => void;
 }
+
+const focusSibling = (sibling: Element | null) => sibling instanceof HTMLElement && sibling.focus();
 
 const TrackViewItem = ({
   track,
@@ -77,6 +81,8 @@ const TrackViewItem = ({
   onSort,
   clickTrack = () => {},
   doubleClickTrack = () => {},
+  isTabStop = false,
+  focusTrack = () => {},
 }: TrackViewItemProps) => {
   const { t } = useTranslation();
 
@@ -87,8 +93,25 @@ const TrackViewItem = ({
       <TrackViewItemField className={className}>{content}</TrackViewItemField>
     );
 
+  // Enter plays, Space selects as a click does, the arrows go to the row above and below; a key of a button inside the row stays its own
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget || !('path' in track)) return;
+    const actions: Record<string, () => void> = {
+      Enter: () => doubleClickTrack(track),
+      ' ': () => clickTrack(track),
+      ArrowDown: () => focusSibling(event.currentTarget.nextElementSibling),
+      ArrowUp: () => focusSibling(event.currentTarget.previousElementSibling),
+    };
+    if (!Object.hasOwn(actions, event.key)) return;
+    event.preventDefault();
+    actions[event.key]();
+  };
+
   return (
     <div
+      role="row"
+      tabIndex={isTabStop ? 0 : -1}
+      aria-selected={isHeader ? undefined : isSelected}
       title={isOffline ? t('folders.offlineHint') : undefined}
       className={classNames(style.trackViewItem, {
         [style.offline]: isOffline,
@@ -98,6 +121,8 @@ const TrackViewItem = ({
       })}
       onClick={() => 'path' in track && clickTrack(track)}
       onDoubleClick={() => 'path' in track && doubleClickTrack(track)}
+      onKeyDown={onKeyDown}
+      onFocus={() => 'path' in track && focusTrack(track)}
     >
       <TrackViewItemField className={style.playing}>{isCurrent && <span className={style.bars} aria-hidden />}</TrackViewItemField>
       {renderField('track', style.trackNo, track.track || '-')}

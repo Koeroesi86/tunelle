@@ -23,9 +23,15 @@ const ViewSwitcher = <V extends string>({ views, current, setView, controls, tab
       <div className={style.viewControls}>
         {tabs &&
           views.map(({ view, label }) => (
-            <div key={view} className={classNames(style.view, { [style.current]: view === current })} onClick={() => setView(view)}>
+            <button
+              type="button"
+              key={view}
+              className={classNames(style.view, { [style.current]: view === current })}
+              aria-current={view === current ? 'true' : undefined}
+              onClick={() => setView(view)}
+            >
               {label}
-            </div>
+            </button>
           ))}
         {controls}
       </div>

@@ -57,9 +57,18 @@ const AlbumViewThumbnail = ({ album, offlineFolders, selectAlbum, playAlbum }: A
           </button>
         </div>
       </div>
-      <div className={style.title} title={album.title}>
+      <button
+        type="button"
+        className={style.title}
+        title={album.title}
+        onClick={(event) => {
+          event.stopPropagation();
+          selectAlbum(album);
+        }}
+        onDoubleClick={(event) => event.stopPropagation()}
+      >
         {album.title}
-      </div>
+      </button>
       <div className={style.artist} title={album.artist}>
         {album.artist}
       </div>

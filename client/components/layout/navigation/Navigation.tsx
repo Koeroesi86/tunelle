@@ -65,10 +65,16 @@ interface ItemProps {
 }
 
 const Item = ({ label, icon, active = false, onClick }: ItemProps) => (
-  <div onClick={onClick} title={label} className={classNames(style.item, { [style.active]: active })}>
+  <button
+    type="button"
+    onClick={onClick}
+    title={label}
+    aria-current={active ? 'page' : undefined}
+    className={classNames(style.item, { [style.active]: active })}
+  >
     {icon}
     <span className={style.label}>{label}</span>
-  </div>
+  </button>
 );
 
 interface GroupProps {
@@ -83,12 +89,14 @@ interface GroupProps {
 
 /** The row of a group that opens and closes, with the number of what is in it while it is closed, and an action of its own */
 const Group = ({ label, icon, open, active = false, count, onClick, action }: GroupProps) => (
-  <div onClick={onClick} title={label} aria-expanded={open} className={classNames(style.item, style.group, { [style.active]: active })}>
-    {icon}
-    <span className={style.label}>{label}</span>
-    {!open && count !== undefined && <span className={style.count}>{count}</span>}
+  <div className={classNames(style.item, style.group, { [style.active]: active })}>
+    <button type="button" onClick={onClick} title={label} aria-expanded={open} className={style.groupToggle}>
+      {icon}
+      <span className={style.label}>{label}</span>
+      {!open && count !== undefined && <span className={style.count}>{count}</span>}
+      <ChevronIcon size={'16px'} className={classNames(style.chevron, { [style.closed]: !open })} />
+    </button>
     {action}
-    <ChevronIcon size={'16px'} className={classNames(style.chevron, { [style.closed]: !open })} />
   </div>
 );
 
@@ -156,15 +164,17 @@ function Navigation({
         />
         {libraryOpen &&
           libraryViews.map(({ view: libraryView, label, Icon }) => (
-            <div
+            <button
+              type="button"
               key={libraryView}
               title={t(label)}
               onClick={() => openLibraryView(libraryView)}
+              aria-current={tab === 'local' && view === libraryView ? 'page' : undefined}
               className={classNames(style.item, style.child, { [style.active]: tab === 'local' && view === libraryView })}
             >
               <Icon size={'12px'} />
               <span className={style.label}>{t(label)}</span>
-            </div>
+            </button>
           ))}
         <Item label={t('nav.radio')} icon={<RadioIcon size={'14px'} />} active={tab === 'online-sources'} onClick={() => setTab('online-sources')} />
         <Item label={t('nav.liked')} icon={<FavouritesIcon size={'14px'} />} active={tab === 'favourites'} onClick={() => setTab('favourites')} />
@@ -175,16 +185,7 @@ function Navigation({
           count={playlists.length}
           onClick={() => setGroupOpen('playlists', !playlistsOpen)}
           action={
-            <button
-              type="button"
-              className={style.add}
-              title={t('nav.newPlaylist')}
-              aria-label={t('nav.newPlaylist')}
-              onClick={(event) => {
-                event.stopPropagation();
-                startPlaylist();
-              }}
-            >
+            <button type="button" className={style.add} title={t('nav.newPlaylist')} aria-label={t('nav.newPlaylist')} onClick={startPlaylist}>
               <AddIcon size={'14px'} />
             </button>
           }
@@ -205,10 +206,12 @@ function Navigation({
         )}
         {playlistsOpen &&
           playlists.map(({ id, name: playlistName }, index) => (
-            <div
+            <button
+              type="button"
               key={id}
               title={playlistName}
               onClick={() => openPlaylist(id)}
+              aria-current={tab === 'playlist' && playlistId === id ? 'page' : undefined}
               className={classNames(style.item, style.child, {
                 [style.active]: tab === 'playlist' && playlistId === id,
                 [style.dropTarget]: overIndex === index,
@@ -217,7 +220,7 @@ function Navigation({
             >
               <PlaylistIcon size={'12px'} />
               <span className={style.label}>{playlistName}</span>
-            </div>
+            </button>
           ))}
       </div>
       {spectrum && <div className={style.spectrum}>{spectrum}</div>}

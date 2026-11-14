@@ -16,6 +16,11 @@
     .view {
       -webkit-app-region: no-drag;
       margin-right: 12px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
       line-height: 32px;
       cursor: pointer;
       transition: color .2s ease-in-out;

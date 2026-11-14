@@ -33,6 +33,14 @@ const album: Album = {
 const setup = (shown: Album) => render(<AlbumDetails album={shown} playTracks={vi.fn()} close={vi.fn()} />);
 
 describe('AlbumDetails', () => {
+  it('is a modal dialog named by the album, with the focus inside it', () => {
+    render(<AlbumDetails album={album} playTracks={vi.fn()} close={vi.fn()} />);
+
+    const dialog = screen.getByRole('dialog', { name: 'Title' });
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
   afterEach(() => {
     vi.mocked(getImageTint).mockReset();
     queued.mockReset();
