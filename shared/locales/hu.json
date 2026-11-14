@@ -337,6 +337,7 @@
   "radio.ascending": "Növekvő",
   "radio.loadMore": "Továbbiak betöltése",
   "scan.title": "Könyvtár beolvasása",
+  "scan.done": "A könyvtár beolvasása kész",
   "scan.count": "{current} / {total} fájl",
   "scan.open": "Kattints a megnyitáshoz: {folder}",
   "library.error.title": "A könyvtár nem nyitható meg",

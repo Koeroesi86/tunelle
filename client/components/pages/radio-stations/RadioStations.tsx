@@ -217,8 +217,16 @@ const RadioStations = ({ radio, currentStation, search, loadTags, loadOptions, p
             </button>
           </div>
         )}
-        {loading && <div className={style.message}>{t('radio.loading')}</div>}
-        {!loading && !error && stations.length === 0 && <div className={style.message}>{t('radio.empty')}</div>}
+        {loading && (
+          <div className={style.message} role="status">
+            {t('radio.loading')}
+          </div>
+        )}
+        {!loading && !error && stations.length === 0 && (
+          <div className={style.message} role="status">
+            {t('radio.empty')}
+          </div>
+        )}
         {stations.map((station) => (
           <div
             key={station.uuid}
