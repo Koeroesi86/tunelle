@@ -28,6 +28,19 @@ vi.mock('../launcher-offer', () => ({ default: () => null }));
 const window = (onUnload: () => void) => <PlayerHome maximized={false} blurred={false} loaded folders={[]} addFiles={vi.fn()} onUnload={onUnload} />;
 
 describe('PlayerHome', () => {
+  it('has a skip link that moves the focus to the player controls', () => {
+    const player = document.createElement('div');
+    player.id = 'player-controls';
+    player.tabIndex = -1;
+    document.body.append(player);
+    render(window(vi.fn()));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skip to the player controls' }));
+
+    expect(document.activeElement).toBe(player);
+    player.remove();
+  });
+
   it('saves the settings when the page is left, with the callback it has now, and no more once it is gone', () => {
     const first = vi.fn();
     const second = vi.fn();

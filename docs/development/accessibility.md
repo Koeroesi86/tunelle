@@ -22,7 +22,9 @@ Two automated checks show the accessibility problems of the renderer (tracking i
 - `:focus-visible` has one ring in the accent for what sets none of its own (`ThemeProvider.scss`, in `:where`, so a component can override it). Where the element clips its overflow, the component sets a negative `outline-offset`.
 - The track list is a `grid`: Tab reaches one row (roving `tabindex`, the row that had the focus last, or the first shown), Enter plays, Space selects, and the arrows move to the row above and below. The list is windowed, so the arrows only reach rows that are rendered.
 - The page of an album is a modal dialog (`role="dialog"`, `aria-modal`, named by the title). `use-dialog-focus.ts` moves the focus in, keeps Tab inside, and gives the focus back to the element that had it on close. Use it for any new dialog.
-- Not done yet: arrow keys across album tiles, and the app-wide shortcuts (Space, seeking, volume, a skip link).
+- App-wide keys (`use-player-shortcuts.ts`, registered by `PlayerControls`): Space plays and pauses, Left and Right seek by 5 seconds (not on a station), Shift with Up and Down change the volume by 5%. Plain Up and Down stay with the page so a list still scrolls. A key is left alone when it is pressed with Ctrl, Alt or Meta, when something already handled it (`defaultPrevented`, which is how a track row keeps Space and the arrows), or when the focus is on something that uses the key (a field, a button, a link, a slider, a menu item, an option, a tab or a dialog), as Space would otherwise press the button and play at once.
+- The skip link is the first stop of the window. It moves the focus to the player bar (`#player-controls`, `tabIndex=-1`, no outline as the bar is a target and not a control).
+- Not done yet: arrow keys across album tiles (the grid is windowed, so a tile that is not rendered cannot take the focus).
 
 ## Names, values and announcements
 
@@ -32,4 +34,4 @@ Two automated checks show the accessibility problems of the renderer (tracking i
 - Symptom: axe `aria-required-parent`. Cause: a `columnheader` outside a `row` in a `table` (the header of the radio list). Give the header `role="row"` and its container `role="table"`.
 - The player has a polite `role="status"` that is empty without a track and reads "Now playing: title by artist" when the track changes. Pausing does not change the text, so it is not announced again.
 - A scan is announced when it starts ("Scanning library") and when it ends, not at every percent: the popover is a group with a `progressbar`, which a reader reads on request, and the live region is a hidden one that is always mounted (a region that appears with its text is often not read). The radio list says "Loading stations" and "No stations found" as `role="status"`, and a failed directory is a `role="alert"`. The spectrum canvas is `aria-hidden`.
-- Not done yet: announcing a stream that fails to play (the audio element only pauses), the app-wide shortcuts, motion and zoom. Axe has no violation left on the six pages, so its test fails on a new one.
+- Not done yet: announcing a stream that fails to play (the audio element only pauses), motion and zoom. Axe has no violation left on the six pages, so its test fails on a new one.

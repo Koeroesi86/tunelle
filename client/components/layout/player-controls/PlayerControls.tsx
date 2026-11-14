@@ -17,6 +17,7 @@ import { toNowPlaying } from '../../../domain/now-playing';
 import { radioUuidOf } from '../../../domain/radio-track';
 import { useMediaSession, useMediaSessionActions } from '../../../hooks/use-media-session';
 import { useMpris, useMprisCommands } from '../../../hooks/use-mpris';
+import { usePlayerShortcuts } from '../../../hooks/use-player-shortcuts';
 import { useAudioListener } from '../../../hooks/use-audio-listener';
 import { useUpdateEffect } from '../../../hooks/use-update-effect';
 import { useTranslation } from '../../../i18n';
@@ -51,6 +52,9 @@ interface PlayerControlsProps {
   nextSong: () => void;
   previousSong: () => void;
 }
+
+/** The target of the skip link of the window */
+export const playerId = 'player-controls';
 
 const round = (number: number) => Math.floor(number * 100);
 
@@ -263,6 +267,19 @@ const PlayerControls = (props: PlayerControlsProps) => {
     { isPlaying, currentTime }
   );
 
+  const live = !!currentSong && !!radioUuidOf(currentSong.path);
+  usePlayerShortcuts({
+    isPlaying,
+    live,
+    currentTime,
+    duration: currentSong?.duration ?? 0,
+    volume: props.volume,
+    play: () => currentSong && play(),
+    pause,
+    setCurrentTime,
+    setVolume: props.setVolume,
+  });
+
   useAudioListener(addPlayStatusListener, (playing) => {
     if (isPlaying !== playing) setPlaying(playing);
   });
@@ -278,7 +295,7 @@ const PlayerControls = (props: PlayerControlsProps) => {
   }, [currentSong]);
 
   return (
-    <div className={style.controls}>
+    <div id={playerId} tabIndex={-1} className={style.controls}>
       <div role="status" className={style.visuallyHidden}>
         {shown && t('player.nowPlaying', { title: shown.track.title, artist: shown.track.artist })}
       </div>

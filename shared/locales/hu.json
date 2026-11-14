@@ -162,6 +162,7 @@
   "theme.custom": "Egyéni kiemelőszín",
   "theme.auto": "Automatikus (albumborítóból)",
   "theme.reset": "Alaphelyzet",
+  "a11y.skipToPlayer": "Ugrás a lejátszóvezérlőre",
   "player.none": "Nincs",
   "player.previous": "Előző",
   "player.play": "Lejátszás",
