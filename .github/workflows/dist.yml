@@ -52,16 +52,16 @@ jobs:
             arch: arm64
             package: flatpak
           - os: macos-15-intel
-            platform: darwin
+            platform: macos
             arch: x64
           - os: macos-15
-            platform: darwin
+            platform: macos
             arch: arm64
           - os: windows-2025
-            platform: win32
+            platform: windows
             arch: x64
           - os: windows-11-arm
-            platform: win32
+            platform: windows
             arch: arm64
     env:
       # which Linux package the job builds (scripts/release/dist.js, scripts/release/check-dist.js); empty on the other systems
@@ -198,7 +198,7 @@ jobs:
     needs: dist
     uses: ./.github/workflows/wack.yml
     with:
-      artifact: dist-win32-x64
+      artifact: dist-windows-x64
     permissions:
       contents: read
 
@@ -208,7 +208,7 @@ jobs:
     needs: dist
     uses: ./.github/workflows/wack.yml
     with:
-      artifact: dist-win32-arm64
+      artifact: dist-windows-arm64
       arch: arm64
     permissions:
       contents: read

@@ -32,16 +32,16 @@ jobs:
           HASH: ${{ hashFiles('scripts/ffmpeg/ffmpeg-source.json', 'scripts/ffmpeg/ffmpeg-build.js') }}
           REF: ${{ github.ref }}
           DEFAULT_REF: refs/heads/${{ github.event.repository.default_branch }}
-        # the AppImage runs on Ubuntu 22.04, so the Linux build is made there (see dist.yml); platform and arch are the ones of process.platform and process.arch
+        # the AppImage runs on Ubuntu 22.04, so the Linux build is made there (see dist.yml); platform (linux, macos, windows) and arch are the ones of process.arch
         # a cache is read from the ref of the run and from the default branch; a failed lookup counts as missing, so the build runs
         run: |
           matrix='[
             {"platform":"linux","arch":"x64","os":"ubuntu-22.04"},
             {"platform":"linux","arch":"arm64","os":"ubuntu-22.04-arm"},
-            {"platform":"darwin","arch":"arm64","os":"macos-15"},
-            {"platform":"darwin","arch":"x64","os":"macos-15-intel"},
-            {"platform":"win32","arch":"x64","os":"windows-2025"},
-            {"platform":"win32","arch":"arm64","os":"windows-11-arm"}
+            {"platform":"macos","arch":"arm64","os":"macos-15"},
+            {"platform":"macos","arch":"x64","os":"macos-15-intel"},
+            {"platform":"windows","arch":"x64","os":"windows-2025"},
+            {"platform":"windows","arch":"arm64","os":"windows-11-arm"}
           ]'
           missing='[]'
           for entry in $(jq -c '.[]' <<< "$matrix"); do
@@ -88,7 +88,7 @@ jobs:
           path: ${{ runner.temp }}/ffmpeg-source
           key: ffmpeg-source-${{ matrix.os }}-${{ steps.pin.outputs.sha256 }}
       - uses: msys2/setup-msys2@e9898307ac31d1a803454791be09ab9973336e1c # v2.31.1
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.platform == 'win32' && matrix.arch == 'x64'
+        if: steps.cache.outputs.cache-hit != 'true' && matrix.platform == 'windows' && matrix.arch == 'x64'
         with:
           msystem: UCRT64
           path-type: inherit
@@ -96,7 +96,7 @@ jobs:
           pacboy: gcc:p
       # the arm64 build uses clang, which the packages of MSYS2 for that processor provide (scripts/ffmpeg/ffmpeg-build.js passes --cc=clang); the assembly is not assembled by nasm there
       - uses: msys2/setup-msys2@e9898307ac31d1a803454791be09ab9973336e1c # v2.31.1
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.platform == 'win32' && matrix.arch == 'arm64'
+        if: steps.cache.outputs.cache-hit != 'true' && matrix.platform == 'windows' && matrix.arch == 'arm64'
         with:
           msystem: CLANGARM64
           path-type: inherit
