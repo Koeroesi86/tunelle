@@ -3,7 +3,7 @@ import path from 'path';
 
 const root = '/sys/class/power_supply';
 
-const readValue = async (supply: string, file: string) => (await readFile(path.join(root, supply, file), 'utf8').catch(() => '')).trim();
+const readValue = async (supply: string, file: string) => (await readFile(path.posix.join(root, supply, file), 'utf8').catch(() => '')).trim();
 
 /** Whether the computer runs on its battery, from the power supplies of the kernel: none of the mains is online and a battery of the computer discharges. Linux gives no event for it. See docs/app/power-saving.md */
 export const readLinuxOnBattery = async () => {
