@@ -6,7 +6,7 @@ import { capture, closeDialog, currentTime, holdAt, playAlbum, shown, screenshot
 // the pictures of site/screenshots (npm run screenshots [-- -g scene]), one test each, in the order of the list: a scene starts from an album playing, and from what the ones before left
 // the same pictures every time: a library of generated tagged files and a made up station directory (scripts/screenshots/screenshot-fixtures.ts), a clean profile, English (SCREENSHOTS_LANG=hu for another language of shared/locales/), reduced motion, 1360 x 850,
 // and the clock of the player held where the scene wants it; Linux draws headless, Windows and macOS need their desktop
-// SCREENSHOTS_OUT=folder writes the pictures there instead of site/screenshots, SCREENSHOTS_LANG=hu takes them in Hungarian (the texts of the steps are English, ui() finds them in the language of the run)
+// SCREENSHOTS_OUT=folder writes the pictures there instead of site/screenshots, SCREENSHOTS_THEME=light starts the app light instead of dark, SCREENSHOTS_LANG=hu takes them in Hungarian (the texts of the steps are English, ui() finds them in the language of the run)
 
 test.describe.configure({ mode: 'serial' });
 

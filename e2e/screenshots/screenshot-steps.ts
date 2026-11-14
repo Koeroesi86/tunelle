@@ -1,6 +1,7 @@
 import { test as base, expect, type Page } from '@playwright/test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
+import { z } from 'zod';
 import { join, resolve } from 'path';
 import { albums, startDirectory, writeLibrary } from '../../scripts/screenshots/screenshot-fixtures';
 import { installActiveAudio } from '../support/active-audio';
@@ -9,9 +10,12 @@ import { addFolder, launchApp, navigate, ui } from '../support/app';
 
 // what the screenshots share: the app on a library of generated files with an album playing, and the steps and the picture taken from it
 // (scenes.spec.ts for the pictures of the website, small-windows.spec.ts for the layout at small sizes)
-// SCREENSHOTS_OUT=folder writes the pictures there instead of the default folder of the file that takes them
+// SCREENSHOTS_OUT=folder writes the pictures there instead of the default folder of the file that takes them, SCREENSHOTS_THEME=light starts the app in the light theme
 
 const output = resolve(__dirname, '../..', process.env.SCREENSHOTS_OUT ?? 'site/screenshots');
+
+// the window blur is off in a clean profile, so the window has the solid background of the theme and nothing of the desktop shows
+const theme = z.enum(['dark', 'light']).catch('dark').parse(process.env.SCREENSHOTS_THEME);
 
 export interface Album {
   title: string;
@@ -30,10 +34,8 @@ export const screenshotTest = base.extend<object, { session: { page: Page; resiz
       const directory = await startDirectory();
       const { app, page } = await launchApp({ home, radioDirectory: directory.origin, initScripts: [installActiveAudio, installAudioProbe] });
       // the app stops what moves on its own for this setting (the wave of a station is drawn once, the covers change at once), so a picture does not depend on the moment it is taken
-      // and the colour scheme is the one of the system, not the light one that Playwright sets unless it is told not to
-      await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: null });
-      // the window is transparent and its panels are translucent: what is behind it is black, as on a desktop of its own
-      await page.addStyleTag({ content: 'html { background: #000 !important; }' });
+      // and the app starts in the colour scheme of SCREENSHOTS_THEME (dark unless it says light), as the mode of a clean profile follows the system
+      await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: theme });
       await addFolder(
         page,
         music,
