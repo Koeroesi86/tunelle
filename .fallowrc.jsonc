@@ -20,10 +20,7 @@
     "site/**",
     // run by Playwright (npm run test:e2e), the helpers they import are reached from there
     "playwright.config.ts",
-    "e2e/**/*.spec.ts",
-    "e2e/**/*.shots.ts",
-    "e2e/**/*.perf.ts",
-    "e2e/**/*.updater.ts"
+    "e2e/**/*.spec.ts"
   ],
   "ignoreDependencies": [
     // the TypeScript 6 API for typescript-eslint, loaded through the hook in eslint.config.js

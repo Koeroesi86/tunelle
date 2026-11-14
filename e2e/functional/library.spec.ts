@@ -1,10 +1,10 @@
 import { statSync, utimesSync } from 'fs';
 import { rename, rm } from 'fs/promises';
 import { join } from 'path';
-import { addFolder, expect, libraryTracks, navigate, quit, test } from './support/app';
-import { expectTone } from './support/audio';
-import { albums, writeTrack } from './support/library';
-import { player } from './support/player';
+import { addFolder, expect, libraryTracks, navigate, quit, test } from '../support/app';
+import { expectTone } from '../support/audio';
+import { albums, writeTrack } from '../support/library';
+import { player } from '../support/player';
 
 test('lists the albums and the songs of a scanned folder', async ({ session: { page } }) => {
   await navigate(page, 'Albums');

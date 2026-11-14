@@ -1,4 +1,4 @@
-Two tracks of 6 s each (a sine of 440 Hz and one of 880 Hz, mono, 44.1 kHz, 64 kbit/s) in the formats that have an encoder delay and padding, for `e2e/gapless.spec.ts`. They were made with ffmpeg 7:
+Two tracks of 6 s each (a sine of 440 Hz and one of 880 Hz, mono, 44.1 kHz, 64 kbit/s) in the formats that have an encoder delay and padding, for `e2e/functional/gapless.spec.ts`. They were made with ffmpeg 7:
 
 ```sh
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a libmp3lame -b:a 64k -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Encoder Delay" -metadata track=1 mp3/1-concert-a.mp3
@@ -7,7 +7,7 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2. No real music or artist.
 
-`alac/` has the same two tracks in ALAC (16 bit, mono, 44.1 kHz) in the album "Lossless Apple", for `e2e/alac.spec.ts`, which plays them through the decoder proxy:
+`alac/` has the same two tracks in ALAC (16 bit, mono, 44.1 kHz) in the album "Lossless Apple", for `e2e/functional/alac.spec.ts`, which plays them through the decoder proxy:
 
 ```sh
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a alac -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless Apple" -metadata track=1 alac/1-concert-a.m4a
@@ -20,7 +20,7 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 mac 1-concert-a.wav ape/1-concert-a.ape -c2000 -t "Title=Concert A|Artist=The Sine Waves|Album Artist=The Sine Waves|Album=Lossless Monkey|Track=1"
 ```
 
-`dsd/` has the two tracks as DSD64 (1 bit, mono, 2.8224 MHz, 3 s), the first as DSF and the second as DFF, in the album "Lossless DSD", for `e2e/dsd.spec.ts`. ffmpeg cannot encode DSD, so `scripts/tooling/generate-dsd-fixtures.ts` modulates the sines itself and writes both files with ID3 tags (the result is the same bytes each time):
+`dsd/` has the two tracks as DSD64 (1 bit, mono, 2.8224 MHz, 3 s), the first as DSF and the second as DFF, in the album "Lossless DSD", for `e2e/functional/dsd.spec.ts`. ffmpeg cannot encode DSD, so `scripts/tooling/generate-dsd-fixtures.ts` modulates the sines itself and writes both files with ID3 tags (the result is the same bytes each time):
 
 ```sh
 npm run fixtures:dsd

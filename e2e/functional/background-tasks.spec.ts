@@ -1,8 +1,8 @@
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { addFolder, expect, test } from './support/app';
-import { albums, writeTrack } from './support/library';
+import { addFolder, expect, test } from '../support/app';
+import { albums, writeTrack } from '../support/library';
 
 const folderOfTracks = (count: number, seconds: number) => {
   const folder = mkdtempSync(join(tmpdir(), 'tunelle-tasks-'));

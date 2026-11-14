@@ -8,7 +8,7 @@ import { installAudioProbe } from '../support/audio-probe';
 import { addFolder, launchApp, navigate, ui } from '../support/app';
 
 // what the screenshots share: the app on a library of generated files with an album playing, and the steps and the picture taken from it
-// (scenes.shots.ts for the pictures of the website, small-windows.shots.ts for the layout at small sizes)
+// (scenes.spec.ts for the pictures of the website, small-windows.spec.ts for the layout at small sizes)
 // SCREENSHOTS_OUT=folder writes the pictures there instead of the default folder of the file that takes them
 
 const output = resolve(__dirname, '../..', process.env.SCREENSHOTS_OUT ?? 'site/screenshots');

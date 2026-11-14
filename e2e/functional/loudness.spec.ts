@@ -2,10 +2,10 @@ import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import type { Page } from '@playwright/test';
-import { addFolder, expect, libraryTracks, navigate, test } from './support/app';
-import { albums, writeLongWav, writeTrack } from './support/library';
-import { expectTone, levelNow, steadyLevel } from './support/audio';
-import { player } from './support/player';
+import { addFolder, expect, libraryTracks, navigate, test } from '../support/app';
+import { albums, writeLongWav, writeTrack } from '../support/library';
+import { expectTone, levelNow, steadyLevel } from '../support/audio';
+import { player } from '../support/player';
 
 // a sine of half the full scale in both channels is at -6.7 LUFS (BS.1770), so levelling it to -18 LUFS cuts it by 11.3 dB, to 0.27 of the amplitude
 const cut = 10 ** (-11.3 / 20);

@@ -1,10 +1,10 @@
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { addFolder, expect, test } from './support/app';
-import { albums, writeTrack } from './support/library';
-import { clearProbe, expectTone, longestGap } from './support/audio';
-import { player } from './support/player';
+import { addFolder, expect, test } from '../support/app';
+import { albums, writeTrack } from '../support/library';
+import { clearProbe, expectTone, longestGap } from '../support/audio';
+import { player } from '../support/player';
 
 // the probe measures in windows of 1024 frames (about 21 ms): a silent window is a gap, and without gapless playback one or two are heard at every change of track
 const noGap = 0;
@@ -18,8 +18,8 @@ const flacFolder = () => {
 
 const formats = [
   { format: 'FLAC', folder: flacFolder, album: 'Pitch Perfect' },
-  { format: 'mp3', folder: () => join(__dirname, 'fixtures', 'mp3'), album: 'Encoder Delay' },
-  { format: 'AAC', folder: () => join(__dirname, 'fixtures', 'aac'), album: 'Priming' },
+  { format: 'mp3', folder: () => join(__dirname, '..', 'fixtures', 'mp3'), album: 'Encoder Delay' },
+  { format: 'AAC', folder: () => join(__dirname, '..', 'fixtures', 'aac'), album: 'Priming' },
 ];
 
 // the encoder of these formats adds silence at the start and the end of a file (the delay and the padding): Chromium leaves it out, which is why the player does not trim it itself

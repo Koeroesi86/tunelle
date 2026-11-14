@@ -1,5 +1,5 @@
-import { expect, navigate, quit, test } from './support/app';
-import { player } from './support/player';
+import { expect, navigate, quit, test } from '../support/app';
+import { player } from '../support/player';
 
 // what the listener builds up in the app; the playlist keeps one restart for the whole app, the rest of it is tried in persistence.integration.test.ts
 test('keeps a playlist of an album, and plays it', async ({ start, session }) => {

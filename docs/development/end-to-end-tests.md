@@ -2,6 +2,20 @@
 
 `e2e/` holds the Playwright tests with `_electron`; run `npm run test:e2e` after `npm run build`, as they start the built `out/`.
 
+## Layout
+
+One folder per Playwright project (`playwright.config.ts`), and every test file in it is `name.spec.ts`; the folder, not a suffix or an ignore list, decides which project runs it. Vitest keeps `name.test.ts`, so a file name also says which runner owns it, and neither runner picks up the other's files.
+
+| Folder | Project | Run by |
+| --- | --- | --- |
+| `e2e/functional/` | `e2e` | `npm run test:e2e` (CI, every system) |
+| `e2e/accessibility/` | `a11y` | `npm run test:a11y` |
+| `e2e/perf/` | `perf` | `npm run perf` |
+| `e2e/updater/` | `updater` | `npm run test:updater` |
+| `e2e/screenshots/` | `screenshots` | `npm run screenshots` |
+
+`e2e/support/` (shared helpers, not tests) and `e2e/fixtures/` are used by all of them. A new test goes in the folder of its project, and a new kind of check is a new folder with its own project.
+
 - `e2e/support/app.ts` starts `out/` on a clean profile (a second `start()` in a test is a restart on the same profile) with the fake station directory and the generated library of `e2e/support/library.ts`, whose tracks are sines of known pitch (`writeFlac({ frequency })`).
 - The window runs with `--disable-audio-output`, and `e2e/support/audio-probe.ts`, added before the page loads, taps what reaches the destination of the audio context, stamped with the audio clock. Assert on pitch, level and silence with `e2e/support/audio.ts` (`expectTone`, `expectSilence`, `levelNow`, `longestGap`), never on a sleep.
 - Select by the English text of `shared/locales/en.json` and `navigate()` for the sidebar. Pages stay mounted, so a text can be on a hidden page too: `filter({ visible: true })`. A page that was just left stays visible for 90 ms (`client/styles/tab-motion.scss`), so `filter({ visible: true })` can still match it on a slow system (a Windows run clicked the favourite button of the radio stations instead of the album): scope a click to `[class*="PlayerTabs__active"]`, which changes with the navigation.

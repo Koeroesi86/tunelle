@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
-import { expect, navigate, test } from './support/app';
-import { accessibilityViolations } from './support/accessibility';
-import { albums } from './support/library';
+import { expect, navigate, test } from '../support/app';
+import { accessibilityViolations } from '../support/accessibility';
+import { albums } from '../support/library';
 
 const scenes: { name: string; open: (page: Page) => Promise<void> }[] = [
   { name: 'library', open: (page) => navigate(page, 'Albums') },

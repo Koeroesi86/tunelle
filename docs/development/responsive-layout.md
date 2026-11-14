@@ -30,7 +30,7 @@ Use a media query (the mixins) for what depends on the window, and a container q
 
 ## Checking the layout
 
-The unit tests check the logic (the breakpoints, the drawer, the bounds, the props of the components). A stylesheet is stubbed in them, so whether a layout overflows or clips is not tested there. `e2e/screenshots/small-windows.shots.ts` does, on the built app (`npm run build`, then `npm run screenshots -- small-windows`):
+The unit tests check the logic (the breakpoints, the drawer, the bounds, the props of the components). A stylesheet is stubbed in them, so whether a layout overflows or clips is not tested there. `e2e/screenshots/small-windows.spec.ts` does, on the built app (`npm run build`, then `npm run screenshots -- small-windows`):
 
 - every page (home, now playing, radio, liked, equalizer, settings, albums, songs) and the album dialog at a compact (390 x 844), a medium (800 x 600), an expanded (1360 x 850) and an ultrawide (2560 x 1080) window. Each is checked (no element is drawn past the edge of the window unless a box that scrolls holds it, and the play and next buttons are what a click at their middle reaches) and its picture is taken;
 - the window turning from landscape to portrait and back (900 x 520, 520 x 640, 360 x 480) with a list scrolled (the scroll position stays) and the album dialog open (it stays open, fits the window, and the track keeps playing).

@@ -10,7 +10,7 @@ Two automated checks show the accessibility problems of the renderer (tracking i
 
 ## axe in the end to end tests
 
-- `e2e/accessibility.spec.ts` opens the library, album details, now playing, radio, settings and the equalizer in light and dark mode (`colorScheme` and reduced motion emulated) and runs axe on the page. Run it with `npm run test:a11y` after `npm run build`. It is its own Playwright project (`a11y`), left out of `npm run test:e2e`, and CI runs it in the `accessibility` job of `test.yml` on Ubuntu only, beside the other jobs, so the end to end tests of every system stay as short as they are.
+- `e2e/accessibility/accessibility.spec.ts` opens the library, album details, now playing, radio, settings and the equalizer in light and dark mode (`colorScheme` and reduced motion emulated) and runs axe on the page. Run it with `npm run test:a11y` after `npm run build`. It is its own Playwright project (`a11y`), left out of `npm run test:e2e`, and CI runs it in the `accessibility` job of `test.yml` on Ubuntu only, beside the other jobs, so the end to end tests of every system stay as short as they are.
 - Only serious and critical violations are reported. Each is an `accessibility warning` annotation of the test (in the HTML report) and a `[accessibility]` line in the log. The test does not fail on them; to make it fail, assert that the list is empty in the spec.
 - Symptom: `browserContext.newPage: Protocol error (Target.createTarget): Not supported`. Cause: axe opens a second page by default, which Electron cannot. `setLegacyMode()` in `e2e/support/accessibility.ts` runs it in the page itself.
 - The pages of the app stay mounted, so the scenes see the same page-wide violations for now.

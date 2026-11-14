@@ -1,6 +1,6 @@
-import { expect, navigate, test } from './support/app';
-import { clearProbe, expectSilence, expectTone, levelNow, steadyLevel } from './support/audio';
-import { player } from './support/player';
+import { expect, navigate, test } from '../support/app';
+import { clearProbe, expectSilence, expectTone, levelNow, steadyLevel } from '../support/audio';
+import { player } from '../support/player';
 
 // the audio is measured where it leaves the app (e2e/support/audio-probe.ts): the pitch says which track plays, the level says how loud, the clock says when
 test('plays the album from its first track and shows the track in the player bar', async ({ session: { page } }) => {
