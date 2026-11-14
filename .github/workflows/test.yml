@@ -49,16 +49,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # platform and arch are the ones of process.platform and process.arch, which name the cached ffmpeg
+        # platform (linux, macos, windows) and arch are the ones of process.arch, which name the cached ffmpeg
         include:
           - { os: ubuntu-latest, platform: linux, arch: x64 }
           - { os: ubuntu-24.04-arm, platform: linux, arch: arm64 }
           - { os: ubuntu-22.04, platform: linux, arch: x64 }
           - { os: ubuntu-22.04-arm, platform: linux, arch: arm64 }
-          - { os: macos-15-intel, platform: darwin, arch: x64 }
-          - { os: macos-15, platform: darwin, arch: arm64 }
-          - { os: windows-2025, platform: win32, arch: x64 }
-          - { os: windows-11-arm, platform: win32, arch: arm64 }
+          - { os: macos-15-intel, platform: macos, arch: x64 }
+          - { os: macos-15, platform: macos, arch: arm64 }
+          - { os: windows-2025, platform: windows, arch: x64 }
+          - { os: windows-11-arm, platform: windows, arch: arm64 }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

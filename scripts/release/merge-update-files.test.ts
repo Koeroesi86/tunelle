@@ -71,8 +71,8 @@ describe('mergeArtifacts', () => {
     const artifacts = join(root, 'artifacts');
     const release = join(root, 'release');
     const files = {
-      'dist-win32-x64': { 'latest.yml': metadata('26.10.1', 'a-x64.exe', 5), 'a-x64.exe': 'x64' },
-      'dist-win32-arm64': { 'latest.yml': metadata('26.10.1', 'a-arm64.exe', 6), 'a-arm64.exe': 'arm64' },
+      'dist-windows-x64': { 'latest.yml': metadata('26.10.1', 'a-x64.exe', 5), 'a-x64.exe': 'x64' },
+      'dist-windows-arm64': { 'latest.yml': metadata('26.10.1', 'a-arm64.exe', 6), 'a-arm64.exe': 'arm64' },
       'dist-linux-arm64': { 'latest-linux-arm64.yml': metadata('26.10.1', 'a-arm64.AppImage', 7) },
     };
     Object.entries(files).forEach(([folder, content]) => {

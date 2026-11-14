@@ -31,7 +31,7 @@ const mergeArtifacts = (artifacts, release) => {
   const files = readdirSync(artifacts, { withFileTypes: true })
     .filter(entry => entry.isDirectory())
     .map(entry => entry.name)
-    // x64 comes first (dist-win32-x64 after dist-win32-arm64 in reverse), so the path of the merged file stays the installer it always was
+    // x64 comes first (dist-windows-x64 after dist-win32-arm64 in reverse), so the path of the merged file stays the installer it always was
     .sort()
     .reverse()
     .flatMap(name => listFiles(join(artifacts, name)))

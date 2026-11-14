@@ -14,7 +14,14 @@ const read = (name: string) => {
   return found[1];
 };
 
+const actionsDirectory = join(directory, '..', 'actions');
+const actions = readdirSync(actionsDirectory).map((name) => [name, readFileSync(join(actionsDirectory, name, 'action.yml'), 'utf8')]);
+
 describe('workflows', () => {
+  it.each(actions)('the action %s has no unquoted value with a colon and a space, which is not valid YAML', (_name, text) => {
+    expect(text).not.toMatch(/^\s*[\w-]+: [^'"|>\n][^\n]*: /m);
+  });
+
   it.each(workflows)('%s skips no check to pass', (name, text) => {
     expect(text).not.toMatch(/continue-on-error|--no-verify/);
   });
@@ -160,7 +167,7 @@ describe('workflows', () => {
   it('the planning job of ffmpeg.yml lists every system that the callers restore', () => {
     const planned = [...read('ffmpeg.yml').matchAll(/"platform":"(\w+)","arch":"(\w+)"/g)].map((match) => `${match[1]}-${match[2]}`).sort();
     const used = ['test.yml', 'dist.yml'].flatMap((name) =>
-      [...read(name).matchAll(/platform: (linux|darwin|win32)\n\s+arch: (x64|arm64)|platform: (linux|darwin|win32), arch: (x64|arm64)/g)].map(
+      [...read(name).matchAll(/platform: (linux|macos|windows)\n\s+arch: (x64|arm64)|platform: (linux|macos|windows), arch: (x64|arm64)/g)].map(
         (match) => `${match[1] ?? match[3]}-${match[2] ?? match[4]}`
       )
     );
@@ -188,7 +195,7 @@ describe('workflows', () => {
   it('dist.yml runs the certification of the Store package on the Windows x64 package it built', () => {
     const text = read('dist.yml');
 
-    expect(text).toMatch(/needs: dist\n\s+uses: \.\/\.github\/workflows\/wack\.yml\n\s+with:\n\s+artifact: dist-win32-x64/);
+    expect(text).toMatch(/needs: dist\n\s+uses: \.\/\.github\/workflows\/wack\.yml\n\s+with:\n\s+artifact: dist-windows-x64/);
   });
 
   it('dist.yml also installs and starts the arm64 Store package on an arm64 runner, which has no certification kit', () => {
@@ -196,7 +203,7 @@ describe('workflows', () => {
 
     expect(job).toContain('needs: dist');
     expect(job).toContain('uses: ./.github/workflows/wack.yml');
-    expect(job).toContain('artifact: dist-win32-arm64');
+    expect(job).toContain('artifact: dist-windows-arm64');
     expect(job).toContain('arch: arm64');
   });
 

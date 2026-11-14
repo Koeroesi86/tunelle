@@ -3,7 +3,7 @@ description: Restores the decode-only ffmpeg that ffmpeg.yml cached for this sys
 
 inputs:
   platform:
-    description: process.platform of the system
+    description: the system, one of linux, macos and windows
     required: true
   arch:
     description: process.arch of the system
