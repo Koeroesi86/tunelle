@@ -54,6 +54,43 @@ describe('connection middleware', () => {
     expect(send).toHaveBeenCalledWith('SAVE_SETTINGS', expect.objectContaining({ language: 'hu' }));
   });
 
+  it('stores whether the main process saves power, and saves the mode that was picked', async () => {
+    const { store, send, listen } = await setup();
+
+    listen('POWER_SAVING', { saving: true });
+    store.dispatch({ type: 'SET_POWER_SAVING', payload: { mode: 'never' } });
+
+    expect(store.getState().uiState.savingPower).toBe(true);
+    expect(send).toHaveBeenCalledWith('SAVE_SETTINGS', expect.objectContaining({ powerSaving: 'never' }));
+  });
+
+  describe('the recheck of the folders that are offline', () => {
+    const checks = (send: ReturnType<typeof vi.fn>) => send.mock.calls.filter(([channel]) => channel === 'CHECK_FOLDERS').length;
+
+    it('goes every 30 seconds, and four times as slowly while power is saved', async () => {
+      vi.useFakeTimers();
+      try {
+        const { send, listen } = await setup();
+        listen('OFFLINE_FOLDERS', { folders: ['/music'] });
+        const start = checks(send);
+
+        vi.advanceTimersByTime(30_000);
+        expect(checks(send)).toBe(start + 1);
+
+        listen('POWER_SAVING', { saving: true });
+        // the wait that was scheduled before the change is over, the next one is long
+        vi.advanceTimersByTime(30_000);
+        expect(checks(send)).toBe(start + 2);
+        vi.advanceTimersByTime(119_000);
+        expect(checks(send)).toBe(start + 2);
+        vi.advanceTimersByTime(1000);
+        expect(checks(send)).toBe(start + 3);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   it('saves the picked mode at once with the settings, so the main process matches its native parts to it', async () => {
     const { store, send } = await setup();
 
@@ -239,10 +276,10 @@ describe('connection middleware', () => {
       store.dispatch({ type: 'PLAY_TRACKS', payload: { tracks: [{ ...track, path: '/d.flac' }] } });
 
       expect(send.mock.calls.filter(([channel]) => channel === 'LOUDNESS_PRIORITISE')).toEqual([
-        ['LOUDNESS_PRIORITISE', { paths: ['/a.flac'] }],
-        ['LOUDNESS_PRIORITISE', { paths: ['/b.flac'] }],
-        ['LOUDNESS_PRIORITISE', { paths: ['/c.flac'] }],
-        ['LOUDNESS_PRIORITISE', { paths: ['/d.flac'] }],
+        ['LOUDNESS_PRIORITISE', { paths: ['/a.flac'], nowPlaying: true }],
+        ['LOUDNESS_PRIORITISE', { paths: ['/b.flac'], nowPlaying: false }],
+        ['LOUDNESS_PRIORITISE', { paths: ['/c.flac'], nowPlaying: false }],
+        ['LOUDNESS_PRIORITISE', { paths: ['/d.flac'], nowPlaying: false }],
       ]);
     });
 
@@ -253,7 +290,7 @@ describe('connection middleware', () => {
       store.dispatch({ type: 'ADD_TO_QUEUE', payload: { tracks } });
 
       const [, request] = send.mock.calls.findLast(([channel]) => channel === 'LOUDNESS_PRIORITISE') ?? [];
-      expect(request).toEqual({ paths: tracks.slice(0, 50).map((found) => found.path) });
+      expect(request).toEqual({ paths: tracks.slice(0, 50).map((found) => found.path), nowPlaying: false });
     });
 
     it('records the station a radio track plays, not the track', async () => {

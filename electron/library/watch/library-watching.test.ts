@@ -9,6 +9,15 @@ import rescanChanges from '../scan/rescan-changes';
 import rescanLibrary from '../scan/rescan-library';
 import { backgroundQueue } from '../tasks/background-queue';
 
+const power = vi.hoisted(() => ({ listeners: new Set<(saving: boolean) => void>() }));
+
+vi.mock('../../power/power-state', () => ({
+  onPowerSavingChange: (listener: (saving: boolean) => void) => {
+    power.listeners.add(listener);
+    return () => power.listeners.delete(listener);
+  },
+}));
+
 const folderWatcher = vi.hoisted(() => ({
   update: vi.fn(async () => undefined),
   check: vi.fn(async () => undefined),
@@ -112,6 +121,26 @@ describe('libraryWatching', () => {
     await checkLibraryWatching();
 
     expect(folderWatcher.check).toHaveBeenCalledOnce();
+  });
+
+  it('looks at the folders at once when power is not saved any more, not when it starts to be', async () => {
+    await startLibraryWatching(database, sender);
+
+    power.listeners.forEach((listener) => listener(true));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(folderWatcher.check).not.toHaveBeenCalled();
+
+    power.listeners.forEach((listener) => listener(false));
+    await vi.waitFor(() => expect(folderWatcher.check).toHaveBeenCalledExactlyOnceWith(true));
+  });
+
+  it('stops listening to the power state with the window', async () => {
+    await startLibraryWatching(database, sender);
+    expect(power.listeners.size).toBe(1);
+
+    handlers.get('destroyed')?.();
+
+    expect(power.listeners.size).toBe(0);
   });
 
   it('stops when the window is gone, and does nothing before there is one', async () => {

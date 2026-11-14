@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { Database } from 'sqlite3';
-import { powerMonitor } from 'electron';
 import type { LoudnessAnalysis, LoudnessProgress, TrackLoudness } from '@shared/types/loudness';
 import { analysisVersion } from '@shared/constants/loudness';
 import { backgroundQueue } from '../tasks/background-queue';
@@ -12,12 +11,13 @@ import { getSettings } from '../../repositories/settings-repository';
 import { createLoudnessWindow, type Measurement } from './loudness-window';
 import { poolAlbumGains } from './album-gains';
 import { mountGuard } from '../mounts/mount-guard';
+import { onPowerSavingChange, savingPower } from '../../power/power-state';
 import { registerLoudness } from './loudness-source';
 import type { Task } from '../tasks/task-queue';
 
 // everything the source reads or does outside of itself is replaced: the database and what is read from it, the drives, the window, the system and the queue
 vi.mock('sqlite3', () => ({ Database: class {} }));
-vi.mock('electron', () => ({ powerMonitor: { isOnBatteryPower: vi.fn() } }));
+vi.mock('../../power/power-state', () => ({ savingPower: vi.fn(), onPowerSavingChange: vi.fn() }));
 vi.mock('./album-gains', () => ({ poolAlbumGains: vi.fn() }));
 vi.mock('./loudness-window', () => ({ createLoudnessWindow: vi.fn() }));
 vi.mock('../../repositories/loudness-repository', () => ({
@@ -32,7 +32,16 @@ vi.mock('../mounts/mount-guard', () => ({ mountGuard: vi.fn() }));
 // the queue is the one of the app, which the source is put on; the tests ask the source what it would do, and what its tasks do
 vi.mock('../tasks/background-queue', () => ({
   scanKind: 'scan',
-  backgroundQueue: { addSource: vi.fn(), enqueue: vi.fn(), dequeue: vi.fn(), isBusy: vi.fn(), idleFor: vi.fn(), refresh: vi.fn(), onChange: vi.fn() },
+  backgroundQueue: {
+    addSource: vi.fn(),
+    enqueue: vi.fn(),
+    dequeue: vi.fn(),
+    isBusy: vi.fn(),
+    idleFor: vi.fn(),
+    refresh: vi.fn(),
+    wake: vi.fn(),
+    onChange: vi.fn(),
+  },
 }));
 
 const analysis: LoudnessAnalysis = {
@@ -68,6 +77,7 @@ describe('the measurement of the loudness as a source of the background queue', 
   let onStatus: Mock<(status: LoudnessProgress) => void>;
   let removeSource: Mock<() => boolean>;
   let stopWatching: Mock<() => boolean>;
+  let stopWatchingPower: Mock<() => void>;
   let source: TaskSource;
   let loudness: ReturnType<typeof registerLoudness>;
   /** What the library holds to be measured, and what was stored: a track that was stored is not asked for again, as the query leaves it out */
@@ -112,7 +122,11 @@ describe('the measurement of the loudness as a source of the background queue', 
     vi.mocked(backgroundQueue.isBusy).mockReset().mockReturnValue(false);
     vi.mocked(backgroundQueue.onChange).mockReset().mockReturnValue(stopWatching);
     vi.mocked(backgroundQueue.idleFor).mockReset().mockReturnValue(idle);
-    vi.mocked(powerMonitor.isOnBatteryPower).mockReturnValue(false);
+    stopWatchingPower = vi.fn<() => void>();
+    vi.mocked(savingPower).mockReturnValue(false);
+    vi.mocked(onPowerSavingChange).mockReset().mockReturnValue(stopWatchingPower);
+    vi.mocked(backgroundQueue.refresh).mockReset();
+    vi.mocked(backgroundQueue.wake).mockReset();
     vi.mocked(findTracksToMeasure)
       .mockReset()
       .mockImplementation(async (_database, afterPath, limit) =>
@@ -271,7 +285,7 @@ describe('the measurement of the loudness as a source of the background queue', 
       await loudness.prioritise(['/music/c.flac', '/music/a.flac']);
 
       expect(queued()).toEqual([
-        expect.objectContaining({ kind: 'loudness', key: '/music/c.flac', priority: 1, canRun: source.canRun }),
+        expect.objectContaining({ kind: 'loudness', key: '/music/c.flac', priority: 1, canRun: expect.any(Function) }),
         expect.objectContaining({ kind: 'loudness', key: '/music/a.flac', priority: 1 }),
       ]);
     });
@@ -429,13 +443,79 @@ describe('the measurement of the loudness as a source of the background queue', 
       });
     });
 
-    it('waits on battery', async () => {
+    it('waits while power is saved, and goes on when it is not', async () => {
       register();
-      vi.mocked(powerMonitor.isOnBatteryPower).mockReturnValue(true);
+      vi.mocked(savingPower).mockReturnValue(true);
       expect(await canRun()).toBe(false);
 
-      vi.mocked(powerMonitor.isOnBatteryPower).mockReturnValue(false);
+      vi.mocked(savingPower).mockReturnValue(false);
       expect(await canRun()).toBe(true);
+    });
+
+    it('looks for work at once when the power state changes, and stops listening with the source', async () => {
+      register();
+      const [listener] = vi.mocked(onPowerSavingChange).mock.calls[0];
+
+      listener(false);
+      expect(backgroundQueue.refresh).toHaveBeenCalled();
+      expect(backgroundQueue.wake).toHaveBeenCalledTimes(1);
+
+      loudness.stop();
+      expect(stopWatchingPower).toHaveBeenCalled();
+    });
+
+    describe('while power is saved', () => {
+      const queuedTask = (key: string) =>
+        vi
+          .mocked(backgroundQueue.enqueue)
+          .mock.calls.map(([task]) => task)
+          .find((task) => task.key === key);
+
+      beforeEach(() => {
+        library = ['a', 'b'].map((name) => track(`/music/${name}.flac`));
+        vi.mocked(savingPower).mockReturnValue(true);
+      });
+
+      it('measures the track that plays only: the others are not queued', async () => {
+        register();
+
+        await loudness.prioritise(['/music/b.flac'], true);
+        await loudness.prioritise(['/music/a.flac']);
+
+        expect(await queuedTask('/music/b.flac')?.canRun?.()).toBe(true);
+        expect(queuedTask('/music/a.flac')).toBeUndefined();
+        expect(await canRun()).toBe(false);
+      });
+
+      it('holds back a queued track when another one plays, and lets it go when power is not saved', async () => {
+        vi.mocked(savingPower).mockReturnValue(false);
+        register();
+        await loudness.prioritise(['/music/a.flac']);
+        vi.mocked(savingPower).mockReturnValue(true);
+        expect(await queuedTask('/music/a.flac')?.canRun?.()).toBe(false);
+
+        await loudness.prioritise(['/music/a.flac'], true);
+        expect(await queuedTask('/music/a.flac')?.canRun?.()).toBe(true);
+
+        await loudness.prioritise(['/music/b.flac'], true);
+        expect(await queuedTask('/music/a.flac')?.canRun?.()).toBe(false);
+
+        vi.mocked(savingPower).mockReturnValue(false);
+        expect(await queuedTask('/music/a.flac')?.canRun?.()).toBe(true);
+      });
+
+      it('still waits for a scan and for the idle time, and for the setting', async () => {
+        register();
+        await loudness.prioritise(['/music/a.flac'], true);
+        const task = queuedTask('/music/a.flac');
+
+        vi.mocked(backgroundQueue.isBusy).mockReturnValue(true);
+        expect(await task?.canRun?.()).toBe(false);
+
+        vi.mocked(backgroundQueue.isBusy).mockReturnValue(false);
+        vi.mocked(getSettings).mockResolvedValue({ measureLoudness: false });
+        expect(await task?.canRun?.()).toBe(false);
+      });
     });
 
     it('does not run while the setting is off, and does when it is on or was never saved', async () => {

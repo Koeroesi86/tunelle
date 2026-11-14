@@ -26,7 +26,7 @@ const registerLoudnessListeners = ({ database, loudness }: ListenerContext) => {
   // the tracks that were queued or started are measured before the rest of the library
   ipcMain.on('LOUDNESS_PRIORITISE', (_event, payload: unknown) => {
     const request = parsePayload(prioritiseLoudnessSchema, payload);
-    if (request) loudness.prioritise(request.paths).catch(logError);
+    if (request) loudness.prioritise(request.paths, request.nowPlaying).catch(logError);
   });
 
   ipcMain.on('LOUDNESS_CLEAR', () => {

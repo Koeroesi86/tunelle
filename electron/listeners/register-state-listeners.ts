@@ -6,6 +6,8 @@ import { getSettings, saveSettings } from '../repositories/settings-repository';
 import { setPickedLanguage } from '../language';
 import { applyThemeMode } from '../theme';
 import { applyWatchSetting, startLibraryWatching } from '../library/watch/library-watching';
+import { applyPowerSetting } from '../power/power-state';
+import { sendPowerSaving } from '../power/send-power-saving';
 import { savedSettingsSchema } from '@shared/schemas/requests';
 import { parsePayload } from '../utils/parse-payload';
 import { sendIfAlive } from '../utils/send-if-alive';
@@ -21,6 +23,7 @@ const sendState = async ({ database }: ListenerContext, sender: WebContents) => 
 const registerStateListeners = (context: ListenerContext) => {
   ipcMain.on('APP_READY', (event) => {
     sendState(context, event.sender).catch(logError);
+    sendPowerSaving(event.sender);
     startLibraryWatching(context.database, event.sender).catch(logError);
   });
 
@@ -30,6 +33,7 @@ const registerStateListeners = (context: ListenerContext) => {
 
     setPickedLanguage(settings);
     applyThemeMode(settings);
+    applyPowerSetting(settings);
     applyWatchSetting(settings).catch(logError);
     saveSettings(context.database, settings)
       .then(() => context.loudness.checkSetting())

@@ -486,4 +486,45 @@ describe('audio context', () => {
 
     expect(gains).toHaveLength(1);
   });
+  describe('the time of the track', () => {
+    const hide = (hidden: boolean) => {
+      vi.spyOn(document, 'hidden', 'get').mockReturnValue(hidden);
+      document.dispatchEvent(new Event('visibilitychange'));
+    };
+    const playingNode = () => {
+      const node = document.createElement('audio');
+      Object.defineProperty(node, 'currentTime', { value: 7 });
+      return node;
+    };
+
+    afterEach(() => vi.restoreAllMocks());
+
+    it('is told five times a second while the window shows', async () => {
+      const { audio } = await setup();
+      const listener = vi.fn();
+      audio.addTimeChangeListener(listener);
+      audio.connectNode(playingNode());
+
+      vi.advanceTimersByTime(1000);
+
+      expect(listener).toHaveBeenCalledTimes(5);
+      expect(listener).toHaveBeenLastCalledWith(7);
+    });
+
+    it('is not told while the window is hidden or minimised, and goes on when it shows again', async () => {
+      const { audio } = await setup();
+      const listener = vi.fn();
+      audio.addTimeChangeListener(listener);
+      audio.connectNode(playingNode());
+
+      hide(true);
+      vi.advanceTimersByTime(1000);
+      expect(listener).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+
+      hide(false);
+      vi.advanceTimersByTime(1000);
+      expect(listener).toHaveBeenCalledTimes(5);
+    });
+  });
 });

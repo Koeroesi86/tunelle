@@ -68,6 +68,9 @@ const listenToPlayStatus = (node: HTMLAudioElement) => {
 
 const startTimeChanges = () => {
   clearInterval(timeChangeTimer);
+  // nobody sees the time of a window that is hidden or minimised: the timer starts again when it shows
+  if (document.hidden) return;
+
   timeChangeTimer = setInterval(() => {
     if (!audioNode) return;
 
@@ -75,6 +78,8 @@ const startTimeChanges = () => {
     timeChange.notify(currentTime);
   }, 1000 / currentTimeFPS);
 };
+
+document.addEventListener('visibilitychange', () => mounted && startTimeChanges());
 
 const wrapNode = (node: HTMLAudioElement) => {
   if (wrappedElements.has(node)) return;

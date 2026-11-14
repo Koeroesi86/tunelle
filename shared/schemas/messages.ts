@@ -18,6 +18,7 @@ export const messageSchemas = {
   FOLDERS_ADDED_TO_LIBRARY: z.object({ folders: z.array(folderSchema) }),
   OFFLINE_FOLDERS: z.object({ folders: z.array(z.string()) }),
   LOUDNESS_STATUS: loudnessProgressSchema,
+  POWER_SAVING: z.object({ saving: z.boolean() }),
   LOUDNESS_FAILED: z.object({ tracks: z.array(failedLoudnessTrackSchema) }),
   ARTIST_PHOTO_FAILED: z.object({ reason: artistPhotoFailureSchema }),
   ALBUM_COVER_FAILED: z.object({ reason: albumCoverFailureSchema }),
