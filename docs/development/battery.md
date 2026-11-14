@@ -16,13 +16,13 @@ Per system:
 - **macOS:** the Energy Impact column of Activity Monitor, with the Average Energy Impact of `Tunelle` and its helper processes.
 - **Windows:** Task Manager, the "Power usage" and "Power usage trend" columns.
 
-The power source comes from `powerMonitor`, which on Linux needs UPower on the system bus. When it is not there `isOnBatteryPower()` is false and the mode `auto` never saves; `always` still does.
+The power source comes from `powerMonitor` events on Windows and macOS, and from `/sys/class/power_supply` on Linux, which Electron has no events for; the state is up to 10 seconds late there. A computer without a battery is never on battery, so `auto` never saves; `always` still does.
 
 ## Open per system
 
 | System | State | To check |
 |---|---|---|
-| Linux | the code is done, tested with mocks | measure the three cases above; check that `on-battery` and `on-ac` arrive with UPower (unplug the charger with the app open and watch the line "Saving power now" of the settings) |
+| Linux | the code is done, tested with mocks | measure the three cases above; unplug the charger with the app open and watch the line "Saving power now" of the settings change within 10 seconds |
 | macOS | not checked | the events of `powerMonitor`; the numbers above |
 | Windows | not checked | the events of `powerMonitor`; the numbers above |
 

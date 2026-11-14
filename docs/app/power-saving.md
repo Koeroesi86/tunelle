@@ -4,7 +4,7 @@ The app does background work that only matters when the computer is plugged in. 
 
 ## The state (`electron/power/`)
 
-`power-state.ts` is the one place that asks `powerMonitor`. It reads `isOnBatteryPower()` once at start and follows the `on-battery` and `on-ac` events after that, so nothing polls for it.
+`power-state.ts` is the one place that asks for the power source. On Windows and macOS it reads `powerMonitor.isOnBatteryPower()` once at start and follows the `on-battery` and `on-ac` events, so nothing polls. Electron has no such events on Linux (`@platform darwin,win32` in its API), so there `linux-power-source.ts` reads `/sys/class/power_supply` at start and every 10 seconds: on battery means no `Mains` supply is online and a battery of the computer (not one with `scope` `Device`, as a mouse) discharges.
 
 | Function | Meaning |
 |---|---|

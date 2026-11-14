@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Handler = () => void;
 
@@ -11,7 +11,16 @@ vi.mock('electron', () => ({
   },
 }));
 
+const linux = vi.hoisted(() => ({ onBattery: false }));
+
+vi.mock('./linux-power-source', () => ({ readLinuxOnBattery: async () => linux.onBattery }));
+
+const platform = process.platform;
+const setPlatform = (value: string) => Object.defineProperty(process, 'platform', { value });
+
 describe('the power state', () => {
+  afterEach(() => setPlatform(platform));
+
   const load = async () => {
     vi.resetModules();
     monitor.handlers.clear();
@@ -20,6 +29,7 @@ describe('the power state', () => {
 
   beforeEach(() => {
     monitor.battery = false;
+    setPlatform('win32');
   });
 
   it('is not saving power before it starts', async () => {
@@ -108,5 +118,32 @@ describe('the power state', () => {
     applyPowerSetting({ powerSaving: 'always' });
 
     expect(listener).not.toHaveBeenCalled();
+  });
+
+  describe('on Linux, where the system gives no events', () => {
+    beforeEach(() => {
+      setPlatform('linux');
+      vi.useFakeTimers();
+      linux.onBattery = true;
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it('reads the supplies at start and every ten seconds, and tells the change', async () => {
+      const { startPowerState, savingPower, onPowerSavingChange } = await load();
+      const listener = vi.fn();
+      onPowerSavingChange(listener);
+
+      startPowerState();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(savingPower()).toBe(true);
+      expect(monitor.handlers.size).toBe(0);
+
+      linux.onBattery = false;
+      await vi.advanceTimersByTimeAsync(9000);
+      expect(savingPower()).toBe(true);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(savingPower()).toBe(false);
+      expect(listener.mock.calls).toEqual([[true], [false]]);
+    });
   });
 });
