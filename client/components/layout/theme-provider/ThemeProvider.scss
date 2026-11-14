@@ -13,16 +13,15 @@
   --panel-glass: rgba(51, 51, 51, 0.4);
   // what lies over a transparent window: the desktop shows through, so it is tinted more where nothing blurs it
   --window-tint: rgba(0, 0, 0, 0.3);
-  --window-tint-dense: rgba(0, 0, 0, 0.6);
-  --window-tint-densest: rgba(0, 0, 0, 0.75);
+  --window-tint-dense: rgba(0, 0, 0, 0.8);
+  --window-tint-densest: rgba(0, 0, 0, 0.88);
   --bar-background: rgba(0, 0, 0, 0.3);
 
   --text: #ffffff;
   --text-soft: #efefef;
-  --text-muted: rgba(255, 255, 255, 0.6);
-  --text-faint: rgba(255, 255, 255, 0.4);
+  --text-muted: rgba(255, 255, 255, 0.7);
+  --text-faint: rgba(255, 255, 255, 0.6);
   --text-disabled: #cccccc;
-  --text-shadow: rgba(0, 0, 0, 0.4);
 
   --overlay-faint: rgba(255, 255, 255, 0.05);
   --overlay: rgba(255, 255, 255, 0.1);
@@ -57,10 +56,9 @@
 
   --text: #1f1f1f;
   --text-soft: #333333;
-  --text-muted: rgba(0, 0, 0, 0.6);
-  --text-faint: rgba(0, 0, 0, 0.45);
+  --text-muted: rgba(0, 0, 0, 0.7);
+  --text-faint: rgba(0, 0, 0, 0.6);
   --text-disabled: #8a8a8a;
-  --text-shadow: rgba(255, 255, 255, 0.5);
 
   --overlay-faint: rgba(0, 0, 0, 0.04);
   --overlay: rgba(0, 0, 0, 0.08);
@@ -83,7 +81,7 @@
   @include dark;
 
   // the accent as a light fill, for the row that is selected; it follows --accent wherever that is set on the root
-  --accent-tint: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-tint: color-mix(in srgb, var(--accent) 6%, transparent);
 
   // the pictures of the modes in the settings, which look the same in every theme
   --mode-light-background: #f2f2f2;
