@@ -232,6 +232,7 @@
     "typescript": "^7.0.2",
     "typescript6": "npm:@typescript/typescript6@^6.0.2",
     "vitest": "^5.0.5",
+    "vitest-axe": "^0.1.0",
     "webpack": "^5.112.0",
     "webpack-cli": "^7.2.3",
     "webpack-dev-server": "^6.1.0"

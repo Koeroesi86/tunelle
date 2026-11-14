@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { AlbumSummary } from '@shared/types/library';
+import { expectNoViolations } from '../../../test/expect-no-violations';
 import AlbumViewThumbnail from './AlbumViewThumbnail';
 
 vi.mock('../../ui/favourite-button', () => ({ default: () => null }));
@@ -25,6 +26,12 @@ const renderTile = (props: Partial<Parameters<typeof AlbumViewThumbnail>[0]> = {
   render(<AlbumViewThumbnail album={album} offlineFolders={[]} selectAlbum={vi.fn()} playAlbum={vi.fn()} {...props} />);
 
 describe('AlbumViewThumbnail', () => {
+  it('has no accessibility violation as a tile of the grid', async () => {
+    const { container } = renderTile({ tile: { 'data-tile-index': 0, tabIndex: 0 } });
+
+    await expectNoViolations(container);
+  });
+
   it('is a tile of the grid that opens on Enter, and its buttons are tab stops only on the tab stop tile', () => {
     const selectAlbum = vi.fn();
     renderTile({ selectAlbum, tile: { 'data-tile-index': 3, tabIndex: -1 } });
