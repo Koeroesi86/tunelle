@@ -153,6 +153,8 @@ export type AppAction =
   | PayloadAction<'CREATE_PLAYLIST', { name: string; tracks?: Track[] }>
   | PayloadAction<'RENAME_PLAYLIST', { id: number; name: string }>
   | PayloadAction<'DELETE_PLAYLIST', { id: number }>
+  | PayloadAction<'EXPORT_PLAYLIST', { id: number }>
+  | PayloadAction<'SYNC_PLAYLIST_FILE', { id: number; sync: boolean }>
   | PayloadAction<'MOVE_PLAYLIST', { id: number; toIndex: number }>
   | PayloadAction<'ADD_TO_PLAYLIST', { id: number; tracks: Track[] }>
   | PayloadAction<'REMOVE_FROM_PLAYLIST', { id: number; entryId: number }>

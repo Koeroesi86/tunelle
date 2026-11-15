@@ -87,17 +87,28 @@ export const moveEntry = async (database: Database, playlistId: number, entryId:
   return setPositions(database, 'playlist_tracks', movedTo(ids, entryId, toIndex));
 };
 
-const sourceRowSchema = playlistsRowSchema.pick({ id: true, name: true, source_path: true, source_checksum: true, source_mtime: true });
+const sourceRowSchema = playlistsRowSchema.pick({
+  id: true,
+  name: true,
+  source_path: true,
+  source_checksum: true,
+  source_mtime: true,
+  source_encoding: true,
+  source_sync: true,
+});
 
 /** The playlists that were imported from a file, with what tells that the file is the one that was read */
 export const getImportedPlaylists = (database: Database) =>
   executeQuery(
     database,
-    { query: `SELECT id, name, source_path, source_checksum, source_mtime FROM playlists WHERE source_path IS NOT NULL`, variables: [] },
+    {
+      query: `SELECT id, name, source_path, source_checksum, source_mtime, source_encoding, source_sync FROM playlists WHERE source_path IS NOT NULL`,
+      variables: [],
+    },
     sourceRowSchema
   ).then((rows) =>
-    rows.flatMap(({ source_path: sourcePath, source_checksum: checksum, source_mtime: modified, ...playlist }) =>
-      sourcePath === null ? [] : [{ ...playlist, sourcePath, checksum, modified }]
+    rows.flatMap(({ source_path: sourcePath, source_checksum: checksum, source_mtime: modified, source_encoding: encoding, source_sync: sync, ...playlist }) =>
+      sourcePath === null ? [] : [{ ...playlist, sourcePath, checksum, modified, encoding, sync: sync === 1 }]
     )
   );
 
@@ -116,8 +127,8 @@ export const createImportedPlaylist = (database: Database, name: string, source:
   executeQuery(
     database,
     {
-      query: `INSERT INTO playlists (name, position, created_at, source_path, source_checksum, source_mtime, source_encoding)
-        SELECT ?, COALESCE(MAX(position) + 1, 0), ?, ?, ?, ?, ? FROM playlists RETURNING id`,
+      query: `INSERT INTO playlists (name, position, created_at, source_path, source_checksum, source_mtime, source_encoding, source_sync)
+        SELECT ?, COALESCE(MAX(position) + 1, 0), ?, ?, ?, ?, ?, 1 FROM playlists RETURNING id`,
       variables: [name, Date.now(), source.path, source.checksum, source.modified, source.encoding],
     },
     idRowSchema
@@ -141,7 +152,17 @@ export const touchImportedPlaylist = (database: Database, id: number, modified: 
 export const unlinkPlaylists = (database: Database, ids: number[]) =>
   mapAsync(ids, (id) =>
     executeQuery(database, {
-      query: `UPDATE playlists SET source_path = NULL, source_checksum = NULL, source_mtime = NULL, source_encoding = NULL WHERE id = ?`,
+      query: `UPDATE playlists SET source_path = NULL, source_checksum = NULL, source_mtime = NULL, source_encoding = NULL, source_sync = 0 WHERE id = ?`,
       variables: [id],
     })
   );
+
+export const setPlaylistSync = (database: Database, id: number, sync: boolean) =>
+  executeQuery(database, { query: `UPDATE playlists SET source_sync = ? WHERE id = ? AND source_path IS NOT NULL`, variables: [sync ? 1 : 0, id] });
+
+/** The file was written by the app: what is stored of it is what was written, so a scan does not read it as a change */
+export const markPlaylistWritten = (database: Database, id: number, source: Omit<PlaylistSource, 'path'>) =>
+  executeQuery(database, {
+    query: `UPDATE playlists SET source_checksum = ?, source_mtime = ?, source_encoding = ? WHERE id = ?`,
+    variables: [source.checksum, source.modified, source.encoding, id],
+  });

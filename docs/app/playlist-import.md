@@ -35,4 +35,4 @@ A scan reads a file again only when its modification time is not the stored one,
 
 ## Not built yet
 
-Export and writing changes back to the file, the choice of the encoding, and a way to go back to the entries before a re-import are the second part of issue 129.
+Export and writing changes back to the file are in [playlist-export.md](playlist-export.md). The choice of the encoding by the user and a way to go back to the entries before a re-import are not built yet.
