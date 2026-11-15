@@ -26,17 +26,13 @@ const toEntry = (markup: string): ParsedEntry[] => {
   return location ? [{ location, title: childText(markup, 'title'), artist: childText(markup, 'creator'), album: childText(markup, 'album'), duration }] : [];
 };
 
-/** Removes the comments until none is left, as taking one out can join the text around it into another */
-const withoutComments = (text: string): string => {
-  const stripped = text.replace(/<!--[\s\S]*?-->/g, '');
-  return stripped === text ? text.replace(/<!--/g, '') : withoutComments(stripped);
-};
+/** Comments, the start of the track list and the tracks, found in one pass, so a comment is skipped as a whole and nothing is cut out of the text */
+const tokenPattern = /<!--[\s\S]*?-->|<trackList[\s>]|<track(?:\s[^>]*)?>([\s\S]*?)<\/track>/gi;
 
 /** XSPF: the title of the playlist is the one before the track list, a track is a `track` element with its `location` (a URI), `title`, `creator`, `album` and `duration` in milliseconds */
 export const parseXspf = (text: string): ParsedPlaylist => {
-  const body = withoutComments(text);
-  const [head = ''] = body.split(/<trackList[\s>]/i);
-  const tracks = [...body.matchAll(/<track(?:\s[^>]*)?>([\s\S]*?)<\/track>/gi)].flatMap(([, markup]) => toEntry(markup ?? ''));
+  const tokens = [...text.matchAll(tokenPattern)];
+  const trackListAt = tokens.find(([token]) => token.toLowerCase().startsWith('<tracklist'))?.index ?? text.length;
 
-  return { title: childText(head, 'title'), entries: tracks };
+  return { title: childText(text.slice(0, trackListAt), 'title'), entries: tokens.flatMap(([, markup]) => (markup === undefined ? [] : toEntry(markup))) };
 };

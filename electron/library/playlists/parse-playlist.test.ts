@@ -43,9 +43,10 @@ describe('parsePlaylist', () => {
     });
   });
 
-  it('takes out comments that join into another one, so no comment marker is left in the text', () => {
-    const text = '<playlist><trackList><track><location>a.flac</location><title>A<!<!-- x -->-- y --></title></track></trackList></playlist>';
+  it('skips a comment as a whole, also one that holds the markup of a track list', () => {
+    const text =
+      '<playlist><!-- <trackList><track><location>x.flac</location></track> --><title>T</title><trackList><track><location>a.flac</location></track></trackList></playlist>';
 
-    expect(parsePlaylist('xspf', text).entries).toEqual([{ location: 'a.flac', title: 'A' }]);
+    expect(parsePlaylist('xspf', text)).toEqual({ title: 'T', entries: [{ location: 'a.flac' }] });
   });
 });
