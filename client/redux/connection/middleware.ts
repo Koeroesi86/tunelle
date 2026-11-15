@@ -321,6 +321,8 @@ const handleActions = actionMiddleware((store) => [
   onAction('DELETE_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_DELETE', payload)),
   onAction('EXPORT_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_EXPORT', payload)),
   onAction('SYNC_PLAYLIST_FILE', ({ payload }) => electronAPI.send('PLAYLIST_SYNC', payload)),
+  onAction('SET_PLAYLIST_ENCODING', ({ payload }) => electronAPI.send('PLAYLIST_ENCODING', payload)),
+  onAction('UNDO_PLAYLIST_IMPORT', ({ payload }) => electronAPI.send('PLAYLIST_UNDO_IMPORT', payload)),
   onAction('MOVE_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_MOVE', payload)),
   onAction('ADD_TO_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_ADD', payload)),
   onAction('REMOVE_FROM_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_REMOVE_ENTRY', payload)),

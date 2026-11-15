@@ -54,4 +54,24 @@ describe('migration 019, the sync of a playlist with its file', () => {
       { name: 'new', source_sync: 0 },
     ]);
   });
+
+  it('adds the encoding the user chose and the entries to go back to, empty for every playlist', async () => {
+    copy((number) => number <= 19);
+    await migrate(database, folder);
+    await executeQuery(database, {
+      query: `INSERT INTO playlists (name, position, created_at, source_path) VALUES ('imported', 0, 1, '/m/a.m3u')`,
+      variables: [],
+    });
+
+    copy((number) => number === 20);
+    await migrate(database, folder);
+
+    expect(
+      await executeQuery(
+        database,
+        { query: 'SELECT source_encoding_override AS chosen, previous_entries AS previous FROM playlists', variables: [] },
+        z.object({ chosen: z.null(), previous: z.null() })
+      )
+    ).toEqual([{ chosen: null, previous: null }]);
+  });
 });

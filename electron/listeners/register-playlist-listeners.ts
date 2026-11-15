@@ -10,17 +10,20 @@ import {
   movePlaylist,
   removeEntry,
   renamePlaylist,
+  setEncodingOverride,
   setPlaylistSync,
+  undoImport,
 } from '../repositories/playlist-repository';
 import { sendPlaylists } from '../library/playlists/send-playlists';
 import { exportPlaylist, writeBackPlaylist } from '../library/playlists/export-playlist';
 import { handleWriteFailure } from '../library/playlists/handle-write-failure';
-import { importPlaylistFiles } from '../library/playlists/import-playlist-files';
+import { importPlaylistFiles, reimportPlaylistFile } from '../library/playlists/import-playlist-files';
 import { playlistExportFilters, playlistExtensions } from '../library/playlists/playlist-files';
 import { getMainTranslator } from '../language';
 import {
   playlistAddSchema,
   playlistCreateSchema,
+  playlistEncodingSchema,
   playlistEntrySchema,
   playlistIdSchema,
   playlistMoveEntrySchema,
@@ -31,6 +34,12 @@ import {
 import { parsePayload } from '../utils/parse-payload';
 import { logError } from '../utils/log-error';
 import { sendIfAlive } from '../utils/send-if-alive';
+
+const noteAbsolutePaths = (window: BrowserWindow | null, count: number) => {
+  const { t } = getMainTranslator();
+  const options = { type: 'info' as const, message: t('playlists.exportDriveNote', { count }), buttons: [t('playlists.exportDriveOk')] };
+  return window ? dialog.showMessageBox(window, options) : dialog.showMessageBox(options);
+};
 
 const registerPlaylistListeners = (context: ListenerContext) => {
   const { database } = context;
@@ -82,6 +91,7 @@ const registerPlaylistListeners = (context: ListenerContext) => {
       .then((playlists) => ({ ...options, defaultPath: `${playlists.find(({ id }) => id === parsed.id)?.name ?? 'playlist'}.m3u8` }))
       .then((withName) => (window ? dialog.showSaveDialog(window, withName) : dialog.showSaveDialog(withName)))
       .then(({ canceled, filePath }) => (canceled || !filePath ? undefined : exportPlaylist(database, parsed.id, filePath)))
+      .then((exported) => (exported?.onAnotherDrive ? noteAbsolutePaths(window, exported.onAnotherDrive) : undefined))
       .catch((error: unknown) => handleWriteFailure(database, window, parsed.id, error));
   });
 
@@ -93,6 +103,25 @@ const registerPlaylistListeners = (context: ListenerContext) => {
       event.sender,
       setPlaylistSync(database, parsed.id, parsed.sync).then(() => (parsed.sync ? writeBack(event.sender, parsed.id) : undefined))
     );
+  });
+
+  ipcMain.on('PLAYLIST_ENCODING', (event, payload: unknown) => {
+    const parsed = parsePayload(playlistEncodingSchema, payload);
+    if (!parsed) return;
+
+    // the file is read again with the encoding that was chosen, the one it is read with from now on
+    reply(
+      event.sender,
+      setEncodingOverride(database, parsed.id, parsed.encoding).then(() => reimportPlaylistFile(database, parsed.id))
+    );
+  });
+
+  ipcMain.on('PLAYLIST_UNDO_IMPORT', (event, payload: unknown) => {
+    const parsed = parsePayload(playlistIdSchema, payload);
+    if (!parsed) return;
+
+    // the file keeps what it says until the change is written to it, with the sync on
+    replyAndWrite(event.sender, parsed.id, undoImport(database, parsed.id));
   });
 
   ipcMain.on('PLAYLIST_CREATE', (event, payload: unknown) => {

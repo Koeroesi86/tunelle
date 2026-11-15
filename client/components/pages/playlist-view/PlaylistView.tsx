@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { MdClose as RemoveIcon, MdPlayArrow as PlayIcon } from 'react-icons/md';
 import type { Track } from '@shared/types/library';
 import type { Playlist } from '@shared/types/playlists';
+import { playlistEncodings } from '@shared/schemas/playlists';
 import { getPlaylistTracks } from '../../../domain/playlists';
 import { useDragReorder } from '../../../hooks/use-drag-reorder';
 import { useTranslation } from '../../../i18n';
@@ -19,6 +20,8 @@ interface PlaylistViewProps {
   remove: (id: number) => void;
   exportPlaylist: (id: number) => void;
   setSync: (id: number, sync: boolean) => void;
+  setEncoding: (id: number, encoding?: string) => void;
+  undoImport: (id: number) => void;
   removeEntry: (id: number, entryId: number) => void;
   moveEntry: (id: number, entryId: number, toIndex: number) => void;
 }
@@ -56,7 +59,18 @@ const Title = ({ playlist, rename }: TitleProps) => {
   );
 };
 
-const PlaylistView = ({ playlist, playTracks, rename, remove, exportPlaylist, setSync, removeEntry, moveEntry }: PlaylistViewProps) => {
+const PlaylistView = ({
+  playlist,
+  playTracks,
+  rename,
+  remove,
+  exportPlaylist,
+  setSync,
+  setEncoding,
+  undoImport,
+  removeEntry,
+  moveEntry,
+}: PlaylistViewProps) => {
   const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
   const [asking, setAsking] = useState(false);
@@ -94,6 +108,24 @@ const PlaylistView = ({ playlist, playTracks, rename, remove, exportPlaylist, se
             <input type="checkbox" checked={playlist.file.sync} onChange={(event) => setSync(playlist.id, event.target.checked)} />
             {t('playlists.keepInSync')}
           </label>
+        )}
+        {playlist.file && (
+          <label className={style.encoding} title={t('playlists.encodingNote')}>
+            {t('playlists.encoding')}
+            <select value={playlist.file.encodingOverride ?? ''} onChange={(event) => setEncoding(playlist.id, event.target.value || undefined)}>
+              <option value="">{t('playlists.encodingAuto', { encoding: playlist.file.encoding ?? '' })}</option>
+              {playlistEncodings.map((encoding) => (
+                <option key={encoding} value={encoding}>
+                  {encoding}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {playlist.file?.canUndo && (
+          <button type="button" className={style.undo} title={t('playlists.undoImportNote')} onClick={() => undoImport(playlist.id)}>
+            {t('playlists.undoImport')}
+          </button>
         )}
         <button
           type="button"

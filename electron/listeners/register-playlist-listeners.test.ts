@@ -14,11 +14,13 @@ import {
   movePlaylist,
   removeEntry,
   renamePlaylist,
+  setEncodingOverride,
   setPlaylistSync,
+  undoImport,
 } from '../repositories/playlist-repository';
 import { findTrackFormat } from '../repositories/library-repository';
 import { exportPlaylist, writeBackPlaylist } from '../library/playlists/export-playlist';
-import { importPlaylistFiles } from '../library/playlists/import-playlist-files';
+import { importPlaylistFiles, reimportPlaylistFile } from '../library/playlists/import-playlist-files';
 import { handleWriteFailure } from '../library/playlists/handle-write-failure';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
@@ -31,9 +33,9 @@ vi.mock('electron', () => ({
   ipcMain: { on: (channel: string, listener: Listener) => listeners.set(channel, listener) },
   BrowserWindow: { fromWebContents: () => null },
   app: { getLocale: () => 'en-US' },
-  dialog: { showOpenDialog: vi.fn(), showSaveDialog: vi.fn() },
+  dialog: { showOpenDialog: vi.fn(), showSaveDialog: vi.fn(), showMessageBox: vi.fn() },
 }));
-vi.mock('../library/playlists/import-playlist-files', () => ({ importPlaylistFiles: vi.fn() }));
+vi.mock('../library/playlists/import-playlist-files', () => ({ importPlaylistFiles: vi.fn(), reimportPlaylistFile: vi.fn() }));
 vi.mock('../repositories/playlist-repository', () => ({
   addEntries: vi.fn(),
   createPlaylist: vi.fn(),
@@ -41,6 +43,8 @@ vi.mock('../repositories/playlist-repository', () => ({
   getPlaylists: vi.fn(),
   getImportedPlaylists: vi.fn().mockResolvedValue([]),
   setPlaylistSync: vi.fn(),
+  setEncodingOverride: vi.fn(),
+  undoImport: vi.fn(),
   moveEntry: vi.fn(),
   movePlaylist: vi.fn(),
   removeEntry: vi.fn(),
@@ -48,7 +52,7 @@ vi.mock('../repositories/playlist-repository', () => ({
 }));
 vi.mock('../library/playlists/handle-write-failure', () => ({ handleWriteFailure: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../library/playlists/export-playlist', () => ({ exportPlaylist: vi.fn(), writeBackPlaylist: vi.fn() }));
-vi.mock('../repositories/library-repository', () => ({ findTrackFormat: vi.fn() }));
+vi.mock('../repositories/library-repository', () => ({ findTrackFormat: vi.fn(), getTrackListByPaths: vi.fn().mockResolvedValue([]) }));
 
 const track = { path: '/music/a.flac', title: 'A' };
 const format = {
@@ -99,7 +103,10 @@ describe('registerPlaylistListeners', () => {
     vi.mocked(moveEntry).mockReset().mockResolvedValue([]);
     vi.mocked(setPlaylistSync).mockReset().mockResolvedValue([]);
     vi.mocked(writeBackPlaylist).mockReset().mockResolvedValue(undefined);
-    vi.mocked(exportPlaylist).mockReset().mockResolvedValue(undefined);
+    vi.mocked(exportPlaylist).mockReset().mockResolvedValue({ onAnotherDrive: 0 });
+    vi.mocked(setEncodingOverride).mockReset().mockResolvedValue([]);
+    vi.mocked(reimportPlaylistFile).mockReset().mockResolvedValue(undefined);
+    vi.mocked(undoImport).mockReset().mockResolvedValue(true);
     vi.mocked(importPlaylistFiles).mockReset().mockResolvedValue([]);
     vi.mocked(dialog.showOpenDialog).mockReset().mockResolvedValue({ canceled: true, filePaths: [] });
     vi.mocked(dialog.showSaveDialog).mockReset().mockResolvedValue({ canceled: true, filePath: '' });
@@ -269,6 +276,50 @@ describe('registerPlaylistListeners', () => {
       })
     );
     expect(exportPlaylist).toHaveBeenCalledWith(database, 7, '/lists/Road.xspf');
+  });
+
+  it('tells the user when tracks are written with their full path as they are on another drive, and says nothing otherwise', async () => {
+    vi.mocked(dialog.showSaveDialog).mockResolvedValue({ canceled: false, filePath: '/lists/Road.xspf' });
+    vi.mocked(dialog.showMessageBox).mockResolvedValue({ response: 0, checkboxChecked: false });
+    vi.mocked(exportPlaylist).mockResolvedValueOnce({ onAnotherDrive: 2 }).mockResolvedValueOnce({ onAnotherDrive: 0 });
+
+    await call('PLAYLIST_EXPORT', { id: 7 });
+    await call('PLAYLIST_EXPORT', { id: 7 });
+
+    expect(dialog.showMessageBox).toHaveBeenCalledTimes(1);
+    expect(dialog.showMessageBox).toHaveBeenCalledWith(
+      expect.objectContaining({ message: '2 tracks are on another drive than the file, so they are written with their full path.' })
+    );
+  });
+
+  it('sets the encoding the user chose, reads the file again with it, and tells the window', async () => {
+    await call('PLAYLIST_ENCODING', { id: 7, encoding: 'windows-1251' });
+
+    expect(setEncodingOverride).toHaveBeenCalledWith(database, 7, 'windows-1251');
+    expect(reimportPlaylistFile).toHaveBeenCalledWith(database, 7);
+    expect(send).toHaveBeenCalledWith('PLAYLISTS', expect.anything());
+  });
+
+  it('goes back to the detected encoding when none is given, and ignores an encoding that is not one', async () => {
+    await call('PLAYLIST_ENCODING', { id: 7 });
+    await call('PLAYLIST_ENCODING', { id: 7, encoding: 'klingon' });
+
+    expect(setEncodingOverride).toHaveBeenCalledTimes(1);
+    expect(setEncodingOverride).toHaveBeenCalledWith(database, 7, undefined);
+  });
+
+  it('undoes the last read of the file, writes the playlist back to the file, and tells the window', async () => {
+    await call('PLAYLIST_UNDO_IMPORT', { id: 7 });
+
+    expect(undoImport).toHaveBeenCalledWith(database, 7);
+    expect(writeBackPlaylist).toHaveBeenCalledWith(database, 7);
+    expect(send).toHaveBeenCalledWith('PLAYLISTS', expect.anything());
+  });
+
+  it('ignores an undo of a malformed message', async () => {
+    await call('PLAYLIST_UNDO_IMPORT', { id: 'x' });
+
+    expect(undoImport).not.toHaveBeenCalled();
   });
 
   it('offers "playlist" as the name of a playlist that is not there', async () => {

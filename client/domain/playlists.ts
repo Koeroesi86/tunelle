@@ -17,7 +17,16 @@ const entrySchema = z.object({
 });
 
 const playlistMessageSchema = storedPlaylistSchema.pick({ id: true, name: true }).extend({
-  file: z.object({ path: z.string(), sync: z.boolean() }).optional().catch(undefined),
+  file: z
+    .object({
+      path: z.string(),
+      sync: z.boolean(),
+      encoding: z.string().optional(),
+      encodingOverride: z.string().optional(),
+      canUndo: z.boolean().catch(false),
+    })
+    .optional()
+    .catch(undefined),
   entries: z.array(z.unknown()).transform((entries) => entries.flatMap((entry) => entrySchema.safeParse(entry).data ?? [])),
 });
 

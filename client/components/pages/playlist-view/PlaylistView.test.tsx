@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { Track } from '@shared/types/library';
 import type { Playlist } from '@shared/types/playlists';
 import PlaylistView from './PlaylistView';
@@ -48,6 +48,8 @@ describe('PlaylistView', () => {
       remove: vi.fn(),
       exportPlaylist: vi.fn(),
       setSync: vi.fn(),
+      setEncoding: vi.fn(),
+      undoImport: vi.fn(),
       removeEntry: vi.fn(),
       moveEntry: vi.fn(),
     };
@@ -65,10 +67,41 @@ describe('PlaylistView', () => {
   });
 
   it('turns the sync of the file on and off', () => {
-    const props = renderView({ ...playlist, file: { path: '/music/mix.m3u', sync: false } });
+    const props = renderView({ ...playlist, file: { path: '/music/mix.m3u', sync: false, canUndo: false } });
     fireEvent.click(screen.getByLabelText('Keep file in sync'));
 
     expect(props.setSync).toHaveBeenCalledWith(playlist.id, true);
+  });
+
+  it('offers the encoding for a playlist that has a file, shows the one detected, and sets the one that is chosen or the detection again', () => {
+    const props = renderView({ ...playlist, file: { path: '/music/mix.m3u', sync: true, encoding: 'windows-1250', canUndo: false } });
+    const select = screen.getByLabelText('Encoding');
+
+    expect(screen.getByRole('option', { name: 'Detected: windows-1250' })).toBeTruthy();
+    fireEvent.change(select, { target: { value: 'windows-1251' } });
+    expect(props.setEncoding).toHaveBeenCalledWith(playlist.id, 'windows-1251');
+    fireEvent.change(select, { target: { value: '' } });
+    expect(props.setEncoding).toHaveBeenLastCalledWith(playlist.id, undefined);
+  });
+
+  it('shows the encoding that was chosen, and offers none for a playlist without a file', () => {
+    renderView({ ...playlist, file: { path: '/music/mix.m3u', sync: true, encoding: 'windows-1251', encodingOverride: 'windows-1251', canUndo: false } });
+    expect((screen.getByLabelText('Encoding') as HTMLSelectElement).value).toBe('windows-1251');
+    cleanup();
+
+    renderView();
+    expect(screen.queryByLabelText('Encoding')).toBeNull();
+  });
+
+  it('offers to undo the last read of the file only when there is one to undo', () => {
+    const props = renderView({ ...playlist, file: { path: '/music/mix.m3u', sync: true, canUndo: true } });
+    fireEvent.click(screen.getByRole('button', { name: 'Undo re-read' }));
+
+    expect(props.undoImport).toHaveBeenCalledWith(playlist.id);
+    cleanup();
+
+    renderView({ ...playlist, file: { path: '/music/mix.m3u', sync: true, canUndo: false } });
+    expect(screen.queryByRole('button', { name: 'Undo re-read' })).toBeNull();
   });
 
   it('numbers the rows in the order of the playlist', () => {
@@ -189,7 +222,7 @@ describe('PlaylistView', () => {
   });
 
   it('asks in a dialog for a playlist that has a file, and says that it comes back with the next scan while the file stays', () => {
-    const { remove } = renderView({ ...playlist, file: { path: '/music/lists/mix.m3u', sync: true } });
+    const { remove } = renderView({ ...playlist, file: { path: '/music/lists/mix.m3u', sync: true, canUndo: false } });
 
     expect(screen.queryByText(/comes back/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }));
@@ -202,7 +235,7 @@ describe('PlaylistView', () => {
   });
 
   it('keeps a playlist that has a file when the dialog is answered with no', () => {
-    const { remove } = renderView({ ...playlist, file: { path: '/music/lists/mix.m3u', sync: true } });
+    const { remove } = renderView({ ...playlist, file: { path: '/music/lists/mix.m3u', sync: true, canUndo: false } });
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }));
     fireEvent.click(screen.getByRole('button', { name: 'No' }));

@@ -1,3 +1,5 @@
+import { playlistEncodings } from '@shared/schemas/playlists';
+
 const utf8 = new TextDecoder('utf-8', { fatal: true });
 
 /** The legacy code page that a system with this language wrote its playlists in, the Western one for the rest */
@@ -56,8 +58,8 @@ const isValidUtf8 = (buffer: Buffer) => {
 /** The encoding of a playlist file: the byte order mark, else UTF-8 when the bytes are valid UTF-8, else the legacy encoding of the system */
 const detectEncoding = (buffer: Buffer) => readBom(buffer) ?? (isValidUtf8(buffer) ? 'utf-8' : guessLegacyEncoding());
 
-/** The text of a playlist file and the encoding it was read with; the byte order mark is left out of the text */
-export const decodePlaylist = (buffer: Buffer) => {
-  const encoding = detectEncoding(buffer);
+/** The text of a playlist file and the encoding it was read with, the one the user chose when there is one and else the one that is detected; the byte order mark is left out of the text */
+export const decodePlaylist = (buffer: Buffer, chosen?: string | null) => {
+  const encoding = playlistEncodings.find((candidate) => candidate === chosen) ?? detectEncoding(buffer);
   return { text: new TextDecoder(encoding).decode(buffer), encoding };
 };

@@ -6,8 +6,8 @@ import type { Database } from 'sqlite3';
 import addTrack from '../scan/add-track';
 import { createTestDatabase } from '../../test-database';
 import { deleteTracksInside } from '../../repositories/library-repository';
-import { addEntries, getPlaylists, renamePlaylist } from '../../repositories/playlist-repository';
-import { importPlaylistFiles } from './import-playlist-files';
+import { addEntries, getImportedPlaylists, getPlaylists, renamePlaylist, setEncodingOverride, undoImport } from '../../repositories/playlist-repository';
+import { importPlaylistFiles, reimportPlaylistFile } from './import-playlist-files';
 import { removeVanishedPlaylists, settlePlaylistsOfRemovedFolder } from './imported-playlists';
 import normalizePath from '../../utils/normalize-path';
 
@@ -160,5 +160,61 @@ describe('importing playlist files', () => {
     expect(await removeVanishedPlaylists(database, folder, false, [])).toBe(1);
     expect((await getPlaylists(database)).map(({ name }) => name)).toEqual(['below']);
     expect(await removeVanishedPlaylists(database, folder, true, [])).toBe(1);
+  });
+
+  it('reads the file again with the encoding the user chose, which stays when the file changes, and with the detected one when it is taken away', async () => {
+    // 0xE9 is é of Windows 1252 and й of Windows 1251 and invalid as UTF-8
+    const file = await write('lists/mix.m3u', Buffer.from([0xe9, 0x2e, 0x66, 0x6c, 0x61, 0x63, 0x0a]));
+    await importPlaylistFiles(database, [file]);
+    const [{ id }] = await getImportedPlaylists(database);
+
+    await setEncodingOverride(database, id, 'windows-1251');
+    const report = await reimportPlaylistFile(database, id);
+
+    expect(report).toMatchObject({ status: 'updated', imported: 1 });
+    expect((await getPlaylists(database))[0]?.entries[0]?.snapshot).toMatchObject({ title: 'й' });
+    expect((await getImportedPlaylists(database))[0]).toMatchObject({ encoding: 'windows-1251', encodingOverride: 'windows-1251' });
+
+    await fs.promises.writeFile(file, Buffer.from([0xe9, 0x2e, 0x66, 0x6c, 0x61, 0x63, 0x0a, 0xe9, 0x0a]));
+    await fs.promises.utimes(file, new Date(), new Date(Date.now() + 5000));
+    await importPlaylistFiles(database, [file]);
+    expect((await getImportedPlaylists(database))[0]).toMatchObject({ encoding: 'windows-1251', encodingOverride: 'windows-1251' });
+
+    await setEncodingOverride(database, id, undefined);
+    await reimportPlaylistFile(database, id);
+    expect((await getImportedPlaylists(database))[0]).toMatchObject({ encodingOverride: null });
+  });
+
+  it('reads a file again that did not change when it is asked to, and has nothing to read for a playlist without a file or with a file that is gone', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const file = await write('lists/mix.m3u', '../one.flac\n');
+    await importPlaylistFiles(database, [file]);
+    const [{ id }] = await getImportedPlaylists(database);
+
+    expect(await reimportPlaylistFile(database, id)).toMatchObject({ status: 'updated', imported: 1 });
+    expect(await reimportPlaylistFile(database, id + 1)).toBeUndefined();
+    await fs.promises.rm(file);
+    expect(await reimportPlaylistFile(database, id)).toBeUndefined();
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('mix.m3u'), expect.anything());
+  });
+
+  it('goes one step back from a re-read of the file, once, to the entries the playlist had', async () => {
+    const file = await write('lists/mix.m3u', '../one.flac\n');
+    await importPlaylistFiles(database, [file]);
+    const [{ id }] = await getImportedPlaylists(database);
+    expect((await getImportedPlaylists(database))[0]?.canUndo).toBe(false);
+    expect(await undoImport(database, id)).toBe(false);
+
+    await addEntries(database, id, [{ path: inFolder('two.flac'), snapshot: track(inFolder('two.flac'), 'Two') }]);
+    await fs.promises.writeFile(file, '../two.flac\n');
+    await fs.promises.utimes(file, new Date(), new Date(Date.now() + 5000));
+    await importPlaylistFiles(database, [file]);
+    expect((await getImportedPlaylists(database))[0]?.canUndo).toBe(true);
+
+    expect(await undoImport(database, id)).toBe(true);
+
+    expect((await getPlaylists(database))[0]?.entries.map((entry) => entry.path)).toEqual([inFolder('one.flac'), inFolder('two.flac')]);
+    expect((await getImportedPlaylists(database))[0]?.canUndo).toBe(false);
+    expect(await undoImport(database, id)).toBe(false);
   });
 });

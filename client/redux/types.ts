@@ -155,6 +155,8 @@ export type AppAction =
   | PayloadAction<'DELETE_PLAYLIST', { id: number }>
   | PayloadAction<'EXPORT_PLAYLIST', { id: number }>
   | PayloadAction<'SYNC_PLAYLIST_FILE', { id: number; sync: boolean }>
+  | PayloadAction<'SET_PLAYLIST_ENCODING', { id: number; encoding?: string }>
+  | PayloadAction<'UNDO_PLAYLIST_IMPORT', { id: number }>
   | PayloadAction<'MOVE_PLAYLIST', { id: number; toIndex: number }>
   | PayloadAction<'ADD_TO_PLAYLIST', { id: number; tracks: Track[] }>
   | PayloadAction<'REMOVE_FROM_PLAYLIST', { id: number; entryId: number }>

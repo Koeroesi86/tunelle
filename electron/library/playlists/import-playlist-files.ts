@@ -83,20 +83,26 @@ const reportOf = (fileName: string, name: string, status: PlaylistImportReport['
   streams: content?.streams ?? 0,
 });
 
-const importFromHandle = async ({ database, index, imported }: Context, handle: fs.promises.FileHandle, filePath: string, format: PlaylistFormat) => {
+const importFromHandle = async (
+  { database, index, imported }: Context,
+  handle: fs.promises.FileHandle,
+  filePath: string,
+  format: PlaylistFormat,
+  force: boolean
+) => {
   const sourcePath = normalizePath(filePath);
   const modified = Math.floor((await handle.stat()).mtimeMs);
   const existing = imported.get(sourcePath);
-  if (existing?.modified === modified) return reportOf(sourcePath, existing.name, 'unchanged');
+  if (!force && existing?.modified === modified) return reportOf(sourcePath, existing.name, 'unchanged');
 
   const buffer = await handle.readFile();
   const checksum = checksumOf(buffer);
-  if (existing?.checksum === checksum) {
+  if (!force && existing?.checksum === checksum) {
     await touchImportedPlaylist(database, existing.id, modified);
     return reportOf(sourcePath, existing.name, 'unchanged');
   }
 
-  const { text, encoding } = decodePlaylist(buffer);
+  const { text, encoding } = decodePlaylist(buffer, existing?.encodingOverride);
   const parsed = parsePlaylist(format, text);
   const content = await toTracks(database, parsed.entries, path.posix.dirname(sourcePath), index);
   const source = { path: sourcePath, checksum, modified, encoding };
@@ -114,18 +120,28 @@ const importFromHandle = async ({ database, index, imported }: Context, handle: 
 };
 
 /** The time and the content are read from the one open file, so they are of the same file */
-const importFile = async (context: Context, filePath: string, format: PlaylistFormat) => {
+const importFile = async (context: Context, filePath: string, format: PlaylistFormat, force = false) => {
   const handle = await fs.promises.open(filePath, 'r');
-  return importFromHandle(context, handle, filePath, format).finally(() => handle.close());
+  return importFromHandle(context, handle, filePath, format, force).finally(() => handle.close());
+};
+
+const contextOf = async (database: Database): Promise<Context> => ({
+  database,
+  index: createLibraryIndex(await getLibraryPaths(database)),
+  imported: new Map((await getImportedPlaylists(database)).map((playlist) => [playlist.sourcePath, playlist])),
+});
+
+/** Read the file of an imported playlist again whether it changed or not, as the user chose another encoding to read it with. Undefined for a playlist that has no file or a file that cannot be read (logged). See docs/app/playlist-import.md */
+export const reimportPlaylistFile = async (database: Database, id: number) => {
+  const context = await contextOf(database);
+  const linked = [...context.imported.values()].find((playlist) => playlist.id === id);
+  const format = linked ? playlistFormatOf(linked.sourcePath) : undefined;
+  return linked && format ? importFile(context, linked.sourcePath, format, true).catch(logImportError(linked.sourcePath)) : undefined;
 };
 
 /** Read the playlist files and store what they say, a playlist for each file: new ones are created, one that was imported from the file is changed when its content is (the file wins over what was done to the playlist in the app) and is left alone when it is not. A file that cannot be read or stored is logged and left out of the reports. See docs/app/playlist-import.md */
 export const importPlaylistFiles = async (database: Database, filePaths: string[]): Promise<PlaylistImportReport[]> => {
-  const context = {
-    database,
-    index: createLibraryIndex(await getLibraryPaths(database)),
-    imported: new Map((await getImportedPlaylists(database)).map((playlist) => [playlist.sourcePath, playlist])),
-  };
+  const context = await contextOf(database);
   const reports: PlaylistImportReport[] = [];
 
   // one after the other: a name that is taken is taken by the playlist before

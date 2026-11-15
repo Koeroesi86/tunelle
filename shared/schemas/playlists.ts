@@ -28,6 +28,27 @@ export const playlistIdSchema = z.object({ id });
 export const playlistMoveSchema = z.object({ id, toIndex: id });
 export const playlistAddSchema = z.object({ id, tracks });
 export const playlistSyncSchema = z.object({ id, sync: z.boolean() });
+/** The encodings that the user can read a playlist file with */
+export const playlistEncodings = [
+  'utf-8',
+  'utf-16le',
+  'utf-16be',
+  'windows-1250',
+  'windows-1251',
+  'windows-1252',
+  'windows-1253',
+  'windows-1254',
+  'windows-1255',
+  'windows-1256',
+  'windows-1257',
+  'windows-1258',
+  'macintosh',
+  'shift_jis',
+  'euc-kr',
+  'gbk',
+] as const;
+
+export const playlistEncodingSchema = z.object({ id, encoding: z.enum(playlistEncodings).optional() });
 export const playlistEntrySchema = z.object({ id, entryId: id });
 export const playlistMoveEntrySchema = z.object({ id, entryId: id, toIndex: id });
 

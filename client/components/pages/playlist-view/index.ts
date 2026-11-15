@@ -15,6 +15,8 @@ const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   remove: (id: number) => dispatch({ type: 'DELETE_PLAYLIST', payload: { id } }),
   exportPlaylist: (id: number) => dispatch({ type: 'EXPORT_PLAYLIST', payload: { id } }),
   setSync: (id: number, sync: boolean) => dispatch({ type: 'SYNC_PLAYLIST_FILE', payload: { id, sync } }),
+  setEncoding: (id: number, encoding?: string) => dispatch({ type: 'SET_PLAYLIST_ENCODING', payload: { id, encoding } }),
+  undoImport: (id: number) => dispatch({ type: 'UNDO_PLAYLIST_IMPORT', payload: { id } }),
   removeEntry: (id: number, entryId: number) => dispatch({ type: 'REMOVE_FROM_PLAYLIST', payload: { id, entryId } }),
   moveEntry: (id: number, entryId: number, toIndex: number) => dispatch({ type: 'MOVE_PLAYLIST_ENTRY', payload: { id, entryId, toIndex } }),
 });

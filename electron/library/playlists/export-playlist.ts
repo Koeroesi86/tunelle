@@ -3,12 +3,16 @@ import fs from 'fs';
 import path from 'path';
 import type { Database } from 'sqlite3';
 import { isRecord } from '@shared/utils/is-record';
+import { getFolders } from '../../repositories/library-repository';
 import { getImportedPlaylists, getPlaylists, markPlaylistWritten, relinkPlaylistFile } from '../../repositories/playlist-repository';
 import normalizePath from '../../utils/normalize-path';
+import { decodePlaylist } from './decode-playlist';
 import { encodePlaylist } from './encode-playlist';
-import { formatPlaylist } from './format-playlist';
+import { formatPlaylist, isOnAnotherDrive } from './format-playlist';
+import { keptLinesOf } from './kept-lines';
 import type { ExportEntry } from './format-playlist';
 import { playlistFormatOf } from './playlist-files';
+import type { PlaylistFormat } from './playlist-files';
 import { retirePlaylistFile, writePlaylistFile } from './write-playlist-file';
 
 const text = (value: unknown) => (typeof value === 'string' && value ? value : undefined);
@@ -36,13 +40,22 @@ export class PlaylistWriteError extends Error {
 }
 
 /** Write the playlist to the file, in the format of its extension: `.m3u8`, `.pls` and `.xspf` as UTF-8, `.m3u` in the encoding the file was read with, which must have every character of it. Returns what was written, undefined for a playlist that is not there or an extension that is no format; throws a PlaylistWriteError. See docs/app/playlist-export.md */
-const writePlaylist = async (database: Database, id: number, filePath: string, wantedEncoding: string | undefined, backup: boolean) => {
+const readKept = (format: PlaylistFormat, filePath: string) =>
+  fs.promises.readFile(filePath).then(
+    (buffer) => keptLinesOf(format, decodePlaylist(buffer).text),
+    () => undefined
+  );
+
+const writePlaylist = async (database: Database, id: number, filePath: string, wantedEncoding: string | undefined, backup: boolean, keep = false) => {
   const format = playlistFormatOf(filePath);
   const playlist = (await getPlaylists(database)).find((candidate) => candidate.id === id);
   if (!format || !playlist) return undefined;
 
   const folder = path.posix.dirname(normalizePath(filePath));
-  const content = formatPlaylist(format, { name: playlist.name, folder, entries: playlist.entries.map((entry) => toEntry(entry.path, entry.snapshot)) });
+  const roots = (await getFolders(database)).map((library) => normalizePath(library.path));
+  const entries = playlist.entries.map((entry) => toEntry(entry.path, entry.snapshot));
+  const kept = keep ? await readKept(format, filePath) : undefined;
+  const content = formatPlaylist(format, { name: playlist.name, folder, roots, entries, kept });
   const encoded = encodePlaylist(content, path.extname(filePath).toLowerCase() === '.m3u' ? wantedEncoding : undefined);
   if (!encoded) throw new PlaylistWriteError(filePath, 'encoding');
 
@@ -50,18 +63,24 @@ const writePlaylist = async (database: Database, id: number, filePath: string, w
     throw new PlaylistWriteError(filePath, 'failed', error);
   });
 
-  return { checksum: createHash('sha256').update(encoded.buffer).digest('hex'), modified, encoding: encoded.encoding };
+  return {
+    checksum: createHash('sha256').update(encoded.buffer).digest('hex'),
+    modified,
+    encoding: encoded.encoding,
+    onAnotherDrive: entries.filter((entry) => isOnAnotherDrive(entry.path, folder, roots)).length,
+  };
 };
 
 /** Save a copy of the playlist as a file; the playlist itself is not tied to it */
 export const exportPlaylist = async (database: Database, id: number, filePath: string) => {
-  await writePlaylist(database, id, filePath, undefined, true);
+  const written = await writePlaylist(database, id, filePath, undefined, true);
+  return { onAnotherDrive: written?.onAnotherDrive ?? 0 };
 };
 
 /** The playlist was changed in the app and is kept in sync with its file: write it, and store what was written so the scan does not read the write as an edit. Does nothing for a playlist without a file or with the sync off; throws a PlaylistWriteError. See docs/app/playlist-export.md */
 export const writeBackPlaylist = async (database: Database, id: number) => {
   const linked = (await getImportedPlaylists(database)).find((playlist) => playlist.id === id && playlist.sync);
-  const written = linked ? await writePlaylist(database, id, linked.sourcePath, linked.encoding ?? undefined, true) : undefined;
+  const written = linked ? await writePlaylist(database, id, linked.sourcePath, linked.encoding ?? undefined, true, true) : undefined;
   if (written) await markPlaylistWritten(database, id, written);
 };
 
