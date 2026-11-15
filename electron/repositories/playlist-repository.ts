@@ -127,8 +127,8 @@ export const createImportedPlaylist = (database: Database, name: string, source:
   executeQuery(
     database,
     {
-      query: `INSERT INTO playlists (name, position, created_at, source_path, source_checksum, source_mtime, source_encoding)
-        SELECT ?, COALESCE(MAX(position) + 1, 0), ?, ?, ?, ?, ? FROM playlists RETURNING id`,
+      query: `INSERT INTO playlists (name, position, created_at, source_path, source_checksum, source_mtime, source_encoding, source_sync)
+        SELECT ?, COALESCE(MAX(position) + 1, 0), ?, ?, ?, ?, ?, 1 FROM playlists RETURNING id`,
       variables: [name, Date.now(), source.path, source.checksum, source.modified, source.encoding],
     },
     idRowSchema

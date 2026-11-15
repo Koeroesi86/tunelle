@@ -12,7 +12,7 @@ The Export button of a playlist (`PLAYLIST_EXPORT`) opens a save dialog; the for
 
 ## Keeping a file in sync
 
-A playlist that was imported from a file has the checkbox "Keep file in sync" (`playlists.source_sync`, off by default, migration 019). With it on, every change of the playlist (a rename, an added, removed or moved entry) writes the file (`writeBackPlaylist`), and turning it on writes it at once. A playlist that was made in the app or exported has no file and no checkbox.
+A playlist that was imported from a file has the checkbox "Keep file in sync" (`playlists.source_sync`, on for every playlist that has a file and off in the checkbox when the user turns it off, migration 019). With it on, every change of the playlist (a rename, an added, removed or moved entry) writes the file (`writeBackPlaylist`), and turning it on writes it at once. A playlist that was made in the app or exported has no file and no checkbox.
 
 - **Atomic**: the bytes go to `<file>.<uuid>.tmp` beside the file and are renamed over it (`write-playlist-file.ts`), so a reader sees the old or the new file and a failed write leaves the old one.
 - **Backup**: the first write over a file keeps the old one as `<file>.bak` (`COPYFILE_EXCL`, an existing `.bak` is never replaced).

@@ -57,10 +57,11 @@ describe('exporting a playlist and writing it back', () => {
     expect(copy?.entries.map((entry) => entry.path)).toEqual([inFolder('one.flac'), inFolder('two.flac')]);
   });
 
-  it('writes a change back only when the sync is on, keeps the first file as .bak, and the scan does not read the write as an edit', async () => {
+  it('writes a change back of an imported playlist as it is on by default and not when it is turned off, keeps the first file as .bak, and the scan does not read the write as an edit', async () => {
     const { file, id } = await importMix('../one.flac\n');
     await addEntries(database, id, [{ path: inFolder('two.flac'), snapshot: track(inFolder('two.flac'), 'Two') }]);
 
+    await setPlaylistSync(database, id, false);
     await writeBackPlaylist(database, id);
     expect(await read('lists', 'mix.m3u')).toBe('../one.flac\n');
 
