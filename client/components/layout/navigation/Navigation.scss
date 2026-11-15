@@ -126,29 +126,6 @@
       color: var(--text-faint);
     }
 
-    .add {
-      -webkit-app-region: no-drag;
-      display: grid;
-      place-items: center;
-      width: 22px;
-      height: 22px;
-      margin: 0 6px 0 4px;
-      padding: 0;
-      border: 0;
-      border-radius: 50%;
-      color: inherit;
-      background: transparent;
-      cursor: pointer;
-      opacity: .7;
-      transition: background-color .15s ease-in-out, opacity .15s ease-in-out;
-
-      &:hover,
-      &:focus-visible {
-        opacity: 1;
-        background: var(--overlay);
-      }
-    }
-
     .chevron {
       flex: 0 0 auto;
       margin-left: 2px;
@@ -228,7 +205,6 @@
     }
 
     .item.group .chevron,
-    .item.group .add,
     .spectrum {
       display: none;
     }
@@ -242,11 +218,6 @@
 
     .item.group .groupToggle {
       min-height: $touch-target;
-    }
-
-    .item.group .add {
-      width: $touch-target;
-      height: $touch-target;
     }
   }
 }
