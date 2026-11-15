@@ -330,7 +330,7 @@ a:not(.button) > .icon {
   display: block;
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 6px;
   box-shadow: var(--shadow);
 }
 
