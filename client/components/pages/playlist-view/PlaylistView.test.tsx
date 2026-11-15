@@ -188,6 +188,15 @@ describe('PlaylistView', () => {
     expect(remove).toHaveBeenCalledWith(7);
   });
 
+  it('deletes a playlist that has a file at the first click, as the main process asks what happens to the file', () => {
+    const { remove } = renderView({ ...playlist, file: { path: '/music/mix.m3u', sync: true } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }));
+
+    expect(remove).toHaveBeenCalledWith(7);
+    expect(screen.queryByRole('button', { name: 'Delete for good' })).toBeNull();
+  });
+
   it('moves a track to where it is dropped', () => {
     const { moveEntry } = renderView();
     const dataTransfer = { setData: vi.fn(), effectAllowed: '' };

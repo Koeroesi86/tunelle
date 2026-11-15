@@ -36,3 +36,7 @@ A scan reads a file again only when its modification time is not the stored one,
 ## Not built yet
 
 Export and writing changes back to the file are in [playlist-export.md](playlist-export.md). The choice of the encoding by the user and a way to go back to the entries before a re-import are not built yet.
+
+## Deleting a playlist that has a file
+
+The file is the source of the playlist, so deleting the playlist alone does not last: the next scan or the folder watcher finds the file and makes the playlist again. `delete-playlist.ts` asks first for a playlist with a file (a native dialog of the main process, so the button of the playlist page sends the delete at the first click, without its own second click): "Delete and move the file to the trash" (`shell.trashItem`, so it can be taken back), "Delete the playlist only" (the dialog says that the playlist comes back while the file stays) and "Cancel", which is the default. A file that cannot be moved to the trash shows the notification of a failed write and keeps the playlist. A playlist without a file is deleted after the second click as before. There is no list of files to skip, so a playlist that was deleted alone is made again at the next scan; keeping that choice would need a table of ignored files and a migration, and is not built.

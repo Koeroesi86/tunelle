@@ -4,7 +4,6 @@ import type { ListenerContext } from './listener-context';
 import {
   addEntries,
   createPlaylist,
-  deletePlaylist,
   getPlaylists,
   moveEntry,
   movePlaylist,
@@ -14,6 +13,7 @@ import {
 } from '../repositories/playlist-repository';
 import { sendPlaylists } from '../library/playlists/send-playlists';
 import { exportPlaylist, writeBackPlaylist } from '../library/playlists/export-playlist';
+import { deletePlaylistAfterAsking } from '../library/playlists/delete-playlist';
 import { handleWriteFailure } from '../library/playlists/handle-write-failure';
 import { importPlaylistFiles } from '../library/playlists/import-playlist-files';
 import { playlistExportFilters, playlistExtensions } from '../library/playlists/playlist-files';
@@ -116,7 +116,7 @@ const registerPlaylistListeners = (context: ListenerContext) => {
     const parsed = parsePayload(playlistIdSchema, payload);
     if (!parsed) return;
 
-    reply(event.sender, deletePlaylist(database, parsed.id));
+    reply(event.sender, deletePlaylistAfterAsking(database, BrowserWindow.fromWebContents(event.sender), parsed.id));
   });
 
   ipcMain.on('PLAYLIST_MOVE', (event, payload: unknown) => {

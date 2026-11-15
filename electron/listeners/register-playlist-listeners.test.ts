@@ -7,7 +7,6 @@ import registerPlaylistListeners from './register-playlist-listeners';
 import {
   addEntries,
   createPlaylist,
-  deletePlaylist,
   getPlaylists,
   moveEntry,
   movePlaylist,
@@ -17,6 +16,7 @@ import {
 } from '../repositories/playlist-repository';
 import { findTrackFormat } from '../repositories/library-repository';
 import { writeBackPlaylist } from '../library/playlists/export-playlist';
+import { deletePlaylistAfterAsking } from '../library/playlists/delete-playlist';
 import { handleWriteFailure } from '../library/playlists/handle-write-failure';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
@@ -33,7 +33,6 @@ vi.mock('electron', () => ({
 vi.mock('../repositories/playlist-repository', () => ({
   addEntries: vi.fn(),
   createPlaylist: vi.fn(),
-  deletePlaylist: vi.fn(),
   getPlaylists: vi.fn(),
   getImportedPlaylists: vi.fn().mockResolvedValue([]),
   setPlaylistSync: vi.fn(),
@@ -43,6 +42,7 @@ vi.mock('../repositories/playlist-repository', () => ({
   renamePlaylist: vi.fn(),
 }));
 vi.mock('../library/playlists/handle-write-failure', () => ({ handleWriteFailure: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../library/playlists/delete-playlist', () => ({ deletePlaylistAfterAsking: vi.fn() }));
 vi.mock('../library/playlists/export-playlist', () => ({ exportPlaylist: vi.fn(), writeBackPlaylist: vi.fn() }));
 vi.mock('../repositories/library-repository', () => ({ findTrackFormat: vi.fn() }));
 
@@ -89,7 +89,7 @@ describe('registerPlaylistListeners', () => {
     vi.mocked(createPlaylist).mockReset().mockResolvedValue(7);
     vi.mocked(addEntries).mockReset().mockResolvedValue(undefined);
     vi.mocked(renamePlaylist).mockReset().mockResolvedValue([]);
-    vi.mocked(deletePlaylist).mockReset().mockResolvedValue([]);
+    vi.mocked(deletePlaylistAfterAsking).mockReset().mockResolvedValue(undefined);
     vi.mocked(movePlaylist).mockReset().mockResolvedValue([]);
     vi.mocked(removeEntry).mockReset().mockResolvedValue([]);
     vi.mocked(moveEntry).mockReset().mockResolvedValue([]);
@@ -177,7 +177,7 @@ describe('registerPlaylistListeners', () => {
       ],
     ],
     ['PLAYLIST_RENAME', { id: 7, name: ' Night ' }, renamePlaylist, [7, 'Night']],
-    ['PLAYLIST_DELETE', { id: 7 }, deletePlaylist, [7]],
+    ['PLAYLIST_DELETE', { id: 7 }, deletePlaylistAfterAsking, [null, 7]],
     ['PLAYLIST_MOVE', { id: 7, toIndex: 2 }, movePlaylist, [7, 2]],
     ['PLAYLIST_REMOVE_ENTRY', { id: 7, entryId: 3 }, removeEntry, [7, 3]],
     ['PLAYLIST_MOVE_ENTRY', { id: 7, entryId: 3, toIndex: 0 }, moveEntry, [7, 3, 0]],
@@ -202,7 +202,7 @@ describe('registerPlaylistListeners', () => {
   ])('ignores the malformed %s message %j', async (channel, payload) => {
     await call(channel, payload);
 
-    [createPlaylist, addEntries, renamePlaylist, deletePlaylist, movePlaylist, removeEntry, moveEntry].forEach((repository) =>
+    [createPlaylist, addEntries, renamePlaylist, deletePlaylistAfterAsking, movePlaylist, removeEntry, moveEntry].forEach((repository) =>
       expect(repository).not.toHaveBeenCalled()
     );
     expect(send).not.toHaveBeenCalled();
@@ -210,7 +210,7 @@ describe('registerPlaylistListeners', () => {
 
   it('logs a failure and sends nothing', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    vi.mocked(deletePlaylist).mockRejectedValue(new Error('disk full'));
+    vi.mocked(deletePlaylistAfterAsking).mockRejectedValue(new Error('disk full'));
 
     await call('PLAYLIST_DELETE', { id: 7 });
 

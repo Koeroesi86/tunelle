@@ -96,7 +96,8 @@ const PlaylistView = ({ playlist, playTracks, rename, remove, exportPlaylist, se
         <button
           type="button"
           className={classNames(style.delete, { [style.danger]: confirming })}
-          onClick={() => (confirming ? remove(playlist.id) : setConfirming(true))}
+          // a playlist with a file is asked about by the main process, which says what happens to the file
+          onClick={() => (confirming || playlist.file ? remove(playlist.id) : setConfirming(true))}
           onBlur={() => setConfirming(false)}
         >
           {confirming ? t('playlists.confirmDelete') : t('playlists.delete')}
