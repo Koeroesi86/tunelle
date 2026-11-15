@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { formatPlaylist, isOnAnotherDrive, locationOf } from './format-playlist';
 import { parsePlaylist } from './parse-playlist';
 
@@ -92,6 +92,12 @@ describe('formatPlaylist with the lines of the earlier file', () => {
 });
 
 describe('formatPlaylist', () => {
+  // the absolute path is written the way the system has it, so the round trip is checked as on Linux
+  beforeEach(() => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('linux');
+  });
+  afterEach(() => vi.restoreAllMocks());
+
   it('writes an extended M3U that reads back the same', () => {
     const text = formatPlaylist('m3u', playlist);
 
