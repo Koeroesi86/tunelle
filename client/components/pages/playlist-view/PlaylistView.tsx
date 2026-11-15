@@ -96,14 +96,18 @@ const PlaylistView = ({ playlist, playTracks, rename, remove, exportPlaylist, se
         <button
           type="button"
           className={classNames(style.delete, { [style.danger]: confirming })}
-          // a playlist with a file is asked about by the main process, which says what happens to the file
-          onClick={() => (confirming || playlist.file ? remove(playlist.id) : setConfirming(true))}
+          onClick={() => (confirming ? remove(playlist.id) : setConfirming(true))}
           onBlur={() => setConfirming(false)}
         >
           {confirming ? t('playlists.confirmDelete') : t('playlists.delete')}
         </button>
       </div>
       <div className={style.contents}>
+        {confirming && playlist.file && (
+          <div className={style.message} role="alert">
+            {t('playlists.deleteFileWarning', { file: playlist.file.path.replace(/^.*\//, '') })}
+          </div>
+        )}
         {playlist.entries.length === 0 && <div className={style.message}>{t('playlists.empty')}</div>}
         {hasUnavailable && <div className={style.message}>{t('playlists.unavailableNote')}</div>}
         {playlist.entries.map(({ id, track, available }, index) => (

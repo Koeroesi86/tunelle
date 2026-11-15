@@ -188,13 +188,25 @@ describe('PlaylistView', () => {
     expect(remove).toHaveBeenCalledWith(7);
   });
 
-  it('deletes a playlist that has a file at the first click, as the main process asks what happens to the file', () => {
-    const { remove } = renderView({ ...playlist, file: { path: '/music/mix.m3u', sync: true } });
+  it('warns that a playlist that has a file comes back with the next scan while the file stays, and only while it asks', () => {
+    const { remove } = renderView({ ...playlist, file: { path: '/music/lists/mix.m3u', sync: true } });
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }));
+
+    expect(screen.getByRole('alert').textContent).toContain('mix.m3u');
+    expect(screen.getByRole('alert').textContent).toContain('comes back');
+    expect(remove).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete for good' }));
+    expect(remove).toHaveBeenCalledWith(7);
+  });
+
+  it('says nothing of a file for a playlist that has none', () => {
+    renderView();
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }));
 
-    expect(remove).toHaveBeenCalledWith(7);
-    expect(screen.queryByRole('button', { name: 'Delete for good' })).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('moves a track to where it is dropped', () => {
