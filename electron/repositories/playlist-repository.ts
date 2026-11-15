@@ -138,10 +138,7 @@ export const createImportedPlaylist = (database: Database, name: string, source:
 export const replaceImportedEntries = async (database: Database, id: number, source: PlaylistSource, tracks: { path: string; snapshot: unknown }[]) => {
   await executeQuery(database, { query: `DELETE FROM playlist_tracks WHERE playlist_id = ?`, variables: [id] });
   await addEntries(database, id, tracks);
-  return executeQuery(database, {
-    query: `UPDATE playlists SET source_path = ?, source_checksum = ?, source_mtime = ?, source_encoding = ? WHERE id = ?`,
-    variables: [source.path, source.checksum, source.modified, source.encoding, id],
-  });
+  return relinkPlaylistFile(database, id, source);
 };
 
 /** The file is the same as it was read, only its modification time is another */
@@ -165,4 +162,11 @@ export const markPlaylistWritten = (database: Database, id: number, source: Omit
   executeQuery(database, {
     query: `UPDATE playlists SET source_checksum = ?, source_mtime = ?, source_encoding = ? WHERE id = ?`,
     variables: [source.checksum, source.modified, source.encoding, id],
+  });
+
+/** The playlist is linked to another file, the one the app wrote */
+export const relinkPlaylistFile = (database: Database, id: number, source: PlaylistSource) =>
+  executeQuery(database, {
+    query: `UPDATE playlists SET source_path = ?, source_checksum = ?, source_mtime = ?, source_encoding = ? WHERE id = ?`,
+    variables: [source.path, source.checksum, source.modified, source.encoding, id],
   });
