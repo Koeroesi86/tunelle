@@ -80,7 +80,7 @@
   "tour.liked.text": "Tracks, albums and stations land in one Liked page with a switch between Local and Online, a count of what is in it, Play all and Shuffle. Sort by when you liked it, by name or by artist.",
   "tour.liked.alt": "The Liked page of Tunelle: a heart cover with totals, Play all local and Shuffle buttons, a Local and Online switch and a list of liked tracks and albums.",
   "tour.playlist.title": "Playlists, the quick way",
-  "tour.playlist.text": "Press the plus in the sidebar, name it, then add tracks or whole albums from any list. Drag playlists into order and drag the tracks inside one. Tracks whose files are away stay put and play again when they return.",
+  "tour.playlist.text": "Press the plus in the sidebar, name it, then add tracks or whole albums from any list. Drag playlists into order and drag the tracks inside one. Tracks whose files are away stay put and play again when they return. Playlist files (M3U, M3U8, PLS and XSPF) in your music folders become playlists by themselves, and the arrow button next to the plus imports one from anywhere.",
   "tour.playlist.alt": "A playlist in Tunelle named Late night: numbered rows with title, artist, album and format, and a Play all button.",
   "tour.equalizer.title": "Shape the sound",
   "tour.equalizer.text": "Ten bands from 70 Hz to 16 kHz, drawn as a curve you drag. Presets get you started, Faders show the numbers, Reset puts it flat again.",

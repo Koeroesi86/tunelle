@@ -5,7 +5,7 @@ import type { FailedLoudnessTrack, LoudnessProgress } from '@shared/types/loudne
 import type { AlbumCoverCandidates, AlbumCoverChange, AlbumCoverChanged, AlbumCoverFailure } from '@shared/types/album-cover';
 import type { ArtistPhotoCandidates, ArtistPhotoChange, ArtistPhotoFailure } from '@shared/types/artist-photo';
 import type { BackgroundTask } from '@shared/schemas/background-tasks';
-import type { Playlist } from '@shared/types/playlists';
+import type { Playlist, PlaylistImportReport } from '@shared/types/playlists';
 import type { ThemeMode } from '@shared/types/theme';
 import type { NormalizationMode } from '../audio/loudness';
 import type { OutputDevice } from '../audio/output-device';
@@ -52,6 +52,8 @@ export interface UiState extends PersistedSettings {
   albumCoverFailure: AlbumCoverFailure | undefined;
   /** What the last search of a cover found, undefined until it answers or when nothing was searched; not saved */
   albumCoverCandidates: AlbumCoverCandidates | undefined;
+  /** What the last import of playlist files did, undefined until one is done and again once it is closed; not saved */
+  playlistImport: PlaylistImportReport[] | undefined;
   /** Counts the changes of the photos, so what shows one fetches it again; not saved */
   artistPhotoRevision: number;
   /** The artist, album artist or genre that is open, and the text the artists, album artists and genres are filtered by; neither is saved */
@@ -144,6 +146,9 @@ export type AppAction =
   | PayloadAction<'FAVOURITES_LOADED', { favourites: Favourite[] }>
   | PayloadAction<'HISTORY_LOADED', { history: HistoryItem[] }>
   | PayloadAction<'PLAYLISTS_LOADED', { playlists: Playlist[] }>
+  | EmptyAction<'IMPORT_PLAYLISTS'>
+  | PayloadAction<'PLAYLIST_IMPORT_REPORTED', { reports: PlaylistImportReport[] }>
+  | EmptyAction<'DISMISS_PLAYLIST_IMPORT'>
   | PayloadAction<'OPEN_PLAYLIST', { id: number }>
   | PayloadAction<'CREATE_PLAYLIST', { name: string; tracks?: Track[] }>
   | PayloadAction<'RENAME_PLAYLIST', { id: number; name: string }>

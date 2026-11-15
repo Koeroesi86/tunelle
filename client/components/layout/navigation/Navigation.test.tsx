@@ -164,6 +164,15 @@ describe('Navigation', () => {
       expect(Array.from(document.querySelectorAll('.active')).map((item) => item.textContent)).toEqual(['Night']);
     });
 
+    it('asks to import playlist files with the button next to the new one', () => {
+      const importPlaylists = vi.fn();
+      render(<Navigation importPlaylists={importPlaylists} />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Import playlists' }));
+
+      expect(importPlaylists).toHaveBeenCalledTimes(1);
+    });
+
     it('creates a playlist from the name that was typed, and not from an empty one', () => {
       const createPlaylist = vi.fn();
       render(<Navigation createPlaylist={createPlaylist} />);

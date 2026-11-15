@@ -15,6 +15,7 @@ import Navigation from '../navigation';
 import AudioSpectrum from '../audio-spectrum';
 import PlayerTabs from '../player-tabs';
 import LauncherOffer from '../launcher-offer';
+import PlaylistImportReport from '../playlist-import-report';
 
 interface PlayerHomeProps {
   maximized: boolean;
@@ -120,6 +121,7 @@ const PlayerHome = ({ maximized, enableTransparency = true, blurred, loaded, fol
         cancel={() => setConfirmation(undefined)}
       />
       <LauncherOffer />
+      <PlaylistImportReport />
       <AudioComponent />
     </div>
   );

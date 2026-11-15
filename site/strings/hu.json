@@ -80,7 +80,7 @@
   "tour.liked.text": "A számok, albumok és állomások egyetlen Kedvelt oldalra kerülnek, Helyi és Online váltóval, a bennük lévők számával, Összes lejátszása és Keverés gombbal. Rendezd aszerint, mikor kedvelted, név vagy előadó szerint.",
   "tour.liked.alt": "A Tunelle Kedvelt oldala: szív borító összesítéssel, Összes helyi lejátszása és Keverés gombbal, Helyi és Online váltóval, valamint a kedvelt számok és albumok listájával.",
   "tour.playlist.title": "Lejátszási listák, gyorsan",
-  "tour.playlist.text": "Nyomd meg a plusz jelet az oldalsávban, adj nevet, majd bármelyik listából adj hozzá számokat vagy egész albumokat. Húzással rendezd a listákat és a bennük lévő számokat. Azok a számok, amelyek fájljai nem elérhetők, a helyükön maradnak, és újra szólnak, amint a fájlok visszatérnek.",
+  "tour.playlist.text": "Nyomd meg a plusz jelet az oldalsávban, adj nevet, majd bármelyik listából adj hozzá számokat vagy egész albumokat. Húzással rendezd a listákat és a bennük lévő számokat. Azok a számok, amelyek fájljai nem elérhetők, a helyükön maradnak, és újra szólnak, amint a fájlok visszatérnek. A zenemappáidban lévő lejátszásilista-fájlok (M3U, M3U8, PLS és XSPF) maguktól lejátszási listává válnak, a plusz melletti nyíl gombbal pedig bárhonnan importálhatsz egyet.",
   "tour.playlist.alt": "A Tunelle-ben egy Late night nevű lejátszási lista: számozott sorok címmel, előadóval, albummal és formátummal, valamint egy Összes lejátszása gomb.",
   "tour.equalizer.title": "Formáld a hangot",
   "tour.equalizer.text": "Tíz sáv 70 Hz-től 16 kHz-ig, húzható görbeként rajzolva. Az előbeállítások segítenek az indulásban, a Csúszkák megmutatják a számokat, a Visszaállítás újra laposra állítja.",

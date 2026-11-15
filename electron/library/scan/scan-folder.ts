@@ -10,6 +10,8 @@ import { queueAlbumArtAccents } from '../art/album-art-accents';
 import { createTrackReader, ReadTimeoutError } from '../reading/track-reader';
 import { getTracksInside } from '../../repositories/library-repository';
 import isSupported, { isSupportedCodec } from '../../utils/is-supported';
+import { isPlaylistFile } from '../playlists/playlist-files';
+import { syncPlaylistFiles } from '../playlists/sync-playlist-files';
 import normalizePath from '../../utils/normalize-path';
 import { quitSignal, trackScan } from './scan-cancellation';
 import { mapAsync } from '@shared/utils/map-async';
@@ -28,10 +30,10 @@ const isUnchanged = (track: Pick<Track, 'fileModified' | 'fileSize'> | undefined
 const findEntryFiles = async (directory: string, entry: fs.Dirent, deep: boolean): Promise<string[]> => {
   const entryPath = path.join(directory, entry.name);
   if (entry.isDirectory()) return deep ? findFiles(entryPath, deep) : [];
-  return entry.isFile() && isSupported(entryPath) ? [entryPath] : [];
+  return entry.isFile() && (isSupported(entryPath) || isPlaylistFile(entryPath)) ? [entryPath] : [];
 };
 
-/** Collect the supported audio files of a folder tree, or of the folder itself when it is not deep, one folder at a time, symbolic links are skipped */
+/** Collect the supported audio files and the playlist files of a folder tree, or of the folder itself when it is not deep, one folder at a time, symbolic links are skipped */
 const findFiles = async (directory: string, deep: boolean): Promise<string[]> => {
   const entries = await fs.promises.readdir(directory, { withFileTypes: true });
   const found: string[] = [];
@@ -110,7 +112,9 @@ const scanFiles = async (folderPath: string, sender: WebContents, deep: boolean,
   const database = global._database;
   if (!database) throw new Error('Database is not connected');
 
-  const files = (await findFiles(folderPath, deep)).sort();
+  const found = (await findFiles(folderPath, deep)).sort();
+  const files = found.filter(isSupported);
+  const playlistFiles = found.filter(isPlaylistFile);
   signal.throwIfAborted();
   const library = await getTracksInside(database, folderPath);
   const existingTracks = new Map(library.map((track) => [track.path, track]));
@@ -167,6 +171,9 @@ const scanFiles = async (folderPath: string, sender: WebContents, deep: boolean,
     for (const [progress, fileName] of files.entries()) await scanFile(fileName, progress);
     const unread = await retryTimedOut(timedOut);
     await writer.flush();
+    // after the tracks are stored, as the entries of a playlist are matched with them; a folder that was removed meanwhile gets no playlists
+    signal.throwIfAborted();
+    await syncPlaylistFiles(database, sender, folderPath, deep, playlistFiles);
     queueAlbumArtAccents(database);
     return unread;
   };

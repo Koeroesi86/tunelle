@@ -14,7 +14,7 @@ export interface Playlist {
   entries: PlaylistEntry[];
 }
 
-export type { StoredPlaylist } from '../schemas/playlists';
+export type { PlaylistImportReport, StoredPlaylist } from '../schemas/playlists';
 
 /** A playlist as the main process sends it, the track is as it was saved and the window checks it before it shows it */
 export interface PlaylistMessage {

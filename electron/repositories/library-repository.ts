@@ -140,6 +140,26 @@ export const getTracksInside = (database: Database, folderPath: string) =>
     libraryRowSchema.pick({ path: true, fileModified: true, fileSize: true })
   );
 
+/** Every path of the library, to look the files of a playlist up in */
+export const getLibraryPaths = (database: Database) =>
+  executeQuery(database, { query: `SELECT path FROM library`, variables: [] }, libraryRowSchema.pick({ path: true })).then((rows) =>
+    rows.map((row) => row.path)
+  );
+
+const pathsPerQuery = 500;
+
+/** The tracks of these paths as the lists show them, the ones the library does not have are left out */
+export const getTrackListByPaths = (database: Database, paths: string[]) =>
+  Promise.all(
+    Array.from({ length: Math.ceil(paths.length / pathsPerQuery) }, (_, chunk) => paths.slice(chunk * pathsPerQuery, (chunk + 1) * pathsPerQuery)).map((part) =>
+      executeQuery(
+        database,
+        { query: `SELECT ${trackColumns.join(', ')} FROM library WHERE path IN (${part.map(() => '?').join(', ')})`, variables: part },
+        trackListSchema
+      )
+    )
+  ).then((chunks) => chunks.flat());
+
 /** Whether the library has a track below a folder */
 export const hasTracksInside = (database: Database, folderPath: string) =>
   executeQuery(

@@ -6,12 +6,14 @@ import { useTranslation } from '../../../i18n';
 interface ConfirmProps {
   message?: string | null;
   confirmLabel?: string;
+  /** A message that only has to be read has the one button, the cancel one */
+  hideConfirm?: boolean;
   cancelLabel?: string;
   confirm?: MouseEventHandler<HTMLButtonElement>;
   cancel: MouseEventHandler<HTMLButtonElement>;
 }
 
-function Confirm({ message, confirm = () => {}, cancel, confirmLabel, cancelLabel }: ConfirmProps) {
+function Confirm({ message, confirm = () => {}, cancel, confirmLabel, cancelLabel, hideConfirm = false }: ConfirmProps) {
   const { t } = useTranslation();
 
   return (
@@ -23,9 +25,11 @@ function Confirm({ message, confirm = () => {}, cancel, confirmLabel, cancelLabe
       >
         <div className={style.message}>{message}</div>
         <div className={style.buttons}>
-          <button onClick={confirm} className={style.button}>
-            {confirmLabel ?? t('confirm.yes')}
-          </button>
+          {!hideConfirm && (
+            <button onClick={confirm} className={style.button}>
+              {confirmLabel ?? t('confirm.yes')}
+            </button>
+          )}
           <button onClick={cancel} className={style.button}>
             {cancelLabel ?? t('confirm.no')}
           </button>
