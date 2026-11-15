@@ -114,6 +114,8 @@ describe('importing playlist files', () => {
     await renamePlaylist(database, playlist?.id ?? -1, 'My mix');
 
     await fs.promises.writeFile(file, '../two.flac\n');
+    // a rewrite in the same tick of the clock keeps the modified time (and the size), and the import takes the file for unchanged
+    await fs.promises.utimes(file, new Date(), new Date(Date.now() + 5000));
     const [report] = await importPlaylistFiles(database, [file]);
 
     const [after] = await getPlaylists(database);
