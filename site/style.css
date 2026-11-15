@@ -330,12 +330,72 @@ a:not(.button) > .icon {
   display: block;
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 6px;
   box-shadow: var(--shadow);
 }
 
 .hero-shot {
+  position: relative;
   margin-top: 40px;
+  padding-bottom: 64px;
+}
+
+/* a monitor around the first screenshot: bezel, neck and foot are drawn with the borders and gradients below */
+.hero-shot::before {
+  content: '';
+  position: absolute;
+  inset: 8% 6% 4%;
+  z-index: -1;
+  background: radial-gradient(ellipse at 50% 60%, var(--glow), transparent 70%);
+  filter: blur(40px);
+}
+
+.monitor {
+  padding: 14px 14px 18px;
+  border: 1px solid #3a3f4b;
+  border-radius: 20px;
+  background: linear-gradient(160deg, #2a2d36, #0d0e12 60%);
+  box-shadow:
+    var(--shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.hero-shot .monitor img {
+  border: 1px solid #000;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.hero-shot::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: min(30%, 280px);
+  height: 64px;
+  transform: translateX(-50%);
+  background:
+    linear-gradient(90deg, #1b1d24, #3a3f4b 50%, #1b1d24) top center / 22% 46px no-repeat,
+    linear-gradient(90deg, #1b1d24, #3a3f4b 50%, #1b1d24) bottom center / 100% 12px no-repeat;
+  border-radius: 0 0 14px 14px;
+}
+
+@media (max-width: 720px) {
+  .monitor {
+    padding: 7px 7px 10px;
+    border-radius: 12px;
+  }
+
+  .hero-shot {
+    padding-bottom: 36px;
+  }
+
+  .hero-shot::after {
+    height: 36px;
+    background-size:
+      22% 26px,
+      100% 8px;
+  }
 }
 
 .chips {
@@ -536,4 +596,60 @@ footer {
   color: var(--muted);
   text-align: center;
   font-size: 0.95rem;
+}
+
+.top .menu {
+  display: none;
+}
+
+/* on a phone the bar is two rows: brand, language, theme and the menu button, then the links, which the button opens when the script runs */
+@media (max-width: 600px) {
+  .top {
+    flex-wrap: wrap;
+    gap: 0 8px;
+  }
+
+  .top .languages,
+  .top .theme,
+  .top .menu {
+    order: 1;
+  }
+
+  .top[data-menu] .menu {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .top[data-menu='closed'] > a:not(.brand) {
+    display: none;
+  }
+
+  .top::after {
+    content: '';
+    order: 2;
+    flex-basis: 100%;
+    height: 0;
+  }
+
+  .top > a:not(.brand) {
+    order: 3;
+    flex-basis: 100%;
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .top .languages a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
 }

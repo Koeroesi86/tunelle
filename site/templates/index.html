@@ -27,6 +27,7 @@
       <a href="https://github.com/Koeroesi86/tunelle">GitHub</a>
       {{switcher}}
       <button class="theme" id="theme-toggle" type="button" hidden></button>
+      <button class="menu" id="menu-toggle" type="button" aria-expanded="false" aria-label="{{t:js.menu}}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg></button>
     </nav>
 
     <header class="hero" id="top">
@@ -39,7 +40,9 @@
       </p>
       <p class="meta">{{t:hero.meta}}</p>
       <figure class="shot hero-shot">
-        <img src="{{base}}screenshots/album.webp" width="1360" height="850" alt="{{t:hero.alt}}" fetchpriority="high" />
+        <div class="monitor">
+          <img src="{{base}}screenshots/album.webp" width="1360" height="850" alt="{{t:hero.alt}}" fetchpriority="high" />
+        </div>
       </figure>
     </header>
 
@@ -49,9 +52,8 @@
       <li>{{t:chips.noAccount}}</li>
       <li>{{t:chips.lossless}}</li>
       <li>{{t:chips.radio}}</li>
-      <li>{{t:chips.playlists}}</li>
-      <li>{{t:chips.equalizer}}</li>
-      <li>{{t:chips.theme}}</li>
+      <li>{{t:chips.loudness}}</li>
+      <li>{{t:chips.accessible}}</li>
       <li>{{t:chips.platforms}}</li>
     </ul>
 
@@ -59,11 +61,6 @@
       <section aria-labelledby="features">
         <h2 id="features">{{t:features.title}}</h2>
         <ul class="cards">
-          <li>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h16" /></svg>
-            <h3>{{t:features.library.title}}</h3>
-            <p>{{t:features.library.text}}</p>
-          </li>
           <li>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h3l2-6 4 12 3-9 2 3h4" /></svg>
             <h3>{{t:features.lossless.title}}</h3>
@@ -75,44 +72,34 @@
             <p>{{t:features.formats.text}}</p>
           </li>
           <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h2M7 8v8M11 4v16M15 8v8M19 10v4" /></svg>
+            <h3>{{t:features.loudness.title}}</h3>
+            <p>{{t:features.loudness.text}}</p>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v5H4zM17 14h3v5h-3z" /></svg>
+            <h3>{{t:features.output.title}}</h3>
+            <p>{{t:features.output.text}}</p>
+          </li>
+          <li>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9a10 10 0 0 1 14 0M8 12.5a6 6 0 0 1 8 0M12 16h.01M3 6a14 14 0 0 1 18 0" /></svg>
             <h3>{{t:features.radio.title}}</h3>
             <p>{{t:features.radio.text}}</p>
           </li>
           <li>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" /></svg>
-            <h3>{{t:features.home.title}}</h3>
-            <p>{{t:features.home.text}}</p>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7" /></svg>
+            <h3>{{t:features.playlistfiles.title}}</h3>
+            <p>{{t:features.playlistfiles.text}}</p>
           </li>
           <li>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /></svg>
-            <h3>{{t:features.liked.title}}</h3>
-            <p>{{t:features.liked.text}}</p>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6l2 2h10v11H3zM12 12v5M9.5 14.5 12 12l2.5 2.5" /></svg>
+            <h3>{{t:features.folders.title}}</h3>
+            <p>{{t:features.folders.text}}</p>
           </li>
           <li>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M12 4v16M18 4v16M4 14h4M10 8h4M16 12h4" /></svg>
-            <h3>{{t:features.equalizer.title}}</h3>
-            <p>{{t:features.equalizer.text}}</p>
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h12M4 12h12M4 17h8M19 14v6M16 17h6" /></svg>
-            <h3>{{t:features.queue.title}}</h3>
-            <p>{{t:features.queue.text}}</p>
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 3 3 0 0 0 0-6 3 3 0 0 1 0-6 3 3 0 0 0 0-6z" /></svg>
-            <h3>{{t:features.theme.title}}</h3>
-            <p>{{t:features.theme.text}}</p>
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M12 5v14M8 19h8" /></svg>
-            <h3>{{t:features.language.title}}</h3>
-            <p>{{t:features.language.text}}</p>
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v11H3zM8 21h8M12 16v5" /></svg>
-            <h3>{{t:features.native.title}}</h3>
-            <p>{{t:features.native.text}}</p>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a1.5 1.5 0 1 0 0 .01M5 9l7 1.5L19 9M12 10.5V15l-3 5M12 15l3 5" /></svg>
+            <h3>{{t:features.access.title}}</h3>
+            <p>{{t:features.access.text}}</p>
           </li>
           <li>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5" /></svg>
@@ -140,46 +127,32 @@
         </div>
         <div class="row">
           <div class="copy">
-            <h3>{{t:tour.genre.title}}</h3>
-            <p>{{t:tour.genre.text}}</p>
-          </div>
-          <figure class="shot"><img src="{{base}}screenshots/genre.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.genre.alt}}" /></figure>
-        </div>
-        <div class="row flip">
-          <div class="copy">
             <h3>{{t:tour.songs.title}}</h3>
             <p>{{t:tour.songs.text}}</p>
           </div>
           <figure class="shot"><img src="{{base}}screenshots/songs.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.songs.alt}}" /></figure>
         </div>
-        <div class="row">
+        <div class="row flip">
           <div class="copy">
             <h3>{{t:tour.folders.title}}</h3>
             <p>{{t:tour.folders.text}}</p>
           </div>
           <figure class="shot"><img src="{{base}}screenshots/folders.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.folders.alt}}" /></figure>
         </div>
-        <div class="row flip">
+        <div class="row">
           <div class="copy">
             <h3>{{t:tour.now.title}}</h3>
             <p>{{t:tour.now.text}}</p>
           </div>
           <figure class="shot"><img src="{{base}}screenshots/now.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.now.alt}}" /></figure>
         </div>
-        <div class="row" id="radio">
+        <div class="row flip" id="radio">
           <div class="copy">
             <h3>{{t:tour.radio.title}}</h3>
             <p>{{t:tour.radio.text}}</p>
             <p>{{t:tour.radio.more}}</p>
           </div>
           <figure class="shot"><img src="{{base}}screenshots/radio.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.radio.alt}}" /></figure>
-        </div>
-        <div class="row flip">
-          <div class="copy">
-            <h3>{{t:tour.liked.title}}</h3>
-            <p>{{t:tour.liked.text}}</p>
-          </div>
-          <figure class="shot"><img src="{{base}}screenshots/liked.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.liked.alt}}" /></figure>
         </div>
         <div class="row">
           <div class="copy">
@@ -189,13 +162,6 @@
           <figure class="shot"><img src="{{base}}screenshots/playlist.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.playlist.alt}}" /></figure>
         </div>
         <div class="row flip">
-          <div class="copy">
-            <h3>{{t:tour.equalizer.title}}</h3>
-            <p>{{t:tour.equalizer.text}}</p>
-          </div>
-          <figure class="shot"><img src="{{base}}screenshots/equalizer.webp" width="1360" height="850" loading="lazy" alt="{{t:tour.equalizer.alt}}" /></figure>
-        </div>
-        <div class="row">
           <div class="copy">
             <h3>{{t:tour.settings.title}}</h3>
             <p>{{t:tour.settings.text}}</p>
@@ -282,6 +248,7 @@
       <a href="privacy.html">{{t:footer.privacy}}</a>
       <a href="https://github.com/Koeroesi86/tunelle/blob/master/LICENSE.md">{{t:footer.licence}}</a>
     </footer>
+    <script src="{{base}}menu.js" defer></script>
     <script src="{{base}}download.js" data-copied="{{t:js.copied}}" data-download-for="{{t:js.downloadFor}}" data-install-linux="{{t:js.installLinux}}"></script>
   </body>
 </html>
