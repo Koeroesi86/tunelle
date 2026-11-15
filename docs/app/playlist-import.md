@@ -36,3 +36,7 @@ A scan reads a file again only when its modification time is not the stored one,
 ## Not built yet
 
 Export and writing changes back to the file are in [playlist-export.md](playlist-export.md). The choice of the encoding by the user and a way to go back to the entries before a re-import are not built yet.
+
+## Deleting a playlist that has a file
+
+Deleting a playlist removes it from the app and not its file, so the next scan or the folder watcher makes the playlist again from the file. A playlist with a file asks in the dialog of the app (`Confirm`, as the clearing of the history does) with the name, the file, and that the playlist comes back at the next scan while the file stays, so delete the file too to keep it away; "Yes" deletes it and "No" keeps it. A playlist without a file asks with two clicks on the button ("Delete playlist", then "Delete for good"). The app does not delete the file itself, and does not remember that a playlist was deleted (that would need a table of ignored files and a migration).

@@ -188,6 +188,38 @@ describe('PlaylistView', () => {
     expect(remove).toHaveBeenCalledWith(7);
   });
 
+  it('asks in a dialog for a playlist that has a file, and says that it comes back with the next scan while the file stays', () => {
+    const { remove } = renderView({ ...playlist, file: { path: '/music/lists/mix.m3u', sync: true } });
+
+    expect(screen.queryByText(/comes back/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }));
+
+    expect(screen.getByText(/mix\.m3u.*comes back/)).toBeTruthy();
+    expect(remove).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    expect(remove).toHaveBeenCalledWith(7);
+    expect(screen.queryByText(/comes back/)).toBeNull();
+  });
+
+  it('keeps a playlist that has a file when the dialog is answered with no', () => {
+    const { remove } = renderView({ ...playlist, file: { path: '/music/lists/mix.m3u', sync: true } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }));
+    fireEvent.click(screen.getByRole('button', { name: 'No' }));
+
+    expect(remove).not.toHaveBeenCalled();
+    expect(screen.queryByText(/comes back/)).toBeNull();
+  });
+
+  it('asks with the second click and no dialog for a playlist that has no file', () => {
+    renderView();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }));
+
+    expect(screen.queryByText(/comes back/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Delete for good' })).toBeTruthy();
+  });
+
   it('moves a track to where it is dropped', () => {
     const { moveEntry } = renderView();
     const dataTransfer = { setData: vi.fn(), effectAllowed: '' };

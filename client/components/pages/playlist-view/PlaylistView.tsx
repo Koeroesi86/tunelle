@@ -10,6 +10,7 @@ import style from './PlaylistView.scss';
 import AudioFormatBadge from '../../ui/audio-format-badge';
 import AddToQueue from '../../library/add-to-queue';
 import NameField from '../../ui/name-field';
+import Confirm from '../../ui/confirm';
 
 interface PlaylistViewProps {
   playlist?: Playlist;
@@ -58,6 +59,7 @@ const Title = ({ playlist, rename }: TitleProps) => {
 const PlaylistView = ({ playlist, playTracks, rename, remove, exportPlaylist, setSync, removeEntry, moveEntry }: PlaylistViewProps) => {
   const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
+  const [asking, setAsking] = useState(false);
   const { itemProps, overIndex } = useDragReorder((entryId, toIndex) => playlist && moveEntry(playlist.id, entryId, toIndex));
 
   if (!playlist) {
@@ -96,7 +98,8 @@ const PlaylistView = ({ playlist, playTracks, rename, remove, exportPlaylist, se
         <button
           type="button"
           className={classNames(style.delete, { [style.danger]: confirming })}
-          onClick={() => (confirming ? remove(playlist.id) : setConfirming(true))}
+          // a playlist with a file asks in a dialog, which can say that the playlist comes back while the file stays
+          onClick={() => (playlist.file ? setAsking(true) : confirming ? remove(playlist.id) : setConfirming(true))}
           onBlur={() => setConfirming(false)}
         >
           {confirming ? t('playlists.confirmDelete') : t('playlists.delete')}
@@ -141,6 +144,14 @@ const PlaylistView = ({ playlist, playTracks, rename, remove, exportPlaylist, se
           </div>
         ))}
       </div>
+      <Confirm
+        message={asking && playlist.file ? t('playlists.deleteFileWarning', { name: playlist.name, file: playlist.file.path.replace(/^.*\//, '') }) : null}
+        confirm={() => {
+          setAsking(false);
+          remove(playlist.id);
+        }}
+        cancel={() => setAsking(false)}
+      />
     </div>
   );
 };
