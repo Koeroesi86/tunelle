@@ -86,11 +86,10 @@ interface GroupProps {
   active?: boolean;
   count?: number;
   onClick: () => void;
-  action?: ReactNode;
 }
 
-/** The row of a group that opens and closes, with the number of what is in it while it is closed, and an action of its own */
-const Group = ({ label, icon, open, active = false, count, onClick, action }: GroupProps) => (
+/** The row of a group that opens and closes, with the number of what is in it while it is closed, */
+const Group = ({ label, icon, open, active = false, count, onClick }: GroupProps) => (
   <div className={classNames(style.item, style.group, { [style.active]: active })}>
     <button type="button" onClick={onClick} title={label} aria-expanded={open} className={style.groupToggle}>
       {icon}
@@ -98,7 +97,6 @@ const Group = ({ label, icon, open, active = false, count, onClick, action }: Gr
       {!open && count !== undefined && <span className={style.count}>{count}</span>}
       <ChevronIcon size={'16px'} className={classNames(style.chevron, { [style.closed]: !open })} />
     </button>
-    {action}
   </div>
 );
 
@@ -187,31 +185,9 @@ function Navigation({
           open={playlistsOpen}
           count={playlists.length}
           onClick={() => setGroupOpen('playlists', !playlistsOpen)}
-          action={
-            <>
-              <button type="button" className={style.add} title={t('nav.importPlaylists')} aria-label={t('nav.importPlaylists')} onClick={importPlaylists}>
-                <ImportIcon size={'14px'} />
-              </button>
-              <button type="button" className={style.add} title={t('nav.newPlaylist')} aria-label={t('nav.newPlaylist')} onClick={startPlaylist}>
-                <AddIcon size={'14px'} />
-              </button>
-            </>
-          }
         />
       </div>
       <div className={style.playlists}>
-        {playlistsOpen && name !== undefined && (
-          <NameField
-            autoFocus
-            className={style.newPlaylist}
-            value={name}
-            label={t('playlists.newName')}
-            onChange={setName}
-            onSubmit={submit}
-            onCancel={() => setName(undefined)}
-            onBlur={() => setName(undefined)}
-          />
-        )}
         {playlistsOpen &&
           playlists.map(({ id, name: playlistName }, index) => (
             <button
@@ -230,6 +206,30 @@ function Navigation({
               <span className={style.label}>{playlistName}</span>
             </button>
           ))}
+        {playlistsOpen && name !== undefined && (
+          <NameField
+            autoFocus
+            className={style.newPlaylist}
+            value={name}
+            label={t('playlists.newName')}
+            onChange={setName}
+            onSubmit={submit}
+            onCancel={() => setName(undefined)}
+            onBlur={() => setName(undefined)}
+          />
+        )}
+        {playlistsOpen && (
+          <>
+            <button type="button" title={t('nav.newPlaylist')} onClick={startPlaylist} className={classNames(style.item, style.child)}>
+              <AddIcon size={'12px'} />
+              <span className={style.label}>{t('nav.newPlaylist')}</span>
+            </button>
+            <button type="button" title={t('nav.importPlaylists')} onClick={importPlaylists} className={classNames(style.item, style.child)}>
+              <ImportIcon size={'12px'} />
+              <span className={style.label}>{t('nav.importPlaylists')}</span>
+            </button>
+          </>
+        )}
       </div>
       {spectrum && <div className={style.spectrum}>{spectrum}</div>}
       <div className={style.footer}>

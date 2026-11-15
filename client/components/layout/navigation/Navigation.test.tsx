@@ -129,7 +129,12 @@ describe('Navigation', () => {
     it('lists the playlists in a group', () => {
       render(<Navigation playlists={playlists} />);
 
-      expect(Array.from(document.querySelectorAll('.playlists .item')).map((item) => item.textContent)).toEqual(['Road', 'Night']);
+      expect(Array.from(document.querySelectorAll('.playlists .item')).map((item) => item.textContent)).toEqual([
+        'Road',
+        'Night',
+        'New playlist',
+        'Import playlists',
+      ]);
       expect(document.querySelector('.group .count')).toBeNull();
     });
 
@@ -187,13 +192,11 @@ describe('Navigation', () => {
       expect(screen.queryByLabelText('Playlist name')).toBeNull();
     });
 
-    it('opens the group for the name of a new playlist, without toggling it', () => {
-      const setGroupOpen = vi.fn();
-      render(<Navigation playlistsOpen={false} setGroupOpen={setGroupOpen} />);
+    it('shows the actions below the group only while it is open', () => {
+      render(<Navigation playlistsOpen={false} />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'New playlist' }));
-
-      expect(setGroupOpen.mock.calls).toEqual([['playlists', true]]);
+      expect(screen.queryByRole('button', { name: 'New playlist' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Import playlists' })).toBeNull();
     });
 
     it('gives up the new playlist on Escape', () => {
