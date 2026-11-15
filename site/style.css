@@ -598,16 +598,38 @@ footer {
   font-size: 0.95rem;
 }
 
-/* on a phone the bar is two rows: brand, language and theme, then the links */
+.top .menu {
+  display: none;
+}
+
+/* on a phone the bar is two rows: brand, language, theme and the menu button, then the links, which the button opens when the script runs */
 @media (max-width: 600px) {
   .top {
     flex-wrap: wrap;
-    row-gap: 0;
+    gap: 0 8px;
   }
 
   .top .languages,
-  .top .theme {
+  .top .theme,
+  .top .menu {
     order: 1;
+  }
+
+  .top[data-menu] .menu {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .top[data-menu='closed'] > a:not(.brand) {
+    display: none;
   }
 
   .top::after {
@@ -619,6 +641,7 @@ footer {
 
   .top > a:not(.brand) {
     order: 3;
+    flex-basis: 100%;
     display: flex;
     align-items: center;
     min-height: 44px;
