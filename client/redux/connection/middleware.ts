@@ -75,6 +75,7 @@ function addListeners(store: Store) {
   onMessage('PLAYLISTS', messageSchemas.PLAYLISTS, ({ playlists }) =>
     store.dispatch({ type: 'PLAYLISTS_LOADED', payload: { playlists: playlists.flatMap(toPlaylist) } })
   );
+  onMessage('PLAYLIST_IMPORT_REPORT', messageSchemas.PLAYLIST_IMPORT_REPORT, (payload) => store.dispatch({ type: 'PLAYLIST_IMPORT_REPORTED', payload }));
   onMessage('SCANNING_FOLDER', messageSchemas.SCANNING_FOLDER, (payload) => store.dispatch({ type: 'SCANNING_FOLDER', payload }));
 }
 
@@ -314,6 +315,7 @@ const handleActions = actionMiddleware((store) => [
   onAction('LOAD_FAVOURITES', () => electronAPI.send('FAVOURITES_LOAD')),
   onAction('LOAD_HISTORY', () => electronAPI.send('HISTORY_LOAD')),
   onAction('LOAD_PLAYLISTS', () => electronAPI.send('PLAYLISTS_LOAD')),
+  onAction('IMPORT_PLAYLISTS', () => electronAPI.send('PLAYLIST_IMPORT')),
   onAction('CREATE_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_CREATE', payload)),
   onAction('RENAME_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_RENAME', payload)),
   onAction('DELETE_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_DELETE', payload)),

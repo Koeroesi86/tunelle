@@ -38,3 +38,18 @@ export const storedPlaylistSchema = z.object({
 });
 
 export type StoredPlaylist = z.infer<typeof storedPlaylistSchema>;
+
+/** What an import of a playlist file did, for the window to show */
+export const playlistImportReportSchema = z.object({
+  fileName: z.string(),
+  name: z.string(),
+  status: z.enum(['created', 'updated', 'unchanged']),
+  /** How many entries the playlist has now */
+  imported: z.number(),
+  /** The entries of the file that the library does not have, they stay in the playlist shown from what the file says of them */
+  unmatched: z.array(z.object({ location: z.string(), title: z.string().optional() })),
+  /** The addresses on the network, which a playlist does not keep */
+  streams: z.number(),
+});
+
+export type PlaylistImportReport = z.infer<typeof playlistImportReportSchema>;

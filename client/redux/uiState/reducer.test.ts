@@ -203,6 +203,14 @@ describe('uiState reducer', () => {
     expect(run({ type: 'ALBUM_COVER_CHANGED', payload: { path: '/music/two', title: 'Songs', cover: 'new.png' } }, state)).toBe(state);
   });
 
+  it('keeps the report of an import of playlist files until it is closed', () => {
+    const reports = [{ fileName: '/m/a.m3u', name: 'Mix', status: 'created' as const, imported: 1, unmatched: [], streams: 0 }];
+    const reported = run({ type: 'PLAYLIST_IMPORT_REPORTED', payload: { reports } });
+
+    expect(reported.playlistImport).toEqual(reports);
+    expect(run({ type: 'DISMISS_PLAYLIST_IMPORT' }, reported).playlistImport).toBeUndefined();
+  });
+
   it('keeps why a picked cover failed until another change or another album', () => {
     const failed = run({ type: 'ALBUM_COVER_FAILED', payload: { reason: 'notImage' } });
 

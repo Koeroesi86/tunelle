@@ -2,6 +2,8 @@ import type { Database } from 'sqlite3';
 import type { WebContents } from 'electron';
 import { folderTargetSchema } from '@shared/schemas/requests';
 import { cancelScansInside } from './scan-cancellation';
+import { settlePlaylistsOfRemovedFolder } from '../playlists/imported-playlists';
+import { sendPlaylists } from '../playlists/send-playlists';
 import { refreshLibraryWatching } from '../watch/library-watching';
 import { deleteFolders, deleteTracksInside, getFolders, getFoldersInside } from '../../repositories/library-repository';
 
@@ -15,6 +17,8 @@ async function removeFolderFromLibrary(database: Database, target: unknown, send
   cancelScansInside(folder);
   await deleteFolders(database, [{ path: folder }, ...(await getFoldersInside(database, folder))]);
   await deleteTracksInside(database, folder);
+  await settlePlaylistsOfRemovedFolder(database, folder);
+  await sendPlaylists(database, sender);
   sender.send('STORE_FOLDERS', { folders: await getFolders(database) });
   sender.send('FOLDER_REMOVED_FROM_LIBRARY', {});
   await refreshLibraryWatching();

@@ -1,18 +1,11 @@
-import { ipcMain } from 'electron';
-import type { WebContents } from 'electron';
-import type { PlaylistMessage, StoredPlaylist } from '@shared/types/playlists';
+import { BrowserWindow, dialog, ipcMain } from 'electron';
+import type { OpenDialogOptions, WebContents } from 'electron';
 import type { ListenerContext } from './listener-context';
-import {
-  addEntries,
-  createPlaylist,
-  deletePlaylist,
-  getPlaylists,
-  moveEntry,
-  movePlaylist,
-  removeEntry,
-  renamePlaylist,
-} from '../repositories/playlist-repository';
-import { findTrackFormat } from '../repositories/library-repository';
+import { addEntries, createPlaylist, deletePlaylist, moveEntry, movePlaylist, removeEntry, renamePlaylist } from '../repositories/playlist-repository';
+import { sendPlaylists } from '../library/playlists/send-playlists';
+import { importPlaylistFiles } from '../library/playlists/import-playlist-files';
+import { playlistExtensions } from '../library/playlists/playlist-files';
+import { getMainTranslator } from '../language';
 import {
   playlistAddSchema,
   playlistCreateSchema,
@@ -22,41 +15,35 @@ import {
   playlistMoveSchema,
   playlistRenameSchema,
 } from '@shared/schemas/playlists';
-import { isRecord } from '@shared/utils/is-record';
 import { parsePayload } from '../utils/parse-payload';
-import { sendIfAlive } from '../utils/send-if-alive';
 import { logError } from '../utils/log-error';
-
-const withAvailability = (database: ListenerContext['database'], playlists: StoredPlaylist[]) =>
-  Promise.all(
-    playlists.map(async ({ id, name, entries }): Promise<PlaylistMessage> => {
-      const formats = await Promise.all(entries.map(({ path }) => findTrackFormat(database, path)));
-
-      return {
-        id,
-        name,
-        // a track the library does not have is kept, shown from its snapshot and not played; one it has shows the format the library reads of it now
-        entries: entries.map(({ id: entryId, snapshot }, index) => ({
-          id: entryId,
-          track: isRecord(snapshot) ? { ...snapshot, ...formats[index] } : snapshot,
-          available: formats[index] !== undefined,
-        })),
-      };
-    })
-  );
-
-const sendPlaylists = async ({ database }: ListenerContext, sender: WebContents) => {
-  const playlists = await withAvailability(database, await getPlaylists(database));
-  // the window can be closed while the database answers
-  sendIfAlive(sender, 'PLAYLISTS', { playlists });
-};
+import { sendIfAlive } from '../utils/send-if-alive';
 
 const registerPlaylistListeners = (context: ListenerContext) => {
   const { database } = context;
-  const reply = (sender: WebContents, work: Promise<unknown>) => work.then(() => sendPlaylists(context, sender)).catch(logError);
+  const reply = (sender: WebContents, work: Promise<unknown>) => work.then(() => sendPlaylists(database, sender)).catch(logError);
 
   ipcMain.on('PLAYLISTS_LOAD', (event) => {
     reply(event.sender, Promise.resolve());
+  });
+
+  ipcMain.on('PLAYLIST_IMPORT', (event) => {
+    const { t } = getMainTranslator();
+    const options: OpenDialogOptions = {
+      title: t('playlists.importPick'),
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: t('playlists.importFilter'), extensions: playlistExtensions }],
+    };
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    (window ? dialog.showOpenDialog(window, options) : dialog.showOpenDialog(options))
+      .then(({ canceled, filePaths }) => (canceled ? undefined : importPlaylistFiles(database, filePaths)))
+      .then(async (reports) => {
+        if (!reports) return;
+        await sendPlaylists(database, event.sender);
+        sendIfAlive(event.sender, 'PLAYLIST_IMPORT_REPORT', { reports });
+      })
+      .catch(logError);
   });
 
   ipcMain.on('PLAYLIST_CREATE', (event, payload: unknown) => {

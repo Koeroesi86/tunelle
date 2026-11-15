@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { backgroundTasksSchema } from './background-tasks';
 import { folderSchema } from './folders';
 import { failedLoudnessTrackSchema, loudnessProgressSchema } from './loudness';
+import { playlistImportReportSchema } from './playlists';
 import { radioOptionKindSchema, radioOptionSchema, radioStationSchema, radioTagSchema } from './radio';
 import { updateStateSchema } from './update';
 import { radioSearchSchema } from '../types/radio-query';
@@ -43,6 +44,7 @@ export const messageSchemas = {
   FAVOURITES: z.object({ favourites: z.array(z.unknown()) }),
   HISTORY: z.object({ history: z.array(z.unknown()) }),
   PLAYLISTS: z.object({ playlists: z.array(z.unknown()) }),
+  PLAYLIST_IMPORT_REPORT: z.object({ reports: z.array(playlistImportReportSchema) }),
 };
 
 /** The channels whose message has no content */

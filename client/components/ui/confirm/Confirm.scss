@@ -27,8 +27,11 @@
   }
 
   .message {
+    max-width: 480px;
     margin-bottom: 12px;
     font-size: 16px;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
   }
 
   .buttons {

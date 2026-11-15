@@ -21,6 +21,7 @@ const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   },
   setGroupOpen: (group: NavigationGroup, open: boolean) => dispatch({ type: 'SET_NAVIGATION_GROUP', payload: { group, open } }),
   openPlaylist: (id: number) => dispatch({ type: 'OPEN_PLAYLIST', payload: { id } }),
+  importPlaylists: () => dispatch({ type: 'IMPORT_PLAYLISTS' }),
   createPlaylist: (name: string) => dispatch({ type: 'CREATE_PLAYLIST', payload: { name } }),
   movePlaylist: (id: number, toIndex: number) => dispatch({ type: 'MOVE_PLAYLIST', payload: { id, toIndex } }),
 });

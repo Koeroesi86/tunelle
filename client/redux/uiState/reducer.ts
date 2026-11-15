@@ -61,6 +61,7 @@ const initialState: UiState = {
   artistPhotoFailure: undefined,
   artistPhotoCandidates: undefined,
   albumCoverFailure: undefined,
+  playlistImport: undefined,
   albumCoverCandidates: undefined,
   artistPhotoRevision: 0,
   watchFolders: true,
@@ -334,6 +335,10 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       const { group, open } = action.payload;
       return group === 'library' ? { ...state, libraryOpen: open } : { ...state, playlistsOpen: open };
     }
+    case 'PLAYLIST_IMPORT_REPORTED':
+      return { ...state, playlistImport: action.payload.reports };
+    case 'DISMISS_PLAYLIST_IMPORT':
+      return { ...state, playlistImport: undefined };
     case 'OPEN_PLAYLIST':
       return { ...state, tab: 'playlist', playlistId: action.payload.id };
     // the tab of a playlist that is gone shows nothing

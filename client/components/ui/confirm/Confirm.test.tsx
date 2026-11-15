@@ -11,6 +11,13 @@ describe('Confirm', () => {
     expect(screen.getByText('No')).toBeTruthy();
   });
 
+  it('has only the cancel button when it only has to be read', () => {
+    render(<Confirm message="Done" hideConfirm cancelLabel="Close" cancel={() => {}} />);
+
+    expect(screen.getByText('Close')).toBeTruthy();
+    expect(screen.queryByText('Yes')).toBeNull();
+  });
+
   it('renders custom labels', () => {
     render(<Confirm message="Sure?" confirmLabel="Remove" cancelLabel="Keep" cancel={() => {}} />);
 

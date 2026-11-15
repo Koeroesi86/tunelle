@@ -25,7 +25,7 @@ const track = (trackPath: string): Track => ({
 describe('removeFolderFromLibrary', () => {
   let database: Database;
   const send = vi.fn();
-  const sender = { send } as unknown as WebContents;
+  const sender = { send, isDestroyed: () => false } as unknown as WebContents;
   const at = (...segments: string[]) => path.join(path.sep, 'music', ...segments);
   const paths = <T extends { path: string }>(rows: T[]) => rows.map((row) => row.path);
 

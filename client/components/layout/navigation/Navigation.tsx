@@ -6,6 +6,7 @@ import {
   MdAlbum as AlbumsIcon,
   MdAudiotrack as TracksIcon,
   MdFavorite as FavouritesIcon,
+  MdFileUpload as ImportIcon,
   MdFolder as FoldersIcon,
   MdFormatListBulleted as PlaylistsIcon,
   MdGroup as AlbumArtistsIcon,
@@ -45,6 +46,7 @@ interface NavigationProps {
   setGroupOpen?: (group: NavigationGroup, open: boolean) => void;
   openPlaylist?: (id: number) => void;
   createPlaylist?: (name: string) => void;
+  importPlaylists?: () => void;
   movePlaylist?: (id: number, toIndex: number) => void;
 }
 
@@ -115,6 +117,7 @@ function Navigation({
   setGroupOpen = () => {},
   openPlaylist: openPlaylistOf = () => {},
   createPlaylist = () => {},
+  importPlaylists = () => {},
   movePlaylist = () => {},
 }: NavigationProps) {
   const { t } = useTranslation();
@@ -185,9 +188,14 @@ function Navigation({
           count={playlists.length}
           onClick={() => setGroupOpen('playlists', !playlistsOpen)}
           action={
-            <button type="button" className={style.add} title={t('nav.newPlaylist')} aria-label={t('nav.newPlaylist')} onClick={startPlaylist}>
-              <AddIcon size={'14px'} />
-            </button>
+            <>
+              <button type="button" className={style.add} title={t('nav.importPlaylists')} aria-label={t('nav.importPlaylists')} onClick={importPlaylists}>
+                <ImportIcon size={'14px'} />
+              </button>
+              <button type="button" className={style.add} title={t('nav.newPlaylist')} aria-label={t('nav.newPlaylist')} onClick={startPlaylist}>
+                <AddIcon size={'14px'} />
+              </button>
+            </>
           }
         />
       </div>
