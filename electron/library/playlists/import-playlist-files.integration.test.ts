@@ -1,12 +1,12 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Database } from 'sqlite3';
 import addTrack from '../scan/add-track';
 import { createTestDatabase } from '../../test-database';
 import { deleteTracksInside } from '../../repositories/library-repository';
-import { getPlaylists } from '../../repositories/playlist-repository';
+import { addEntries, getPlaylists, renamePlaylist } from '../../repositories/playlist-repository';
 import { importPlaylistFiles } from './import-playlist-files';
 import { removeVanishedPlaylists, settlePlaylistsOfRemovedFolder } from './imported-playlists';
 import normalizePath from '../../utils/normalize-path';
@@ -104,5 +104,61 @@ describe('importing playlist files', () => {
 
     expect((await getPlaylists(database)).map(({ name }) => name)).toEqual(['stays']);
     expect(await removeVanishedPlaylists(database, folder, true, [])).toBe(0);
+  });
+
+  it('lets the file win over what was done to the playlist in the app, and keeps the name the user gave it', async () => {
+    const file = await write('lists/mix.m3u', '../one.flac\n');
+    await importPlaylistFiles(database, [file]);
+    const [playlist] = await getPlaylists(database);
+    await addEntries(database, playlist?.id ?? -1, [{ path: inFolder('two.flac'), snapshot: track(inFolder('two.flac'), 'Two') }]);
+    await renamePlaylist(database, playlist?.id ?? -1, 'My mix');
+
+    await fs.promises.writeFile(file, '../two.flac\n');
+    // a rewrite in the same tick of the clock keeps the modified time (and the size), and the import takes the file for unchanged
+    await fs.promises.utimes(file, new Date(), new Date(Date.now() + 5000));
+    const [report] = await importPlaylistFiles(database, [file]);
+
+    const [after] = await getPlaylists(database);
+    expect(report).toMatchObject({ status: 'updated', name: 'My mix' });
+    expect(after).toMatchObject({ id: playlist?.id, name: 'My mix' });
+    expect(after?.entries.map((entry) => entry.path)).toEqual([inFolder('two.flac')]);
+  });
+
+  it('names a playlist after the title in its file, and takes a file with an upper case extension', async () => {
+    const m3u = await write('lists/ONE.M3U', '#EXTM3U\n#PLAYLIST:Late night\n../one.flac\n');
+    const xspf = await write(
+      'lists/two.xspf',
+      '<playlist><title>Road trip</title><trackList><track><location>../two.flac</location></track></trackList></playlist>'
+    );
+
+    const reports = await importPlaylistFiles(database, [m3u, xspf]);
+
+    expect(reports.map(({ name, status }) => [name, status])).toEqual([
+      ['Late night', 'created'],
+      ['Road trip', 'created'],
+    ]);
+    expect((await getPlaylists(database)).map(({ entries }) => entries.map((entry) => entry.path))).toEqual([[inFolder('one.flac')], [inFolder('two.flac')]]);
+  });
+
+  it('logs a file that cannot be read, leaves it out of the reports, and imports the others', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await fs.promises.mkdir(path.join(folder, 'lists', 'broken.m3u'));
+    const good = await write('lists/good.m3u', '../one.flac\n');
+
+    const reports = await importPlaylistFiles(database, [path.join(folder, 'lists', 'broken.m3u'), good]);
+
+    expect(reports.map(({ name }) => name)).toEqual(['good']);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('broken.m3u'), expect.anything());
+  });
+
+  it('takes the files of a folder only, and not the ones below it, when the scan is not deep', async () => {
+    const below = await write('lists/below.m3u', '../one.flac\n');
+    const direct = await write('direct.m3u', 'one.flac\n');
+    await importPlaylistFiles(database, [below, direct]);
+    await Promise.all([fs.promises.rm(below), fs.promises.rm(direct)]);
+
+    expect(await removeVanishedPlaylists(database, folder, false, [])).toBe(1);
+    expect((await getPlaylists(database)).map(({ name }) => name)).toEqual(['below']);
+    expect(await removeVanishedPlaylists(database, folder, true, [])).toBe(1);
   });
 });

@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Database } from 'sqlite3';
+import { dialog } from 'electron';
 import type { IpcMainEvent } from 'electron';
-import type { StoredPlaylist } from '@shared/types/playlists';
+import type { PlaylistImportReport, StoredPlaylist } from '@shared/types/playlists';
 import type { ListenerContext } from './listener-context';
 import registerPlaylistListeners from './register-playlist-listeners';
 import {
@@ -16,7 +17,8 @@ import {
   setPlaylistSync,
 } from '../repositories/playlist-repository';
 import { findTrackFormat } from '../repositories/library-repository';
-import { writeBackPlaylist } from '../library/playlists/export-playlist';
+import { exportPlaylist, writeBackPlaylist } from '../library/playlists/export-playlist';
+import { importPlaylistFiles } from '../library/playlists/import-playlist-files';
 import { handleWriteFailure } from '../library/playlists/handle-write-failure';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
@@ -28,8 +30,10 @@ vi.mock('sqlite3', () => ({ Database: class {} }));
 vi.mock('electron', () => ({
   ipcMain: { on: (channel: string, listener: Listener) => listeners.set(channel, listener) },
   BrowserWindow: { fromWebContents: () => null },
-  dialog: {},
+  app: { getLocale: () => 'en-US' },
+  dialog: { showOpenDialog: vi.fn(), showSaveDialog: vi.fn() },
 }));
+vi.mock('../library/playlists/import-playlist-files', () => ({ importPlaylistFiles: vi.fn() }));
 vi.mock('../repositories/playlist-repository', () => ({
   addEntries: vi.fn(),
   createPlaylist: vi.fn(),
@@ -95,6 +99,10 @@ describe('registerPlaylistListeners', () => {
     vi.mocked(moveEntry).mockReset().mockResolvedValue([]);
     vi.mocked(setPlaylistSync).mockReset().mockResolvedValue([]);
     vi.mocked(writeBackPlaylist).mockReset().mockResolvedValue(undefined);
+    vi.mocked(exportPlaylist).mockReset().mockResolvedValue(undefined);
+    vi.mocked(importPlaylistFiles).mockReset().mockResolvedValue([]);
+    vi.mocked(dialog.showOpenDialog).mockReset().mockResolvedValue({ canceled: true, filePaths: [] });
+    vi.mocked(dialog.showSaveDialog).mockReset().mockResolvedValue({ canceled: true, filePath: '' });
     vi.mocked(findTrackFormat)
       .mockReset()
       .mockImplementation(async (_database, path) => (path === '/music/gone.flac' ? undefined : format));
@@ -206,6 +214,95 @@ describe('registerPlaylistListeners', () => {
       expect(repository).not.toHaveBeenCalled()
     );
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it('imports the files that are picked, then sends the playlists and the report', async () => {
+    const reports: PlaylistImportReport[] = [{ fileName: '/lists/mix.m3u', name: 'mix', status: 'created', imported: 1, unmatched: [], streams: 0 }];
+    vi.mocked(dialog.showOpenDialog).mockResolvedValue({ canceled: false, filePaths: ['/lists/mix.m3u'] });
+    vi.mocked(importPlaylistFiles).mockResolvedValue(reports);
+
+    await call('PLAYLIST_IMPORT');
+
+    expect(dialog.showOpenDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        properties: ['openFile', 'multiSelections'],
+        filters: [expect.objectContaining({ extensions: ['m3u', 'm3u8', 'pls', 'xspf'] })],
+      })
+    );
+    expect(importPlaylistFiles).toHaveBeenCalledWith(database, ['/lists/mix.m3u']);
+    expect(send.mock.calls.map(([channel]) => channel)).toEqual(['PLAYLISTS', 'PLAYLIST_IMPORT_REPORT']);
+    expect(send).toHaveBeenLastCalledWith('PLAYLIST_IMPORT_REPORT', { reports });
+  });
+
+  it('imports nothing and tells nothing when the dialog is closed', async () => {
+    await call('PLAYLIST_IMPORT');
+
+    expect(importPlaylistFiles).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('logs an import that fails and sends nothing', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.mocked(dialog.showOpenDialog).mockResolvedValue({ canceled: false, filePaths: ['/lists/mix.m3u'] });
+    vi.mocked(importPlaylistFiles).mockRejectedValue(new Error('no database'));
+
+    await call('PLAYLIST_IMPORT');
+
+    expect(error).toHaveBeenCalledWith(expect.objectContaining({ message: 'no database' }));
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('exports the playlist to the file that is picked, offering its name as .m3u8 first', async () => {
+    vi.mocked(dialog.showSaveDialog).mockResolvedValue({ canceled: false, filePath: '/lists/Road.xspf' });
+
+    await call('PLAYLIST_EXPORT', { id: 7 });
+
+    expect(dialog.showSaveDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        defaultPath: 'Road.m3u8',
+        filters: [
+          { name: 'M3U8 (UTF-8)', extensions: ['m3u8'] },
+          { name: 'M3U', extensions: ['m3u'] },
+          { name: 'PLS', extensions: ['pls'] },
+          { name: 'XSPF', extensions: ['xspf'] },
+        ],
+      })
+    );
+    expect(exportPlaylist).toHaveBeenCalledWith(database, 7, '/lists/Road.xspf');
+  });
+
+  it('offers "playlist" as the name of a playlist that is not there', async () => {
+    await call('PLAYLIST_EXPORT', { id: 99 });
+
+    expect(dialog.showSaveDialog).toHaveBeenCalledWith(expect.objectContaining({ defaultPath: 'playlist.m3u8' }));
+  });
+
+  it('writes no file when the save dialog is closed', async () => {
+    await call('PLAYLIST_EXPORT', { id: 7 });
+
+    expect(exportPlaylist).not.toHaveBeenCalled();
+  });
+
+  it('hands a failed export to the handler', async () => {
+    const failure = new Error('read only');
+    vi.mocked(dialog.showSaveDialog).mockResolvedValue({ canceled: false, filePath: '/lists/Road.m3u8' });
+    vi.mocked(exportPlaylist).mockRejectedValue(failure);
+
+    await call('PLAYLIST_EXPORT', { id: 7 });
+
+    expect(handleWriteFailure).toHaveBeenCalledWith(database, null, 7, failure);
+  });
+
+  it.each([
+    ['PLAYLIST_EXPORT', undefined],
+    ['PLAYLIST_EXPORT', { id: '7' }],
+    ['PLAYLIST_SYNC', { id: 7 }],
+    ['PLAYLIST_SYNC', { id: 7, sync: 'yes' }],
+  ])('ignores the malformed %s message %j', async (channel, payload) => {
+    await call(channel, payload);
+
+    expect(dialog.showSaveDialog).not.toHaveBeenCalled();
+    expect(setPlaylistSync).not.toHaveBeenCalled();
   });
 
   it('logs a failure and sends nothing', async () => {
