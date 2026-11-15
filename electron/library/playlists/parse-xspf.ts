@@ -26,9 +26,15 @@ const toEntry = (markup: string): ParsedEntry[] => {
   return location ? [{ location, title: childText(markup, 'title'), artist: childText(markup, 'creator'), album: childText(markup, 'album'), duration }] : [];
 };
 
+/** Removes the comments until none is left, as taking one out can join the text around it into another */
+const withoutComments = (text: string): string => {
+  const stripped = text.replace(/<!--[\s\S]*?-->/g, '');
+  return stripped === text ? text.replace(/<!--/g, '') : withoutComments(stripped);
+};
+
 /** XSPF: the title of the playlist is the one before the track list, a track is a `track` element with its `location` (a URI), `title`, `creator`, `album` and `duration` in milliseconds */
 export const parseXspf = (text: string): ParsedPlaylist => {
-  const body = text.replace(/<!--[\s\S]*?-->/g, '');
+  const body = withoutComments(text);
   const [head = ''] = body.split(/<trackList[\s>]/i);
   const tracks = [...body.matchAll(/<track(?:\s[^>]*)?>([\s\S]*?)<\/track>/gi)].flatMap(([, markup]) => toEntry(markup ?? ''));
 

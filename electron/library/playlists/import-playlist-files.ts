@@ -83,13 +83,13 @@ const reportOf = (fileName: string, name: string, status: PlaylistImportReport['
   streams: content?.streams ?? 0,
 });
 
-const importFile = async ({ database, index, imported }: Context, filePath: string, format: PlaylistFormat) => {
+const importFromHandle = async ({ database, index, imported }: Context, handle: fs.promises.FileHandle, filePath: string, format: PlaylistFormat) => {
   const sourcePath = normalizePath(filePath);
-  const modified = Math.floor((await fs.promises.stat(filePath)).mtimeMs);
+  const modified = Math.floor((await handle.stat()).mtimeMs);
   const existing = imported.get(sourcePath);
   if (existing?.modified === modified) return reportOf(sourcePath, existing.name, 'unchanged');
 
-  const buffer = await fs.promises.readFile(filePath);
+  const buffer = await handle.readFile();
   const checksum = checksumOf(buffer);
   if (existing?.checksum === checksum) {
     await touchImportedPlaylist(database, existing.id, modified);
@@ -111,6 +111,12 @@ const importFile = async ({ database, index, imported }: Context, filePath: stri
   const id = await createImportedPlaylist(database, name, source);
   if (id !== undefined) await addEntries(database, id, content.tracks);
   return reportOf(sourcePath, name, 'created', content);
+};
+
+/** The time and the content are read from the one open file, so they are of the same file */
+const importFile = async (context: Context, filePath: string, format: PlaylistFormat) => {
+  const handle = await fs.promises.open(filePath, 'r');
+  return importFromHandle(context, handle, filePath, format).finally(() => handle.close());
 };
 
 /** Read the playlist files and store what they say, a playlist for each file: new ones are created, one that was imported from the file is changed when its content is (the file wins over what was done to the playlist in the app) and is left alone when it is not. A file that cannot be read or stored is logged and left out of the reports. See docs/app/playlist-import.md */

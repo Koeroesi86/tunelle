@@ -42,4 +42,10 @@ describe('parsePlaylist', () => {
       ],
     });
   });
+
+  it('takes out comments that join into another one, so no comment marker is left in the text', () => {
+    const text = '<playlist><trackList><track><location>a.flac</location><title>A<!<!-- x -->-- y --></title></track></trackList></playlist>';
+
+    expect(parsePlaylist('xspf', text).entries).toEqual([{ location: 'a.flac', title: 'A' }]);
+  });
 });
