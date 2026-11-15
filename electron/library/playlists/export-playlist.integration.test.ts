@@ -76,7 +76,7 @@ describe('exporting a playlist and writing it back', () => {
     await writeBackPlaylist(database, id);
 
     expect(await read('lists', 'mix.m3u')).toBe(
-      `#EXTM3U\n#PLAYLIST:Renamed\n#EXTINF:12,Band - One\n${inFolder('one.flac')}\n#EXTINF:12,Band - Two\n${inFolder('two.flac')}\n`
+      `#EXTM3U\n#PLAYLIST:Renamed\n#EXTINF:12,Band - One\n${path.join(folder, 'one.flac')}\n#EXTINF:12,Band - Two\n${path.join(folder, 'two.flac')}\n`
     );
     expect(await read('lists', 'mix.m3u.bak')).toBe('../one.flac\n');
     expect((await importPlaylistFiles(database, [file]))[0]?.status).toBe('unchanged');
@@ -174,7 +174,7 @@ describe('exporting a playlist and writing it back', () => {
     const text = await fs.promises.readFile(file, 'utf-8');
     expect(text).toContain('#PLAYLIST:mix\n#EXTGRP:rock\n');
     expect(text.endsWith('# see you\n')).toBe(true);
-    expect(text).toContain(`#EXTINF:12,Band - Two\n${inFolder('two.flac')}\n`);
+    expect(text).toContain(`#EXTINF:12,Band - Two\n${path.join(folder, 'two.flac')}\n`);
   });
 
   it('keeps the other keys of a PLS when a change is written back', async () => {
