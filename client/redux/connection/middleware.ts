@@ -319,6 +319,8 @@ const handleActions = actionMiddleware((store) => [
   onAction('CREATE_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_CREATE', payload)),
   onAction('RENAME_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_RENAME', payload)),
   onAction('DELETE_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_DELETE', payload)),
+  onAction('EXPORT_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_EXPORT', payload)),
+  onAction('SYNC_PLAYLIST_FILE', ({ payload }) => electronAPI.send('PLAYLIST_SYNC', payload)),
   onAction('MOVE_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_MOVE', payload)),
   onAction('ADD_TO_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_ADD', payload)),
   onAction('REMOVE_FROM_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_REMOVE_ENTRY', payload)),

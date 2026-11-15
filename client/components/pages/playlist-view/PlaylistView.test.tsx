@@ -42,11 +42,34 @@ describe('PlaylistView', () => {
   });
 
   const renderView = (shown: Playlist | null = playlist) => {
-    const props = { playTracks: vi.fn(), rename: vi.fn(), remove: vi.fn(), removeEntry: vi.fn(), moveEntry: vi.fn() };
+    const props = {
+      playTracks: vi.fn(),
+      rename: vi.fn(),
+      remove: vi.fn(),
+      exportPlaylist: vi.fn(),
+      setSync: vi.fn(),
+      removeEntry: vi.fn(),
+      moveEntry: vi.fn(),
+    };
     render(<PlaylistView playlist={shown ?? undefined} {...props} />);
     return props;
   };
   const rows = () => Array.from(document.querySelectorAll<HTMLElement>('.entry'));
+
+  it('exports the playlist, and offers the sync only for one that has a file', () => {
+    const props = renderView();
+    fireEvent.click(screen.getByText('Export'));
+
+    expect(props.exportPlaylist).toHaveBeenCalledWith(playlist.id);
+    expect(screen.queryByLabelText('Keep file in sync')).toBeNull();
+  });
+
+  it('turns the sync of the file on and off', () => {
+    const props = renderView({ ...playlist, file: { path: '/music/mix.m3u', sync: false } });
+    fireEvent.click(screen.getByLabelText('Keep file in sync'));
+
+    expect(props.setSync).toHaveBeenCalledWith(playlist.id, true);
+  });
 
   it('numbers the rows in the order of the playlist', () => {
     renderView();

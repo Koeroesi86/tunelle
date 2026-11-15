@@ -12,6 +12,8 @@ export interface Playlist {
   id: number;
   name: string;
   entries: PlaylistEntry[];
+  /** The playlist file this playlist was imported from, and whether a change is written back to it */
+  file?: { path: string; sync: boolean };
 }
 
 export type { PlaylistImportReport, StoredPlaylist } from '../schemas/playlists';
@@ -21,4 +23,5 @@ export interface PlaylistMessage {
   id: number;
   name: string;
   entries: { id: number; track: unknown; available: boolean }[];
+  file?: { path: string; sync: boolean };
 }

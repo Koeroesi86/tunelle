@@ -27,6 +27,7 @@ export const playlistRenameSchema = z.object({ id, name });
 export const playlistIdSchema = z.object({ id });
 export const playlistMoveSchema = z.object({ id, toIndex: id });
 export const playlistAddSchema = z.object({ id, tracks });
+export const playlistSyncSchema = z.object({ id, sync: z.boolean() });
 export const playlistEntrySchema = z.object({ id, entryId: id });
 export const playlistMoveEntrySchema = z.object({ id, entryId: id, toIndex: id });
 

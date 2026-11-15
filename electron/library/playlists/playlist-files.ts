@@ -1,4 +1,5 @@
 import path from 'path';
+import type { MessageKey } from '@shared/locales/translate';
 
 export type PlaylistFormat = 'm3u' | 'pls' | 'xspf';
 
@@ -11,3 +12,11 @@ export const isPlaylistFile = (filePath: string) => playlistFormatOf(filePath) !
 
 /** The extensions of the open dialog, without the dot */
 export const playlistExtensions = Object.keys(formatOfExtension).map((extension) => extension.slice(1));
+
+/** The formats of the save dialog, the first is the one a new file gets */
+export const playlistExportFilters: { key: MessageKey; extensions: string[] }[] = [
+  { key: 'playlists.exportM3u8', extensions: ['m3u8'] },
+  { key: 'playlists.exportM3u', extensions: ['m3u'] },
+  { key: 'playlists.exportPls', extensions: ['pls'] },
+  { key: 'playlists.exportXspf', extensions: ['xspf'] },
+];

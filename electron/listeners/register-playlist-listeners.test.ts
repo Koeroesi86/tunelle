@@ -13,8 +13,10 @@ import {
   movePlaylist,
   removeEntry,
   renamePlaylist,
+  setPlaylistSync,
 } from '../repositories/playlist-repository';
 import { findTrackFormat } from '../repositories/library-repository';
+import { writeBackPlaylist } from '../library/playlists/export-playlist';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
 
@@ -30,11 +32,14 @@ vi.mock('../repositories/playlist-repository', () => ({
   createPlaylist: vi.fn(),
   deletePlaylist: vi.fn(),
   getPlaylists: vi.fn(),
+  getImportedPlaylists: vi.fn().mockResolvedValue([]),
+  setPlaylistSync: vi.fn(),
   moveEntry: vi.fn(),
   movePlaylist: vi.fn(),
   removeEntry: vi.fn(),
   renamePlaylist: vi.fn(),
 }));
+vi.mock('../library/playlists/export-playlist', () => ({ exportPlaylist: vi.fn(), writeBackPlaylist: vi.fn() }));
 vi.mock('../repositories/library-repository', () => ({ findTrackFormat: vi.fn() }));
 
 const track = { path: '/music/a.flac', title: 'A' };
@@ -84,6 +89,8 @@ describe('registerPlaylistListeners', () => {
     vi.mocked(movePlaylist).mockReset().mockResolvedValue([]);
     vi.mocked(removeEntry).mockReset().mockResolvedValue([]);
     vi.mocked(moveEntry).mockReset().mockResolvedValue([]);
+    vi.mocked(setPlaylistSync).mockReset().mockResolvedValue([]);
+    vi.mocked(writeBackPlaylist).mockReset().mockResolvedValue(undefined);
     vi.mocked(findTrackFormat)
       .mockReset()
       .mockImplementation(async (_database, path) => (path === '/music/gone.flac' ? undefined : format));
@@ -130,6 +137,25 @@ describe('registerPlaylistListeners', () => {
     await call('PLAYLIST_CREATE', { name: 'Road' });
 
     expect(addEntries).toHaveBeenCalledWith(database, 7, []);
+  });
+
+  it('writes a change of a playlist back to its file, and tells the window also when that fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.mocked(writeBackPlaylist).mockRejectedValue(new Error('read only'));
+
+    await call('PLAYLIST_RENAME', { id: 7, name: 'Night' });
+
+    expect(writeBackPlaylist).toHaveBeenCalledWith(database, 7);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('turns the sync of a playlist on and writes the file at once, and off without writing', async () => {
+    await call('PLAYLIST_SYNC', { id: 7, sync: true });
+    await call('PLAYLIST_SYNC', { id: 7, sync: false });
+
+    expect(setPlaylistSync).toHaveBeenNthCalledWith(1, database, 7, true);
+    expect(setPlaylistSync).toHaveBeenNthCalledWith(2, database, 7, false);
+    expect(writeBackPlaylist).toHaveBeenCalledTimes(1);
   });
 
   it.each([

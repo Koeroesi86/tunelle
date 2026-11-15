@@ -16,5 +16,6 @@
   "015-add-album-tracks-to-track-loudness.sql": "20343fb191a3e4fd2e29484c455fc2fb50ee863173fb418c1a0b31391164a8d4",
   "016-add-manual-to-artist-photos.sql": "0abfe77a0c7bf8c27a4c9637e48833f567738eaf467304da2f66f23c7ba23252",
   "017-create-album-covers-table.sql": "bc683b60043252671ab273b048e309b8455ec32aac0ee1702af17d9843b0250a",
-  "018-add-source-to-playlists.sql": "8736f8847532968570049d5f574dad5a711a843862cd9cce15c8681836a006a9"
+  "018-add-source-to-playlists.sql": "8736f8847532968570049d5f574dad5a711a843862cd9cce15c8681836a006a9",
+  "019-add-source-sync-to-playlists.sql": "97add78023a0c5c3c2395bda746f5a0d83a879240d905af6ae59df71cbd797c8"
 }

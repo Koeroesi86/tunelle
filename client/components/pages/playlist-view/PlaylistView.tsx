@@ -16,6 +16,8 @@ interface PlaylistViewProps {
   playTracks: (tracks: Track[]) => void;
   rename: (id: number, name: string) => void;
   remove: (id: number) => void;
+  exportPlaylist: (id: number) => void;
+  setSync: (id: number, sync: boolean) => void;
   removeEntry: (id: number, entryId: number) => void;
   moveEntry: (id: number, entryId: number, toIndex: number) => void;
 }
@@ -53,7 +55,7 @@ const Title = ({ playlist, rename }: TitleProps) => {
   );
 };
 
-const PlaylistView = ({ playlist, playTracks, rename, remove, removeEntry, moveEntry }: PlaylistViewProps) => {
+const PlaylistView = ({ playlist, playTracks, rename, remove, exportPlaylist, setSync, removeEntry, moveEntry }: PlaylistViewProps) => {
   const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
   const { itemProps, overIndex } = useDragReorder((entryId, toIndex) => playlist && moveEntry(playlist.id, entryId, toIndex));
@@ -82,6 +84,15 @@ const PlaylistView = ({ playlist, playTracks, rename, remove, removeEntry, moveE
         </button>
         {playable.length > 0 && <AddToQueue withLabel className={style.queue} getTracks={() => Promise.resolve(playable)} />}
         {playable.length > 0 && <AddToQueue next withLabel className={style.queue} getTracks={() => Promise.resolve(playable)} />}
+        <button type="button" className={style.export} onClick={() => exportPlaylist(playlist.id)}>
+          {t('playlists.export')}
+        </button>
+        {playlist.file && (
+          <label className={style.sync} title={t('playlists.keepInSyncNote', { path: playlist.file.path })}>
+            <input type="checkbox" checked={playlist.file.sync} onChange={(event) => setSync(playlist.id, event.target.checked)} />
+            {t('playlists.keepInSync')}
+          </label>
+        )}
         <button
           type="button"
           className={classNames(style.delete, { [style.danger]: confirming })}
