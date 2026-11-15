@@ -60,4 +60,31 @@ describe('formatPlaylist', () => {
   it('keeps a line break out of a line', () => {
     expect(formatPlaylist('m3u', { name: 'a\nb', folder: '/', entries: [] })).toContain('#PLAYLIST:a b\n');
   });
+
+  it('leaves out the characters that XML cannot hold, and keeps the ones it can', () => {
+    const text = formatPlaylist('xspf', { name: 'a\u0000b\u0008c\uFFFEd', folder: '/m', entries: [{ path: '/m/a.flac', title: 'Caf\u00e9 \u{1F3B5}\u000B' }] });
+
+    expect(text).toContain('<title>abcd</title>');
+    expect(text).toContain('<title>Caf\u00e9 \u{1F3B5}</title>');
+  });
+
+  it('names a track without a title by its file, and with its artist first', () => {
+    const text = formatPlaylist('m3u', { name: 'n', folder: '/m', entries: [{ path: '/m/sub/a one.flac' }, { path: '/m/b.flac', artist: 'Band' }] });
+
+    expect(text).toContain('#EXTINF:-1,a one.flac\nsub/a one.flac\n');
+    expect(text).toContain('#EXTINF:-1,Band - b.flac\nb.flac\n');
+  });
+
+  it('writes the length as -1 when a track has none, and a title of a PLS on one line', () => {
+    const text = formatPlaylist('pls', { name: 'n', folder: '/m', entries: [{ path: '/m/a.flac', title: 'one\ntwo' }] });
+
+    expect(text).toContain('Title1=one two\nLength1=-1\n');
+  });
+
+  it('writes the playlist without entries as a file that reads back empty', () => {
+    expect.assertions(3);
+    (['m3u', 'pls', 'xspf'] as const).forEach((format) =>
+      expect(parsePlaylist(format, formatPlaylist(format, { name: 'n', folder: '/m', entries: [] })).entries).toEqual([])
+    );
+  });
 });

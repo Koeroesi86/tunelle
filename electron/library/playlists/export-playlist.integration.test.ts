@@ -5,8 +5,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'sqlite3';
 import addTrack from '../scan/add-track';
 import { createTestDatabase } from '../../test-database';
-import { addEntries, getPlaylists, renamePlaylist, setPlaylistSync } from '../../repositories/playlist-repository';
+import { addEntries, createPlaylist, getImportedPlaylists, getPlaylists, renamePlaylist, setPlaylistSync } from '../../repositories/playlist-repository';
 import { PlaylistWriteError, exportPlaylist, switchToM3u8, writeBackPlaylist } from './export-playlist';
+import { guessLegacyEncoding } from './decode-playlist';
 import { importPlaylistFiles } from './import-playlist-files';
 import normalizePath from '../../utils/normalize-path';
 
@@ -22,6 +23,9 @@ const track = (trackPath: string, title: string) => ({
   picture: null,
   duration: 12,
 });
+
+// the legacy encoding is the one of the system language, and the ones of more than one byte (Shift JIS, EUC-KR, GBK) are not written
+const singleByte = /^(windows-|macintosh)/.test(guessLegacyEncoding());
 
 describe('exporting a playlist and writing it back', () => {
   let database: Database;
@@ -105,5 +109,44 @@ describe('exporting a playlist and writing it back', () => {
     await expect(writeBackPlaylist(database, id)).rejects.toBeInstanceOf(PlaylistWriteError);
     await expect(switchToM3u8(database, id)).rejects.toMatchObject({ kind: 'failed' });
     expect(await read('lists', 'mix.m3u8')).toBe('other');
+  });
+
+  it('writes nothing for a playlist that has no file', async () => {
+    const id = await createPlaylist(database, 'made in the app');
+    await addEntries(database, id, [{ path: inFolder('one.flac'), snapshot: track(inFolder('one.flac'), 'One') }]);
+
+    await expect(writeBackPlaylist(database, id)).resolves.toBeUndefined();
+
+    expect(await fs.promises.readdir(path.join(folder, 'lists'))).toEqual([]);
+    expect(await getImportedPlaylists(database)).toEqual([]);
+  });
+
+  it.skipIf(!singleByte)('writes an .m3u back in the encoding it was read with, and the scan finds it unchanged', async () => {
+    // the byte 0xe9 is not valid UTF-8, so the file is read in the legacy encoding of the system, and a track the library does not have keeps its name in it
+    const original = Buffer.from([...Buffer.from('#EXTINF:1,Band - caf'), 0xe9, ...Buffer.from('\n../caf'), 0xe9, ...Buffer.from('.flac\n')]);
+    const { file, id } = await importMix(original);
+    const [before] = await getImportedPlaylists(database);
+
+    await writeBackPlaylist(database, id);
+
+    const written = await fs.promises.readFile(file);
+    const [after] = await getImportedPlaylists(database);
+    expect(written.includes(0xe9)).toBe(true);
+    expect(written.includes(Buffer.from([0xc3, 0xa9]))).toBe(false);
+    expect(after?.encoding).toBe(before?.encoding);
+    expect((await importPlaylistFiles(database, [file]))[0]?.status).toBe('unchanged');
+  });
+
+  it('keeps the new .m3u8 linked to the playlist when the old file cannot be retired, and says that it failed', async () => {
+    const { file, id } = await importMix('../one.flac\n');
+    await fs.promises.rm(file);
+    await fs.promises.mkdir(file);
+
+    await expect(switchToM3u8(database, id)).rejects.toMatchObject({ kind: 'failed', filePath: file });
+
+    const target = path.join(folder, 'lists', 'mix.m3u8');
+    expect(await read('lists', 'mix.m3u8')).toContain('one.flac');
+    expect((await getImportedPlaylists(database)).map(({ sourcePath }) => sourcePath)).toEqual([normalizePath(target)]);
+    expect((await fs.promises.stat(file)).isDirectory()).toBe(true);
   });
 });
