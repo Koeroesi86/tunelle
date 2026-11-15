@@ -1,4 +1,5 @@
 import type { Database } from 'sqlite3';
+import { z } from 'zod';
 import { storedPlaylistSchema } from '@shared/schemas/playlists';
 import type { StoredPlaylist } from '@shared/types/playlists';
 import executeQuery from '../database/execute-query';
@@ -87,28 +88,42 @@ export const moveEntry = async (database: Database, playlistId: number, entryId:
   return setPositions(database, 'playlist_tracks', movedTo(ids, entryId, toIndex));
 };
 
-const sourceRowSchema = playlistsRowSchema.pick({
-  id: true,
-  name: true,
-  source_path: true,
-  source_checksum: true,
-  source_mtime: true,
-  source_encoding: true,
-  source_sync: true,
-});
+const sourceRowSchema = playlistsRowSchema
+  .pick({
+    id: true,
+    name: true,
+    source_path: true,
+    source_checksum: true,
+    source_mtime: true,
+    source_encoding: true,
+    source_encoding_override: true,
+    source_sync: true,
+  })
+  .extend({ can_undo: z.number() });
+
+const previousEntriesSchema = z.array(z.object({ path: z.string(), snapshot: z.unknown() }));
 
 /** The playlists that were imported from a file, with what tells that the file is the one that was read */
 export const getImportedPlaylists = (database: Database) =>
   executeQuery(
     database,
     {
-      query: `SELECT id, name, source_path, source_checksum, source_mtime, source_encoding, source_sync FROM playlists WHERE source_path IS NOT NULL`,
+      query: `SELECT id, name, source_path, source_checksum, source_mtime, source_encoding, source_encoding_override, source_sync, previous_entries IS NOT NULL AS can_undo FROM playlists WHERE source_path IS NOT NULL`,
       variables: [],
     },
     sourceRowSchema
   ).then((rows) =>
-    rows.flatMap(({ source_path: sourcePath, source_checksum: checksum, source_mtime: modified, source_encoding: encoding, source_sync: sync, ...playlist }) =>
-      sourcePath === null ? [] : [{ ...playlist, sourcePath, checksum, modified, encoding, sync: sync === 1 }]
+    rows.flatMap(
+      ({
+        source_path: sourcePath,
+        source_checksum: checksum,
+        source_mtime: modified,
+        source_encoding: encoding,
+        source_encoding_override: encodingOverride,
+        source_sync: sync,
+        can_undo: canUndo,
+        ...playlist
+      }) => (sourcePath === null ? [] : [{ ...playlist, sourcePath, checksum, modified, encoding, encodingOverride, sync: sync === 1, canUndo: canUndo === 1 }])
     )
   );
 
@@ -134,12 +149,44 @@ export const createImportedPlaylist = (database: Database, name: string, source:
     idRowSchema
   ).then(([row]) => row?.id);
 
-/** What the file says now replaces the entries of the playlist, the name stays as the user has it */
+/** What the file says now replaces the entries of the playlist, the name stays as the user has it; the entries it replaces are kept for one step back (`undoImport`) */
 export const replaceImportedEntries = async (database: Database, id: number, source: PlaylistSource, tracks: { path: string; snapshot: unknown }[]) => {
+  const previous = await executeQuery(
+    database,
+    { query: `SELECT id, playlist_id, path, snapshot FROM playlist_tracks WHERE playlist_id = ? ORDER BY position, id`, variables: [id] },
+    playlistEntryRowSchema
+  );
+  await executeQuery(database, {
+    query: `UPDATE playlists SET previous_entries = ? WHERE id = ?`,
+    variables: [JSON.stringify(previous.map(({ path, snapshot }) => ({ path, snapshot }))), id],
+  });
   await executeQuery(database, { query: `DELETE FROM playlist_tracks WHERE playlist_id = ?`, variables: [id] });
   await addEntries(database, id, tracks);
   return relinkPlaylistFile(database, id, source);
 };
+
+/** The entries that the last read of the file replaced come back, once; false when there is nothing to go back to */
+export const undoImport = async (database: Database, id: number) => {
+  const [row] = await executeQuery(
+    database,
+    { query: `SELECT previous_entries FROM playlists WHERE id = ?`, variables: [id] },
+    z.object({ previous_entries: z.string().nullable() })
+  );
+  if (!row?.previous_entries) return false;
+
+  const entries = previousEntriesSchema.parse(JSON.parse(row.previous_entries));
+  await executeQuery(database, { query: `DELETE FROM playlist_tracks WHERE playlist_id = ?`, variables: [id] });
+  await addEntries(database, id, entries);
+  await executeQuery(database, { query: `UPDATE playlists SET previous_entries = NULL WHERE id = ?`, variables: [id] });
+  return true;
+};
+
+/** The encoding the user chose to read the file with, undefined to leave it to the guess again */
+export const setEncodingOverride = (database: Database, id: number, encoding: string | undefined) =>
+  executeQuery(database, {
+    query: `UPDATE playlists SET source_encoding_override = ? WHERE id = ? AND source_path IS NOT NULL`,
+    variables: [encoding ?? null, id],
+  });
 
 /** The file is the same as it was read, only its modification time is another */
 export const touchImportedPlaylist = (database: Database, id: number, modified: number) =>
@@ -149,7 +196,7 @@ export const touchImportedPlaylist = (database: Database, id: number, modified: 
 export const unlinkPlaylists = (database: Database, ids: number[]) =>
   mapAsync(ids, (id) =>
     executeQuery(database, {
-      query: `UPDATE playlists SET source_path = NULL, source_checksum = NULL, source_mtime = NULL, source_encoding = NULL, source_sync = 0 WHERE id = ?`,
+      query: `UPDATE playlists SET source_path = NULL, source_checksum = NULL, source_mtime = NULL, source_encoding = NULL, source_encoding_override = NULL, previous_entries = NULL, source_sync = 0 WHERE id = ?`,
       variables: [id],
     })
   );

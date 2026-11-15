@@ -47,7 +47,8 @@
       color: var(--text-muted);
     }
 
-    .sync {
+    .sync,
+    .encoding {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -57,8 +58,19 @@
       cursor: pointer;
     }
 
+    .encoding select {
+      max-width: 160px;
+      min-height: 28px;
+      font-size: 12px;
+      color: inherit;
+      border: 1px solid var(--overlay);
+      border-radius: 6px;
+      background: transparent;
+    }
+
     .playAll,
     .export,
+    .undo,
     .delete {
       display: inline-flex;
       align-items: center;
@@ -102,6 +114,7 @@
     }
 
     .export,
+    .undo,
     .delete {
       color: var(--text-soft);
 

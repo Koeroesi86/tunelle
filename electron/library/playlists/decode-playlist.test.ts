@@ -1,6 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { decodePlaylist, guessLegacyEncoding } from './decode-playlist';
 
+describe('decodePlaylist with an encoding that was chosen', () => {
+  const bytes = Buffer.from([0xe9, 0x2e, 0x66]);
+
+  it('reads the bytes with it instead of what is detected', () => {
+    expect(decodePlaylist(bytes, 'windows-1251')).toEqual({ text: 'й.f', encoding: 'windows-1251' });
+    expect(decodePlaylist(Buffer.from('é.f'), 'windows-1252')).toEqual({ text: 'Ã©.f', encoding: 'windows-1252' });
+  });
+
+  it('detects the encoding for none, for a null and for one that is not offered', () => {
+    const detected = decodePlaylist(bytes).encoding;
+
+    expect(decodePlaylist(bytes, null).encoding).toBe(detected);
+    expect(decodePlaylist(bytes, 'klingon').encoding).toBe(detected);
+  });
+});
+
 describe('decodePlaylist', () => {
   it('reads UTF-8, with or without the byte order mark', () => {
     expect(decodePlaylist(Buffer.from('\uFEFFÁrvíz.flac'))).toEqual({ text: 'Árvíz.flac', encoding: 'utf-8' });

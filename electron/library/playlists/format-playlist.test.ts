@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { formatPlaylist, locationOf } from './format-playlist';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { formatPlaylist, isOnAnotherDrive, locationOf } from './format-playlist';
 import { parsePlaylist } from './parse-playlist';
 
 const playlist = {
@@ -20,7 +20,84 @@ describe('locationOf', () => {
   });
 });
 
+describe('locationOf for the folders of the library', () => {
+  const roots = ['/music', 'C:/music'];
+
+  it('goes up from the folder of the file to a sibling or a parent folder', () => {
+    expect(locationOf('/music/a/one.flac', '/music/lists', roots)).toBe('../a/one.flac');
+    expect(locationOf('/music/one.flac', '/music/lists/deep', roots)).toBe('../../one.flac');
+  });
+
+  it('writes the full path of a track that is in no folder of the library, or on another drive', () => {
+    expect(locationOf('/elsewhere/one.flac', '/music/lists', roots)).toBe('/elsewhere/one.flac');
+    expect(locationOf('C:/music/one.flac', 'D:/lists', roots)).toBe('C:/music/one.flac');
+    expect(locationOf('//host/share/music/one.flac', '//other/share', ['//host/share/music'])).toBe('//host/share/music/one.flac');
+  });
+
+  it('tells a track that cannot be written relative from one that is just not in the library', () => {
+    expect(isOnAnotherDrive('C:/music/one.flac', 'D:/lists', roots)).toBe(true);
+    expect(isOnAnotherDrive('E:/other/one.flac', 'D:/lists', roots)).toBe(false);
+    expect(isOnAnotherDrive('C:/music/one.flac', 'c:/lists', roots)).toBe(false);
+    expect(isOnAnotherDrive('/music/one.flac', '/lists')).toBe(false);
+  });
+});
+
+describe('formatPlaylist, the way the paths are written', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it.each(['m3u', 'pls'] as const)('writes an absolute path of a %s the way Windows has it there, and not elsewhere', (format) => {
+    const entries = [{ path: 'D:/m/a.flac' }, { path: 'C:/lists/b.flac' }];
+    const onWindows = vi.spyOn(process, 'platform', 'get').mockReturnValue('win32');
+
+    expect(formatPlaylist(format, { name: 'n', folder: 'C:/lists', entries })).toContain('D:\\m\\a.flac');
+    expect(formatPlaylist(format, { name: 'n', folder: 'C:/lists', entries })).toContain('b.flac');
+    expect(formatPlaylist(format, { name: 'n', folder: 'C:/lists', entries })).not.toContain('C:\\lists');
+
+    onWindows.mockReturnValue('linux');
+    expect(formatPlaylist(format, { name: 'n', folder: 'C:/lists', entries })).toContain('D:/m/a.flac');
+    onWindows.mockRestore();
+  });
+
+  it('writes an XSPF location as a URI also on Windows, and a relative one that goes up', () => {
+    const text = formatPlaylist('xspf', {
+      name: 'n',
+      folder: '/music/lists',
+      roots: ['/music'],
+      entries: [{ path: '/music/a b.flac' }, { path: '/x/y.flac' }],
+    });
+
+    expect(text).toContain('<location>../a%20b.flac</location>');
+    expect(text).toContain('<location>file:///x/y.flac</location>');
+  });
+});
+
+describe('formatPlaylist with the lines of the earlier file', () => {
+  const kept = { header: ['#EXTGRP:rock'], before: { 'one.flac': ['#EXTALB:Rec'] }, tail: ['# end'] };
+
+  it('writes the kept lines of an M3U at the head, before the location they were before, and at the end', () => {
+    const text = formatPlaylist('m3u', { name: 'n', folder: '/m', kept, entries: [{ path: '/m/two.flac' }, { path: '/m/one.flac' }] });
+
+    expect(text).toBe('#EXTM3U\n#PLAYLIST:n\n#EXTGRP:rock\n#EXTINF:-1,two.flac\ntwo.flac\n#EXTALB:Rec\n#EXTINF:-1,one.flac\none.flac\n# end\n');
+  });
+
+  it('drops the lines that were before a location that is no longer in the playlist', () => {
+    expect(formatPlaylist('m3u', { name: 'n', folder: '/m', kept, entries: [] })).not.toContain('#EXTALB');
+  });
+
+  it('writes the kept lines of a PLS at the end', () => {
+    const text = formatPlaylist('pls', { name: 'n', folder: '/m', kept: { header: [], before: {}, tail: ['[other]', 'Key=1'] }, entries: [] });
+
+    expect(text.endsWith('Version=2\n[other]\nKey=1\n')).toBe(true);
+  });
+});
+
 describe('formatPlaylist', () => {
+  // the absolute path is written the way the system has it, so the round trip is checked as on Linux
+  beforeEach(() => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('linux');
+  });
+  afterEach(() => vi.restoreAllMocks());
+
   it('writes an extended M3U that reads back the same', () => {
     const text = formatPlaylist('m3u', playlist);
 

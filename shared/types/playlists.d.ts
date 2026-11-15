@@ -1,5 +1,13 @@
 import type { Track } from './library';
 
+export interface PlaylistFile {
+  path: string;
+  sync: boolean;
+  encoding?: string;
+  encodingOverride?: string;
+  canUndo: boolean;
+}
+
 /** One place of a track in a playlist, the same track can be in a playlist more than once */
 export interface PlaylistEntry {
   id: number;
@@ -12,8 +20,8 @@ export interface Playlist {
   id: number;
   name: string;
   entries: PlaylistEntry[];
-  /** The playlist file this playlist was imported from, and whether a change is written back to it */
-  file?: { path: string; sync: boolean };
+  /** The playlist file this playlist was imported from, whether a change is written back to it, the encoding it was read with (and the one the user chose, if any), and whether the last read can be undone */
+  file?: PlaylistFile;
 }
 
 export type { PlaylistImportReport, StoredPlaylist } from '../schemas/playlists';
@@ -23,5 +31,5 @@ export interface PlaylistMessage {
   id: number;
   name: string;
   entries: { id: number; track: unknown; available: boolean }[];
-  file?: { path: string; sync: boolean };
+  file?: PlaylistFile;
 }

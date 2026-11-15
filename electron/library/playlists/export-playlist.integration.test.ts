@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'sqlite3';
 import addTrack from '../scan/add-track';
 import { createTestDatabase } from '../../test-database';
+import { saveFolders } from '../../repositories/library-repository';
 import { addEntries, createPlaylist, getImportedPlaylists, getPlaylists, renamePlaylist, setPlaylistSync } from '../../repositories/playlist-repository';
 import { PlaylistWriteError, exportPlaylist, switchToM3u8, writeBackPlaylist } from './export-playlist';
 import { guessLegacyEncoding } from './decode-playlist';
@@ -75,7 +76,7 @@ describe('exporting a playlist and writing it back', () => {
     await writeBackPlaylist(database, id);
 
     expect(await read('lists', 'mix.m3u')).toBe(
-      `#EXTM3U\n#PLAYLIST:Renamed\n#EXTINF:12,Band - One\n${inFolder('one.flac')}\n#EXTINF:12,Band - Two\n${inFolder('two.flac')}\n`
+      `#EXTM3U\n#PLAYLIST:Renamed\n#EXTINF:12,Band - One\n${path.join(folder, 'one.flac')}\n#EXTINF:12,Band - Two\n${path.join(folder, 'two.flac')}\n`
     );
     expect(await read('lists', 'mix.m3u.bak')).toBe('../one.flac\n');
     expect((await importPlaylistFiles(database, [file]))[0]?.status).toBe('unchanged');
@@ -148,5 +149,43 @@ describe('exporting a playlist and writing it back', () => {
     expect(await read('lists', 'mix.m3u8')).toContain('one.flac');
     expect((await getImportedPlaylists(database)).map(({ sourcePath }) => sourcePath)).toEqual([normalizePath(target)]);
     expect((await fs.promises.stat(file)).isDirectory()).toBe(true);
+  });
+
+  it('writes a track of the library folder relative to the file, also up and over, and reads it back to the same tracks', async () => {
+    await saveFolders(database, [{ path: folder, lastModified: 1 }]);
+    const { id } = await importMix('../one.flac\n../two.flac\n');
+    const target = path.join(folder, 'lists', 'deep', 'copy.m3u8');
+    await fs.promises.mkdir(path.dirname(target));
+
+    const exported = await exportPlaylist(database, id, target);
+    await importPlaylistFiles(database, [target]);
+
+    expect(exported).toEqual({ onAnotherDrive: 0 });
+    expect(await read('lists', 'deep', 'copy.m3u8')).toContain('\n../../one.flac\n');
+    expect((await getPlaylists(database))[1]?.entries.map((entry) => entry.path)).toEqual([inFolder('one.flac'), inFolder('two.flac')]);
+  });
+
+  it('keeps the comments and the keys of the file that the app does not write when a change is written back', async () => {
+    const { file, id } = await importMix('#EXTM3U\n#EXTGRP:rock\n#EXTALB:Rec\n../one.flac\n# see you\n');
+    await addEntries(database, id, [{ path: inFolder('two.flac'), snapshot: track(inFolder('two.flac'), 'Two') }]);
+
+    await writeBackPlaylist(database, id);
+
+    const text = await fs.promises.readFile(file, 'utf-8');
+    expect(text).toContain('#PLAYLIST:mix\n#EXTGRP:rock\n');
+    expect(text.endsWith('# see you\n')).toBe(true);
+    expect(text).toContain(`#EXTINF:12,Band - Two\n${path.join(folder, 'two.flac')}\n`);
+  });
+
+  it('keeps the other keys of a PLS when a change is written back', async () => {
+    const file = path.join(folder, 'lists', 'mix.pls');
+    await fs.promises.writeFile(file, '[playlist]\nFile1=../one.flac\nNumberOfEntries=1\nVersion=2\n[extra]\nColor=red\n');
+    await importPlaylistFiles(database, [file]);
+    const [playlist] = await getPlaylists(database);
+
+    await renamePlaylist(database, playlist?.id ?? -1, 'Renamed');
+    await writeBackPlaylist(database, playlist?.id ?? -1);
+
+    expect(await read('lists', 'mix.pls')).toMatch(/Version=2\n\[extra\]\nColor=red\n$/);
   });
 });
