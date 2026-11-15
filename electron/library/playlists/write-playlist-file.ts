@@ -19,3 +19,6 @@ export const writePlaylistFile = async (filePath: string, buffer: Buffer, backup
 
   return Math.floor((await fs.promises.stat(filePath)).mtimeMs);
 };
+
+/** The file goes: what is in it is kept as `<file>.bak` first, as with the first write */
+export const retirePlaylistFile = (filePath: string) => keepBackup(filePath).then(() => fs.promises.rm(filePath, { force: true }));

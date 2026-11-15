@@ -11,11 +11,12 @@ describe('encodePlaylist', () => {
     expect(encodePlaylist('ő', 'windows-1250')).toEqual({ buffer: Buffer.from([0xf5]), encoding: 'windows-1250' });
   });
 
-  it('writes UTF-8 when the encoding does not have a character', () => {
-    expect(encodePlaylist('ő', 'windows-1252').encoding).toBe('utf-8');
+  it('writes nothing when the encoding does not have a character, and none is replaced', () => {
+    expect(encodePlaylist('ő', 'windows-1252')).toBeUndefined();
   });
 
-  it('writes UTF-8 for an encoding with more than one byte per character', () => {
-    expect(encodePlaylist('é', 'shift_jis').encoding).toBe('utf-8');
+  it('writes nothing for an encoding that is not written, unless the text is ASCII', () => {
+    expect(encodePlaylist('é', 'shift_jis')).toBeUndefined();
+    expect(encodePlaylist('e', 'shift_jis')).toEqual({ buffer: Buffer.from('e'), encoding: 'shift_jis' });
   });
 });

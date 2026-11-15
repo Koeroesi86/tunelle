@@ -14,6 +14,7 @@ import {
 } from '../repositories/playlist-repository';
 import { sendPlaylists } from '../library/playlists/send-playlists';
 import { exportPlaylist, writeBackPlaylist } from '../library/playlists/export-playlist';
+import { handleWriteFailure } from '../library/playlists/handle-write-failure';
 import { importPlaylistFiles } from '../library/playlists/import-playlist-files';
 import { playlistExportFilters, playlistExtensions } from '../library/playlists/playlist-files';
 import { getMainTranslator } from '../language';
@@ -35,10 +36,12 @@ const registerPlaylistListeners = (context: ListenerContext) => {
   const { database } = context;
   const reply = (sender: WebContents, work: Promise<unknown>) => work.then(() => sendPlaylists(database, sender)).catch(logError);
   /** A change of a playlist that is kept in sync with its file is written to the file; a failed write is logged and does not undo the change */
+  const writeBack = (sender: WebContents, id: number) =>
+    writeBackPlaylist(database, id).catch((error: unknown) => handleWriteFailure(database, BrowserWindow.fromWebContents(sender), id, error));
   const replyAndWrite = (sender: WebContents, id: number, work: Promise<unknown>) =>
     reply(
       sender,
-      work.then(() => writeBackPlaylist(database, id).catch(logError))
+      work.then(() => writeBack(sender, id))
     );
 
   ipcMain.on('PLAYLISTS_LOAD', (event) => {
@@ -79,7 +82,7 @@ const registerPlaylistListeners = (context: ListenerContext) => {
       .then((playlists) => ({ ...options, defaultPath: `${playlists.find(({ id }) => id === parsed.id)?.name ?? 'playlist'}.m3u8` }))
       .then((withName) => (window ? dialog.showSaveDialog(window, withName) : dialog.showSaveDialog(withName)))
       .then(({ canceled, filePath }) => (canceled || !filePath ? undefined : exportPlaylist(database, parsed.id, filePath)))
-      .catch(logError);
+      .catch((error: unknown) => handleWriteFailure(database, window, parsed.id, error));
   });
 
   ipcMain.on('PLAYLIST_SYNC', (event, payload: unknown) => {
@@ -88,7 +91,7 @@ const registerPlaylistListeners = (context: ListenerContext) => {
 
     reply(
       event.sender,
-      setPlaylistSync(database, parsed.id, parsed.sync).then(() => (parsed.sync ? writeBackPlaylist(database, parsed.id) : undefined))
+      setPlaylistSync(database, parsed.id, parsed.sync).then(() => (parsed.sync ? writeBack(event.sender, parsed.id) : undefined))
     );
   });
 

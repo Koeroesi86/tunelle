@@ -17,6 +17,7 @@ import {
 } from '../repositories/playlist-repository';
 import { findTrackFormat } from '../repositories/library-repository';
 import { writeBackPlaylist } from '../library/playlists/export-playlist';
+import { handleWriteFailure } from '../library/playlists/handle-write-failure';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
 
@@ -26,6 +27,8 @@ const listeners = new Map<string, Listener>();
 vi.mock('sqlite3', () => ({ Database: class {} }));
 vi.mock('electron', () => ({
   ipcMain: { on: (channel: string, listener: Listener) => listeners.set(channel, listener) },
+  BrowserWindow: { fromWebContents: () => null },
+  dialog: {},
 }));
 vi.mock('../repositories/playlist-repository', () => ({
   addEntries: vi.fn(),
@@ -39,6 +42,7 @@ vi.mock('../repositories/playlist-repository', () => ({
   removeEntry: vi.fn(),
   renamePlaylist: vi.fn(),
 }));
+vi.mock('../library/playlists/handle-write-failure', () => ({ handleWriteFailure: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../library/playlists/export-playlist', () => ({ exportPlaylist: vi.fn(), writeBackPlaylist: vi.fn() }));
 vi.mock('../repositories/library-repository', () => ({ findTrackFormat: vi.fn() }));
 
@@ -139,13 +143,14 @@ describe('registerPlaylistListeners', () => {
     expect(addEntries).toHaveBeenCalledWith(database, 7, []);
   });
 
-  it('writes a change of a playlist back to its file, and tells the window also when that fails', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    vi.mocked(writeBackPlaylist).mockRejectedValue(new Error('read only'));
+  it('writes a change of a playlist back to its file, and hands a failure to the handler and tells the window all the same', async () => {
+    const failure = new Error('read only');
+    vi.mocked(writeBackPlaylist).mockRejectedValue(failure);
 
     await call('PLAYLIST_RENAME', { id: 7, name: 'Night' });
 
     expect(writeBackPlaylist).toHaveBeenCalledWith(database, 7);
+    expect(handleWriteFailure).toHaveBeenCalledWith(database, null, 7, failure);
     expect(send).toHaveBeenCalledTimes(1);
   });
 
