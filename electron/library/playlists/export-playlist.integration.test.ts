@@ -142,7 +142,7 @@ describe('exporting a playlist and writing it back', () => {
     await fs.promises.rm(file);
     await fs.promises.mkdir(file);
 
-    await expect(switchToM3u8(database, id)).rejects.toMatchObject({ kind: 'failed', filePath: file });
+    await expect(switchToM3u8(database, id)).rejects.toMatchObject({ kind: 'failed', filePath: normalizePath(file) });
 
     const target = path.join(folder, 'lists', 'mix.m3u8');
     expect(await read('lists', 'mix.m3u8')).toContain('one.flac');
