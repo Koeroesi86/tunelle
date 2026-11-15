@@ -227,7 +227,7 @@
   "playlists.rename": "Rename",
   "playlists.delete": "Delete playlist",
   "playlists.confirmDelete": "Delete for good",
-  "playlists.deleteFileWarning": "The playlist comes from the file {file}. If the file stays, the playlist comes back the next time the folder is scanned: delete the file too to keep it away.",
+  "playlists.deleteFileWarning": "Delete {name}? The playlist comes from the file {file}. If the file stays, it comes back the next time the folder is scanned: delete the file too to keep it away.",
   "playlists.removeTrack": "Remove from playlist",
   "playlists.unavailable": "Not available",
   "playlists.unavailableNote": "A track whose file is not in the library any more stays in the playlist, shown as not available and skipped when the playlist plays. It plays again when the file returns.",

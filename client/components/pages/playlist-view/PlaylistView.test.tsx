@@ -188,25 +188,36 @@ describe('PlaylistView', () => {
     expect(remove).toHaveBeenCalledWith(7);
   });
 
-  it('warns that a playlist that has a file comes back with the next scan while the file stays, and only while it asks', () => {
+  it('asks in a dialog for a playlist that has a file, and says that it comes back with the next scan while the file stays', () => {
     const { remove } = renderView({ ...playlist, file: { path: '/music/lists/mix.m3u', sync: true } });
 
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText(/comes back/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }));
 
-    expect(screen.getByRole('alert').textContent).toContain('mix.m3u');
-    expect(screen.getByRole('alert').textContent).toContain('comes back');
+    expect(screen.getByText(/mix\.m3u.*comes back/)).toBeTruthy();
     expect(remove).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Delete for good' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
     expect(remove).toHaveBeenCalledWith(7);
+    expect(screen.queryByText(/comes back/)).toBeNull();
   });
 
-  it('says nothing of a file for a playlist that has none', () => {
+  it('keeps a playlist that has a file when the dialog is answered with no', () => {
+    const { remove } = renderView({ ...playlist, file: { path: '/music/lists/mix.m3u', sync: true } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }));
+    fireEvent.click(screen.getByRole('button', { name: 'No' }));
+
+    expect(remove).not.toHaveBeenCalled();
+    expect(screen.queryByText(/comes back/)).toBeNull();
+  });
+
+  it('asks with the second click and no dialog for a playlist that has no file', () => {
     renderView();
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }));
 
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText(/comes back/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Delete for good' })).toBeTruthy();
   });
 
   it('moves a track to where it is dropped', () => {
