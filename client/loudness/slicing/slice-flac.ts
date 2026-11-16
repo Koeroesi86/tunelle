@@ -1,4 +1,5 @@
 import { cutsOf } from './find-cut';
+import { tagLength } from './slice-frames';
 import { SliceError, mustRead, withHeader } from './types';
 import type { ReadRange, Slicer } from './types';
 
@@ -47,17 +48,28 @@ const metadataEnd = async (read: ReadRange, offset: number): Promise<number> => 
 };
 
 /** The stream marker and the metadata blocks, which every piece starts with, and where the first frame is */
-const headerOf = async (read: ReadRange) => {
-  const marker = await read(0, 4);
+const headerOf = async (read: ReadRange, start: number) => {
+  const marker = await read(start, start + 4);
   if (!marker || String.fromCharCode(...marker) !== 'fLaC') throw new SliceError('A FLAC file without its marker');
-  const firstFrame = await metadataEnd(read, 4);
-  return { header: await mustRead(read, 0, firstFrame, 'The metadata of a FLAC file'), firstFrame };
+  const firstFrame = await metadataEnd(read, start + 4);
+  return { header: await mustRead(read, start, firstFrame, 'The metadata of a FLAC file'), firstFrame };
 };
 
-/** A FLAC file is cut at the start of a frame, and each piece is given the metadata of the file in front, which the decoder takes as a file of its own */
+const id3v1Bytes = 128;
+
+/** Where the sound ends: before an ID3v1 tag (`TAG`, 128 bytes) that a tagger put after the last frame, which a decoder takes for a broken frame */
+const soundEnd = async (read: ReadRange, size: number) => {
+  const tag = size > id3v1Bytes ? await read(size - id3v1Bytes, size - id3v1Bytes + 3) : undefined;
+  return tag && String.fromCharCode(...tag) === 'TAG' ? size - id3v1Bytes : size;
+};
+
+/**
+ * A FLAC file is cut at the start of a frame, and each piece is given the metadata of the file in front, which the decoder takes as a file of its own.
+ * An ID3v2 tag in front of the marker and an ID3v1 tag after the last frame are not in a piece. See docs/app/loudness-measurement.md
+ */
 export const sliceFlac: Slicer = async function* (read, size, sliceBytes) {
-  const { header, firstFrame } = await headerOf(read);
-  const cuts = await cutsOf(read, firstFrame, size, sliceBytes, startsFrame);
+  const { header, firstFrame } = await headerOf(read, await tagLength(read));
+  const cuts = await cutsOf(read, firstFrame, await soundEnd(read, size), sliceBytes, startsFrame);
 
   for (let index = 0; index < cuts.length - 1; index++) {
     const frames = await mustRead(read, cuts[index], cuts[index + 1], 'A piece of a FLAC file');

@@ -11,10 +11,11 @@ const text = (bytes: Uint8Array, start: number, end: number) => String.fromCharC
 
 const mp4Boxes = ['ftyp', 'moov', 'mdat', 'wide', 'free', 'skip'];
 
-/** A row of frames, from after its tag: ADTS (AAC) says so by a header with no layer, MP3 is any other */
+/** A file behind an ID3v2 tag: FLAC says so by its marker; else a row of frames, from after the tag: ADTS (AAC) says so by a header with no layer, MP3 is any other */
 const framesSlicer = async (read: ReadRange) => {
   const start = await tagLength(read);
   const head = await read(start, start + 7);
+  if (head && text(head, 0, 4) === 'fLaC') return sliceFlac;
   return head?.length === 7 && adtsFrameAt(head, 0) ? sliceAdts : sliceMp3;
 };
 

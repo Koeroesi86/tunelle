@@ -43,6 +43,15 @@ describe('sliceFlac', () => {
     expect(slices[0].bytes.length).toBe(metadata.length + 900);
   });
 
+  it('leaves out an ID3v2 tag in front of the marker and an ID3v1 tag after the last frame', async () => {
+    const front = Uint8Array.from([0x49, 0x44, 0x33, 3, 0, 0, 0, 0, 0, 4, 1, 2, 3, 4]);
+    const back = Uint8Array.from([0x54, 0x41, 0x47, ...new Array(125).fill(9)]);
+    const slices = await collect(sliceFlac, join(front, metadata, ...frames, back), 10_000);
+
+    slices.forEach(({ bytes }) => expect(bytes.subarray(0, metadata.length)).toEqual(metadata));
+    expect(join(...slices.map(({ bytes }) => bytes.subarray(metadata.length)))).toEqual(join(...frames));
+  });
+
   it('rejects a file without the marker', async () => {
     await expect(collect(sliceFlac, new Uint8Array(100), 50)).rejects.toThrow('marker');
   });
