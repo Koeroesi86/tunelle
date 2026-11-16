@@ -31,6 +31,12 @@ describe('slicerOf', () => {
     expect(await slicerFor([...tag, 0xff, 0xfb, 0x90, 0x00])).toBe(sliceMp3);
   });
 
+  it('cuts a FLAC file behind an ID3v2 tag as FLAC', async () => {
+    const tag = [...ascii('ID3'), 3, 0, 0, 0, 0, 0, 4, 1, 2, 3, 4];
+
+    expect(await slicerFor([...tag, ...ascii('fLaC')])).toBe(sliceFlac);
+  });
+
   it('does not cut a format that is not one of these', async () => {
     expect(await slicerFor(ascii('not a sound'))).toBeUndefined();
   });
