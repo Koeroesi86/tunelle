@@ -11,7 +11,8 @@
   overflow-x: hidden;
   overflow-y: auto;
   color: var(--text);
-  background: var(--panel-background);
+  // opaque, also when the window blur makes the panels glass: the library page under it must not show through
+  background: var(--panel-solid);
 
   @include thin-scrollbar;
 

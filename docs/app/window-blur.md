@@ -20,3 +20,7 @@ Electron cannot blur behind a window on Linux and the app cannot tell whether th
 5. In Tunelle, choose **Use translucent panels** on the Settings tab.
 
 Tested with Blur my Shell 76 on GNOME 50 (Wayland). Without the extension, GNOME draws nothing behind the window, so keep the opaque panels there.
+
+## A page over another page
+
+The translucent panels (`--panel-glass`) let what is under them show through. The pages of the tabs never overlap (the hidden ones are `visibility: hidden`), but the page of an open album covers the library page, so it paints `--panel-solid`: with `--panel-background` the albums, their covers and badges showed through the tracks of the album. Any new page that covers another one does the same. To check it, turn on **Use translucent panels** and open an album from Album artists.
