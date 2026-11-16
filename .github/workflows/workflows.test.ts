@@ -247,6 +247,15 @@ describe('workflows', () => {
     expect(text).toMatch(/cron:/);
   });
 
+  it('retry-unstarted-jobs.yml cancels and runs jobs again with actions: write on its job only, on a schedule', () => {
+    const text = read('retry-unstarted-jobs.yml');
+
+    expect(text).toMatch(/^permissions:\n {2}contents: read\n/m);
+    expect(text.match(/^ {6}actions: write$/gm)).toHaveLength(1);
+    expect(text).toMatch(/cron:/);
+    expect(text).not.toMatch(/pull_request/);
+  });
+
   it('pages.yml builds the Flatpak repository into the site before it is uploaded', () => {
     const text = read('pages.yml');
 
