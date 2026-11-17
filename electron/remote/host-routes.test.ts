@@ -1,10 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccessControl } from './access';
 import { createRoutes } from './host-routes';
 
-const access = { request: vi.fn(), authorize: vi.fn() };
+const access = { request: vi.fn(), authorize: vi.fn(), authenticate: vi.fn() };
 
 const call = async (routes: ReturnType<typeof createRoutes>, method: string, url: string, body = '', headers: Record<string, string> = {}) => {
   const request = Object.assign(Readable.from(body ? [Buffer.from(body)] : []), { method, url, headers, socket: { remoteAddress: '10.0.0.2' } });
@@ -12,6 +13,13 @@ const call = async (routes: ReturnType<typeof createRoutes>, method: string, url
   routes.handle(request as unknown as IncomingMessage, response as unknown as ServerResponse);
   await vi.waitFor(() => expect(response.end).toHaveBeenCalled());
   return { status: response.writeHead.mock.calls[0]?.[0], body: response.end.mock.calls[0]?.[0] };
+};
+
+const openStream = (routes: ReturnType<typeof createRoutes>) => {
+  const response = Object.assign(new EventEmitter(), { headersSent: false, writeHead: vi.fn(), write: vi.fn(), end: vi.fn() });
+  const request = Object.assign(Readable.from([]), { method: 'GET', url: '/remote/events', headers: approved, socket: { remoteAddress: '10.0.0.2' } });
+  routes.handle(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  return response;
 };
 
 const create = () => createRoutes(access as unknown as AccessControl);
@@ -73,6 +81,66 @@ describe('createRoutes', () => {
     access.authorize.mockReturnValue({ status: 'rate-limited' });
 
     expect((await call(create(), 'GET', '/remote/now-playing', '', approved)).status).toBe(429);
+  });
+
+  describe('the event stream', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+      access.authorize.mockReturnValue({ status: 'ok', device: { id: 'id' } });
+      access.authenticate.mockReturnValue({ id: 'id' });
+    });
+
+    afterEach(() => vi.useRealTimers());
+
+    it('sends the now playing at once and again on each change, to an approved device only', async () => {
+      const routes = create();
+      const stream = openStream(routes);
+      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(1));
+
+      routes.setNowPlaying({ state: 'playing', title: 'Song', position: 3, at: 1000 });
+
+      expect(stream.writeHead).toHaveBeenCalledWith(200, expect.objectContaining({ 'content-type': 'text/event-stream' }));
+      expect(stream.write).toHaveBeenNthCalledWith(1, 'data: {"state":"idle"}\n\n');
+      expect(stream.write.mock.calls[1][0]).toMatch(/^data: \{"state":"playing","title":"Song"/);
+
+      access.authorize.mockReturnValue({ status: 'unauthorized' });
+      const refused = await call(routes, 'GET', '/remote/events', '', approved);
+      expect(refused.status).toBe(401);
+    });
+
+    it('answers 429 to an address with too many wrong secrets, and 503 when the streams are full', async () => {
+      access.authorize.mockReturnValue({ status: 'rate-limited' });
+      expect((await call(create(), 'GET', '/remote/events', '', approved)).status).toBe(429);
+
+      access.authorize.mockReturnValue({ status: 'ok', device: { id: 'id' } });
+      const routes = create();
+      Array.from({ length: 20 }, () => openStream(routes));
+      expect((await call(routes, 'GET', '/remote/events', '', approved)).status).toBe(503);
+    });
+
+    it('ends the stream of a device that was revoked, at the next event or ping', async () => {
+      const routes = create();
+      const stream = openStream(routes);
+      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(1));
+
+      access.authenticate.mockReturnValue(undefined);
+      routes.setNowPlaying({ state: 'idle' });
+
+      expect(stream.end).toHaveBeenCalled();
+      expect(stream.write).toHaveBeenCalledTimes(1);
+    });
+
+    it('pings now and then so a dead peer is found, and stops when the stream closes', async () => {
+      const stream = openStream(create());
+      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(1));
+
+      vi.advanceTimersByTime(25_000);
+      expect(stream.write).toHaveBeenLastCalledWith(': ping\n\n');
+
+      stream.emit('close');
+      vi.advanceTimersByTime(60_000);
+      expect(stream.write).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('has no other route or method', async () => {

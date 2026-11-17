@@ -3,6 +3,8 @@ import type { AccessControl } from './access';
 import { nowPlayingSchema, type NowPlaying } from './now-playing';
 
 const MAX_BODY_BYTES = 4096;
+const MAX_STREAMS = 20;
+const HEARTBEAT_MS = 25_000;
 
 const requestStatus = { pending: 202, approved: 200, invalid: 400, blocked: 403, 'rate-limited': 429, full: 503 } as const;
 
@@ -33,9 +35,46 @@ const credentials = (request: IncomingMessage) => ({
   secret: `${request.headers.authorization ?? ''}`.replace(/^Bearer /, ''),
 });
 
-/** The two routes of the host and the now playing they answer with; no other route exists. See docs/app/remote-access-discovery.md */
+interface Stream {
+  response: ServerResponse;
+  deviceId: string;
+  secret: string;
+}
+
+/** The routes of the host and the now playing they answer with; no other route exists. See docs/app/remote-access-discovery.md */
 export const createRoutes = (access: AccessControl) => {
   let nowPlaying: NowPlaying = { state: 'idle' };
+  const streams = new Set<Stream>();
+
+  /** A device that was revoked or blocked since it connected is cut off here, so no event reaches it */
+  const writeToStreams = (chunk: string) =>
+    [...streams].forEach((stream) => {
+      if (!access.authenticate(stream.deviceId, stream.secret)) return stream.response.end();
+      stream.response.write(chunk);
+    });
+
+  const openStream = (response: ServerResponse, deviceId: string, secret: string) => {
+    if (streams.size >= MAX_STREAMS) return send(response, 503, { status: 'full' });
+    const stream = { response, deviceId, secret };
+    const heartbeat = setInterval(() => writeToStreams(': ping\n\n'), HEARTBEAT_MS);
+    const close = () => {
+      clearInterval(heartbeat);
+      streams.delete(stream);
+    };
+    response.on('close', close);
+    response.on('error', close);
+    streams.add(stream);
+    response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
+    response.write(`data: ${JSON.stringify(nowPlaying)}\n\n`);
+  };
+
+  /** Runs the handler for an approved device, and answers 401 or 429 to anybody else */
+  const authorized = (request: IncomingMessage, response: ServerResponse, handler: (deviceId: string, secret: string) => void) => {
+    const { deviceId, secret } = credentials(request);
+    const result = access.authorize(request.socket.remoteAddress ?? '', deviceId, secret);
+    if (result.status === 'ok') return handler(deviceId, secret);
+    return send(response, result.status === 'rate-limited' ? 429 : 401, { status: result.status });
+  };
 
   const route = async (request: IncomingMessage, response: ServerResponse) => {
     const path = new URL(request.url ?? '/', 'https://host').pathname;
@@ -43,12 +82,9 @@ export const createRoutes = (access: AccessControl) => {
       const result = access.request(request.socket.remoteAddress ?? '', await readJson(request));
       return send(response, requestStatus[result.status], result);
     }
-    if (request.method === 'GET' && path === '/remote/now-playing') {
-      const { deviceId, secret } = credentials(request);
-      const result = access.authorize(request.socket.remoteAddress ?? '', deviceId, secret);
-      if (result.status === 'ok') return send(response, 200, nowPlaying);
-      return send(response, result.status === 'rate-limited' ? 429 : 401, { status: result.status });
-    }
+    if (request.method === 'GET' && path === '/remote/now-playing') return authorized(request, response, () => send(response, 200, nowPlaying));
+    if (request.method === 'GET' && path === '/remote/events')
+      return authorized(request, response, (deviceId, secret) => openStream(response, deviceId, secret));
     return send(response, 404, { status: 'not-found' });
   };
 
@@ -59,6 +95,7 @@ export const createRoutes = (access: AccessControl) => {
     },
     setNowPlaying: (snapshot: NowPlaying) => {
       nowPlaying = nowPlayingSchema.parse(snapshot);
+      writeToStreams(`data: ${JSON.stringify(nowPlaying)}\n\n`);
     },
   };
 };
