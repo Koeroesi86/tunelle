@@ -28,25 +28,30 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
     onChange(state);
   };
 
+  /** One look at the host, then the pause; false when the loop ends (the run changed, or the host forgot this device) */
+  const poll = async (pairing: Pairing, deviceId: string, token: number) => {
+    const target = { host: pairing.host, port: pairing.port };
+    const snapshot = await fetchNowPlaying(target, pairing.certificate, deviceId, pairing.secret).then(
+      (answer) => ({ answer }),
+      (failure: unknown) => ({ failure })
+    );
+    if (token !== run) return false;
+
+    if ('failure' in snapshot) publish({ ...state, status: 'listening', error: messageOf(snapshot.failure) });
+    else if (snapshot.answer) publish({ status: 'listening', target, code: approvalCode(pairing.certificate), nowPlaying: snapshot.answer });
+    else return revoke(token).then(() => false);
+
+    await wait(POLL_MS);
+    return true;
+  };
+
   const follow = async (pairing: Pairing, deviceId: string, token: number) => {
     const target = { host: pairing.host, port: pairing.port };
     const code = approvalCode(pairing.certificate);
     active = { pairing, deviceId };
     publish({ status: 'listening', target, code });
 
-    while (token === run) {
-      const snapshot = await fetchNowPlaying(target, pairing.certificate, deviceId, pairing.secret).then(
-        (answer) => ({ answer }),
-        (failure: unknown) => ({ failure })
-      );
-      if (token !== run) return;
-
-      if ('failure' in snapshot) publish({ ...state, status: 'listening', error: messageOf(snapshot.failure) });
-      else if (snapshot.answer) publish({ status: 'listening', target, code, nowPlaying: snapshot.answer });
-      else return revoke(token);
-
-      await wait(POLL_MS);
-    }
+    while (token === run && (await poll(pairing, deviceId, token)));
   };
 
   // a host that does not know the device any more: the pairing is of no use, the user asks again
@@ -63,24 +68,38 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
     const until = Date.now() + ASK_LIMIT_MS;
     publish({ status: 'waiting', ...base });
 
-    while (token === run && Date.now() < until) {
+    // one request and the pause that follows it; false when the loop ends (an answer, or the run changed)
+    const once = async () => {
       const answer = await requestToListen(address, target.certificate, { deviceId, deviceName, note });
-      if (token !== run) return;
+      if (token !== run) return false;
 
       if (answer.status === 'approved' && answer.secret) {
         const pairing = { host: target.host, port: target.port, certificate: target.certificate, secret: answer.secret };
         await store.savePairing(pairing);
-        return follow(pairing, deviceId, token);
+        await follow(pairing, deviceId, token);
+        return false;
       }
       // the secret comes once: an approval without it was picked up before, and only a new approval gives another
-      if (answer.status === 'approved')
-        return publish({ status: 'error', ...base, error: 'The host approved this device before; ask the host to revoke it, then ask again' });
-      if (answer.status === 'blocked') return publish({ status: 'blocked', ...base });
-      if (answer.status !== 'pending') return publish({ status: 'error', ...base, error: `The host answered ${answer.status}` });
+      if (answer.status === 'approved') {
+        publish({ status: 'error', ...base, error: 'The host approved this device before; ask the host to revoke it, then ask again' });
+        return false;
+      }
+      if (answer.status === 'blocked') {
+        publish({ status: 'blocked', ...base });
+        return false;
+      }
+      if (answer.status !== 'pending') {
+        publish({ status: 'error', ...base, error: `The host answered ${answer.status}` });
+        return false;
+      }
 
       await wait(POLL_MS);
-    }
-    if (token === run) publish({ status: 'error', ...base, error: 'Nobody answered the request on the host' });
+      return true;
+    };
+
+    let open = true;
+    while (open && token === run && Date.now() < until) open = await once();
+    if (open && token === run) publish({ status: 'error', ...base, error: 'Nobody answered the request on the host' });
   };
 
   const fail = (token: number, failure: unknown, base: Partial<RemoteListenerState> = {}) => {
