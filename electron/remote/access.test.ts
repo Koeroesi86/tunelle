@@ -140,10 +140,22 @@ describe('AccessControl', () => {
       const access = new AccessControl();
       const request = body();
       access.request('10.0.0.2', request);
+      const secret = access.approve(request.deviceId)?.secret;
+
+      expect(access.request('10.0.0.2', request)).toEqual({ status: 'approved', secret });
+      expect(access.request('10.0.0.2', request)).toEqual({ status: 'approved', secret: undefined });
+      expect(access.pending()).toEqual([]);
+    });
+
+    it('hands the secret over to a request once, and not after a block or a revoke', () => {
+      const access = new AccessControl();
+      const request = body();
+      access.request('10.0.0.2', request);
       access.approve(request.deviceId);
 
-      expect(access.request('10.0.0.2', request)).toEqual({ status: 'approved' });
-      expect(access.pending()).toEqual([]);
+      access.revoke(request.deviceId);
+
+      expect(access.request('10.0.0.2', request)).toEqual({ status: 'pending' });
     });
 
     it('is remembered through the snapshot, so a restart needs no new prompt', () => {
