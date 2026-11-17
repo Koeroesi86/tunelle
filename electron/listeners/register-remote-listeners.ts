@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron';
+import { serveTrack } from '../protocols/serve-track';
 import { createHostController } from '../remote/host-controller';
 import type { HostState } from '../remote/host-controller';
 import { deviceControlsSchema, deviceDecisionSchema, hostChangeSchema } from '../remote/host-requests';
@@ -9,11 +10,12 @@ import { sendIfAlive } from '../utils/send-if-alive';
 import type { ListenerContext } from './listener-context';
 
 /** The host mode of the app: what the page asks (settings, the decision on a device) and the now playing it sends. See docs/app/remote-access-discovery.md */
-const registerRemoteListeners = ({ windows }: ListenerContext) => {
+const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
   const host = createHostController(
     createHostStore(global._appDataPath),
     (state: HostState) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_HOST_STATE', state),
-    (command) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_CONTROL', command)
+    (command) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_CONTROL', command),
+    (trackPath, request) => serveTrack(database, trackPath, request)
   );
 
   // a host that is off opens no socket: start() only reads the settings, and listens when they say so

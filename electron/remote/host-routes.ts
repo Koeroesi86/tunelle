@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AccessControl, StoredDevice } from './access';
 import { controlCommandSchema, permissionOf, type ControlCommand } from './control-command';
+import { relayResponse } from './relay-response';
 import { nowPlayingSchema, type NowPlaying } from './now-playing';
 
 const MAX_BODY_BYTES = 4096;
@@ -36,6 +37,9 @@ const credentials = (request: IncomingMessage) => ({
   secret: `${request.headers.authorization ?? ''}`.replace(/^Bearer /, ''),
 });
 
+/** The file of a track as a fetch Response, with the range of the request */
+export type ServeAudio = (trackPath: string, request: Request) => Promise<Response>;
+
 interface Stream {
   response: ServerResponse;
   deviceId: string;
@@ -43,8 +47,9 @@ interface Stream {
 }
 
 /** The routes of the host and the now playing they answer with; no other route exists. See docs/app/remote-access-discovery.md */
-export const createRoutes = (access: AccessControl, onControl: (command: ControlCommand) => void = () => undefined) => {
+export const createRoutes = (access: AccessControl, onControl: (command: ControlCommand) => void = () => undefined, serveAudio?: ServeAudio) => {
   let nowPlaying: NowPlaying = { state: 'idle' };
+  let trackPath: string | undefined;
   const streams = new Set<Stream>();
 
   /** A device that was revoked or blocked since it connected is cut off here, so no event reaches it */
@@ -86,6 +91,16 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
     return send(response, 200, { status: 'ok' });
   };
 
+  /** The track that plays now, and only it: the path is the host's own and no request names a file */
+  const audio = async (request: IncomingMessage, response: ServerResponse) => {
+    if (!serveAudio || !trackPath) return send(response, 404, { status: 'no-track' });
+    const abort = new AbortController();
+    response.on('close', () => abort.abort());
+    const headers = request.headers.range ? { range: request.headers.range } : undefined;
+    const answer = await serveAudio(trackPath, new Request('https://host/remote/audio', { headers, signal: abort.signal }));
+    return relayResponse(answer, response);
+  };
+
   const route = async (request: IncomingMessage, response: ServerResponse) => {
     const path = new URL(request.url ?? '/', 'https://host').pathname;
     if (request.method === 'POST' && path === '/remote/request') {
@@ -95,6 +110,8 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
     if (request.method === 'GET' && path === '/remote/now-playing') return authorized(request, response, () => send(response, 200, nowPlaying));
     if (request.method === 'GET' && path === '/remote/events')
       return authorized(request, response, (device, secret) => openStream(response, device.id, secret));
+    if (request.method === 'GET' && path === '/remote/audio')
+      return authorized(request, response, () => audio(request, response).catch(() => response.destroy()));
     if (request.method === 'POST' && path === '/remote/control') {
       const body = await readJson(request);
       return authorized(request, response, (device) => control(response, device, body));
@@ -107,7 +124,9 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
     handle: (request: IncomingMessage, response: ServerResponse) => {
       route(request, response).catch(() => send(response, 500, { status: 'error' }));
     },
-    setNowPlaying: (snapshot: NowPlaying) => {
+    /** `path` is the file of the track in the library: it stays here and is never sent */
+    setNowPlaying: (snapshot: NowPlaying, path?: string) => {
+      trackPath = snapshot.state === 'idle' ? undefined : path;
       nowPlaying = nowPlayingSchema.parse(snapshot);
       writeToStreams(`data: ${JSON.stringify(nowPlaying)}\n\n`);
     },

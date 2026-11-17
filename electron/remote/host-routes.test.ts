@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { EventEmitter } from 'node:events';
-import { Readable } from 'node:stream';
+import { PassThrough, Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccessControl } from './access';
 import { createRoutes } from './host-routes';
@@ -23,7 +23,8 @@ const openStream = (routes: ReturnType<typeof createRoutes>) => {
 };
 
 const commands: unknown[] = [];
-const create = () => createRoutes(access as unknown as AccessControl, (command) => commands.push(command));
+const serveAudio = vi.fn();
+const create = () => createRoutes(access as unknown as AccessControl, (command) => commands.push(command), serveAudio);
 const approved = { 'x-tunelle-device': 'id', authorization: 'Bearer secret' };
 
 describe('createRoutes', () => {
@@ -184,6 +185,67 @@ describe('createRoutes', () => {
       await control(create(), { control: 'playPause' });
 
       expect(commands).toEqual([{ control: 'playPause', action: 'toggle' }]);
+    });
+  });
+
+  describe('the audio route', () => {
+    beforeEach(() => {
+      serveAudio.mockReset().mockResolvedValue(new Response('abc', { status: 206, headers: { 'content-range': 'bytes 0-2/9' } }));
+      access.authorize.mockReturnValue({ status: 'ok', device: { id: 'id', controls: [] } });
+    });
+
+    const audio = async (routes: ReturnType<typeof create>, headers: Record<string, string> = {}) => {
+      const request = Object.assign(Readable.from([]), {
+        method: 'GET',
+        url: '/remote/audio',
+        headers: { ...approved, ...headers },
+        socket: { remoteAddress: '10.0.0.2' },
+      });
+      const response = Object.assign(new PassThrough(), { headersSent: false, writeHead: vi.fn() });
+      routes.handle(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+      await vi.waitFor(() => expect(response.writableEnded).toBe(true));
+      return { status: response.writeHead.mock.calls[0]?.[0] };
+    };
+
+    it('serves the file of the track that plays, with the range that was asked, and never a path from the request', async () => {
+      const routes = create();
+      routes.setNowPlaying({ state: 'playing', title: 'Song', position: 0, at: 1000 }, '/music/song.flac');
+
+      const answer = await audio(routes, { range: 'bytes=0-2' });
+
+      expect(answer.status).toBe(206);
+      expect(serveAudio).toHaveBeenCalledWith('/music/song.flac', expect.any(Request));
+      expect(serveAudio.mock.calls[0][1].headers.get('range')).toBe('bytes=0-2');
+    });
+
+    it('has nothing to serve while nothing plays or the page sent no file', async () => {
+      const routes = create();
+
+      expect((await audio(routes)).status).toBe(404);
+
+      routes.setNowPlaying({ state: 'playing', title: 'Song', position: 0, at: 1000 });
+      expect((await audio(routes)).status).toBe(404);
+
+      routes.setNowPlaying({ state: 'playing', title: 'Song', position: 0, at: 1000 }, '/music/song.flac');
+      routes.setNowPlaying({ state: 'idle' }, '/music/song.flac');
+      expect((await audio(routes)).status).toBe(404);
+      expect(serveAudio).not.toHaveBeenCalled();
+    });
+
+    it('serves nothing to a device that is not approved', async () => {
+      access.authorize.mockReturnValue({ status: 'unauthorized' });
+      const routes = create();
+      routes.setNowPlaying({ state: 'playing', title: 'Song', position: 0, at: 1000 }, '/music/song.flac');
+
+      expect((await audio(routes)).status).toBe(401);
+      expect(serveAudio).not.toHaveBeenCalled();
+    });
+
+    it('never sends the file path to the listener in the now playing', async () => {
+      const routes = create();
+      routes.setNowPlaying({ state: 'playing', title: 'Song', position: 0, at: 1000 }, '/music/song.flac');
+
+      expect((await call(routes, 'GET', '/remote/now-playing', '', approved)).body).not.toContain('/music');
     });
   });
 
