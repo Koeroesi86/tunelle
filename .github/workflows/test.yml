@@ -3,6 +3,11 @@ name: Test
 # lint, dead code and types (once), unit tests with coverage, the integration tests, the end to end tests of the built app and the Electron security scan, used by the workflows that package the app
 on:
   workflow_call:
+    inputs:
+      # false on a pull request without the full-ci label: one system of each kind runs (docs/development/ci.md)
+      full:
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -42,24 +47,41 @@ jobs:
       - name: Electron security scan
         run: npm run security:electron
 
+  # the systems the tests run on: all of them, or the ones marked "pr" when the run is not full
+  plan:
+    name: Plan the systems
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - id: plan
+        env:
+          FULL: ${{ inputs.full }}
+        # platform (linux, macos, windows) and arch are the ones of process.arch, which name the cached ffmpeg
+        run: |
+          systems='[
+            {"os":"ubuntu-latest","platform":"linux","arch":"x64","pr":true},
+            {"os":"ubuntu-24.04-arm","platform":"linux","arch":"arm64","pr":false},
+            {"os":"ubuntu-22.04","platform":"linux","arch":"x64","pr":false},
+            {"os":"ubuntu-22.04-arm","platform":"linux","arch":"arm64","pr":false},
+            {"os":"macos-15-intel","platform":"macos","arch":"x64","pr":false},
+            {"os":"macos-15","platform":"macos","arch":"arm64","pr":true},
+            {"os":"windows-2025","platform":"windows","arch":"x64","pr":true},
+            {"os":"windows-11-arm","platform":"windows","arch":"arm64","pr":false}
+          ]'
+          [ "${FULL}" = "true" ] || systems=$(jq 'map(select(.pr))' <<<"${systems}")
+          echo "matrix=$(jq -c . <<<"${systems}")" >> "${GITHUB_OUTPUT}"
+
   test:
     name: Test (${{ matrix.os }})
-    needs: ffmpeg
+    needs: [ffmpeg, plan]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
-        # platform (linux, macos, windows) and arch are the ones of process.arch, which name the cached ffmpeg
-        include:
-          - { os: ubuntu-latest, platform: linux, arch: x64 }
-          - { os: ubuntu-24.04-arm, platform: linux, arch: arm64 }
-          - { os: ubuntu-22.04, platform: linux, arch: x64 }
-          - { os: ubuntu-22.04-arm, platform: linux, arch: arm64 }
-          - { os: macos-15-intel, platform: macos, arch: x64 }
-          - { os: macos-15, platform: macos, arch: arm64 }
-          - { os: windows-2025, platform: windows, arch: x64 }
-          - { os: windows-11-arm, platform: windows, arch: arm64 }
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

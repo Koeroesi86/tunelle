@@ -12,6 +12,12 @@ How pull requests are rebased and released is in [releases.md](../release/releas
 
 `dist.yml` also runs `npm run test:updater` on the macOS runners after the smoke test of the packaged app: the own updater of macOS replaces the app bundle, which needs the packaged app ([updater.md](../app/updater.md)).
 
+## Systems on a pull request
+
+A pull request runs one system of each kind: `ubuntu-latest`, `macos-15` (arm64) and `windows-2025` in `test.yml`, and the Flatpak on `ubuntu-latest`, `macos-15` and `windows-2025` in `dist.yml`. `master`, `release.yml` and a pull request with the `full-ci` label run all eight systems. The `plan` job of each workflow lists the systems as JSON with a `pr` flag, and drops the ones without it when the `full` input is `false`; `pr-checks.yml` passes `full` from the label, and starts again when a label is added or removed (a run in progress is cancelled by the concurrency group, so add the label before the checks matter). The Store package of arm64 (`certification-arm64`) is skipped without `full`, as its package is not built.
+
+What a pull request does not run is the Ubuntu 22.04 AppImage (the glibc check of `npm run check:dist`), the arm64 systems and macOS on Intel, so a failure that is specific to one of them shows on `master` after the merge. Add `full-ci` to a change of the packaging, the updater, ffmpeg or code that differs by system or processor.
+
 ## Caches
 
 The repository's cache is limited to 10 GiB, and GitHub evicts the oldest entries when it is full. The apt downloads of `test.yml` and `dist.yml` are saved under a key with the run id, so every run adds one, and a pull request writes caches that no other ref reads. `cache-cleanup.yml` deletes the caches of a pull request when it closes, and every day (and by hand) the caches of pull requests that are not open and all but the newest apt cache of each name and ref. A run that needs a deleted cache builds it again.

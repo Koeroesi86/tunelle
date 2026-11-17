@@ -53,9 +53,31 @@ describe('workflows', () => {
   it('test.yml also runs the tests and the end to end tests on Ubuntu 22.04, the system the AppImage is built for', () => {
     const text = read('test.yml');
 
-    expect(text).toMatch(/- \{ os: ubuntu-22\.04, platform: linux, arch: x64 \}/);
-    expect(text).toMatch(/- \{ os: ubuntu-22\.04-arm, platform: linux, arch: arm64 \}/);
+    expect(text).toMatch(/\{"os":"ubuntu-22\.04","platform":"linux","arch":"x64","pr":false\}/);
+    expect(text).toMatch(/\{"os":"ubuntu-22\.04-arm","platform":"linux","arch":"arm64","pr":false\}/);
     expect(text).toMatch(/startsWith\(matrix\.os, 'ubuntu-22\.04'\)[\s\S]*npm_config_build_from_source=true/);
+  });
+
+  // a pull request runs one system of each kind unless it has the full-ci label; master and releases run all (docs/development/ci.md)
+  it.each(['test.yml', 'dist.yml'])('%s runs every system by default and one of each kind when full is false', (name) => {
+    const text = read(name);
+    const systems = [...text.matchAll(/\{"os":"([^"]+)"[^}]*"pr":(true|false)\}/g)];
+
+    expect(text).toMatch(/\n      full:\n\s+type: boolean\n\s+default: true\n/);
+    expect(systems).toHaveLength(8);
+    expect(systems.filter(([, , pr]) => pr === 'true').map(([, os]) => os.replace(/-.*|\.\d+/g, ''))).toEqual(['ubuntu', 'macos', 'windows']);
+  });
+
+  it('pr-checks.yml passes full only with the full-ci label, and starts again when a label changes', () => {
+    const text = read('pr-checks.yml');
+
+    expect(text.match(/full: \$\{\{ contains\(github\.event\.pull_request\.labels\.\*\.name, 'full-ci'\) \}\}/g)).toHaveLength(2);
+    expect(text).toMatch(/types: \[opened, synchronize, reopened, labeled, unlabeled\]/);
+    ['build.yml', 'release.yml'].forEach((name) => expect(read(name)).not.toMatch(/full:/));
+  });
+
+  it('dist.yml installs the arm64 Store package only when the arm64 package was built', () => {
+    expect(read('dist.yml').split('\n  certification-arm64:\n')[1].split('\n\n')[0]).toContain('if: inputs.full');
   });
 
   it('test.yml runs the cheap checks first', () => {
@@ -101,9 +123,9 @@ describe('workflows', () => {
   it('dist.yml builds the AppImage on Ubuntu 22.04 and the Flatpak on the latest', () => {
     const text = read('dist.yml');
 
-    expect(text).toMatch(/- os: ubuntu-22\.04\n\s+platform: linux\n\s+arch: x64\n\s+package: appimage/);
-    expect(text).toMatch(/- os: ubuntu-22\.04-arm\n\s+platform: linux\n\s+arch: arm64\n\s+package: appimage/);
-    expect(text).toMatch(/- os: ubuntu-latest\n\s+platform: linux\n\s+arch: x64\n\s+package: flatpak/);
+    expect(text).toContain('{"os":"ubuntu-22.04","platform":"linux","arch":"x64","package":"appimage"');
+    expect(text).toContain('{"os":"ubuntu-22.04-arm","platform":"linux","arch":"arm64","package":"appimage"');
+    expect(text).toContain('{"os":"ubuntu-latest","platform":"linux","arch":"x64","package":"flatpak"');
   });
 
   it('dist.yml makes the zsync file of the AppImage before the contents of the package are checked', () => {
@@ -120,7 +142,7 @@ describe('workflows', () => {
     const restore = text.indexOf('uses: ./.github/actions/restore-ffmpeg');
 
     expect(text).toMatch(/\n  ffmpeg:\n\s+uses: \.\/\.github\/workflows\/ffmpeg\.yml/);
-    expect(text).toMatch(/\n  dist:\n\s+needs: ffmpeg\n/);
+    expect(text).toMatch(/\n  dist:\n\s+needs: \[ffmpeg, plan\]\n/);
     expect(restore).toBeGreaterThan(0);
     expect(restore).toBeLessThan(text.indexOf('run: npm run dist'));
   });
@@ -137,7 +159,7 @@ describe('workflows', () => {
     const restore = text.indexOf('uses: ./.github/actions/restore-ffmpeg');
 
     expect(text).toMatch(/\n  ffmpeg:\n\s+uses: \.\/\.github\/workflows\/ffmpeg\.yml\n/);
-    expect(text).toMatch(/\n  test:\n\s+name: [^\n]+\n\s+needs: ffmpeg\n/);
+    expect(text).toMatch(/\n  test:\n\s+name: [^\n]+\n\s+needs: \[ffmpeg, plan\]\n/);
     expect(restore).toBeGreaterThan(0);
     expect(restore).toBeLessThan(text.indexOf('run: npm run test:e2e'));
   });
@@ -167,9 +189,7 @@ describe('workflows', () => {
   it('the planning job of ffmpeg.yml lists every system that the callers restore', () => {
     const planned = [...read('ffmpeg.yml').matchAll(/"platform":"(\w+)","arch":"(\w+)"/g)].map((match) => `${match[1]}-${match[2]}`).sort();
     const used = ['test.yml', 'dist.yml'].flatMap((name) =>
-      [...read(name).matchAll(/platform: (linux|macos|windows)\n\s+arch: (x64|arm64)|platform: (linux|macos|windows), arch: (x64|arm64)/g)].map(
-        (match) => `${match[1] ?? match[3]}-${match[2] ?? match[4]}`
-      )
+      [...read(name).matchAll(/"platform":"(linux|macos|windows)","arch":"(x64|arm64)"/g)].map((match) => `${match[1]}-${match[2]}`)
     );
 
     expect(planned).toHaveLength(6);
