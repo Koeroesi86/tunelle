@@ -49,6 +49,7 @@ function addListeners(store: Store) {
   onMessage('CLICKED_URL', messageSchemas.CLICKED_URL, (payload) => store.dispatch({ type: 'CLICKED_URL', payload }));
   onMessage('SET_PLAYING', messageSchemas.SET_PLAYING, (payload) => store.dispatch({ type: 'SET_PLAYING', payload }));
   onMessage('REMOTE_HOST_STATE', messageSchemas.REMOTE_HOST_STATE, (payload) => store.dispatch({ type: 'REMOTE_HOST_STATE', payload }));
+  onMessage('REMOTE_LISTENER_STATE', messageSchemas.REMOTE_LISTENER_STATE, (payload) => store.dispatch({ type: 'REMOTE_LISTENER_STATE', payload }));
   onMessage('LAUNCHER_STATE', messageSchemas.LAUNCHER_STATE, (payload) => store.dispatch({ type: 'LAUNCHER_STATE', payload }));
   onMessage('UPDATE_STATE', messageSchemas.UPDATE_STATE, (payload) => store.dispatch({ type: 'UPDATE_STATE', payload }));
   // a key of the wrong type is left out, the others are restored (client/redux/persisted-settings.ts)
@@ -233,6 +234,7 @@ const start = (store: Store) => {
   electronAPI.send('PLAYLISTS_LOAD');
   electronAPI.send('BACKGROUND_TASKS_LOAD');
   electronAPI.send('GET_REMOTE_HOST');
+  electronAPI.send('GET_REMOTE_LISTENER');
 
   repeat(store, rescanInterval, () => store.getState().uiState.totalCount === 0 && rescanLibrary(false));
 
@@ -353,6 +355,9 @@ const handleActions = actionMiddleware((store) => [
   onAction('SET_REMOTE_HOST', ({ payload }) => electronAPI.send('SET_REMOTE_HOST', payload)),
   onAction('DECIDE_REMOTE_DEVICE', ({ payload }) => electronAPI.send('DECIDE_REMOTE_DEVICE', payload)),
   onAction('SET_REMOTE_DEVICE_CONTROLS', ({ payload }) => electronAPI.send('SET_REMOTE_DEVICE_CONTROLS', payload)),
+  onAction('CONNECT_REMOTE_HOST', ({ payload }) => electronAPI.send('CONNECT_REMOTE_HOST', payload)),
+  onAction('CONFIRM_REMOTE_HOST', ({ payload }) => electronAPI.send('CONFIRM_REMOTE_HOST', payload)),
+  onAction('LEAVE_REMOTE_HOST', () => electronAPI.send('LEAVE_REMOTE_HOST')),
   // the main process has text of its own and follows the language from the saved settings
   // the handlers run before the reducer, so the saved settings get the new language here
   onAction('SET_LANGUAGE', ({ payload }) => saveSettings({ ...store.getState().uiState, language: payload.language })),

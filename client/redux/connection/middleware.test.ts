@@ -63,6 +63,30 @@ describe('connection middleware', () => {
     expect(send).toHaveBeenCalledWith('SET_REMOTE_DEVICE_CONTROLS', { deviceId, controls: ['skip'] });
   });
 
+  const listening = { status: 'confirming', target: { host: '192.168.1.5', port: 40000 }, code: 'AB12-CD34' };
+
+  it('asks for the state of the listener when it starts, and stores what it reports', async () => {
+    const { store, send, listen } = await setup();
+
+    listen('REMOTE_LISTENER_STATE', listening);
+    listen('REMOTE_LISTENER_STATE', { status: 'on-fire' });
+
+    expect(send).toHaveBeenCalledWith('GET_REMOTE_LISTENER');
+    expect(store.getState().uiState.remoteListener).toEqual(listening);
+  });
+
+  it('sends what the page asks of the listener to the main process', async () => {
+    const { store, send } = await setup();
+
+    store.dispatch({ type: 'CONNECT_REMOTE_HOST', payload: { host: '192.168.1.5', port: 40000 } });
+    store.dispatch({ type: 'CONFIRM_REMOTE_HOST', payload: { note: 'kitchen' } });
+    store.dispatch({ type: 'LEAVE_REMOTE_HOST' });
+
+    expect(send).toHaveBeenCalledWith('CONNECT_REMOTE_HOST', { host: '192.168.1.5', port: 40000 });
+    expect(send).toHaveBeenCalledWith('CONFIRM_REMOTE_HOST', { note: 'kitchen' });
+    expect(send).toHaveBeenCalledWith('LEAVE_REMOTE_HOST');
+  });
+
   it('sends the request to add or remove the launcher to the main process', async () => {
     const { store, send } = await setup();
 

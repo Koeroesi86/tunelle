@@ -331,6 +331,13 @@ describe('uiState reducer', () => {
     expect(run({ type: 'POP_PLAYED' }, run({ type: 'ADD_PLAYED', payload: { track: track('b') } }, one)).played).toEqual([track('a')]);
   });
 
+  it('stores what the listener reports, and knows nothing before', () => {
+    const listener = { status: 'idle' } as const;
+
+    expect(initial.remoteListener).toBeUndefined();
+    expect(run({ type: 'REMOTE_LISTENER_STATE', payload: listener }).remoteListener).toEqual(listener);
+  });
+
   it('updates maximized and playing flags', () => {
     expect(run({ type: 'MAXIMIZED_APP', payload: { maximized: true } }).maximized).toBe(true);
     expect(run({ type: 'SET_PLAYING', payload: { isPlaying: true } }).isPlaying).toBe(true);

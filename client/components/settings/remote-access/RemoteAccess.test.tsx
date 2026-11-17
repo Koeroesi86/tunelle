@@ -44,10 +44,17 @@ describe('RemoteAccess', () => {
     expect(screen.getByText('Remote listening could not start: The port is taken')).toBeTruthy();
   });
 
-  it('shows no code while it does not listen', () => {
-    setup(state({ enabled: false, running: false, code: 'AB12' }));
+  it('shows no code and no port while it does not listen', () => {
+    setup(state({ enabled: false, running: false, code: 'AB12', port: 40000 }));
 
     expect(screen.queryByText(/AB12/)).toBeNull();
+    expect(screen.queryByText(/40000/)).toBeNull();
+  });
+
+  it('shows the port that a listener connects to while it listens', () => {
+    setup(state({ port: 40000 }));
+
+    expect(screen.getByText('Other devices connect to the port 40000 of this computer.')).toBeTruthy();
   });
 
   it('approves or denies a device that waits, and shows its note as text', () => {

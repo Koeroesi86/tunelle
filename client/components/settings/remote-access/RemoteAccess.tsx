@@ -87,6 +87,7 @@ const RemoteAccess = ({ state, setEnabled, decide, setControls }: RemoteAccessPr
       </div>
       <div className={style.hint}>{t('remote.hint')}</div>
       {state.error && <div className={style.error}>{t('remote.error', { error: state.error })}</div>}
+      {state.running && state.port && <div className={style.hint}>{t('remote.port', { port: state.port })}</div>}
       {state.running && state.code && <div className={style.hint}>{t('remote.code', { code: state.code })}</div>}
       {state.pending.length > 0 && (
         <ul className={style.list} aria-label={t('remote.pending')}>
