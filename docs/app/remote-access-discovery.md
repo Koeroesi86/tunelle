@@ -1,6 +1,6 @@
 # Remote access: discovery, certificate and now-playing route
 
-First pull request of [#360](https://github.com/Koeroesi86/tunelle/issues/360) (listen along to the host's now playing): a doc and a proof, merged before the feature. The proof is `scripts/tooling/discovery-proof.ts` (`npx tsx scripts/tooling/discovery-proof.ts`); it ships nothing and the later pull requests turn its parts into `electron/` code with tests. What a system could not be tried on is marked **unverified**.
+First pull request of [#360](https://github.com/Koeroesi86/tunelle/issues/360) (listen along to the host's now playing): a doc and a proof, merged before the feature. The proof was a throwaway script (mDNS on `dgram` and a certificate with pinning, run on Fedora and by hand a second time with the same result); it is not kept, as the next pull requests write the same code in `electron/` with tests. What a system could not be tried on is marked **unverified**.
 
 ## Decisions
 
@@ -14,9 +14,9 @@ First pull request of [#360](https://github.com/Koeroesi86/tunelle/issues/360) (
 
 ## mDNS with `dgram`
 
-The proof opens two UDP sockets on `224.0.0.251:5353` with `reuseAddr`, joins the group, keeps multicast loopback on, and has a responder and a browser in one process:
+The proof opened two UDP sockets on `224.0.0.251:5353` with `reuseAddr`, joined the group, kept multicast loopback on, and had a responder and a browser in one process:
 
-- the browser sends a PTR question for `_tunelle._tcp.local`; the responder answers with PTR, SRV (port and host), TXT and A records in one packet, and the browser reads all of them;
+- the browser sent a PTR question for `_tunelle._tcp.local`; the responder answered with PTR, SRV (port and host), TXT and A records in one packet, and the browser read all of them;
 - the goodbye is the same records with a TTL of 0;
 - names are written without compression and read with compression pointers (answers of avahi and Bonjour use them).
 
@@ -40,14 +40,14 @@ The prompts appear at these moments: Windows when the host server first listens 
 
 ## The certificate
 
-`node:crypto` cannot make an X.509 certificate (`X509Certificate` only reads one), but it can make the key (`generateKeyPairSync('ec')`), export the public key as SPKI DER and sign. The certificate is a short DER structure, so the proof writes it by hand (about 40 lines: version, serial, ECDSA-SHA256, the name as issuer and subject, validity, the SPKI) and signs it with `createSign('sha256')`. `X509Certificate`, `https.createServer` and a client all accept it. No dependency and no `openssl` binary (which Windows has not).
+`node:crypto` cannot make an X.509 certificate (`X509Certificate` only reads one), but it can make the key (`generateKeyPairSync('ec')`), export the public key as SPKI DER and sign. The certificate is a short DER structure, so the proof wrote it by hand (about 40 lines: version, serial, ECDSA-SHA256, the name as issuer and subject, validity, the SPKI) and signs it with `createSign('sha256')`. `X509Certificate`, `https.createServer` and a client all accept it. No dependency and no `openssl` binary (which Windows has not).
 
 - **Key and lifetime.** ECDSA P-256, stored with the certificate in the app data folder (the key file with mode 0600). The certificate is valid for 10 years. Renewing is making a new one, which is also what deleting the file does: pinned listeners then **refuse** it and ask for a new approval. A host should not renew before it expires, so a renewal is a rare, visible event and the approval code shows the user that the device is the same.
 - **The short code** of the approval is the first digits of the SHA-256 fingerprint of the certificate (`X509Certificate.fingerprint256`), shown on both screens in groups.
 
 ### Pinning needs `ca`
 
-The issue proposed `rejectUnauthorized: false` with a `checkServerIdentity` that compares fingerprints. The proof shows that this does **not** pin: for a self-signed certificate the TLS layer already has a verify error, and Node calls `checkServerIdentity` only when there is none, so the function never ran and the connection was accepted. What works (the proof prints all three cases):
+The issue proposed `rejectUnauthorized: false` with a `checkServerIdentity` that compares fingerprints. The proof showed that this does **not** pin: for a self-signed certificate the TLS layer already has a verify error, and Node calls `checkServerIdentity` only when there is none, so the function never ran and the connection was accepted. What works (all three cases were run):
 
 | Client options | Result |
 | --- | --- |
