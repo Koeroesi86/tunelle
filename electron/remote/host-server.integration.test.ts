@@ -151,6 +151,50 @@ describe('the host server', () => {
     expect(commands).toEqual([{ control: 'seek', position: 30 }]);
   });
 
+  it('relays the audio of the track that plays with its range, to an approved device only', async () => {
+    await host.close();
+    const data = Buffer.from('0123456789');
+    host = await startHostServer({
+      identity,
+      access,
+      loopbackOnly: true,
+      serveAudio: async (_path, { headers }) => {
+        const range = headers.get('range')?.match(/^bytes=(\d+)-(\d+)$/);
+        return range
+          ? new Response(data.subarray(Number(range[1]), Number(range[2]) + 1), {
+              status: 206,
+              headers: { 'content-range': `bytes ${range[1]}-${range[2]}/10` },
+            })
+          : new Response(data);
+      },
+    });
+    const { deviceId, secret } = approvedDevice();
+    const credentials = { 'x-tunelle-device': deviceId, authorization: `Bearer ${secret}` };
+    const audio = (headers: Record<string, string>) =>
+      new Promise<{ status: number; range?: string | string[]; text: string }>((resolve, reject) => {
+        const outgoing = request(
+          { host: '127.0.0.1', port: host.port, agent: false, path: '/remote/audio', headers, ...pinnedOptions(identity.certificate) },
+          (response) => {
+            const chunks: Buffer[] = [];
+            response.on('data', (chunk) => chunks.push(chunk));
+            response.on('end', () =>
+              resolve({ status: response.statusCode ?? 0, range: response.headers['content-range'], text: Buffer.concat(chunks).toString() })
+            );
+          }
+        );
+        outgoing.on('error', reject);
+        outgoing.end();
+      });
+
+    expect((await audio(credentials)).status).toBe(404);
+    host.setNowPlaying({ state: 'playing', title: 'Song', position: 0, at: 1000 }, '/music/song.flac');
+
+    expect(await audio({ ...credentials, range: 'bytes=2-5' })).toEqual({ status: 206, range: 'bytes 2-5/10', text: '2345' });
+    expect((await audio(credentials)).text).toBe('0123456789');
+    expect((await audio({ 'x-tunelle-device': deviceId, authorization: 'Bearer wrong' })).status).toBe(401);
+    expect((await nowPlaying(deviceId, secret)).body).not.toHaveProperty('path');
+  });
+
   it('shows a hostile note as it was sent and an oversized one as an invalid request, without a prompt', async () => {
     expect((await ask(randomUUID(), '<img src=x onerror=alert(1)>')).status).toBe(202);
     expect(access.pending()[0].note).toBe('<img src=x onerror=alert(1)>');

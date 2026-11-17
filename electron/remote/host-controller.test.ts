@@ -39,6 +39,17 @@ describe('the host controller', () => {
     mocks.setNowPlaying.mockReset();
   });
 
+  it('gives the server the file of the track with the snapshot, and starts a later server with the last one', async () => {
+    const host = await create(fakeStore({ enabled: true }));
+    await host.start();
+    host.setNowPlaying({ state: 'playing', title: 'Song', position: 1, at: 2, path: '/music/song.flac' });
+
+    expect(mocks.setNowPlaying).toHaveBeenCalledWith({ state: 'playing', title: 'Song', position: 1, at: 2 }, '/music/song.flac');
+
+    await host.start();
+    expect(mocks.setNowPlaying).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Song' }), '/music/song.flac');
+  });
+
   it('hands the server the way to the page for the commands of a listener', async () => {
     const host = await create(fakeStore({ enabled: true }));
     await host.start();
