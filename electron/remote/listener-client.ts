@@ -34,7 +34,8 @@ interface Call {
 /** One request; it fails with an error (never throws elsewhere), a body that is too long or not JSON is `undefined` */
 const call = (address: HostAddress, tls: RequestOptions, method: string, path: string, headers: Record<string, string> = {}, body?: unknown) =>
   new Promise<Call>((resolve, reject) => {
-    const outgoing = request({ ...address, method, path, headers, timeout: TIMEOUT_MS, ...tls }, (response) => {
+    // no pooled socket: an idle one that the host closes raises EPIPE with no request left to take the error
+    const outgoing = request({ ...address, agent: false, method, path, headers, timeout: TIMEOUT_MS, ...tls }, (response) => {
       if (!(response.socket instanceof TLSSocket)) return reject(new Error('Not a TLS socket'));
       const certificate = pem(response.socket.getPeerCertificate().raw);
       const chunks: Buffer[] = [];

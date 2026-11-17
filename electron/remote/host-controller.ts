@@ -1,0 +1,143 @@
+import { AccessControl, type Control, type PendingRequest } from './access';
+import { startHostServer, type HostServer } from './host-server';
+import type { HostSettings, HostStore } from './host-store';
+import { nowPlayingSchema, type NowPlaying } from './now-playing';
+import { approvalCode } from './certificate';
+
+export interface HostState extends HostSettings {
+  /** Whether the server listens now */
+  running: boolean;
+  /** The short code of the certificate, which listeners show too */
+  code?: string;
+  pending: Pick<PendingRequest, 'deviceId' | 'deviceName' | 'note' | 'at'>[];
+  devices: { id: string; name: string; blocked: boolean; controls: Control[] }[];
+  /** Why the last start failed, so the settings can show it */
+  error?: string;
+}
+
+export type DeviceAction = 'approve' | 'deny' | 'revoke' | 'block';
+
+/** AccessControl that tells the page when a request starts to wait, so no timer is needed */
+class ObservedAccess extends AccessControl {
+  constructor(
+    stored: unknown,
+    private readonly onWaiting: () => void
+  ) {
+    super(stored);
+  }
+
+  override request(address: string, body: unknown) {
+    const result = super.request(address, body);
+    if (result.status === 'pending') this.onWaiting();
+    return result;
+  }
+}
+
+const isTaken = (error: unknown) => error instanceof Error && 'code' in error && error.code === 'EADDRINUSE';
+
+/**
+ * Starts and stops the host server by its settings, keeps the approved devices on disk and reports the state to the page.
+ * Nothing listens until the user turns host mode on. See docs/app/remote-access-discovery.md
+ */
+export const createHostController = (store: HostStore, onChange: (state: HostState) => void) => {
+  let settings: HostSettings | undefined;
+  let access: AccessControl = new AccessControl();
+  let server: HostServer | undefined;
+  let code: string | undefined;
+  let error: string | undefined;
+  // the last now playing the page sent, which a start that comes after it still shows
+  let nowPlaying: NowPlaying | undefined;
+  let changing: Promise<void> = Promise.resolve();
+
+  const state = (): HostState => ({
+    ...(settings ?? { enabled: false, name: 'Tunelle', loopbackOnly: false }),
+    running: server !== undefined,
+    code,
+    error,
+    pending: access.pending().map(({ deviceId, deviceName, note, at }) => ({ deviceId, deviceName, note, at })),
+    devices: access.snapshot().map(({ id, name, blocked, controls }) => ({ id, name, blocked, controls })),
+  });
+
+  const publish = () => onChange(state());
+  const saveDevices = () => store.saveDevices(access.snapshot());
+
+  // a saved port that is taken falls back to a free one, which is saved for the next start
+  const listen = async (current: HostSettings) => {
+    const identity = await store.identity(current.name);
+    const options = { identity, access, loopbackOnly: current.loopbackOnly };
+    const started = await startHostServer({ ...options, port: current.port }).catch((failure: unknown) =>
+      isTaken(failure) && current.port ? startHostServer({ ...options, port: 0 }) : Promise.reject(failure)
+    );
+    code = approvalCode(identity.certificate);
+    return started;
+  };
+
+  const stop = async () => {
+    await server?.close();
+    server = undefined;
+    code = undefined;
+  };
+
+  const apply = async () => {
+    const current = settings ?? (await store.readSettings());
+    settings = current;
+    await stop();
+    error = undefined;
+    if (!current.enabled) return publish();
+
+    try {
+      access = new ObservedAccess(await store.readDevices(), publish);
+      server = await listen(current);
+      if (nowPlaying) server.setNowPlaying(nowPlaying);
+      settings = { ...current, port: server.port };
+      await store.saveSettings(settings);
+    } catch (failure) {
+      error = failure instanceof Error ? failure.message : 'The host did not start';
+      await stop();
+    }
+    publish();
+  };
+
+  // one change at a time: a quick on and off does not leave two servers
+  const queue = (task: () => Promise<void>) => {
+    changing = changing.then(task, task);
+    return changing;
+  };
+
+  return {
+    start: () => queue(apply),
+    stop: () => queue(() => stop().then(publish)),
+    state: () => state(),
+    update: (change: Partial<Pick<HostSettings, 'enabled' | 'name' | 'loopbackOnly' | 'port'>>) =>
+      queue(async () => {
+        const current = settings ?? (await store.readSettings());
+        settings = { ...current, ...change };
+        await store.saveSettings(settings);
+        await apply();
+      }),
+    setNowPlaying: (snapshot: unknown) => {
+      const parsed = nowPlayingSchema.safeParse(snapshot);
+      if (!parsed.success) return;
+
+      nowPlaying = parsed.data;
+      server?.setNowPlaying(parsed.data);
+    },
+    /** The page asked about a device; a device that is gone or a wrong id changes nothing */
+    decide: async (deviceId: string, action: DeviceAction) => {
+      const done = {
+        approve: () => access.approve(deviceId) !== undefined,
+        deny: () => access.deny(deviceId),
+        revoke: () => access.revoke(deviceId),
+        block: () => (access.block(deviceId), true),
+      }[action]();
+      if (done) await saveDevices();
+      publish();
+    },
+    setControls: async (deviceId: string, controls: Control[]) => {
+      if (access.setControls(deviceId, controls)) await saveDevices();
+      publish();
+    },
+  };
+};
+
+export type HostController = ReturnType<typeof createHostController>;

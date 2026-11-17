@@ -16,11 +16,14 @@ let host: HostServer;
 
 const call = (method: string, path: string, { headers = {}, body }: { headers?: Record<string, string>; body?: string } = {}) =>
   new Promise<Answer>((resolve, reject) => {
-    const outgoing = request({ host: '127.0.0.1', port: host.port, method, path, headers, ...pinnedOptions(identity.certificate) }, (response) => {
-      const chunks: Buffer[] = [];
-      response.on('data', (chunk) => chunks.push(chunk));
-      response.on('end', () => resolve({ status: response.statusCode ?? 0, body: JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') }));
-    });
+    const outgoing = request(
+      { host: '127.0.0.1', port: host.port, agent: false, method, path, headers, ...pinnedOptions(identity.certificate) },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on('data', (chunk) => chunks.push(chunk));
+        response.on('end', () => resolve({ status: response.statusCode ?? 0, body: JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') }));
+      }
+    );
     outgoing.on('error', reject);
     outgoing.end(body);
   });
@@ -97,7 +100,11 @@ describe('the host server', () => {
     expect(access.pending()[0].note).toBe('<img src=x onerror=alert(1)>');
 
     expect((await ask(randomUUID(), 'x'.repeat(201))).status).toBe(400);
-    expect((await call('POST', '/remote/request', { body: JSON.stringify({ note: 'x'.repeat(1_000_000) }) })).status).toBe(400);
+    expect((await call('POST', '/remote/request', { body: JSON.stringify({ note: 'x'.repeat(5_000) }) })).status).toBe(400);
+    // a body far over the cap may reset the connection (Windows) before the client reads the 400: it only must not make a prompt
+    await call('POST', '/remote/request', { body: JSON.stringify({ deviceId: randomUUID(), deviceName: 'Speaker', note: 'x'.repeat(1_000_000) }) }).catch(
+      () => undefined
+    );
     expect((await call('POST', '/remote/request', { body: 'not json' })).status).toBe(400);
     expect(access.pending()).toHaveLength(1);
   });
