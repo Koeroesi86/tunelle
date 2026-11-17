@@ -1,3 +1,4 @@
+# picomatch (vitest, vite, sass, webpack-dev-server): GHSA-fc5q-39xc-vjpf has no fixed version yet.
 # Findings left in dev-time tooling that does not ship in the app: electron-icon-maker (svg2png, phantomjs), @doyensec/electronegativity (tar 6),
 # webpack-dev-server (braces), and minimatch 3, 5 and 9 under electronegativity, electron-builder (ejs, @electron/universal): the only fixed minimatch is 11, which is no longer a function, so those parents have to move first. Remove an entry once its parent is replaced or fixed upstream; the entries expire so they get reviewed.
 
@@ -155,3 +156,8 @@ reason = "dev-only tooling, not part of the packaged app"
 id = "GHSA-g3hv-75wg-m249"
 ignoreUntil = 2027-01-18
 reason = "minimatch 3, 5 and 9 of dev-only tooling (not in the production dependencies); the fixed 11 breaks their callers"
+
+[[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+ignoreUntil = 2027-01-18
+reason = "picomatch 2.3.2 and 4.0.7 of dev-only tooling (vitest, vite, sass, webpack-dev-server), not in the packaged app; no fixed version yet"
