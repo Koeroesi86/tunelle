@@ -36,7 +36,12 @@ export interface PendingRequest extends ConnectRequest {
 }
 
 export type RequestResult =
-  { status: 'pending' } | { status: 'approved' } | { status: 'invalid' } | { status: 'blocked' } | { status: 'rate-limited' } | { status: 'full' };
+  | { status: 'pending' }
+  | { status: 'approved'; secret?: string }
+  | { status: 'invalid' }
+  | { status: 'blocked' }
+  | { status: 'rate-limited' }
+  | { status: 'full' };
 
 const hashOf = (secret: string) => createHash('sha256').update(secret).digest();
 
@@ -45,6 +50,8 @@ export class AccessControl {
   private devices = new Map<string, StoredDevice>();
   private waiting = new Map<string, PendingRequest>();
   private attempts = new Map<string, number[]>();
+  // the secret waits here until the device that was approved asks again, and is handed over once
+  private issued = new Map<string, string>();
 
   constructor(stored: unknown = []) {
     z.array(storedDeviceSchema)
@@ -71,7 +78,7 @@ export class AccessControl {
     const known = this.devices.get(parsed.data.deviceId);
     // a blocked device is dropped before a prompt exists, and an approved one has no need to ask again
     if (known?.blocked) return { status: 'blocked' };
-    if (known) return { status: 'approved' };
+    if (known) return this.collect(known.id);
 
     this.dropExpired();
     const again = this.waiting.has(parsed.data.deviceId);
@@ -87,6 +94,7 @@ export class AccessControl {
 
     const secret = randomBytes(32).toString('base64url');
     this.waiting.delete(deviceId);
+    this.issued.set(deviceId, secret);
     this.devices.set(deviceId, { id: deviceId, name: request.deviceName, secretHash: hashOf(secret).toString('hex'), blocked: false, controls });
     return { secret };
   }
@@ -98,12 +106,14 @@ export class AccessControl {
   /** The next request of a revoked device needs a new approval */
   revoke(deviceId: string): boolean {
     this.waiting.delete(deviceId);
+    this.issued.delete(deviceId);
     return this.devices.delete(deviceId);
   }
 
   block(deviceId: string, name = 'Blocked device') {
     const known = this.devices.get(deviceId);
     this.waiting.delete(deviceId);
+    this.issued.delete(deviceId);
     this.devices.set(deviceId, { id: deviceId, name: known?.name ?? name, secretHash: '', blocked: true, controls: [] });
   }
 
@@ -122,6 +132,12 @@ export class AccessControl {
     const expected = Buffer.from(known.secretHash, 'hex');
     const given = hashOf(secret);
     return expected.length === given.length && timingSafeEqual(expected, given) ? known : undefined;
+  }
+
+  private collect(deviceId: string): RequestResult {
+    const secret = this.issued.get(deviceId);
+    this.issued.delete(deviceId);
+    return { status: 'approved', secret };
   }
 
   private allowed(address: string): boolean {
