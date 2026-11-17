@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { request } from 'node:https';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AccessControl, MAX_PENDING, MAX_REQUESTS_PER_MINUTE } from './access';
 import { createHostIdentity, pinnedOptions } from './certificate';
 import { startHostServer, type HostServer } from './host-server';
@@ -41,6 +41,30 @@ const approvedDevice = () => {
   access.approve(deviceId);
   const answer = access.request('setup', { deviceId, deviceName: 'Speaker' });
   return { deviceId, secret: answer.status === 'approved' ? (answer.secret ?? '') : '' };
+};
+
+/** Opens the event stream and collects what arrives, until it is ended by the host or the test */
+const listen = (deviceId: string, secret: string) => {
+  const events: string[] = [];
+  let ended = false;
+  const outgoing = request(
+    {
+      host: '127.0.0.1',
+      port: host.port,
+      agent: false,
+      path: '/remote/events',
+      headers: { 'x-tunelle-device': deviceId, authorization: `Bearer ${secret}` },
+      ...pinnedOptions(identity.certificate),
+    },
+    (response) => {
+      response.on('data', (chunk) => events.push(`${chunk}`));
+      response.on('end', () => (ended = true));
+      response.on('error', () => (ended = true));
+    }
+  );
+  outgoing.on('error', () => (ended = true));
+  outgoing.end();
+  return { events, hasEnded: () => ended, stop: () => outgoing.destroy() };
 };
 
 describe('the host server', () => {
@@ -93,6 +117,20 @@ describe('the host server', () => {
     expect((await ask(revoked.deviceId)).status).toBe(202);
     expect((await ask(blocked.deviceId)).status).toBe(403);
     expect(access.pending().map((entry) => entry.deviceId)).toEqual([revoked.deviceId]);
+  });
+
+  it('pushes each change of the now playing to an approved device, and cuts off a revoked one', async () => {
+    const { deviceId, secret } = approvedDevice();
+    const stream = listen(deviceId, secret);
+    await vi.waitFor(() => expect(stream.events.join('')).toContain('data: {"state":"idle"}'));
+
+    host.setNowPlaying({ state: 'paused', title: 'Song', position: 4, at: 1000 });
+    await vi.waitFor(() => expect(stream.events.join('')).toContain('"title":"Song"'));
+
+    access.revoke(deviceId);
+    host.setNowPlaying({ state: 'idle' });
+    await vi.waitFor(() => expect(stream.hasEnded()).toBe(true));
+    stream.stop();
   });
 
   it('shows a hostile note as it was sent and an oversized one as an invalid request, without a prompt', async () => {
