@@ -336,6 +336,13 @@ describe('uiState reducer', () => {
     expect(run({ type: 'SET_PLAYING', payload: { isPlaying: true } }).isPlaying).toBe(true);
   });
 
+  it('stores what the host reports, and knows nothing before', () => {
+    const host = { enabled: true, name: 'Tunelle', loopbackOnly: false, running: true, pending: [], devices: [] };
+
+    expect(initial.remoteHost).toBeUndefined();
+    expect(run({ type: 'REMOTE_HOST_STATE', payload: host }).remoteHost).toEqual(host);
+  });
+
   it('stores whether the app can be added to the application menu, and whether it was', () => {
     expect(initial.launcher).toEqual({ available: false, enabled: false, offered: false, external: false });
     expect(run({ type: 'LAUNCHER_STATE', payload: { available: true, enabled: true, offered: true, external: true } }).launcher).toEqual({

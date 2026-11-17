@@ -38,6 +38,31 @@ describe('connection middleware', () => {
     expect(store.getState().uiState.launcher).toEqual({ available: true, enabled: true, offered: true, external: false });
   });
 
+  const host = { enabled: true, name: 'Tunelle', loopbackOnly: false, running: true, code: 'AB12', pending: [], devices: [] };
+
+  it('asks for the state of the host when it starts, and stores what it reports', async () => {
+    const { store, send, listen } = await setup();
+
+    listen('REMOTE_HOST_STATE', host);
+    listen('REMOTE_HOST_STATE', { ...host, running: 'yes' });
+
+    expect(send).toHaveBeenCalledWith('GET_REMOTE_HOST');
+    expect(store.getState().uiState.remoteHost).toEqual(host);
+  });
+
+  it('sends what the settings change on the host to the main process', async () => {
+    const { store, send } = await setup();
+    const deviceId = '0b9c3d3e-5a53-4a43-9a4c-0c1d6f6f0e01';
+
+    store.dispatch({ type: 'SET_REMOTE_HOST', payload: { enabled: true } });
+    store.dispatch({ type: 'DECIDE_REMOTE_DEVICE', payload: { deviceId, action: 'approve' } });
+    store.dispatch({ type: 'SET_REMOTE_DEVICE_CONTROLS', payload: { deviceId, controls: ['skip'] } });
+
+    expect(send).toHaveBeenCalledWith('SET_REMOTE_HOST', { enabled: true });
+    expect(send).toHaveBeenCalledWith('DECIDE_REMOTE_DEVICE', { deviceId, action: 'approve' });
+    expect(send).toHaveBeenCalledWith('SET_REMOTE_DEVICE_CONTROLS', { deviceId, controls: ['skip'] });
+  });
+
   it('sends the request to add or remove the launcher to the main process', async () => {
     const { store, send } = await setup();
 

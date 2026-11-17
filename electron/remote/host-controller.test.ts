@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HostState } from './host-controller';
 import type { HostStore } from './host-store';
 import type { NowPlaying } from './now-playing';
+import { remoteHostStateSchema } from '../../shared/schemas/remote-host';
 
 const mocks = vi.hoisted(() => ({ start: vi.fn(), close: vi.fn(), setNowPlaying: vi.fn() }));
 
@@ -57,6 +58,22 @@ describe('the host controller', () => {
     mocks.start.mock.calls[0][0].onControl({ control: 'skip', direction: 'next' });
 
     expect(commands).toEqual([{ control: 'skip', direction: 'next' }]);
+  });
+
+  it('reports a state that the page accepts, with a device waiting and one approved', async () => {
+    const host = await create(fakeStore({ enabled: true }));
+    await host.start();
+    const { access } = mocks.start.mock.calls[0][0];
+    const [waiting, approved] = [randomUUID(), randomUUID()];
+    access.request('10.0.0.2', { deviceId: approved, deviceName: 'Phone' });
+    access.approve(approved, ['skip']);
+    access.request('10.0.0.3', { deviceId: waiting, deviceName: 'Tablet', note: 'Hi' });
+
+    expect(remoteHostStateSchema.parse(host.state())).toMatchObject({
+      pending: [{ deviceId: waiting }],
+      devices: [{ id: approved, controls: ['skip'] }],
+      running: true,
+    });
   });
 
   it('opens nothing while host mode is off', async () => {
