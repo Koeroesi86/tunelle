@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import type { FormEvent } from 'react';
 import style from './RemoteAccess.scss';
 import { useTranslation } from '../../../i18n';
 import Switch from '../../ui/switch/Switch';
@@ -9,6 +11,7 @@ type Action = 'approve' | 'deny' | 'revoke' | 'block';
 interface RemoteAccessProps {
   state: RemoteHostState | undefined;
   setEnabled: (enabled: boolean) => void;
+  update: (change: { name?: string; loopbackOnly?: boolean }) => void;
   decide: (deviceId: string, action: Action) => void;
   setControls: (deviceId: string, controls: Control[]) => void;
 }
@@ -73,8 +76,34 @@ const Pending = ({ request, decide }: { request: RemoteHostState['pending'][numb
   );
 };
 
+/** The name other devices see; it is sent when the field is left or Enter is pressed, as a change restarts the host, and not when it is empty or the same */
+const NameField = ({ name, update }: { name: string } & Pick<RemoteAccessProps, 'update'>) => {
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState(name);
+  const commit = (event?: FormEvent) => {
+    event?.preventDefault();
+    const next = draft.trim();
+    if (next === '' || next === name) return setDraft(name);
+    update({ name: next });
+  };
+
+  return (
+    <form className={style.field} onSubmit={commit}>
+      <input
+        value={draft}
+        maxLength={60}
+        aria-label={t('remote.name')}
+        placeholder={t('remote.name')}
+        autoComplete="off"
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => commit()}
+      />
+    </form>
+  );
+};
+
 /** Turns the host mode on and off, and answers the devices that ask to listen. Nothing listens until the switch is on. See docs/app/remote-access-discovery.md */
-const RemoteAccess = ({ state, setEnabled, decide, setControls }: RemoteAccessProps) => {
+const RemoteAccess = ({ state, setEnabled, update, decide, setControls }: RemoteAccessProps) => {
   const { t } = useTranslation();
 
   if (!state) return null;
@@ -86,6 +115,11 @@ const RemoteAccess = ({ state, setEnabled, decide, setControls }: RemoteAccessPr
         <Switch checked={state.enabled} label={t('remote.title')} onChange={setEnabled} />
       </div>
       <div className={style.hint}>{t('remote.hint')}</div>
+      <NameField key={state.name} name={state.name} update={update} />
+      <label htmlFor="remote-loopback-only" className={style.control}>
+        <input id="remote-loopback-only" type="checkbox" checked={state.loopbackOnly} onChange={() => update({ loopbackOnly: !state.loopbackOnly })} />
+        {t('remote.loopbackOnly')}
+      </label>
       {state.error && <div className={style.error}>{t('remote.error', { error: state.error })}</div>}
       {state.running && state.port && <div className={style.hint}>{t('remote.port', { port: state.port })}</div>}
       {state.running && state.code && <div className={style.hint}>{t('remote.code', { code: state.code })}</div>}

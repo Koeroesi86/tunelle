@@ -17,14 +17,14 @@ const state = (change: Partial<RemoteHostState> = {}): RemoteHostState => ({
 });
 
 const setup = (current: RemoteHostState | undefined) => {
-  const props = { state: current, setEnabled: vi.fn(), decide: vi.fn(), setControls: vi.fn() };
+  const props = { state: current, setEnabled: vi.fn(), update: vi.fn(), decide: vi.fn(), setControls: vi.fn() };
   render(<RemoteAccess {...props} />);
   return props;
 };
 
 describe('RemoteAccess', () => {
   it('shows nothing until the main process reported', () => {
-    const { container } = render(<RemoteAccess state={undefined} setEnabled={vi.fn()} decide={vi.fn()} setControls={vi.fn()} />);
+    const { container } = render(<RemoteAccess state={undefined} setEnabled={vi.fn()} update={vi.fn()} decide={vi.fn()} setControls={vi.fn()} />);
 
     expect(container.innerHTML).toBe('');
   });
@@ -100,10 +100,44 @@ describe('RemoteAccess', () => {
     const props = setup(state({ devices: [{ id: tablet, name: 'Tablet', blocked: true, controls: [] }] }));
 
     expect(screen.getByText('Blocked')).toBeTruthy();
-    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(within(screen.getByRole('list', { name: 'Approved devices' })).queryByRole('checkbox')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Block' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Unblock' }));
 
     expect(props.decide).toHaveBeenCalledExactlyOnceWith(tablet, 'revoke');
+  });
+
+  it('sends a new name when the field is left, and not an empty or an unchanged one', () => {
+    const props = setup(state({ name: 'Kitchen' }));
+    const field = screen.getByRole('textbox', { name: 'Name shown to other devices' });
+
+    fireEvent.change(field, { target: { value: '  Living room  ' } });
+    fireEvent.blur(field);
+    expect(props.update).toHaveBeenCalledExactlyOnceWith({ name: 'Living room' });
+
+    props.update.mockClear();
+    fireEvent.change(field, { target: { value: '   ' } });
+    fireEvent.blur(field);
+    fireEvent.change(field, { target: { value: 'Kitchen' } });
+    fireEvent.blur(field);
+    expect(props.update).not.toHaveBeenCalled();
+  });
+
+  it('sends the name on Enter', () => {
+    const props = setup(state({ name: 'Kitchen' }));
+    const field = screen.getByRole('textbox', { name: 'Name shown to other devices' });
+
+    fireEvent.change(field, { target: { value: 'Hall' } });
+    fireEvent.submit(field);
+
+    expect(props.update).toHaveBeenCalledWith({ name: 'Hall' });
+  });
+
+  it('switches the host to this computer only and back', () => {
+    const props = setup(state({ loopbackOnly: false }));
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Only this computer can connect/ }));
+
+    expect(props.update).toHaveBeenCalledExactlyOnceWith({ loopbackOnly: true });
   });
 });

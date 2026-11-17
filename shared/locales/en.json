@@ -462,6 +462,8 @@
   "remote.title": "Remote listening",
   "remote.hint": "Lets devices on your network that you approve see what plays and listen along. Nothing listens until you turn this on.",
   "remote.code": "The device shows the code {code} when it asks. If it differs, do not approve it.",
+  "remote.name": "Name shown to other devices",
+  "remote.loopbackOnly": "Only this computer can connect (other devices will not find it)",
   "remote.port": "Other devices connect to the port {port} of this computer.",
   "remote.error": "Remote listening could not start: {error}",
   "remote.pending": "Devices that wait for an answer",
