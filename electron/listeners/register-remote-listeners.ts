@@ -1,15 +1,19 @@
+import { hostname } from 'node:os';
 import { ipcMain } from 'electron';
 import { serveTrack } from '../protocols/serve-track';
 import { createHostController } from '../remote/host-controller';
 import type { HostState } from '../remote/host-controller';
 import { deviceControlsSchema, deviceDecisionSchema, hostChangeSchema } from '../remote/host-requests';
 import { createHostStore } from '../remote/host-store';
+import { createListenerController } from '../remote/listener-controller';
+import { confirmSchema, connectSchema } from '../remote/listener-requests';
+import { createListenerStore } from '../remote/listener-store';
 import { logError } from '../utils/log-error';
 import { parsePayload } from '../utils/parse-payload';
 import { sendIfAlive } from '../utils/send-if-alive';
 import type { ListenerContext } from './listener-context';
 
-/** The host mode of the app: what the page asks (settings, the decision on a device) and the now playing it sends. See docs/app/remote-access-discovery.md */
+/** The host mode of the app (what the page asks: settings, the decision on a device, and the now playing it sends) and the listener side (pairing with a host). See docs/app/remote-access-discovery.md */
 const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
   const host = createHostController(
     createHostStore(global._appDataPath),
@@ -35,6 +39,25 @@ const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
     if (request) host.setControls(request.deviceId, request.controls).catch(logError);
   });
   ipcMain.on('REMOTE_STATE', (_event, payload: unknown) => host.setNowPlaying(payload));
+
+  const listener = createListenerController(
+    createListenerStore(global._appDataPath),
+    hostname(),
+    (state) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_LISTENER_STATE', state)
+  );
+  // a listener without a host it was approved by contacts nobody
+  listener.start().catch(logError);
+
+  ipcMain.on('GET_REMOTE_LISTENER', (event) => sendIfAlive(event.sender, 'REMOTE_LISTENER_STATE', listener.state()));
+  ipcMain.on('CONNECT_REMOTE_HOST', (_event, payload: unknown) => {
+    const target = parsePayload(connectSchema, payload);
+    if (target) listener.connect(target).catch(logError);
+  });
+  ipcMain.on('CONFIRM_REMOTE_HOST', (_event, payload: unknown) => {
+    const request = parsePayload(confirmSchema, payload);
+    if (request) listener.confirm(request.note).catch(logError);
+  });
+  ipcMain.on('LEAVE_REMOTE_HOST', () => listener.leave().catch(logError));
 };
 
 export default registerRemoteListeners;

@@ -1,0 +1,126 @@
+import type { RemoteListenerState } from '../../shared/schemas/remote-listener';
+import { approvalCode } from './certificate';
+import { contact, fetchNowPlaying, requestToListen, type Contact, type HostAddress } from './listener-client';
+import type { ListenerStore, Pairing } from './listener-store';
+
+export const POLL_MS = 1000;
+/** The host drops a request that nobody answered after ten minutes, so asking longer does not help */
+export const ASK_LIMIT_MS = 10 * 60 * 1000;
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const messageOf = (failure: unknown) => (failure instanceof Error ? failure.message : 'The host did not answer');
+
+/**
+ * The listener side of the app: the first contact with a host, the request to listen, and the now playing of the host once approved.
+ * One host at a time; a new connect or a leave ends what runs. See docs/app/remote-access-discovery.md
+ */
+export const createListenerController = (store: ListenerStore, deviceName: string, onChange: (state: RemoteListenerState) => void) => {
+  let state: RemoteListenerState = { status: 'idle' };
+  // the certificate of a host that was contacted and waits for the user to compare the code
+  let contacted: (Contact & HostAddress) | undefined;
+  // every connect, leave and start takes a new number, so a loop that belongs to an older one ends
+  let run = 0;
+
+  const publish = (next: RemoteListenerState) => {
+    state = next;
+    onChange(state);
+  };
+
+  const follow = async (pairing: Pairing, deviceId: string, token: number) => {
+    const target = { host: pairing.host, port: pairing.port };
+    const code = approvalCode(pairing.certificate);
+    publish({ status: 'listening', target, code });
+
+    while (token === run) {
+      const snapshot = await fetchNowPlaying(target, pairing.certificate, deviceId, pairing.secret).then(
+        (answer) => ({ answer }),
+        (failure: unknown) => ({ failure })
+      );
+      if (token !== run) return;
+
+      if ('failure' in snapshot) publish({ ...state, status: 'listening', error: messageOf(snapshot.failure) });
+      else if (snapshot.answer) publish({ status: 'listening', target, code, nowPlaying: snapshot.answer });
+      else return revoke(token);
+
+      await wait(POLL_MS);
+    }
+  };
+
+  // a host that does not know the device any more: the pairing is of no use, the user asks again
+  const revoke = async (token: number) => {
+    await store.clearPairing();
+    if (token === run) publish({ status: 'revoked', target: state.target, code: state.code });
+  };
+
+  const ask = async (target: Contact & HostAddress, note: string, token: number) => {
+    const deviceId = await store.deviceId();
+    const address = { host: target.host, port: target.port };
+    const base = { target: address, code: target.code };
+    const until = Date.now() + ASK_LIMIT_MS;
+    publish({ status: 'waiting', ...base });
+
+    while (token === run && Date.now() < until) {
+      const answer = await requestToListen(address, target.certificate, { deviceId, deviceName, note });
+      if (token !== run) return;
+
+      if (answer.status === 'approved' && answer.secret) {
+        const pairing = { host: target.host, port: target.port, certificate: target.certificate, secret: answer.secret };
+        await store.savePairing(pairing);
+        return follow(pairing, deviceId, token);
+      }
+      // the secret comes once: an approval without it was picked up before, and only a new approval gives another
+      if (answer.status === 'approved')
+        return publish({ status: 'error', ...base, error: 'The host approved this device before; ask the host to revoke it, then ask again' });
+      if (answer.status === 'blocked') return publish({ status: 'blocked', ...base });
+      if (answer.status !== 'pending') return publish({ status: 'error', ...base, error: `The host answered ${answer.status}` });
+
+      await wait(POLL_MS);
+    }
+    if (token === run) publish({ status: 'error', ...base, error: 'Nobody answered the request on the host' });
+  };
+
+  const fail = (token: number, failure: unknown, base: Partial<RemoteListenerState> = {}) => {
+    if (token === run) publish({ status: 'error', ...base, error: messageOf(failure) });
+  };
+
+  return {
+    state: () => state,
+    /** Follows the host of the last approval, when there is one */
+    start: async () => {
+      const token = ++run;
+      const [pairing, deviceId] = await Promise.all([store.readPairing(), store.deviceId()]);
+      if (pairing && token === run) await follow(pairing, deviceId, token);
+    },
+    /** The first contact: the code of the certificate goes to both screens, and nothing is asked before the user compared them */
+    connect: async (address: HostAddress) => {
+      const token = ++run;
+      contacted = undefined;
+      publish({ status: 'contacting', target: address });
+      const reached = await contact(address).then(
+        (found) => ({ found }),
+        (failure: unknown) => ({ failure })
+      );
+      if (token !== run) return;
+      if ('failure' in reached) return fail(token, reached.failure, { target: address });
+
+      contacted = { ...reached.found, ...address };
+      publish({ status: 'confirming', target: address, code: reached.found.code });
+    },
+    /** The user saw the same code on both screens: the request goes out, pinned to the certificate that gave the code */
+    confirm: async (note: string) => {
+      const target = contacted;
+      if (!target) return;
+
+      const token = ++run;
+      contacted = undefined;
+      await ask(target, note, token).catch((failure: unknown) => fail(token, failure, { target: { host: target.host, port: target.port }, code: target.code }));
+    },
+    /** Stops listening and forgets the host: a new contact starts from the code again */
+    leave: async () => {
+      run++;
+      contacted = undefined;
+      await store.clearPairing();
+      publish({ status: 'idle' });
+    },
+  };
+};
