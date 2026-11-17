@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HostState } from './host-controller';
 import type { HostStore } from './host-store';
-import type { NowPlaying } from './now-playing';
+import type { NowPlaying } from '../../shared/schemas/now-playing';
 import { remoteHostStateSchema } from '../../shared/schemas/remote-host';
 
 const mocks = vi.hoisted(() => ({ start: vi.fn(), close: vi.fn(), setNowPlaying: vi.fn() }));

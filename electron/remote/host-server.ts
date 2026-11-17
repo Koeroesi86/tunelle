@@ -4,7 +4,7 @@ import type { AccessControl } from './access';
 import type { HostIdentity } from './certificate';
 import type { ControlCommand } from './control-command';
 import { createRoutes, type ServeAudio } from './host-routes';
-import type { NowPlaying } from './now-playing';
+import type { NowPlaying } from '../../shared/schemas/now-playing';
 
 export interface HostServer {
   port: number;

@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AccessControl, StoredDevice } from './access';
 import { controlCommandSchema, permissionOf, type ControlCommand } from './control-command';
 import { relayResponse } from './relay-response';
-import { nowPlayingSchema, type NowPlaying } from './now-playing';
+import { nowPlayingSchema, type NowPlaying } from '../../shared/schemas/now-playing';
 
 const MAX_BODY_BYTES = 4096;
 const MAX_STREAMS = 20;

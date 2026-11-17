@@ -1,7 +1,7 @@
 import { AccessControl, type Control, type PendingRequest } from './access';
 import { startHostServer, type HostServer } from './host-server';
 import type { HostSettings, HostStore } from './host-store';
-import { nowPlayingSchema, type NowPlaying } from './now-playing';
+import { nowPlayingSchema, type NowPlaying } from '../../shared/schemas/now-playing';
 import { z } from 'zod';
 import type { ControlCommand } from './control-command';
 import type { ServeAudio } from './host-routes';
