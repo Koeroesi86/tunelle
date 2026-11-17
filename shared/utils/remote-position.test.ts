@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DRIFT_SECONDS, driftCorrection, expectedPosition } from './listener-client';
+import { DRIFT_SECONDS, driftCorrection, expectedPosition } from './remote-position';
 
 describe('the position of the host', () => {
   beforeEach(() => {

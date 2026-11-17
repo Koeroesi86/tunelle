@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
     state: vi.fn(),
   },
   onChange: undefined as ((state: unknown) => void) | undefined,
-  listener: { start: vi.fn(), state: vi.fn(), connect: vi.fn(), confirm: vi.fn(), leave: vi.fn() },
+  listener: { start: vi.fn(), state: vi.fn(), connect: vi.fn(), confirm: vi.fn(), leave: vi.fn(), audio: vi.fn() },
   onListenerChange: undefined as ((state: unknown) => void) | undefined,
 }));
 

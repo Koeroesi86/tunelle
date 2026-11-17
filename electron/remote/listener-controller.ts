@@ -1,6 +1,6 @@
 import type { RemoteListenerState } from '../../shared/schemas/remote-listener';
 import { approvalCode } from './certificate';
-import { contact, fetchNowPlaying, requestToListen, type Contact, type HostAddress } from './listener-client';
+import { contact, fetchAudio, fetchNowPlaying, requestToListen, type Contact, type HostAddress } from './listener-client';
 import type { ListenerStore, Pairing } from './listener-store';
 
 export const POLL_MS = 1000;
@@ -20,6 +20,8 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
   let contacted: (Contact & HostAddress) | undefined;
   // every connect, leave and start takes a new number, so a loop that belongs to an older one ends
   let run = 0;
+  // the host that is followed now, which the relay of the audio reaches and nothing else
+  let active: { pairing: Pairing; deviceId: string } | undefined;
 
   const publish = (next: RemoteListenerState) => {
     state = next;
@@ -29,6 +31,7 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
   const follow = async (pairing: Pairing, deviceId: string, token: number) => {
     const target = { host: pairing.host, port: pairing.port };
     const code = approvalCode(pairing.certificate);
+    active = { pairing, deviceId };
     publish({ status: 'listening', target, code });
 
     while (token === run) {
@@ -48,6 +51,7 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
 
   // a host that does not know the device any more: the pairing is of no use, the user asks again
   const revoke = async (token: number) => {
+    active = undefined;
     await store.clearPairing();
     if (token === run) publish({ status: 'revoked', target: state.target, code: state.code });
   };
@@ -88,12 +92,14 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
     /** Follows the host of the last approval, when there is one */
     start: async () => {
       const token = ++run;
+      active = undefined;
       const [pairing, deviceId] = await Promise.all([store.readPairing(), store.deviceId()]);
       if (pairing && token === run) await follow(pairing, deviceId, token);
     },
     /** The first contact: the code of the certificate goes to both screens, and nothing is asked before the user compared them */
     connect: async (address: HostAddress) => {
       const token = ++run;
+      active = undefined;
       contacted = undefined;
       publish({ status: 'contacting', target: address });
       const reached = await contact(address).then(
@@ -115,9 +121,24 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
       contacted = undefined;
       await ask(target, note, token).catch((failure: unknown) => fail(token, failure, { target: { host: target.host, port: target.port }, code: target.code }));
     },
+    /** The audio of the track the host plays, for the player of the page: the range of the request goes on, and nothing names a host or a file */
+    audio: async (request: Request) => {
+      if (!active) return new Response(undefined, { status: 404 });
+
+      const { pairing, deviceId } = active;
+      return fetchAudio(
+        { host: pairing.host, port: pairing.port },
+        pairing.certificate,
+        deviceId,
+        pairing.secret,
+        request.headers.get('range') ?? undefined,
+        request.signal
+      ).catch(() => new Response(undefined, { status: 502 }));
+    },
     /** Stops listening and forgets the host: a new contact starts from the code again */
     leave: async () => {
       run++;
+      active = undefined;
       contacted = undefined;
       await store.clearPairing();
       publish({ status: 'idle' });
