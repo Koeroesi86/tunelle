@@ -19,6 +19,7 @@ import PowerSaving from '../../settings/power-saving';
 import NotifyLibraryChanges from '../../settings/notify-library-changes';
 import LauncherIntegration from '../../settings/launcher-integration';
 import RemoteAccess from '../../settings/remote-access';
+import RemoteListener from '../../settings/remote-listener';
 import WindowBlur from '../../settings/window-blur';
 import ReduceMotion from '../../settings/reduce-motion';
 import About from '../../pages/about';
@@ -105,6 +106,7 @@ function PlayerTabs({ tab = 'home', addFiles = () => {} }: PlayerTabsProps) {
           <ReduceMotion />
           <LauncherIntegration />
           <RemoteAccess />
+          <RemoteListener />
         </div>
       </div>
       <AlbumDetails />
