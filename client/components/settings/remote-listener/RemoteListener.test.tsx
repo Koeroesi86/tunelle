@@ -6,7 +6,7 @@ import RemoteListener from './RemoteListener';
 const target = { host: '192.168.1.5', port: 40000 };
 
 const setup = (state: RemoteListenerState | undefined) => {
-  const props = { state, connect: vi.fn(), confirm: vi.fn(), leave: vi.fn() };
+  const props = { state, connect: vi.fn(), confirm: vi.fn(), leave: vi.fn(), listenAlong: vi.fn() };
   const view = render(<RemoteListener {...props} />);
   return { ...props, ...view };
 };
@@ -78,6 +78,21 @@ describe('RemoteListener', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Stop listening' }));
 
     expect(leave).toHaveBeenCalledTimes(1);
+  });
+
+  it('plays along with what the host plays', () => {
+    const nowPlaying = { state: 'playing' as const, title: 'Song', artist: 'Band', position: 1, at: 0 };
+    const { listenAlong } = setup({ status: 'listening', target, nowPlaying });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Listen along' }));
+
+    expect(listenAlong).toHaveBeenCalledWith(nowPlaying);
+  });
+
+  it('has nothing to listen along with while the host plays nothing', () => {
+    setup({ status: 'listening', target, nowPlaying: { state: 'idle' } });
+
+    expect(screen.queryByRole('button', { name: 'Listen along' })).toBeNull();
   });
 
   it('says so when nothing plays on the host, and shows a failed poll beside the last state', () => {
