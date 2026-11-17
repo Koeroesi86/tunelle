@@ -12,7 +12,11 @@ let state: HostState | undefined;
 let host: HostController;
 
 const open = () => {
-  host = createHostController(createHostStore(folder), (next) => (state = next));
+  host = createHostController(
+    createHostStore(folder),
+    (next) => (state = next),
+    () => undefined
+  );
   return host;
 };
 const address = () => ({ host: '127.0.0.1', port: host.state().port ?? 0 });

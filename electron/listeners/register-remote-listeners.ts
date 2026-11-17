@@ -12,7 +12,8 @@ import type { ListenerContext } from './listener-context';
 const registerRemoteListeners = ({ windows }: ListenerContext) => {
   const host = createHostController(
     createHostStore(global._appDataPath),
-    (state: HostState) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_HOST_STATE', state)
+    (state: HostState) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_HOST_STATE', state),
+    (command) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_CONTROL', command)
   );
 
   // a host that is off opens no socket: start() only reads the settings, and listens when they say so
