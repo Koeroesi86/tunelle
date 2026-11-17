@@ -292,6 +292,7 @@ describe('workflows', () => {
     expect(text).toMatch(/workflow_run:\n\s+workflows: \[Pull request checks, Build, Release\]/);
     expect(text).toMatch(/group: \$\{\{ github\.workflow \}\}-\$\{\{ github\.event\.workflow_run\.id \}\}/);
     expect(text).toMatch(/types: \[requested, completed\]/);
+    expect(text).toMatch(/if: github\.event\.action == 'requested' \|\| github\.event\.workflow_run\.conclusion == 'failure'/);
     expect(text).not.toMatch(/pull_request:|head_sha|head_branch|ref:/);
     expect(text).toMatch(/node scripts\/release\/retry-unstarted-jobs\.js "\$\{RUN_ID\}"/);
   });

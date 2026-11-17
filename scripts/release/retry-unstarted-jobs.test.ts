@@ -93,6 +93,14 @@ describe('run', () => {
     expect(posts(request)).not.toContain('/repos/owner/name/actions/runs/7/rerun-failed-jobs');
   });
 
+  it('leaves the runs alone when several have no runner at once, as GitHub is short of runners', async () => {
+    const request = createFake({ runs: [7, 8, 9].map((id) => ({ id, run_attempt: 1 })) });
+
+    await run(request, 'owner/name', now);
+
+    expect(posts(request)).toEqual([]);
+  });
+
   it('leaves a run alone that was run again already', async () => {
     const request = createFake({ runs: [{ id: 7, run_attempt: 3 }] });
 
@@ -141,9 +149,11 @@ describe('run', () => {
 describe('watch', () => {
   const stuckJobs = [finished, job()];
   const notAcquired = { id: 9, name: 'dist / Dist (macos arm64)', status: 'completed', conclusion: 'cancelled', runner_id: null };
-  const createFake = (runs: object[], jobs: object[] = stuckJobs, annotations: object[] = []) => {
+  const createFake = (runs: object[], jobs: object[] = stuckJobs, annotations: object[] = [], others: object[] = []) => {
     const answers = [...runs];
     return vi.fn(async (path: string, options?: { method: string }) => {
+      if (path.includes('/workflows/pr-checks.yml') && path.includes('status=queued')) return { workflow_runs: [{ id: 7, run_attempt: 1 }, ...others] };
+      if (path.includes('/workflows/')) return { workflow_runs: [] };
       if (path.endsWith('/jobs?per_page=100')) return { jobs };
       if (path.endsWith('/annotations')) return annotations;
       if (options?.method === 'POST') return undefined;
@@ -173,6 +183,25 @@ describe('watch', () => {
     await watchFor(request, 15);
 
     expect(posts(request)).toEqual(['/repos/owner/name/actions/runs/7/cancel', '/repos/owner/name/actions/runs/7/rerun-failed-jobs']);
+  });
+
+  it('leaves its run alone when several runs have no runner at once, and goes on watching', async () => {
+    const request = createFake(
+      [
+        { status: 'in_progress', run_attempt: 1 },
+        { status: 'completed', run_attempt: 1 },
+      ],
+      stuckJobs,
+      [],
+      [
+        { id: 8, run_attempt: 1 },
+        { id: 9, run_attempt: 1 },
+      ]
+    );
+
+    await watchFor(request, 10);
+
+    expect(posts(request)).toEqual([]);
   });
 
   it('stops when the run has ended without a job that GitHub gave up on', async () => {

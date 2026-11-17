@@ -17,6 +17,8 @@ concurrency:
 
 jobs:
   watch:
+    # a run that ended well or was cancelled has nothing to run again: a skipped job needs no runner, which a queue that is short of them would not give
+    if: github.event.action == 'requested' || github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 180
     # cancels and runs again the jobs of a run
