@@ -1,11 +1,14 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRequest, queue, run } from './rebase-auto-merge.js';
+import { createRequire } from 'module';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { createRequest, findOldBase, queue, run } from './rebase-auto-merge.js';
 
 const pullRequest = (number: number, enabledAt?: string, { mergeable = 'MERGEABLE' }: { mergeable?: string } = {}) => ({
   number,
   mergeable,
   autoMergeRequest: enabledAt ? { enabledAt } : null,
 });
+
+const childProcess: typeof import('child_process') = createRequire(__filename)('child_process');
 
 describe('queue', () => {
   it('orders by when the auto-merge was enabled, not by the number', () => {
@@ -53,7 +56,7 @@ describe('run', () => {
   });
 
   it('waits for the first pull request while it has a conflict, and leaves the next one behind', async () => {
-    const request = createPair({ ...waiting, mergeable: 'CONFLICTING' });
+    const request = createPair({ ...waiting, mergeable: 'CONFLICTING', isCrossRepository: true });
 
     await run(request, 'owner/name', 'master');
 
@@ -78,6 +81,79 @@ describe('run', () => {
 
   it('fails on an error of the query', async () => {
     await expect(run(createFake({ errors: [{ message: 'denied' }] }), 'owner/name', 'master')).rejects.toThrow(/GraphQL/);
+  });
+});
+
+describe('squash merged base', () => {
+  const stacked = {
+    ...pullRequest(9, '2026-11-02T08:00:00Z', { mergeable: 'CONFLICTING' }),
+    headRefOid: 'tip',
+    headRefName: 'child',
+    isCrossRepository: false,
+  };
+  const commits = ['p1', 'p2', 'c1'].map((sha) => ({ sha }));
+  const createStack = (node: object = stacked) =>
+    vi.fn(async (path: string) => {
+      if (path === '/graphql') return { data: { repository: { pullRequests: { nodes: [node] } } } };
+      if (path.includes('/pulls/9/commits')) return commits;
+      return path.endsWith('/c1/pulls') ? [{ number: 9, merged_at: null }] : [{ number: 5, merged_at: '2026-11-02T07:00:00Z' }];
+    });
+  const gitCalls = () => execFile.mock.calls.map(([, args]) => (Array.isArray(args) ? args.join(' ') : ''));
+
+  let execFile: MockInstance<typeof childProcess.execFile>;
+  const fakeGit = (failOn?: string) => (_command: string, args: string[], _options: object, done: (error: Error | undefined) => void) => {
+    done(args[1] === failOn ? new Error('conflict') : undefined);
+    return undefined;
+  };
+
+  beforeEach(() => {
+    execFile = vi.spyOn(childProcess, 'execFile').mockImplementation(fakeGit() as never);
+  });
+
+  it('finds the last commit of the merged pull request', async () => {
+    await expect(findOldBase(createStack(), 'owner/name', 9)).resolves.toBe('p2');
+  });
+
+  it('has no old base when no commit belongs to a merged pull request', async () => {
+    const request = vi.fn(async (path: string) => (path.includes('/commits?') ? commits : [{ number: 9, merged_at: null }]));
+
+    await expect(findOldBase(request, 'owner/name', 9)).resolves.toBeUndefined();
+  });
+
+  it('replays the own commits onto master and pushes with a lease on the head it saw', async () => {
+    await run(createStack(), 'owner/name', 'master');
+
+    expect(gitCalls()).toEqual([
+      'fetch origin master child',
+      'switch --detach tip',
+      'rebase --onto origin/master p2',
+      'push --force-with-lease=refs/heads/child:tip origin HEAD:refs/heads/child',
+    ]);
+  });
+
+  it('aborts and pushes nothing when the own commits conflict', async () => {
+    execFile.mockImplementation(fakeGit('--onto') as never);
+
+    await run(createStack(), 'owner/name', 'master');
+
+    expect(gitCalls()).toEqual(['fetch origin master child', 'switch --detach tip', 'rebase --onto origin/master p2', 'rebase --abort']);
+  });
+
+  it('does not touch git for a conflict without a merged pull request below', async () => {
+    const request = vi.fn(async (path: string) => {
+      if (path === '/graphql') return { data: { repository: { pullRequests: { nodes: [stacked] } } } };
+      return path.includes('/commits?') ? commits : [{ number: 9, merged_at: null }];
+    });
+
+    await run(request, 'owner/name', 'master');
+
+    expect(execFile).not.toHaveBeenCalled();
+  });
+
+  it('does not push to a fork', async () => {
+    await run(createStack({ ...stacked, isCrossRepository: true }), 'owner/name', 'master');
+
+    expect(execFile).not.toHaveBeenCalled();
   });
 });
 
