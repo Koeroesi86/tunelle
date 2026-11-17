@@ -1,5 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { z } from 'zod';
+import { CONTROLS, type Control } from '../../shared/constants/remote-controls';
 
 export const MAX_NAME_LENGTH = 60;
 export const MAX_NOTE_LENGTH = 200;
@@ -9,8 +10,7 @@ export const MAX_WRONG_SECRETS_PER_MINUTE = 10;
 const PENDING_MINUTES = 10;
 const MINUTE = 60_000;
 
-export const CONTROLS = ['playPause', 'skip', 'seek', 'volume', 'queue'] as const;
-export type Control = (typeof CONTROLS)[number];
+export type { Control };
 
 // control characters (a note is shown as plain text, but a line break or an escape has no place in a name)
 const plain = (value: string) => value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim();

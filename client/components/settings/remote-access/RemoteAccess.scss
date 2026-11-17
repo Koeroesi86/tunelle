@@ -1,0 +1,73 @@
+@use '../../../styles/settings-tile' as *;
+
+.remoteAccess {
+  @include tile;
+
+  .sectionTitle {
+    @include tile-title;
+  }
+
+  .hint {
+    @include tile-hint;
+  }
+
+  .error {
+    @include tile-hint;
+    color: var(--danger, var(--text));
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .rowHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 28px;
+    font-size: 12px;
+  }
+
+  .name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .badge {
+    @include tile-hint;
+  }
+
+  .action {
+    @include tile-button;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+  }
+
+  .control {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+}

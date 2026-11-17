@@ -5,6 +5,7 @@ import { failedLoudnessTrackSchema, loudnessProgressSchema } from './loudness';
 import { playlistImportReportSchema } from './playlists';
 import { radioOptionKindSchema, radioOptionSchema, radioStationSchema, radioTagSchema } from './radio';
 import { updateStateSchema } from './update';
+import { remoteHostStateSchema } from './remote-host';
 import { radioSearchSchema } from '../types/radio-query';
 
 // what the main process sends to the page, by channel; a message of the wrong shape is dropped by the page (client/services/on-message.ts)
@@ -30,6 +31,7 @@ export const messageSchemas = {
   MAXIMIZED_APP: z.object({ maximized: z.boolean() }),
   SET_PLAYING: z.object({ isPlaying: z.boolean() }),
   LAUNCHER_STATE: z.object({ available: z.boolean(), enabled: z.boolean(), offered: z.boolean(), external: z.boolean() }),
+  REMOTE_HOST_STATE: remoteHostStateSchema,
   UPDATE_STATE: updateStateSchema,
   CLICKED_URL: z.object({ playlist: z.array(z.object({ file: z.string(), title: z.string().optional() })), url: z.string() }),
   SCANNING_FILE: z.object({ fileName: z.string(), progress: z.number(), totalCount: z.number() }),

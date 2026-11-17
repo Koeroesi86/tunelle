@@ -11,6 +11,8 @@ import type { NormalizationMode } from '../audio/loudness';
 import type { OutputDevice } from '../audio/output-device';
 import type { AlbumSort, GroupKind, GroupSort, TrackSort } from '@shared/types/library-query';
 import type { UpdateState } from '@shared/types/update';
+import type { RemoteHostState } from '@shared/schemas/remote-host';
+import type { Control } from '@shared/constants/remote-controls';
 import type { PowerSavingMode } from '@shared/schemas/settings';
 import type { LibraryView, OnlineView, PersistedSettings } from './persisted-settings';
 
@@ -96,6 +98,8 @@ export interface UiState extends PersistedSettings {
   streamSampleRate: number | null;
   /** Whether the app can add itself to the application menu (from an AppImage on Linux), and whether it did, and whether the user was asked */
   launcher: { available: boolean; enabled: boolean; offered: boolean; external: boolean };
+  /** What the host mode of the app reports (settings, who waits for an answer, the approved devices); undefined until the main process answers */
+  remoteHost: RemoteHostState | undefined;
 }
 
 type EmptyPayload = Record<string, never>;
@@ -228,6 +232,10 @@ export type AppAction =
   | PayloadAction<'SET_UP_NEXT', { track: Track | null }>
   | PayloadAction<'LAUNCHER_STATE', { available: boolean; enabled: boolean; offered: boolean; external: boolean }>
   | PayloadAction<'SET_LAUNCHER', { enabled: boolean }>
+  | PayloadAction<'REMOTE_HOST_STATE', RemoteHostState>
+  | PayloadAction<'SET_REMOTE_HOST', { enabled?: boolean; name?: string; loopbackOnly?: boolean }>
+  | PayloadAction<'DECIDE_REMOTE_DEVICE', { deviceId: string; action: 'approve' | 'deny' | 'revoke' | 'block' }>
+  | PayloadAction<'SET_REMOTE_DEVICE_CONTROLS', { deviceId: string; controls: Control[] }>
   | PayloadAction<'SET_LANGUAGE', { language: string | undefined }>
   | PayloadAction<'SET_THEME_MODE', { mode: ThemeMode }>
   | PayloadAction<'SET_ACCENT', { accent: string | undefined }>

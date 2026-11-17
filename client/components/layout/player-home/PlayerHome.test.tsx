@@ -24,6 +24,7 @@ vi.mock('../navigation', () => ({
 vi.mock('../audio-spectrum', () => ({ default: () => null }));
 vi.mock('../player-tabs', () => ({ default: () => null }));
 vi.mock('../launcher-offer', () => ({ default: () => null }));
+vi.mock('../remote-request', () => ({ default: () => null }));
 vi.mock('../playlist-import-report', () => ({ default: () => null }));
 
 const window = (onUnload: () => void) => <PlayerHome maximized={false} blurred={false} loaded folders={[]} addFiles={vi.fn()} onUnload={onUnload} />;
