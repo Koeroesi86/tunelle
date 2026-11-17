@@ -68,11 +68,7 @@ export const approvalCode = (certificate: string) => {
   return digits.replace(/(.{4})(?=.)/g, '$1 ');
 };
 
-/**
- * The options of a listener that pins the host. The certificate is the only `ca`, as `rejectUnauthorized: false` with a
- * `checkServerIdentity` does not pin (Node skips the check once the chain failed). The host is an address with no name in
- * the certificate, so the name check passes: the pin is what is checked.
- */
+/** The listener pins the host with its certificate as the only `ca`: `rejectUnauthorized: false` does not pin. See docs/app/remote-access-discovery.md */
 export const pinnedOptions = (certificate: string) => ({ ca: [certificate], checkServerIdentity: () => undefined });
 
 /** The options of the first contact, before the user has approved: the certificate is read from the answer and shown as a code, and nothing secret is sent */
