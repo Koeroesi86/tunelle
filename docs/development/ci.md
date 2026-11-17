@@ -20,6 +20,14 @@ The `test` job keeps `.cache/vitest` (the transformed modules of Vitest, `fsModu
 
 On the `ubuntu-26.04` runner image apt failed with `Temporary failure resolving` for the Ubuntu mirrors while the mirrors were up. The Ubuntu test job prints the resolver, and when `archive.ubuntu.com` does not resolve it adds 1.1.1.1, 8.8.8.8 and 9.9.9.9 as DNS servers of `systemd-resolved` (or to `/etc/resolv.conf`) before apt runs. `dist.yml` and `pages.yml` have no such step yet.
 
+## Slow runners
+
+Symptom: `End to end tests` of `macos-15-intel` on `master` (16 November) ended with `The action 'End to end tests' has timed out after 20 minutes` after 36 of 48 tests had passed, and the report was not kept. That runner needs about 15 minutes for the end to end tests when it is fast (a test of the background work alone took 3.9 minutes), so 20 was one slow runner away from red.
+
+Cause: the step limit sat close to the normal duration, and a killed step writes no Playwright report. The limits now are 40 minutes for the step, 20 for the integration tests and 75 for a `test` job; `globalTimeout` of `playwright.config.ts` (35 minutes on CI) stops Playwright first, so the report with the traces is still uploaded. A retry is not used on purpose, as it would hide a test that fails now and then.
+
+How to check: a step that takes more than 35 minutes ends with `Timed out waiting 2100s for the entire test run` and an `e2e-report-<system>` artifact; `gh run view <run> --json jobs` has the start and end of each step.
+
 ## Jobs that no runner takes
 
 Symptom: a run stays `queued` for hours with one job that has no runner (`runner_id: null`, no steps) while the rest is green, for example `Dist (macos arm64)` of the release of 16 November. Hosted macOS jobs are normally picked up within seconds (the slowest of the last releases took about five minutes). GitHub documents a queue limit of 24 hours for self-hosted runners only, and a run cannot be expected to be run again while it is in progress, so a job at the end of the run cannot retry it, and the next release waits in the `release` concurrency group.
