@@ -7,7 +7,7 @@ import type { HostIdentity } from './certificate';
 
 const MAX_BODY_BYTES = 4096;
 
-const nowPlayingSchema = z.discriminatedUnion('state', [
+export const nowPlayingSchema = z.discriminatedUnion('state', [
   z.object({ state: z.literal('idle') }),
   z.object({
     state: z.enum(['playing', 'paused']),

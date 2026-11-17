@@ -71,7 +71,7 @@ For the listener, its main process receives the snapshots and the renderer's pla
 
 ## The code so far
 
-`electron/remote/` holds the pieces the proof settled, with tests (second and third and fourth pull request of #360, nothing calls them yet):
+`electron/remote/` holds the pieces the proof settled, with tests (second and third to fifth pull request of #360, nothing calls them yet):
 
 - `dns-packet.ts`: the mDNS wire format. `decodeMessage` returns `undefined` for a cut or made up packet (bounds, a limit on name pointers) instead of throwing, as the socket handler must not throw into the main process.
 - `certificate.ts`: `createHostIdentity`, `approvalCode` and the pinning options. `certificate.integration.test.ts` runs them against a real TLS server: the pinned certificate is answered, another one is refused, and the first contact reads the same code as the host shows.
@@ -79,6 +79,7 @@ For the listener, its main process receives the snapshots and the renderer's pla
 - `host-server.ts`: the HTTPS server of the host (`startHostServer`), built on the certificate and `AccessControl`. Two routes exist and every other path and method is a 404: `POST /remote/request` (the listener's request; 202 waits, 200 approved, 400 invalid, 403 blocked, 429 rate limited, 503 full) and `GET /remote/now-playing` (the device id in `x-tunelle-device` and the secret as `Authorization: Bearer`, else 401). A body is read up to 4 KB. A handler that fails answers 500, and a socket or TLS error ends that socket, so nothing reaches the main process as an unhandled error. `loopbackOnly` binds `127.0.0.1`.
 - The secret reaches the listener on its next request after the approval: the approved answer carries `secret` once, and later answers do not. The listener polls its request until then. Whoever knows the (random, 128 bit) device id could pick the secret up first, and only the host and the listener know it; a revoke or block before the pickup drops it. Wrong secrets are not rate limited yet: the secret is 256 bits, so guessing is no route, but the limit on failed attempts is a candidate for the pull request that adds the settings.
 - `host-server.integration.test.ts` runs the flow against the real server with a pinned client: waiting, denied, unknown, approved, revoked and blocked devices, a hostile and an oversized note, a flood (rate and pending limits), library paths and `../`, and a closed server that refuses the connection.
+- `listener-client.ts`: the other end, in the main process of the listener. `contact` is the first contact (a request without credentials over an unpinned connection, which gives the certificate and the code for both screens), `requestToListen` and `fetchNowPlaying` run pinned (a changed certificate fails with `self-signed certificate`), and `fetchNowPlaying` returns `undefined` for a 401, which is what a revoked, blocked or not yet approved device sees. Answers are cut at 64 KB, a call times out after 5 s, and the answer is read through Zod. `expectedPosition` runs a playing snapshot on from its time (never backwards), and `driftCorrection` gives a position to seek to only when the listener is more than 0.5 s away, so the audio clock does the small steps. `listener-client.integration.test.ts` runs it against the real host server.
 
 ## Checks for the next pull requests
 
