@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AccessControl } from './access';
 import { createRoutes } from './host-routes';
 
-const access = { request: vi.fn(), authenticate: vi.fn() };
+const access = { request: vi.fn(), authorize: vi.fn() };
 
 const call = async (routes: ReturnType<typeof createRoutes>, method: string, url: string, body = '', headers: Record<string, string> = {}) => {
   const request = Object.assign(Readable.from(body ? [Buffer.from(body)] : []), { method, url, headers, socket: { remoteAddress: '10.0.0.2' } });
@@ -20,7 +20,7 @@ const approved = { 'x-tunelle-device': 'id', authorization: 'Bearer secret' };
 describe('createRoutes', () => {
   beforeEach(() => {
     access.request.mockReturnValue({ status: 'pending' });
-    access.authenticate.mockReturnValue(undefined);
+    access.authorize.mockReturnValue({ status: 'unauthorized' });
   });
 
   it('hands a request to the access control with the address of the socket, and answers with its status', async () => {
@@ -60,13 +60,19 @@ describe('createRoutes', () => {
 
     expect((await call(routes, 'GET', '/remote/now-playing', '', approved)).status).toBe(401);
 
-    access.authenticate.mockReturnValue({ id: 'id' });
+    access.authorize.mockReturnValue({ status: 'ok', device: { id: 'id' } });
     expect(JSON.parse((await call(routes, 'GET', '/remote/now-playing', '', approved)).body)).toEqual({ state: 'idle' });
-    expect(access.authenticate).toHaveBeenCalledWith('id', 'secret');
+    expect(access.authorize).toHaveBeenCalledWith('10.0.0.2', 'id', 'secret');
 
     routes.setNowPlaying({ state: 'playing', title: 'Song', position: 3, at: 1000 });
     expect(JSON.parse((await call(routes, 'GET', '/remote/now-playing', '', approved)).body)).toMatchObject({ state: 'playing', title: 'Song' });
     expect(() => routes.setNowPlaying({ state: 'playing' } as never)).toThrow();
+  });
+
+  it('answers 429 to an address that guessed too many secrets', async () => {
+    access.authorize.mockReturnValue({ status: 'rate-limited' });
+
+    expect((await call(create(), 'GET', '/remote/now-playing', '', approved)).status).toBe(429);
   });
 
   it('has no other route or method', async () => {

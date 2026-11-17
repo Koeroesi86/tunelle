@@ -45,7 +45,9 @@ export const createRoutes = (access: AccessControl) => {
     }
     if (request.method === 'GET' && path === '/remote/now-playing') {
       const { deviceId, secret } = credentials(request);
-      return access.authenticate(deviceId, secret) ? send(response, 200, nowPlaying) : send(response, 401, { status: 'unauthorized' });
+      const result = access.authorize(request.socket.remoteAddress ?? '', deviceId, secret);
+      if (result.status === 'ok') return send(response, 200, nowPlaying);
+      return send(response, result.status === 'rate-limited' ? 429 : 401, { status: result.status });
     }
     return send(response, 404, { status: 'not-found' });
   };

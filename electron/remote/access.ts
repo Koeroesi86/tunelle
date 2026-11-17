@@ -5,6 +5,7 @@ export const MAX_NAME_LENGTH = 60;
 export const MAX_NOTE_LENGTH = 200;
 export const MAX_PENDING = 5;
 export const MAX_REQUESTS_PER_MINUTE = 5;
+export const MAX_WRONG_SECRETS_PER_MINUTE = 10;
 const PENDING_MINUTES = 10;
 const MINUTE = 60_000;
 
@@ -35,6 +36,8 @@ export interface PendingRequest extends ConnectRequest {
   at: number;
 }
 
+export type AuthorizeResult = { status: 'ok'; device: StoredDevice } | { status: 'unauthorized' } | { status: 'rate-limited' };
+
 export type RequestResult =
   | { status: 'pending' }
   | { status: 'approved'; secret?: string }
@@ -50,6 +53,7 @@ export class AccessControl {
   private devices = new Map<string, StoredDevice>();
   private waiting = new Map<string, PendingRequest>();
   private attempts = new Map<string, number[]>();
+  private wrongSecrets = new Map<string, number[]>();
   // the secret waits here until the device that was approved asks again, and is handed over once
   private issued = new Map<string, string>();
 
@@ -134,6 +138,22 @@ export class AccessControl {
     return expected.length === given.length && timingSafeEqual(expected, given) ? known : undefined;
   }
 
+  /** authenticate, with a limit on the wrong secrets of one address: a guess is not free, and past the limit even the right secret waits */
+  authorize(address: string, deviceId: string, secret: string): AuthorizeResult {
+    if (this.recent(this.wrongSecrets, address).length >= MAX_WRONG_SECRETS_PER_MINUTE) return { status: 'rate-limited' };
+    const device = this.authenticate(deviceId, secret);
+    if (device) return { status: 'ok', device };
+    this.wrongSecrets.set(address, [...this.recent(this.wrongSecrets, address), Date.now()]);
+    return { status: 'unauthorized' };
+  }
+
+  private recent(attempts: Map<string, number[]>, address: string) {
+    const now = Date.now();
+    // an address that stopped is forgotten, so the map does not grow with every visitor
+    [...attempts.keys()].filter((key) => !attempts.get(key)?.some((at) => now - at < MINUTE)).forEach((key) => attempts.delete(key));
+    return (attempts.get(address) ?? []).filter((at) => now - at < MINUTE);
+  }
+
   private collect(deviceId: string): RequestResult {
     const secret = this.issued.get(deviceId);
     this.issued.delete(deviceId);
@@ -141,13 +161,8 @@ export class AccessControl {
   }
 
   private allowed(address: string): boolean {
-    const now = Date.now();
-    const recent = (this.attempts.get(address) ?? []).filter((at) => now - at < MINUTE);
-    this.attempts.set(address, [...recent, now]);
-    // an address that stopped asking is forgotten, so the map does not grow with every visitor
-    [...this.attempts.keys()]
-      .filter((key) => key !== address && !this.attempts.get(key)?.some((at) => now - at < MINUTE))
-      .forEach((key) => this.attempts.delete(key));
+    const recent = this.recent(this.attempts, address);
+    this.attempts.set(address, [...recent, Date.now()]);
     return recent.length < MAX_REQUESTS_PER_MINUTE;
   }
 
