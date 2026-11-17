@@ -15,7 +15,7 @@ const root = resolve(__dirname, '../..');
 const packagedBundle = resolve(root, packagedExecutable('darwin', process.arch), '../../..');
 const updateVersion = '26.99.1';
 /** How long an update may take to install and start: the Intel runner needs about 200 s, so 240 s left no room */
-const updateTimeout = 420_000;
+const updateTimeout = 720_000;
 const zipName = `Tunelle-${updateVersion}-${process.arch === 'arm64' ? 'arm64-' : ''}mac.zip`;
 
 const run = (command: string, args: string[]) => execFileSync(command, args, { encoding: 'utf8' }).trim();

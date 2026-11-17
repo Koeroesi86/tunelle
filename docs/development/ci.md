@@ -28,6 +28,8 @@ Cause: the step limit sat close to the normal duration, and a killed step writes
 
 How to check: a step that takes more than 35 minutes ends with `Timed out waiting 2100s for the entire test run` and an `e2e-report-<system>` artifact; `gh run view <run> --json jobs` has the start and end of each step.
 
+The same holds for the update test of the packaged app on macOS (`updateTimeout` of `e2e/updater/updater.spec.ts`): `Dist (macos arm64)` of the pull request 416 run polled 7 minutes for the new version, the marker and the dropped backup, and ended with `version: undefined` (the bundle is swapped at that moment) while the step usually takes 7 to 12 minutes in all. The poll now waits 12 minutes, below the 15 minutes of a test of the `updater` project and the 45 minutes of the step in `dist.yml`.
+
 ## Jobs that no runner takes
 
 Symptom: a run stays `queued` for hours with one job that has no runner (`runner_id: null`, no steps) while the rest is green, for example `Dist (macos arm64)` of the release of 16 November. Hosted macOS jobs are normally picked up within seconds (the slowest of the last releases took about five minutes). GitHub documents a queue limit of 24 hours for self-hosted runners only, and a run cannot be expected to be run again while it is in progress, so a job at the end of the run cannot retry it, and the next release waits in the `release` concurrency group.
