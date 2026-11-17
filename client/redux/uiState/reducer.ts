@@ -47,6 +47,7 @@ const initialState: UiState = {
   launcher: { available: false, enabled: false, offered: false, external: false },
   remoteHost: undefined,
   remoteListener: undefined,
+  remoteNearby: [],
   shuffle: false,
   repeat: false,
   equalizer: defaultGains,
@@ -352,6 +353,8 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, remoteHost: action.payload };
     case 'REMOTE_LISTENER_STATE':
       return { ...state, remoteListener: action.payload };
+    case 'REMOTE_NEARBY':
+      return { ...state, remoteNearby: action.payload };
     case 'SET_LANGUAGE':
       return { ...state, language: action.payload.language };
     case 'SET_NORMALIZATION':

@@ -338,6 +338,13 @@ describe('uiState reducer', () => {
     expect(run({ type: 'REMOTE_LISTENER_STATE', payload: listener }).remoteListener).toEqual(listener);
   });
 
+  it('stores the Tunelles found on the network, and none before', () => {
+    const hosts = [{ id: 'tunelle-a', name: 'Kitchen', host: '192.168.1.30', port: 41000, version: '1' }];
+
+    expect(initial.remoteNearby).toEqual([]);
+    expect(run({ type: 'REMOTE_NEARBY', payload: hosts }).remoteNearby).toEqual(hosts);
+  });
+
   it('updates maximized and playing flags', () => {
     expect(run({ type: 'MAXIMIZED_APP', payload: { maximized: true } }).maximized).toBe(true);
     expect(run({ type: 'SET_PLAYING', payload: { isPlaying: true } }).isPlaying).toBe(true);
