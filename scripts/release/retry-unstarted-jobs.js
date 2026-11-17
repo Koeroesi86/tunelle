@@ -7,6 +7,7 @@ const lastAttempt = 2
 const waitSeconds = 5
 const pollSeconds = 300
 const aggregateJob = 'required-checks'
+const outageRuns = 3
 const cancelAttempts = 12
 const forceCancelAttempts = 48
 
@@ -108,7 +109,7 @@ const watchStep = async (request, repository, id) => {
   const { status, run_attempt: attempt } = await request(`/repos/${repository}/actions/runs/${id}`)
   if (attempt > lastAttempt) return true
   if (status === 'completed') return !(await rerunNotAcquired(request, repository, id))
-  if (await isRunStalled(request, repository, id, Date.now())) await retry(request, repository, id, Date.now())
+  if (await isRunStalled(request, repository, id, Date.now())) await retryUnlessOutage(request, repository, id)
   return false
 }
 
@@ -121,13 +122,29 @@ const watch = async (request, repository, id) => {
   console.log(`Run ${id} ended, or was run again as often as allowed`)
 }
 
-const run = async (request, repository, now = Date.now()) => {
+const findStalled = async (request, repository, now) => {
   const runs = await findRuns(request, repository)
   const stalled = (
     await Promise.all(runs.filter((item) => item.run_attempt <= lastAttempt).map(async (item) => ((await isRunStalled(request, repository, item.id, now)) ? item : undefined)))
   ).filter(Boolean)
+  return { runs, stalled }
+}
+
+// several runs without a runner at once mean that GitHub is short of runners: cancelling them only queues them again, behind the rest (docs/development/ci.md)
+const isOutage = (stalled) => stalled.length >= outageRuns
+const outageMessage = (stalled) => `${stalled.length} runs have jobs that no runner took at once, GitHub is short of runners and they are left alone`
+
+const retryUnlessOutage = async (request, repository, id) => {
+  const { stalled } = await findStalled(request, repository, Date.now())
+  if (isOutage(stalled)) return console.log(outageMessage(stalled))
+  await retry(request, repository, id, Date.now())
+}
+
+const run = async (request, repository, now = Date.now()) => {
+  const { runs, stalled } = await findStalled(request, repository, now)
 
   if (stalled.length === 0) return console.log(`${runs.length} runs are waiting or running, none has jobs that no runner took`)
+  if (isOutage(stalled)) return console.log(outageMessage(stalled))
   for (const item of stalled) await retry(request, repository, item.id, now)
 }
 
