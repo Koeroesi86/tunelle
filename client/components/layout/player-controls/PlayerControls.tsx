@@ -17,6 +17,7 @@ import { toNowPlaying } from '../../../domain/now-playing';
 import { radioUuidOf } from '../../../domain/radio-track';
 import { useMediaSession, useMediaSessionActions } from '../../../hooks/use-media-session';
 import { useMpris, useMprisCommands } from '../../../hooks/use-mpris';
+import { useRemoteHost } from '../../../hooks/use-remote-host';
 import { usePlayerShortcuts } from '../../../hooks/use-player-shortcuts';
 import { useAudioListener } from '../../../hooks/use-audio-listener';
 import { useUpdateEffect } from '../../../hooks/use-update-effect';
@@ -278,6 +279,17 @@ const PlayerControls = (props: PlayerControlsProps) => {
       duration: radioUuidOf(shown.track.path) ? 0 : (shown.track.duration ?? 0),
     },
     { isPlaying, currentTime }
+  );
+  useRemoteHost(
+    shown && {
+      title: shown.track.title,
+      artist: shown.track.artist,
+      album: shown.track.album,
+      duration: radioUuidOf(shown.track.path) ? 0 : (shown.track.duration ?? 0),
+      path: radioUuidOf(shown.track.path) ? undefined : shown.track.path,
+    },
+    { isPlaying, currentTime },
+    { play, pause, isPlaying, previousSong: props.previousSong, nextSong: props.nextSong, setCurrentTime, setVolume: props.setVolume }
   );
 
   const live = !!currentSong && !!radioUuidOf(currentSong.path);
