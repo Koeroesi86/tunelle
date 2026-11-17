@@ -26,6 +26,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [The app data folder](docs/app/user-data.md)
 - [The `tunelle://app` protocol](docs/app/tunelle-protocol.md)
 - [The decoder proxy](docs/app/decoder-proxy.md)
+- [Remote access: discovery and certificate](docs/app/remote-access-discovery.md)
 - [Database migrations](docs/app/migrations.md)
 - [The audio context and the sample rate](docs/app/audio-context.md)
 - [Library queries](docs/app/library-queries.md)
