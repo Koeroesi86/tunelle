@@ -5,7 +5,8 @@ name: Watch for unstarted jobs
 on:
   workflow_run:
     workflows: [Pull request checks, Build, Release]
-    types: [requested]
+    # requested: a run that is created; completed: also the run that a person ran again, which sends no requested
+    types: [requested, completed]
 
 permissions:
   contents: read

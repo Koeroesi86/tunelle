@@ -139,11 +139,13 @@ describe('run', () => {
 });
 
 describe('watch', () => {
-  const stuckJobs = [finished, { status: 'queued', runner_id: null, created_at: '2026-11-16T17:00:00Z' }];
-  const createFake = (runs: object[], jobs: object[] = stuckJobs) => {
+  const stuckJobs = [finished, job()];
+  const notAcquired = { id: 9, name: 'dist / Dist (macos arm64)', status: 'completed', conclusion: 'cancelled', runner_id: null };
+  const createFake = (runs: object[], jobs: object[] = stuckJobs, annotations: object[] = []) => {
     const answers = [...runs];
     return vi.fn(async (path: string, options?: { method: string }) => {
       if (path.endsWith('/jobs?per_page=100')) return { jobs };
+      if (path.endsWith('/annotations')) return annotations;
       if (options?.method === 'POST') return undefined;
       return answers.length > 1 ? answers.shift() : answers[0];
     });
@@ -157,6 +159,7 @@ describe('watch', () => {
     await done;
     vi.useRealTimers();
   };
+  const gaveUp = [{ message: 'The job was not acquired by Runner of type hosted even after multiple attempts' }];
 
   afterEach(() => vi.useRealTimers());
 
@@ -172,12 +175,12 @@ describe('watch', () => {
     expect(posts(request)).toEqual(['/repos/owner/name/actions/runs/7/cancel', '/repos/owner/name/actions/runs/7/rerun-failed-jobs']);
   });
 
-  it('stops without a request for the jobs when the run has ended', async () => {
+  it('stops when the run has ended without a job that GitHub gave up on', async () => {
     const request = createFake([{ status: 'completed', run_attempt: 1 }]);
 
     await watchFor(request, 5);
 
-    expect(request.mock.calls.map(([path]) => path)).toEqual(['/repos/owner/name/actions/runs/7']);
+    expect(posts(request)).toEqual([]);
   });
 
   it('stops when the run was run again as often as allowed', async () => {
@@ -198,6 +201,39 @@ describe('watch', () => {
     );
 
     await watchFor(request, 10);
+
+    expect(posts(request)).toEqual([]);
+  });
+
+  it('runs the jobs again of an ended run whose job GitHub gave up on, and the check that reports it', async () => {
+    const jobs = [finished, notAcquired, { id: 10, name: 'required-checks', conclusion: 'failure', runner_id: 5 }];
+    const request = createFake(
+      [
+        { status: 'completed', run_attempt: 1 },
+        { status: 'completed', run_attempt: 3 },
+      ],
+      jobs,
+      gaveUp
+    );
+
+    await watchFor(request, 5);
+
+    expect(posts(request)).toEqual(['/repos/owner/name/actions/runs/7/rerun-failed-jobs']);
+  });
+
+  it('leaves an ended run alone that has a job that ran and failed', async () => {
+    const jobs = [notAcquired, { id: 11, name: 'test / Test (windows-2025)', conclusion: 'failure', runner_id: 6 }];
+    const request = createFake([{ status: 'completed', run_attempt: 1 }], jobs, gaveUp);
+
+    await watchFor(request, 5);
+
+    expect(posts(request)).toEqual([]);
+  });
+
+  it('leaves an ended run alone whose job was cancelled by a person or by the cancel of this script', async () => {
+    const request = createFake([{ status: 'completed', run_attempt: 1 }], [notAcquired], [{ message: 'The run was canceled by @someone.' }]);
+
+    await watchFor(request, 5);
 
     expect(posts(request)).toEqual([]);
   });

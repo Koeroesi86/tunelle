@@ -6,6 +6,7 @@ const stalledMinutes = 15
 const lastAttempt = 2
 const waitSeconds = 5
 const pollSeconds = 300
+const aggregateJob = 'required-checks'
 const cancelAttempts = 12
 const forceCancelAttempts = 48
 
@@ -48,9 +49,36 @@ const cancel = async (request, repository, id) => {
 }
 
 // a run with more jobs than one page lists is left alone: a running job could be on the page that is not read
-const isRunStalled = async (request, repository, id, now) => {
+const readJobs = async (request, repository, id) => {
   const { jobs, total_count: total } = await request(`/repos/${repository}/actions/runs/${id}/jobs?per_page=100`)
-  return !(total > jobs.length) && isStalled(jobs, now)
+  return total > jobs.length ? undefined : jobs
+}
+
+const isRunStalled = async (request, repository, id, now) => {
+  const jobs = await readJobs(request, repository, id)
+  return jobs !== undefined && isStalled(jobs, now)
+}
+
+// GitHub ends a job that waited too long for a runner with a cancel and this annotation, while the rest of the run goes on (docs/development/ci.md)
+const isNotAcquired = async (request, repository, job) => {
+  if (job.conclusion !== 'cancelled' || job.runner_id) return false
+  const annotations = await request(`/repos/${repository}/check-runs/${job.id}/annotations`)
+  return annotations.some((annotation) => annotation.message.includes('was not acquired by Runner'))
+}
+
+// an ended run whose failures are all jobs that GitHub gave up on, and the check that only reports them: a job that ran and failed is left to a person
+const hasOnlyNotAcquiredFailures = async (request, repository, id) => {
+  const jobs = await readJobs(request, repository, id)
+  const failed = (jobs ?? []).filter((job) => ['failure', 'cancelled', 'timed_out'].includes(job.conclusion))
+  const flags = await Promise.all(failed.map((job) => isNotAcquired(request, repository, job)))
+  return flags.some(Boolean) && failed.every((job, index) => flags[index] || job.name === aggregateJob)
+}
+
+const rerunNotAcquired = async (request, repository, id) => {
+  if (!(await hasOnlyNotAcquiredFailures(request, repository, id))) return false
+  await request(`/repos/${repository}/actions/runs/${id}/rerun-failed-jobs`, { method: 'POST' })
+  console.log(`Run ${id} ended with jobs that GitHub found no runner for, they run again`)
+  return true
 }
 
 const retry = async (request, repository, id, now) => {
@@ -75,18 +103,21 @@ const findRuns = async (request, repository) =>
 
 const sleep = (seconds) => new Promise((resolve) => setTimeout(resolve, seconds * 1000))
 
-// true when the run has ended or was run again as often as it is allowed: there is nothing left to watch
+// true when the run has ended without a job to run again, or was run again as often as it is allowed: there is nothing left to watch
 const watchStep = async (request, repository, id) => {
-  await sleep(pollSeconds)
   const { status, run_attempt: attempt } = await request(`/repos/${repository}/actions/runs/${id}`)
-  if (status === 'completed' || attempt > lastAttempt) return true
+  if (attempt > lastAttempt) return true
+  if (status === 'completed') return !(await rerunNotAcquired(request, repository, id))
   if (await isRunStalled(request, repository, id, Date.now())) await retry(request, repository, id, Date.now())
   return false
 }
 
 const watch = async (request, repository, id) => {
-  let ended = false
-  while (!ended) ended = await watchStep(request, repository, id)
+  let ended = await watchStep(request, repository, id)
+  while (!ended) {
+    await sleep(pollSeconds)
+    ended = await watchStep(request, repository, id)
+  }
   console.log(`Run ${id} ended, or was run again as often as allowed`)
 }
 
