@@ -1,7 +1,8 @@
 name: Rebase auto-merge
 
 # master requires up to date branches, so every merge leaves the other pull requests with auto-merge behind. Only the pull request whose auto-merge was
-# enabled first is rebased, when it is behind, and the ones after it wait (scripts/release/rebase-auto-merge.js). It runs again when master moves, when
+# enabled first is rebased, when it is behind, and the ones after it wait (scripts/release/rebase-auto-merge.js). When it conflicts because the pull request
+# below it was squash merged, its own commits are replayed onto master. It runs again when master moves, when
 # auto-merge is switched on or off and when the checks of a pull request end.
 on:
   push:
@@ -31,6 +32,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # the replay of a pull request whose base was squash merged needs the history
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
