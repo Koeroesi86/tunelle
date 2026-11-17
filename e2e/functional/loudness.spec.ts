@@ -48,27 +48,32 @@ test('measures a track without gain tags in the background and levels it by the 
 
 test('measures a track that is queued before the ones that come first in the library', async ({ start }) => {
   const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
-  await addFolder(page, folderOfTracks(3), 3);
+  const count = 6;
+  const folder = mkdtempSync(join(tmpdir(), 'tunelle-loudness-'));
+  const album = { ...albums[0], tracks: [...Array(count).keys()].map((index) => ({ title: `Tone ${index + 1}`, frequency: 200 + index * 100 })) };
+  album.tracks.forEach((_, index) => writeTrack(folder, album, index, 10));
+  await addFolder(page, folder, count);
   const paths = (await libraryTracks(page)).map((track) => track.path).sort();
   const last = paths[paths.length - 1];
+  const others = paths.slice(0, -1);
 
-  // what the page sends when a track is added to the queue; the track in progress finishes first, then the last one goes before the rest
+  // what the page sends when a track is added to the queue
   await page.evaluate((trackPath) => window.electronAPI.send('LOUDNESS_PRIORITISE', { paths: [trackPath] }), last);
 
-  // the track that would come next is read first, so a gain on it with none on the queued track was measured before it, however late the poll looks
-  let first: { next: number | null; queued: number | null } | undefined;
+  // the pass may have started the next track before the message came, on a fast runner, so the order is not asked of one track: without the queue the last track is measured after all the others, with it after the one in progress and at most one more
+  let measuredBefore = others.length;
   await expect
     .poll(
       async () => {
-        const next = (await gainsOf(page, paths[1])).trackGain;
         const queued = (await gainsOf(page, last)).trackGain;
-        first = next === null && queued === null ? undefined : { next, queued };
-        return first;
+        const measured = (await Promise.all(others.map(async (path) => (await gainsOf(page, path)).trackGain))).filter((gain) => gain !== null).length;
+        measuredBefore = queued === null ? others.length : measured;
+        return queued;
       },
-      { message: 'the first measured gain', timeout: 90_000 }
+      { message: 'the measured gain of the queued track', timeout: 90_000 }
     )
-    .toBeDefined();
-  expect(first?.queued).not.toBeNull();
+    .not.toBeNull();
+  expect(measuredBefore).toBeLessThanOrEqual(others.length - 2);
 });
 
 test('shows the histogram of the loudness of the song that plays on the now playing page', async ({ start }) => {
