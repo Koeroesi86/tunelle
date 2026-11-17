@@ -12,6 +12,10 @@ on:
       notes:
         type: string
         default: ''
+      # false on a pull request without the full-ci label: one system of each kind is packaged (docs/development/ci.md)
+      full:
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -25,44 +29,41 @@ jobs:
       actions: read
       contents: read
 
+  # the systems that are packaged: all of them, or the ones marked "pr" when the run is not full
+  plan:
+    name: Plan the systems
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - id: plan
+        env:
+          FULL: ${{ inputs.full }}
+        # the AppImage is built on the oldest Ubuntu LTS the AppImage catalogues test on (appimage.github.io runs it there): a native module built
+        # on a newer one needs a newer glibc than that (npm run check:dist fails on a symbol above 2.35); the Flatpak is built on the latest
+        run: |
+          systems='[
+            {"os":"ubuntu-22.04","platform":"linux","arch":"x64","package":"appimage","pr":false},
+            {"os":"ubuntu-22.04-arm","platform":"linux","arch":"arm64","package":"appimage","pr":false},
+            {"os":"ubuntu-latest","platform":"linux","arch":"x64","package":"flatpak","pr":true},
+            {"os":"ubuntu-24.04-arm","platform":"linux","arch":"arm64","package":"flatpak","pr":false},
+            {"os":"macos-15-intel","platform":"macos","arch":"x64","package":"","pr":false},
+            {"os":"macos-15","platform":"macos","arch":"arm64","package":"","pr":true},
+            {"os":"windows-2025","platform":"windows","arch":"x64","package":"","pr":true},
+            {"os":"windows-11-arm","platform":"windows","arch":"arm64","package":"","pr":false}
+          ]'
+          [ "${FULL}" = "true" ] || systems=$(jq 'map(select(.pr))' <<<"${systems}")
+          echo "matrix=$(jq -c . <<<"${systems}")" >> "${GITHUB_OUTPUT}"
+
   dist:
-    needs: ffmpeg
+    needs: [ffmpeg, plan]
     name: Dist (${{ matrix.platform }} ${{ matrix.arch }}${{ matrix.package && format(' {0}', matrix.package) || '' }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # the AppImage is built on the oldest Ubuntu LTS the AppImage catalogues test on (appimage.github.io runs it there): a native module built
-          # on a newer one needs a newer glibc than that (npm run check:dist fails on a symbol above 2.35); the Flatpak is built on the latest
-          - os: ubuntu-22.04
-            platform: linux
-            arch: x64
-            package: appimage
-          - os: ubuntu-22.04-arm
-            platform: linux
-            arch: arm64
-            package: appimage
-          - os: ubuntu-latest
-            platform: linux
-            arch: x64
-            package: flatpak
-          - os: ubuntu-24.04-arm
-            platform: linux
-            arch: arm64
-            package: flatpak
-          - os: macos-15-intel
-            platform: macos
-            arch: x64
-          - os: macos-15
-            platform: macos
-            arch: arm64
-          - os: windows-2025
-            platform: windows
-            arch: x64
-          - os: windows-11-arm
-            platform: windows
-            arch: arm64
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       # which Linux package the job builds (scripts/release/dist.js, scripts/release/check-dist.js); empty on the other systems
       TUNELLE_LINUX_PACKAGE: ${{ matrix.package }}
@@ -205,6 +206,7 @@ jobs:
   # the kit is not on the arm64 runner: the Store package of that processor is installed and started, and must not look for updates on GitHub; a failure stops a release as well
   certification-arm64:
     name: Store certification (arm64)
+    if: inputs.full
     needs: dist
     uses: ./.github/workflows/wack.yml
     with:

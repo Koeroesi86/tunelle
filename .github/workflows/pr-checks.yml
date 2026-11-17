@@ -3,6 +3,8 @@ name: Pull request checks
 on:
   pull_request:
     branches: [master]
+    # labeled and unlabeled start a run, so the full-ci label takes effect (docs/development/ci.md)
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 permissions:
   # a called workflow gets at most what its caller has: ffmpeg.yml lists the caches (docs/development/ffmpeg-build.md)
@@ -16,6 +18,8 @@ concurrency:
 jobs:
   test:
     uses: ./.github/workflows/test.yml
+    with:
+      full: ${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}
 
   # the findings that the change itself introduces; the whole-repository check runs in the test job
   audit:
@@ -37,6 +41,8 @@ jobs:
   # packaging runs beside the tests, as waiting for them would add their duration to every run; required-checks fails unless both passed
   dist:
     uses: ./.github/workflows/dist.yml
+    with:
+      full: ${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}
 
   security:
     uses: ./.github/workflows/security.yml
