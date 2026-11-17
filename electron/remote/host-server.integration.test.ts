@@ -133,6 +133,24 @@ describe('the host server', () => {
     stream.stop();
   });
 
+  it('carries a command only for a control that was granted, and tells the page', async () => {
+    const commands: unknown[] = [];
+    await host.close();
+    host = await startHostServer({ identity, access, loopbackOnly: true, onControl: (command) => commands.push(command) });
+    const { deviceId, secret } = approvedDevice();
+    const send = (body: object) =>
+      call('POST', '/remote/control', { headers: { 'x-tunelle-device': deviceId, authorization: `Bearer ${secret}` }, body: JSON.stringify(body) });
+
+    expect((await send({ control: 'seek', position: 30 })).status).toBe(403);
+    access.setControls(deviceId, ['seek']);
+    expect((await send({ control: 'seek', position: 30 })).status).toBe(200);
+    expect((await send({ control: 'skip', direction: 'next' })).status).toBe(403);
+    access.revoke(deviceId);
+    expect((await send({ control: 'seek', position: 31 })).status).toBe(401);
+
+    expect(commands).toEqual([{ control: 'seek', position: 30 }]);
+  });
+
   it('shows a hostile note as it was sent and an oversized one as an invalid request, without a prompt', async () => {
     expect((await ask(randomUUID(), '<img src=x onerror=alert(1)>')).status).toBe(202);
     expect(access.pending()[0].note).toBe('<img src=x onerror=alert(1)>');

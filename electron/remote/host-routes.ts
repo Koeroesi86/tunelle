@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { AccessControl } from './access';
+import type { AccessControl, StoredDevice } from './access';
+import { controlCommandSchema, permissionOf, type ControlCommand } from './control-command';
 import { nowPlayingSchema, type NowPlaying } from './now-playing';
 
 const MAX_BODY_BYTES = 4096;
@@ -42,7 +43,7 @@ interface Stream {
 }
 
 /** The routes of the host and the now playing they answer with; no other route exists. See docs/app/remote-access-discovery.md */
-export const createRoutes = (access: AccessControl) => {
+export const createRoutes = (access: AccessControl, onControl: (command: ControlCommand) => void = () => undefined) => {
   let nowPlaying: NowPlaying = { state: 'idle' };
   const streams = new Set<Stream>();
 
@@ -69,11 +70,20 @@ export const createRoutes = (access: AccessControl) => {
   };
 
   /** Runs the handler for an approved device, and answers 401 or 429 to anybody else */
-  const authorized = (request: IncomingMessage, response: ServerResponse, handler: (deviceId: string, secret: string) => void) => {
+  const authorized = (request: IncomingMessage, response: ServerResponse, handler: (device: StoredDevice, secret: string) => void) => {
     const { deviceId, secret } = credentials(request);
     const result = access.authorize(request.socket.remoteAddress ?? '', deviceId, secret);
-    if (result.status === 'ok') return handler(deviceId, secret);
+    if (result.status === 'ok') return handler(result.device, secret);
     return send(response, result.status === 'rate-limited' ? 429 : 401, { status: result.status });
+  };
+
+  /** A command goes to the page only when the host allowed this control for this device; the approval alone is not enough */
+  const control = (response: ServerResponse, device: StoredDevice, body: unknown) => {
+    const parsed = controlCommandSchema.safeParse(body);
+    if (!parsed.success) return send(response, 400, { status: 'invalid' });
+    if (!device.controls.includes(permissionOf(parsed.data))) return send(response, 403, { status: 'forbidden' });
+    onControl(parsed.data);
+    return send(response, 200, { status: 'ok' });
   };
 
   const route = async (request: IncomingMessage, response: ServerResponse) => {
@@ -84,7 +94,11 @@ export const createRoutes = (access: AccessControl) => {
     }
     if (request.method === 'GET' && path === '/remote/now-playing') return authorized(request, response, () => send(response, 200, nowPlaying));
     if (request.method === 'GET' && path === '/remote/events')
-      return authorized(request, response, (deviceId, secret) => openStream(response, deviceId, secret));
+      return authorized(request, response, (device, secret) => openStream(response, device.id, secret));
+    if (request.method === 'POST' && path === '/remote/control') {
+      const body = await readJson(request);
+      return authorized(request, response, (device) => control(response, device, body));
+    }
     return send(response, 404, { status: 'not-found' });
   };
 

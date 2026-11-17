@@ -23,9 +23,10 @@ const fakeStore = (settings: Record<string, unknown> = {}): HostStore => ({
 
 describe('the host controller', () => {
   const states: HostState[] = [];
+  const commands: unknown[] = [];
   const create = async (store: HostStore) => {
     const { createHostController } = await import('./host-controller');
-    return createHostController(store, (state) => states.push(state));
+    return createHostController(store, (state) => states.push(state), commands.push.bind(commands));
   };
   const last = () => states[states.length - 1];
 
@@ -36,6 +37,15 @@ describe('the host controller', () => {
       .mockImplementation(async ({ port }: { port?: number }) => ({ port: port || 41000, setNowPlaying: mocks.setNowPlaying, close: mocks.close }));
     mocks.close.mockReset().mockResolvedValue(undefined);
     mocks.setNowPlaying.mockReset();
+  });
+
+  it('hands the server the way to the page for the commands of a listener', async () => {
+    const host = await create(fakeStore({ enabled: true }));
+    await host.start();
+
+    mocks.start.mock.calls[0][0].onControl({ control: 'skip', direction: 'next' });
+
+    expect(commands).toEqual([{ control: 'skip', direction: 'next' }]);
   });
 
   it('opens nothing while host mode is off', async () => {

@@ -22,7 +22,8 @@ const openStream = (routes: ReturnType<typeof createRoutes>) => {
   return response;
 };
 
-const create = () => createRoutes(access as unknown as AccessControl);
+const commands: unknown[] = [];
+const create = () => createRoutes(access as unknown as AccessControl, (command) => commands.push(command));
 const approved = { 'x-tunelle-device': 'id', authorization: 'Bearer secret' };
 
 describe('createRoutes', () => {
@@ -140,6 +141,49 @@ describe('createRoutes', () => {
       stream.emit('close');
       vi.advanceTimersByTime(60_000);
       expect(stream.write).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('the control route', () => {
+    const control = (routes: ReturnType<typeof createRoutes>, body: unknown) => call(routes, 'POST', '/remote/control', JSON.stringify(body), approved);
+    const allow = (controls: string[]) => access.authorize.mockReturnValue({ status: 'ok', device: { id: 'id', controls } });
+
+    beforeEach(() => {
+      commands.length = 0;
+    });
+
+    it('passes a command that the host allowed to the page', async () => {
+      allow(['skip']);
+
+      expect((await control(create(), { control: 'skip', direction: 'next' })).status).toBe(200);
+      expect(commands).toEqual([{ control: 'skip', direction: 'next' }]);
+    });
+
+    it.each([
+      ['an approved device without that control', ['seek'], { control: 'skip', direction: 'next' }, 403],
+      ['a device with no control at all', [], { control: 'playPause' }, 403],
+      ['a command that is not one', ['skip'], { control: 'skip', direction: 'sideways' }, 400],
+      ['a control that does not exist', ['skip'], { control: 'shutdown' }, 400],
+      ['a position below zero', ['seek'], { control: 'seek', position: -1 }, 400],
+      ['a volume above one', ['volume'], { control: 'volume', level: 2 }, 400],
+    ])('refuses %s and sends nothing to the page', async (_name, controls, body, status) => {
+      allow(controls);
+
+      expect((await control(create(), body)).status).toBe(status);
+      expect(commands).toEqual([]);
+    });
+
+    it('answers 401 to a device that is not approved, whatever it asks', async () => {
+      expect((await control(create(), { control: 'skip', direction: 'next' })).status).toBe(401);
+      expect(commands).toEqual([]);
+    });
+
+    it('toggles play and pause by default', async () => {
+      allow(['playPause']);
+
+      await control(create(), { control: 'playPause' });
+
+      expect(commands).toEqual([{ control: 'playPause', action: 'toggle' }]);
     });
   });
 

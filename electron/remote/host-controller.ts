@@ -2,6 +2,7 @@ import { AccessControl, type Control, type PendingRequest } from './access';
 import { startHostServer, type HostServer } from './host-server';
 import type { HostSettings, HostStore } from './host-store';
 import { nowPlayingSchema, type NowPlaying } from './now-playing';
+import type { ControlCommand } from './control-command';
 import { approvalCode } from './certificate';
 
 export interface HostState extends HostSettings {
@@ -39,7 +40,7 @@ const isTaken = (error: unknown) => error instanceof Error && 'code' in error &&
  * Starts and stops the host server by its settings, keeps the approved devices on disk and reports the state to the page.
  * Nothing listens until the user turns host mode on. See docs/app/remote-access-discovery.md
  */
-export const createHostController = (store: HostStore, onChange: (state: HostState) => void) => {
+export const createHostController = (store: HostStore, onChange: (state: HostState) => void, onControl: (command: ControlCommand) => void) => {
   let settings: HostSettings | undefined;
   let access: AccessControl = new AccessControl();
   let server: HostServer | undefined;
@@ -64,7 +65,7 @@ export const createHostController = (store: HostStore, onChange: (state: HostSta
   // a saved port that is taken falls back to a free one, which is saved for the next start
   const listen = async (current: HostSettings) => {
     const identity = await store.identity(current.name);
-    const options = { identity, access, loopbackOnly: current.loopbackOnly };
+    const options = { identity, access, loopbackOnly: current.loopbackOnly, onControl };
     const started = await startHostServer({ ...options, port: current.port }).catch((failure: unknown) =>
       isTaken(failure) && current.port ? startHostServer({ ...options, port: 0 }) : Promise.reject(failure)
     );
