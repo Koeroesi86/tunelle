@@ -8,7 +8,7 @@ export const MAX_REQUESTS_PER_MINUTE = 5;
 const PENDING_MINUTES = 10;
 const MINUTE = 60_000;
 
-const CONTROLS = ['playPause', 'skip', 'seek', 'volume', 'queue'] as const;
+export const CONTROLS = ['playPause', 'skip', 'seek', 'volume', 'queue'] as const;
 export type Control = (typeof CONTROLS)[number];
 
 // control characters (a note is shown as plain text, but a line break or an escape has no place in a name)

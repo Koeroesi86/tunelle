@@ -20,6 +20,7 @@ import registerAlbumCoverListeners from './register-album-cover-listeners';
 import registerLoudnessListeners from './register-loudness-listeners';
 import registerBackgroundTaskListeners from './register-background-task-listeners';
 import registerMprisListeners from './register-mpris-listeners';
+import registerRemoteListeners from './register-remote-listeners';
 import registerMediaPermission from '../windows/media-permission';
 
 const registrars: ((context: ListenerContext) => void)[] = [
@@ -39,6 +40,7 @@ const registrars: ((context: ListenerContext) => void)[] = [
   registerLoudnessListeners,
   registerBackgroundTaskListeners,
   registerMprisListeners,
+  registerRemoteListeners,
   registerMediaPermission,
 ];
 
