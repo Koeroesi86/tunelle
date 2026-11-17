@@ -3,12 +3,14 @@ import type { FormEvent } from 'react';
 import style from './RemoteListener.scss';
 import { useTranslation } from '../../../i18n';
 import type { RemoteListenerState } from '@shared/schemas/remote-listener';
+import type { NowPlaying as NowPlayingSnapshot } from '@shared/schemas/now-playing';
 
 interface RemoteListenerProps {
   state: RemoteListenerState | undefined;
   connect: (host: string, port: number) => void;
   confirm: (note: string) => void;
   leave: () => void;
+  listenAlong: (snapshot: Exclude<NowPlayingSnapshot, { state: 'idle' }>) => void;
 }
 
 const isPort = (port: number) => Number.isInteger(port) && port >= 1024 && port <= 65535;
@@ -84,16 +86,23 @@ const Confirm = ({ code, confirm, leave }: { code: string | undefined } & Pick<R
   );
 };
 
-const NowPlaying = ({ snapshot }: { snapshot: RemoteListenerState['nowPlaying'] }) => {
+const NowPlaying = ({ snapshot, listenAlong }: { snapshot: RemoteListenerState['nowPlaying'] } & Pick<RemoteListenerProps, 'listenAlong'>) => {
   const { t } = useTranslation();
   if (!snapshot) return null;
   if (snapshot.state === 'idle') return <div className={style.hint}>{t('remote.listen.idle')}</div>;
 
-  return <div className={style.hint}>{[snapshot.title, snapshot.artist].filter(Boolean).join(' – ')}</div>;
+  return (
+    <>
+      <div className={style.hint}>{[snapshot.title, snapshot.artist].filter(Boolean).join(' – ')}</div>
+      <button type="button" className={style.action} onClick={() => listenAlong(snapshot)}>
+        {t('remote.listen.along')}
+      </button>
+    </>
+  );
 };
 
 /** Pairs this app with another Tunelle that plays: the address, the code to compare, the request and what the host plays. See docs/app/remote-access-discovery.md */
-const RemoteListener = ({ state, connect, confirm, leave }: RemoteListenerProps) => {
+const RemoteListener = ({ state, connect, confirm, leave, listenAlong }: RemoteListenerProps) => {
   const { t } = useTranslation();
 
   if (!state) return null;
@@ -122,7 +131,7 @@ const RemoteListener = ({ state, connect, confirm, leave }: RemoteListenerProps)
         <>
           <div className={style.hint}>{t('remote.listen.listening', { address })}</div>
           {state.error && <div className={style.error}>{t('remote.listen.error', { error: state.error })}</div>}
-          <NowPlaying snapshot={state.nowPlaying} />
+          <NowPlaying snapshot={state.nowPlaying} listenAlong={listenAlong} />
           <button type="button" className={style.action} onClick={leave}>
             {t('remote.listen.leave')}
           </button>

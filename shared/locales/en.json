@@ -490,6 +490,7 @@
   "remote.listen.waiting": "Waiting for {address} to approve this device. Code: {code}.",
   "remote.listen.listening": "Listening to {address}",
   "remote.listen.idle": "Nothing plays on the host.",
+  "remote.listen.along": "Listen along",
   "remote.listen.leave": "Stop listening",
   "remote.listen.error": "Could not reach the host: {error}",
   "remote.listen.blocked": "The host blocked this device.",

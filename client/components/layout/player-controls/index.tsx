@@ -3,6 +3,7 @@ import type { ConnectedProps } from 'react-redux';
 import type { Dispatch } from 'redux';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
+import type { Track } from '@shared/types/library';
 import PlayerControls from './PlayerControls';
 import { Audio } from '../../../audio/context';
 
@@ -13,11 +14,16 @@ const mapState = (state: RootState) => ({
   repeat: state.uiState.repeat,
   currentTime: state.uiState.currentTime,
   currentSong: state.uiState.currentSong,
+  hostNowPlaying: state.uiState.remoteListener?.status === 'listening' ? state.uiState.remoteListener.nowPlaying : undefined,
   streamTitle: state.uiState.streamTitle,
   streamArt: state.uiState.streamArt,
 });
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
+  followTrack: (track: Track) => {
+    dispatch({ type: 'PLAY_TRACKS', payload: { tracks: [track] } });
+    dispatch({ type: 'PLAY_TRACK', payload: { track } });
+  },
   setCurrentTime: (currentTime: number) => dispatch({ type: 'SET_CURRENT_TIME', payload: { currentTime } }),
   openEqualizer: () => dispatch({ type: 'SET_TAB', payload: { tab: 'equalizer' } }),
   openNowPlaying: () => dispatch({ type: 'SET_TAB', payload: { tab: 'now-playing' } }),

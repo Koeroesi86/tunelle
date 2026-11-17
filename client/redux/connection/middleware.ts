@@ -19,6 +19,7 @@ import { isFavourite, stationFavourite, trackFavourite } from '../../domain/favo
 import { isHistoryItem } from '../../domain/history';
 import { toPlaylist } from '../../domain/playlists';
 import { radioUuidOf } from '../../domain/radio-track';
+import { isRemoteTrack } from '../../domain/remote-track';
 import { fetchAlbumPage, fetchGroupPage, fetchTrackPage } from '../../services/library-api';
 import { selectAlbumQuery, selectGroupAlbumQuery, selectGroupQuery, selectTrackQuery } from '../../domain/library-query';
 import { hideSplash } from '../../startup';
@@ -313,7 +314,7 @@ const handleActions = actionMiddleware((store) => [
     prioritiseLoudness([payload.track], true);
     notifyTrack(store, payload.track);
     // a station is recorded with all that is known of it when it is picked, the track of the radio knows its name only
-    if (!radioUuidOf(payload.track.path)) electronAPI.send('HISTORY_RECORD', trackFavourite(payload.track));
+    if (!radioUuidOf(payload.track.path) && !isRemoteTrack(payload.track.path)) electronAPI.send('HISTORY_RECORD', trackFavourite(payload.track));
   }),
   onAction('PLAY_RADIO_STATION', ({ payload }) => electronAPI.send('HISTORY_RECORD', stationFavourite(payload.station))),
   onAction('LOAD_FAVOURITES', () => electronAPI.send('FAVOURITES_LOAD')),

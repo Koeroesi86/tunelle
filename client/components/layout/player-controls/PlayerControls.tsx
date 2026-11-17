@@ -15,9 +15,12 @@ import Slider from '../../ui/slider/Slider';
 import type { Track } from '@shared/types/library';
 import { toNowPlaying } from '../../../domain/now-playing';
 import { radioUuidOf } from '../../../domain/radio-track';
+import { isRemoteTrack } from '../../../domain/remote-track';
 import { useMediaSession, useMediaSessionActions } from '../../../hooks/use-media-session';
 import { useMpris, useMprisCommands } from '../../../hooks/use-mpris';
 import { useRemoteHost } from '../../../hooks/use-remote-host';
+import { useRemoteFollow } from '../../../hooks/use-remote-follow';
+import type { NowPlaying } from '@shared/schemas/now-playing';
 import { usePlayerShortcuts } from '../../../hooks/use-player-shortcuts';
 import { useAudioListener } from '../../../hooks/use-audio-listener';
 import { useUpdateEffect } from '../../../hooks/use-update-effect';
@@ -30,6 +33,9 @@ import CoverFade from '../../ui/cover-fade';
 
 interface PlayerControlsProps {
   currentSong: Track | null;
+  /** What the host that this app listens to plays, undefined while it does not listen */
+  hostNowPlaying?: NowPlaying;
+  followTrack: (track: Track) => void;
   streamTitle: string | null;
   streamArt: string | null;
   currentTime: number;
@@ -286,11 +292,13 @@ const PlayerControls = (props: PlayerControlsProps) => {
       artist: shown.track.artist,
       album: shown.track.album,
       duration: radioUuidOf(shown.track.path) ? 0 : (shown.track.duration ?? 0),
-      path: radioUuidOf(shown.track.path) ? undefined : shown.track.path,
+      path: radioUuidOf(shown.track.path) || isRemoteTrack(shown.track.path) ? undefined : shown.track.path,
     },
     { isPlaying, currentTime },
     { play, pause, isPlaying, previousSong: props.previousSong, nextSong: props.nextSong, setCurrentTime, setVolume: props.setVolume }
   );
+
+  useRemoteFollow(props.hostNowPlaying, { currentSong, isPlaying, currentTime, play, pause, setCurrentTime, load: props.followTrack });
 
   const live = !!currentSong && !!radioUuidOf(currentSong.path);
   usePlayerShortcuts({
