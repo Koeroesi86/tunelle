@@ -8,6 +8,7 @@ import { createHostStore } from '../remote/host-store';
 import { createListenerController } from '../remote/listener-controller';
 import { confirmSchema, connectSchema } from '../remote/listener-requests';
 import { createListenerStore } from '../remote/listener-store';
+import { provideRemoteAudio } from '../remote/remote-audio';
 import { logError } from '../utils/log-error';
 import { parsePayload } from '../utils/parse-payload';
 import { sendIfAlive } from '../utils/send-if-alive';
@@ -45,6 +46,7 @@ const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
     hostname(),
     (state) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_LISTENER_STATE', state)
   );
+  provideRemoteAudio(listener.audio);
   // a listener without a host it was approved by contacts nobody
   listener.start().catch(logError);
 

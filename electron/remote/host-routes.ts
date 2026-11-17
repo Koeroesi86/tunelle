@@ -10,9 +10,9 @@ const HEARTBEAT_MS = 25_000;
 
 const requestStatus = { pending: 202, approved: 200, invalid: 400, blocked: 403, 'rate-limited': 429, full: 503 } as const;
 
-const send = (response: ServerResponse, status: number, body: unknown = {}) => {
+const send = (response: ServerResponse, status: number, body: unknown = {}, headers: Record<string, string> = {}) => {
   if (response.headersSent) return response.end();
-  response.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+  response.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store', ...headers });
   response.end(JSON.stringify(body));
 };
 
@@ -107,7 +107,8 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
       const result = access.request(request.socket.remoteAddress ?? '', await readJson(request));
       return send(response, requestStatus[result.status], result);
     }
-    if (request.method === 'GET' && path === '/remote/now-playing') return authorized(request, response, () => send(response, 200, nowPlaying));
+    if (request.method === 'GET' && path === '/remote/now-playing')
+      return authorized(request, response, () => send(response, 200, nowPlaying, { 'x-tunelle-time': String(Date.now()) }));
     if (request.method === 'GET' && path === '/remote/events')
       return authorized(request, response, (device, secret) => openStream(response, device.id, secret));
     if (request.method === 'GET' && path === '/remote/audio')

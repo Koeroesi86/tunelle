@@ -12,7 +12,7 @@ const call = async (routes: ReturnType<typeof createRoutes>, method: string, url
   const response = { headersSent: false, writeHead: vi.fn(), end: vi.fn() };
   routes.handle(request as unknown as IncomingMessage, response as unknown as ServerResponse);
   await vi.waitFor(() => expect(response.end).toHaveBeenCalled());
-  return { status: response.writeHead.mock.calls[0]?.[0], body: response.end.mock.calls[0]?.[0] };
+  return { status: response.writeHead.mock.calls[0]?.[0], headers: response.writeHead.mock.calls[0]?.[1] ?? {}, body: response.end.mock.calls[0]?.[0] };
 };
 
 const openStream = (routes: ReturnType<typeof createRoutes>) => {
@@ -72,6 +72,7 @@ describe('createRoutes', () => {
 
     access.authorize.mockReturnValue({ status: 'ok', device: { id: 'id' } });
     expect(JSON.parse((await call(routes, 'GET', '/remote/now-playing', '', approved)).body)).toEqual({ state: 'idle' });
+    expect(Number((await call(routes, 'GET', '/remote/now-playing', '', approved)).headers['x-tunelle-time'])).toBeGreaterThan(0);
     expect(access.authorize).toHaveBeenCalledWith('10.0.0.2', 'id', 'secret');
 
     routes.setNowPlaying({ state: 'playing', title: 'Song', position: 3, at: 1000 });

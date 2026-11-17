@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RemoteListenerState } from '../../shared/schemas/remote-listener';
 import { approvalCode } from './certificate';
-import { contact, fetchNowPlaying, requestToListen } from './listener-client';
+import { contact, fetchAudio, fetchNowPlaying, requestToListen } from './listener-client';
 import { ASK_LIMIT_MS, createListenerController, POLL_MS } from './listener-controller';
 import type { ListenerStore, Pairing } from './listener-store';
 
@@ -186,6 +186,45 @@ describe('the listener controller', () => {
       await following;
 
       expect(states.at(-1)).toMatchObject({ status: 'confirming', target: { host: '10.0.0.2' } });
+    });
+  });
+
+  describe('the audio of the host', () => {
+    const audioRequest = (range?: string) => new Request('tunelle://app/remote/audio', { headers: range ? { range } : {} });
+
+    it('has none before a host approved this device', async () => {
+      expect((await listener.audio(audioRequest())).status).toBe(404);
+      expect(fetchAudio).not.toHaveBeenCalled();
+    });
+
+    it('comes from the host that is followed, with the range of the request, and from no other', async () => {
+      store.readPairing.mockResolvedValue(pairing);
+      vi.mocked(fetchNowPlaying).mockResolvedValue(snapshot);
+      vi.mocked(fetchAudio).mockResolvedValue(new Response('2345', { status: 206 }));
+      const following = listener.start();
+      await vi.advanceTimersByTimeAsync(0);
+
+      const answer = await listener.audio(audioRequest('bytes=2-5'));
+
+      expect(answer.status).toBe(206);
+      expect(fetchAudio).toHaveBeenCalledWith(address, 'PEM', deviceId, 'secret', 'bytes=2-5', expect.any(AbortSignal));
+      await listener.leave();
+      expect((await listener.audio(audioRequest())).status).toBe(404);
+      await vi.advanceTimersByTimeAsync(POLL_MS);
+      await following;
+    });
+
+    it('answers 502 when the host cannot be reached', async () => {
+      store.readPairing.mockResolvedValue(pairing);
+      vi.mocked(fetchNowPlaying).mockResolvedValue(snapshot);
+      vi.mocked(fetchAudio).mockRejectedValue(new Error('ECONNRESET'));
+      const following = listener.start();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect((await listener.audio(audioRequest())).status).toBe(502);
+      await listener.leave();
+      await vi.advanceTimersByTimeAsync(POLL_MS);
+      await following;
     });
   });
 

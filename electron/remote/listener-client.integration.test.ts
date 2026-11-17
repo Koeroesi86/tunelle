@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AccessControl } from './access';
 import { approvalCode, createHostIdentity } from './certificate';
 import { startHostServer, type HostServer } from './host-server';
-import { contact, fetchNowPlaying, requestToListen } from './listener-client';
+import { contact, fetchAudio, fetchNowPlaying, requestToListen } from './listener-client';
 
 let identity = createHostIdentity('Host');
 let access = new AccessControl();
@@ -38,7 +38,40 @@ describe('the listener against a real host', () => {
     host.setNowPlaying({ state: 'paused', title: 'Song', position: 7, at: 1 });
 
     expect(approved.status).toBe('approved');
-    expect(await fetchNowPlaying(address(), certificate, deviceId, approved.secret ?? '')).toEqual({ state: 'paused', title: 'Song', position: 7, at: 1 });
+    const snapshot = await fetchNowPlaying(address(), certificate, deviceId, approved.secret ?? '');
+
+    // the time of the snapshot is put on the clock of this computer: the same computer here, so it moved by the time the answer took
+    expect(snapshot).toMatchObject({ state: 'paused', title: 'Song', position: 7 });
+    expect(snapshot?.state === 'paused' ? snapshot.at : 0).toBeGreaterThanOrEqual(1);
+    expect(snapshot?.state === 'paused' ? snapshot.at : 0).toBeLessThan(1 + 2000);
+  });
+
+  it('relays the audio of the track that plays with its range, and a stop of the player ends it', async () => {
+    await host.close();
+    host = await startHostServer({
+      identity,
+      access,
+      loopbackOnly: true,
+      serveAudio: async (_path, { headers }) =>
+        headers.get('range')
+          ? new Response('2345', { status: 206, headers: { 'content-range': 'bytes 2-5/10', 'content-type': 'audio/flac' } })
+          : new Response('0123456789'),
+    });
+    const { certificate } = await contact(address());
+    const deviceId = randomUUID();
+    await requestToListen(address(), certificate, asking(deviceId));
+    access.approve(deviceId);
+    const { secret } = await requestToListen(address(), certificate, asking(deviceId));
+    host.setNowPlaying({ state: 'playing', title: 'Song', position: 0, at: 1 }, '/music/song.flac');
+
+    const whole = await fetchAudio(address(), certificate, deviceId, secret ?? '', undefined, new AbortController().signal);
+    const part = await fetchAudio(address(), certificate, deviceId, secret ?? '', 'bytes=2-5', new AbortController().signal);
+    const denied = await fetchAudio(address(), certificate, deviceId, 'guess', undefined, new AbortController().signal);
+
+    expect([whole.status, await whole.text()]).toEqual([200, '0123456789']);
+    expect([part.status, part.headers.get('content-range'), await part.text()]).toEqual([206, 'bytes 2-5/10', '2345']);
+    expect(denied.status).toBe(401);
+    await expect(fetchAudio(address(), certificate, deviceId, secret ?? '', undefined, AbortSignal.abort())).rejects.toThrow();
   });
 
   it('is told nothing once the host revoked or blocked it, and not before it was approved', async () => {
