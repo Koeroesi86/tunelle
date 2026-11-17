@@ -5,9 +5,11 @@ import type { HostStore } from './host-store';
 import type { NowPlaying } from '../../shared/schemas/now-playing';
 import { remoteHostStateSchema } from '../../shared/schemas/remote-host';
 
-const mocks = vi.hoisted(() => ({ start: vi.fn(), close: vi.fn(), setNowPlaying: vi.fn() }));
+const mocks = vi.hoisted(() => ({ start: vi.fn(), close: vi.fn(), setNowPlaying: vi.fn(), advertise: vi.fn(), stopAdvertising: vi.fn(), logError: vi.fn() }));
 
 vi.mock('./host-server', () => ({ startHostServer: mocks.start }));
+vi.mock('./mdns', () => ({ advertise: mocks.advertise }));
+vi.mock('../utils/log-error', () => ({ logError: mocks.logError }));
 vi.mock('./certificate', () => ({ approvalCode: () => '3F9A 04C1' }));
 
 const taken = Object.assign(new Error('listen EADDRINUSE'), { code: 'EADDRINUSE' });
@@ -38,6 +40,9 @@ describe('the host controller', () => {
       .mockImplementation(async ({ port }: { port?: number }) => ({ port: port || 41000, setNowPlaying: mocks.setNowPlaying, close: mocks.close }));
     mocks.close.mockReset().mockResolvedValue(undefined);
     mocks.setNowPlaying.mockReset();
+    mocks.stopAdvertising.mockReset().mockResolvedValue(undefined);
+    mocks.advertise.mockReset().mockResolvedValue({ stop: mocks.stopAdvertising });
+    mocks.logError.mockReset();
   });
 
   it('gives the server the file of the track with the snapshot, and starts a later server with the last one', async () => {
@@ -94,6 +99,43 @@ describe('the host controller', () => {
     expect(mocks.start).toHaveBeenCalledWith(expect.objectContaining({ identity, loopbackOnly: true, port: undefined }));
     expect(last()).toMatchObject({ running: true, code: '3F9A 04C1', port: 41000 });
     expect(store.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ port: 41000 }));
+  });
+
+  describe('the announcement on the network', () => {
+    it('announces the host by its name and port with the code, and says goodbye when it stops', async () => {
+      const host = await create(fakeStore({ enabled: true, name: 'Kitchen' }));
+      await host.start();
+
+      expect(mocks.advertise).toHaveBeenCalledWith({ id: '3f9a04c1', name: 'Kitchen', port: 41000, version: '' });
+
+      await host.stop();
+      expect(mocks.stopAdvertising).toHaveBeenCalledTimes(1);
+    });
+
+    it('announces nothing for a host on loopback or while host mode is off', async () => {
+      await (await create(fakeStore({ enabled: true, loopbackOnly: true }))).start();
+      await (await create(fakeStore({ enabled: false }))).start();
+
+      expect(mocks.advertise).not.toHaveBeenCalled();
+    });
+
+    it('announces again with the new name, and once only', async () => {
+      const host = await create(fakeStore({ enabled: true, name: 'Kitchen' }));
+      await host.start();
+      await host.update({ name: 'Den' });
+
+      expect(mocks.stopAdvertising).toHaveBeenCalledTimes(1);
+      expect(mocks.advertise).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'Den' }));
+    });
+
+    it('keeps the host working when the announcement fails', async () => {
+      mocks.advertise.mockRejectedValue(new Error('EACCES'));
+      const host = await create(fakeStore({ enabled: true }));
+      await host.start();
+
+      expect(host.state()).toMatchObject({ running: true, error: undefined });
+      expect(mocks.logError).toHaveBeenCalledWith(expect.objectContaining({ message: 'EACCES' }));
+    });
   });
 
   it('reuses the saved port, and takes a free one when it is taken', async () => {
