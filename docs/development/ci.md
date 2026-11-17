@@ -30,6 +30,8 @@ How to check: a step that takes more than 35 minutes ends with `Timed out waitin
 
 The same holds for the update test of the packaged app on macOS (`updateTimeout` of `e2e/updater/updater.spec.ts`): `Dist (macos arm64)` of the pull request 416 run polled 7 minutes for the new version, the marker and the dropped backup, and ended with `version: undefined` (the bundle is swapped at that moment) while the step usually takes 7 to 12 minutes in all. The poll now waits 12 minutes, below the 15 minutes of a test of the `updater` project and the 45 minutes of the step in `dist.yml`.
 
+`offline.spec.ts` ("starts and shows its pages without a network") failed on `macos-15-intel` in the same run: the radio page did not show `radio.offline.text` within the 15 seconds of `expect`. The message comes after the search of the stations failed in the main process, and that took longer on a slow runner (the test ended after 43 seconds, and the other 47 tests passed). That one assertion now waits 60 seconds. Use a longer `timeout` on the assertion that waits for the outcome of a request that fails, not a retry of the test.
+
 ## Jobs that no runner takes
 
 Symptom: a run stays `queued` for hours with one job that has no runner (`runner_id: null`, no steps) while the rest is green, for example `Dist (macos arm64)` of the release of 16 November. Hosted macOS jobs are normally picked up within seconds (the slowest of the last releases took about five minutes). GitHub documents a queue limit of 24 hours for self-hosted runners only, and a run cannot be expected to be run again while it is in progress, so a job at the end of the run cannot retry it, and the next release waits in the `release` concurrency group.
