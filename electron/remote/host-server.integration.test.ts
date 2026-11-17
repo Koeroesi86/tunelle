@@ -16,11 +16,14 @@ let host: HostServer;
 
 const call = (method: string, path: string, { headers = {}, body }: { headers?: Record<string, string>; body?: string } = {}) =>
   new Promise<Answer>((resolve, reject) => {
-    const outgoing = request({ host: '127.0.0.1', port: host.port, method, path, headers, ...pinnedOptions(identity.certificate) }, (response) => {
-      const chunks: Buffer[] = [];
-      response.on('data', (chunk) => chunks.push(chunk));
-      response.on('end', () => resolve({ status: response.statusCode ?? 0, body: JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') }));
-    });
+    const outgoing = request(
+      { host: '127.0.0.1', port: host.port, agent: false, method, path, headers, ...pinnedOptions(identity.certificate) },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on('data', (chunk) => chunks.push(chunk));
+        response.on('end', () => resolve({ status: response.statusCode ?? 0, body: JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') }));
+      }
+    );
     outgoing.on('error', reject);
     outgoing.end(body);
   });
