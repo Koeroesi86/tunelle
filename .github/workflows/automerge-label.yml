@@ -1,14 +1,14 @@
 name: Automerge label
 
 # A pull request of a stack cannot get auto-merge while its base is another pull request. The automerge label asks for squash auto-merge, and this turns it on
-# for the labeled pull requests to master, when the label is added, when the base becomes master, when master moves and when checks end
+# once for the labeled pull requests to master and takes the label off, when the label is added, when the base becomes master, when master moves and when checks end
 # (scripts/release/automerge-label.js). See docs/release/releases.md
 on:
   push:
     branches: [master]
   # pull_request_target has the secret, and nothing of a pull request is checked out or run: the script only calls the API
   pull_request_target:
-    types: [opened, reopened, ready_for_review, labeled, unlabeled, edited]
+    types: [opened, reopened, ready_for_review, labeled, edited]
     branches: [master]
   workflow_run:
     workflows: [Pull request checks]
@@ -34,12 +34,6 @@ jobs:
         with:
           node-version: 24
       # GH_REBASE_TOKEN, not GITHUB_TOKEN: auto-merge turned on with GITHUB_TOKEN starts no rebase-auto-merge.yml run
-      - if: github.event.action == 'unlabeled' && github.event.label.name == 'automerge'
-        run: node scripts/release/automerge-label.js disable "${PULL_REQUEST}"
-        env:
-          GH_TOKEN: ${{ secrets.GH_REBASE_TOKEN }}
-          PULL_REQUEST: ${{ github.event.pull_request.number }}
-      - if: github.event.action != 'unlabeled'
-        run: node scripts/release/automerge-label.js
+      - run: node scripts/release/automerge-label.js
         env:
           GH_TOKEN: ${{ secrets.GH_REBASE_TOKEN }}

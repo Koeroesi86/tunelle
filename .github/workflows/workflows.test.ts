@@ -300,12 +300,12 @@ describe('workflows', () => {
     const text = read('automerge-label.yml');
 
     expect(text).toMatch(/^permissions:\n {2}contents: read\n/m);
-    expect(text).toMatch(/pull_request_target:\n\s+types: \[(?=[^\]]*\bedited\b)(?=[^\]]*\blabeled\b)(?=[^\]]*\bunlabeled\b)/);
+    expect(text).toMatch(/pull_request_target:\n\s+types: \[(?=[^\]]*\bedited\b)(?=[^\]]*\blabeled\b)/);
     expect(text).toMatch(/push:\n\s+branches: \[master\]/);
     expect(text).toMatch(/workflow_dispatch:/);
     expect(text).not.toMatch(/schedule:|cron:|head_sha|head_branch|ref:/);
-    expect(text.match(/GH_TOKEN: \$\{\{ secrets\.GH_REBASE_TOKEN \}\}/g)).toHaveLength(2);
-    expect(text).toMatch(/node scripts\/release\/automerge-label\.js disable "\$\{PULL_REQUEST\}"/);
+    expect(text).toMatch(/GH_TOKEN: \$\{\{ secrets\.GH_REBASE_TOKEN \}\}/);
+    expect(text).not.toMatch(/unlabeled|disable/);
   });
 
   it('pages.yml builds the Flatpak repository into the site before it is uploaded', () => {
