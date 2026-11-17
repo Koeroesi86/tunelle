@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRequest, isStalled, run } from './retry-unstarted-jobs.js';
+import { createRequest, isStalled, run, watch } from './retry-unstarted-jobs.js';
 
 const now = Date.parse('2026-11-16T18:00:00Z');
 const job = (overrides: object = {}) => ({ status: 'queued', runner_id: null, created_at: '2026-11-16T17:00:00Z', ...overrides });
@@ -133,6 +133,71 @@ describe('run', () => {
     const request = createFake({ jobs: [job({ status: 'in_progress', runner_id: 3 })] });
 
     await run(request, 'owner/name', now);
+
+    expect(posts(request)).toEqual([]);
+  });
+});
+
+describe('watch', () => {
+  const stuckJobs = [finished, { status: 'queued', runner_id: null, created_at: '2026-11-16T17:00:00Z' }];
+  const createFake = (runs: object[], jobs: object[] = stuckJobs) => {
+    const answers = [...runs];
+    return vi.fn(async (path: string, options?: { method: string }) => {
+      if (path.endsWith('/jobs?per_page=100')) return { jobs };
+      if (options?.method === 'POST') return undefined;
+      return answers.length > 1 ? answers.shift() : answers[0];
+    });
+  };
+  const posts = (request: ReturnType<typeof createFake>) => request.mock.calls.filter(([, options]) => options?.method === 'POST').map(([path]) => path);
+  const watchFor = async (request: ReturnType<typeof createFake>, minutes: number) => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout'] });
+    vi.setSystemTime(now);
+    const done = watch(request, 'owner/name', '7');
+    await vi.advanceTimersByTimeAsync(minutes * 60 * 1000);
+    await done;
+    vi.useRealTimers();
+  };
+
+  afterEach(() => vi.useRealTimers());
+
+  it('checks again every few minutes and runs the jobs again once a job has waited too long for a runner', async () => {
+    const request = createFake([
+      { status: 'in_progress', run_attempt: 1 },
+      { status: 'in_progress', run_attempt: 1 },
+      { status: 'completed', run_attempt: 2 },
+    ]);
+
+    await watchFor(request, 15);
+
+    expect(posts(request)).toEqual(['/repos/owner/name/actions/runs/7/cancel', '/repos/owner/name/actions/runs/7/rerun-failed-jobs']);
+  });
+
+  it('stops without a request for the jobs when the run has ended', async () => {
+    const request = createFake([{ status: 'completed', run_attempt: 1 }]);
+
+    await watchFor(request, 5);
+
+    expect(request.mock.calls.map(([path]) => path)).toEqual(['/repos/owner/name/actions/runs/7']);
+  });
+
+  it('stops when the run was run again as often as allowed', async () => {
+    const request = createFake([{ status: 'in_progress', run_attempt: 3 }]);
+
+    await watchFor(request, 5);
+
+    expect(posts(request)).toEqual([]);
+  });
+
+  it('leaves a run alone while a runner has its job and keeps watching until it ends', async () => {
+    const request = createFake(
+      [
+        { status: 'in_progress', run_attempt: 1 },
+        { status: 'completed', run_attempt: 1 },
+      ],
+      [{ status: 'in_progress', runner_id: 3, created_at: '2026-11-16T17:00:00Z' }]
+    );
+
+    await watchFor(request, 10);
 
     expect(posts(request)).toEqual([]);
   });

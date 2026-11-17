@@ -1,9 +1,11 @@
-// usage: node scripts/release/retry-unstarted-jobs.js    cancels the runs whose waiting jobs no runner took, and runs their jobs again once
+// usage: node scripts/release/retry-unstarted-jobs.js             cancels the runs whose waiting jobs no runner took, and runs their jobs again once
+//        node scripts/release/retry-unstarted-jobs.js <run id>    the same for one run, checked every few minutes until it ends (watch-unstarted-jobs.yml)
 // A job that no runner picks up holds its run, which cannot be run again until it ends (retry-unstarted-jobs.yml, docs/development/ci.md)
 const workflows = ['pr-checks.yml', 'build.yml', 'release.yml']
 const stalledMinutes = 15
 const lastAttempt = 2
 const waitSeconds = 5
+const pollSeconds = 300
 const cancelAttempts = 12
 const forceCancelAttempts = 48
 
@@ -71,6 +73,23 @@ const findRuns = async (request, repository) =>
     )
   ).flat()
 
+const sleep = (seconds) => new Promise((resolve) => setTimeout(resolve, seconds * 1000))
+
+// true when the run has ended or was run again as often as it is allowed: there is nothing left to watch
+const watchStep = async (request, repository, id) => {
+  await sleep(pollSeconds)
+  const { status, run_attempt: attempt } = await request(`/repos/${repository}/actions/runs/${id}`)
+  if (status === 'completed' || attempt > lastAttempt) return true
+  if (await isRunStalled(request, repository, id, Date.now())) await retry(request, repository, id, Date.now())
+  return false
+}
+
+const watch = async (request, repository, id) => {
+  let ended = false
+  while (!ended) ended = await watchStep(request, repository, id)
+  console.log(`Run ${id} ended, or was run again as often as allowed`)
+}
+
 const run = async (request, repository, now = Date.now()) => {
   const runs = await findRuns(request, repository)
   const stalled = (
@@ -81,11 +100,17 @@ const run = async (request, repository, now = Date.now()) => {
   for (const item of stalled) await retry(request, repository, item.id, now)
 }
 
+const main = (runId) => {
+  if (runId === undefined) return run(createRequest(process.env.GH_TOKEN), process.env.GITHUB_REPOSITORY)
+  if (!/^\d+$/.test(runId)) throw new Error(`"${runId}" is not a run id`)
+  return watch(createRequest(process.env.GH_TOKEN), process.env.GITHUB_REPOSITORY, runId)
+}
+
 if (require.main === module) {
-  run(createRequest(process.env.GH_TOKEN), process.env.GITHUB_REPOSITORY).catch((error) => {
+  Promise.resolve(process.argv[2]).then(main).catch((error) => {
     console.error(error)
     process.exitCode = 1
   })
 }
 
-module.exports = { createRequest, isStalled, run }
+module.exports = { createRequest, isStalled, run, watch }

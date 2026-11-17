@@ -1,6 +1,6 @@
 # Releases
 
-Releases come from `release.yml`: Monday and Thursday 06:00 UTC and by hand, from `master` only. A scheduled run skips when only docs or `.github/` changed since the latest `vYY.M.N` tag. The published release is what installed apps update from, see [updater.md](../app/updater.md). After every release it publishes it calls `store.yml`, see [microsoft-store.md](microsoft-store.md). Each release carries a short summary of its changes, see [release-notes.md](release-notes.md). A job of a release that no runner takes is run again by `retry-unstarted-jobs.yml`, see [ci.md](../development/ci.md#jobs-that-no-runner-takes).
+Releases come from `release.yml`: Monday and Thursday 06:00 UTC and by hand, from `master` only. A scheduled run skips when only docs or `.github/` changed since the latest `vYY.M.N` tag. The published release is what installed apps update from, see [updater.md](../app/updater.md). After every release it publishes it calls `store.yml`, see [microsoft-store.md](microsoft-store.md). Each release carries a short summary of its changes, see [release-notes.md](release-notes.md). A job of a release that no runner takes is run again by `watch-unstarted-jobs.yml` (and `retry-unstarted-jobs.yml` on a schedule), see [ci.md](../development/ci.md#jobs-that-no-runner-takes).
 
 ## The version (`scripts/release/version.js`)
 
