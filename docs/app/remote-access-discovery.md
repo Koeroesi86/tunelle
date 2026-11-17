@@ -69,6 +69,13 @@ For the listener, its main process receives the snapshots and the renderer's pla
 
 `holdSingleInstance` (`electron/windows/single-instance.ts`) takes the lock of the profile, and the lock follows the user data folder, so a start with its own `--user-data-dir` does not meet another one. The proof started the built app twice (headless, `--user-data-dir=<a|b>/user-data` and `TUNELLE_APP_DATA=<a|b>`, `ELECTRON_RUN_AS_NODE` unset): both stayed running with their own `tunelle/` library folder. The test plan and the end to end test use that; no new `TUNELLE_` variable is needed. Host port: each instance gets its own random free port, so they do not clash.
 
+## The code so far
+
+`electron/remote/` holds the two pieces the proof settled, with tests (second pull request of #360, nothing calls them yet):
+
+- `dns-packet.ts`: the mDNS wire format. `decodeMessage` returns `undefined` for a cut or made up packet (bounds, a limit on name pointers) instead of throwing, as the socket handler must not throw into the main process.
+- `certificate.ts`: `createHostIdentity`, `approvalCode` and the pinning options. `certificate.integration.test.ts` runs them against a real TLS server: the pinned certificate is answered, another one is refused, and the first contact reads the same code as the host shows.
+
 ## Checks for the next pull requests
 
 - Electronegativity baseline and the CSP: the listener only talks from the main process, so the renderer's CSP stays as is; re-run `npm run security:electron` with the server in.
