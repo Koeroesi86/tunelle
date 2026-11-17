@@ -2,7 +2,7 @@ import { request, type RequestOptions } from 'node:https';
 import { TLSSocket } from 'node:tls';
 import { z } from 'zod';
 import { approvalCode, pinnedOptions, unpinnedOptions } from './certificate';
-import { nowPlayingSchema, type NowPlaying } from './host-server';
+import { nowPlayingSchema, type NowPlaying } from './now-playing';
 
 const TIMEOUT_MS = 5000;
 const MAX_ANSWER_BYTES = 64 * 1024;
