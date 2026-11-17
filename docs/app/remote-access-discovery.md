@@ -71,10 +71,11 @@ For the listener, its main process receives the snapshots and the renderer's pla
 
 ## The code so far
 
-`electron/remote/` holds the two pieces the proof settled, with tests (second pull request of #360, nothing calls them yet):
+`electron/remote/` holds the pieces the proof settled, with tests (second and third pull request of #360, nothing calls them yet):
 
 - `dns-packet.ts`: the mDNS wire format. `decodeMessage` returns `undefined` for a cut or made up packet (bounds, a limit on name pointers) instead of throwing, as the socket handler must not throw into the main process.
 - `certificate.ts`: `createHostIdentity`, `approvalCode` and the pinning options. `certificate.integration.test.ts` runs them against a real TLS server: the pinned certificate is answered, another one is refused, and the first contact reads the same code as the host shows.
+- `access.ts`: who may listen. `AccessControl` keeps the waiting requests, the approved devices and the blocked ones in memory, and `snapshot()` is what the host writes to disk (the hash of the secret, never the secret; the file itself comes with the server). A request is checked in this order: rate limit per address (5 a minute, counted before the body is read, so garbage counts too), the schema (device id, name up to 60 and note up to 200 characters, control characters turned into spaces), blocked, already approved, the pending limit (5, a device that already waits does not need a new place) and only then a prompt. Waiting requests expire after ten minutes. The note is kept as it was sent, apart from the control characters: showing it as text is the job of the screen. A device id is made by the listener, so a blocked device that picks a new id is a new device; blocking by address is not done, as addresses on a LAN change and are shared behind one router.
 
 ## Checks for the next pull requests
 
