@@ -1,0 +1,33 @@
+name: Watch for unstarted jobs
+
+# The schedule of retry-unstarted-jobs.yml runs a few times a day when GitHub is busy. This watches one run from the moment it is created: every five minutes it
+# cancels the run and runs its jobs again, once, when the only unfinished jobs have been queued without a runner for 15 minutes (docs/development/ci.md).
+on:
+  workflow_run:
+    workflows: [Pull request checks, Build, Release]
+    types: [requested]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    # cancels and runs again the jobs of a run
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      # a workflow_run workflow checks out the default branch, never the code of the pull request
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: node scripts/release/retry-unstarted-jobs.js "${RUN_ID}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}

@@ -284,6 +284,17 @@ describe('workflows', () => {
     expect(text).not.toMatch(/pull_request/);
   });
 
+  it('watch-unstarted-jobs.yml watches the runs that it names with actions: write on its job only, and checks out no pull request code', () => {
+    const text = read('watch-unstarted-jobs.yml');
+
+    expect(text).toMatch(/^permissions:\n {2}contents: read\n/m);
+    expect(text.match(/^ {6}actions: write$/gm)).toHaveLength(1);
+    expect(text).toMatch(/workflow_run:\n\s+workflows: \[Pull request checks, Build, Release\]/);
+    expect(text).toMatch(/group: \$\{\{ github\.workflow \}\}-\$\{\{ github\.event\.workflow_run\.id \}\}/);
+    expect(text).not.toMatch(/pull_request:|head_sha|head_branch|ref:/);
+    expect(text).toMatch(/node scripts\/release\/retry-unstarted-jobs\.js "\$\{RUN_ID\}"/);
+  });
+
   it('pages.yml builds the Flatpak repository into the site before it is uploaded', () => {
     const text = read('pages.yml');
 
