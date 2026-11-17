@@ -296,6 +296,18 @@ describe('workflows', () => {
     expect(text).toMatch(/node scripts\/release\/retry-unstarted-jobs\.js "\$\{RUN_ID\}"/);
   });
 
+  it('automerge-label.yml turns auto-merge on with the secret token, checks out no pull request code and has no schedule', () => {
+    const text = read('automerge-label.yml');
+
+    expect(text).toMatch(/^permissions:\n {2}contents: read\n/m);
+    expect(text).toMatch(/pull_request_target:\n\s+types: \[(?=[^\]]*\bedited\b)(?=[^\]]*\blabeled\b)/);
+    expect(text).toMatch(/push:\n\s+branches: \[master\]/);
+    expect(text).toMatch(/workflow_dispatch:/);
+    expect(text).not.toMatch(/schedule:|cron:|head_sha|head_branch|ref:/);
+    expect(text).toMatch(/GH_TOKEN: \$\{\{ secrets\.GH_REBASE_TOKEN \}\}/);
+    expect(text).not.toMatch(/unlabeled|disable/);
+  });
+
   it('pages.yml builds the Flatpak repository into the site before it is uploaded', () => {
     const text = read('pages.yml');
 
