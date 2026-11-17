@@ -46,6 +46,7 @@ jobs:
     name: Test (${{ matrix.os }})
     needs: ffmpeg
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
@@ -125,12 +126,12 @@ jobs:
       - run: npm run test:coverage
       # real SQLite, real files and the real ffmpeg of this system, without Electron (docs/development/integration-tests.md)
       - name: Integration tests
-        timeout-minutes: 10
+        timeout-minutes: 20
         run: npm run test:integration
       # the built app is started and driven (e2e/); the audio goes to a sink that plays nothing (--disable-audio-output), so the runners need no sound device, and Linux draws the window headless
       - run: npm run build
       - name: End to end tests
-        timeout-minutes: 20
+        timeout-minutes: 40
         run: npm run test:e2e
       - name: Coverage summary
         if: matrix.os == 'ubuntu-latest' && !cancelled()

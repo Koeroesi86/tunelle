@@ -185,6 +185,14 @@ describe('workflows', () => {
     expect(text.indexOf('node scripts/ffmpeg/ffmpeg-build.js')).toBeLessThan(text.indexOf('actions/cache/save'));
   });
 
+  it('test.yml gives the end to end tests more minutes than Playwright takes before it stops itself and writes the report', () => {
+    const step = Number(/name: End to end tests\n\s+timeout-minutes: (\d+)/.exec(read('test.yml'))?.[1]);
+    const playwright = Number(/globalTimeout: process\.env\.CI \? (\d+) \* 60_000/.exec(readFileSync('playwright.config.ts', 'utf8'))?.[1]);
+
+    expect(playwright).toBeGreaterThan(0);
+    expect(step).toBeGreaterThan(playwright);
+  });
+
   it('test.yml keeps the report of the end to end tests', () => {
     const text = read('test.yml');
 
