@@ -28,6 +28,8 @@ export const startHostServer = async ({ identity, access, port = 0, loopbackOnly
   // a socket that fails ends there: an unhandled error would open the error dialog of the app
   server.on('tlsClientError', () => undefined);
   server.on('clientError', (_error, socket) => socket.destroy());
+  // a write to a peer that is gone (EPIPE) is an error of that socket only, also after its request was answered
+  server.on('secureConnection', (socket) => socket.on('error', () => socket.destroy()));
 
   server.listen(port, loopbackOnly ? '127.0.0.1' : '0.0.0.0');
   await once(server, 'listening');
