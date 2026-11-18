@@ -351,7 +351,7 @@ describe('uiState reducer', () => {
   });
 
   it('stores what the host reports, and knows nothing before', () => {
-    const host = { enabled: true, name: 'Tunelle', loopbackOnly: false, running: true, pending: [], devices: [] };
+    const host = { enabled: true, name: 'Tunelle', loopbackOnly: false, maxListeners: 5, running: true, pending: [], devices: [] };
 
     expect(initial.remoteHost).toBeUndefined();
     expect(run({ type: 'REMOTE_HOST_STATE', payload: host }).remoteHost).toEqual(host);

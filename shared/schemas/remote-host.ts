@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { CONTROLS } from '../constants/remote-controls';
+import { MAX_LISTENERS } from '../constants/remote-limits';
 
 /** What the host reports to the settings: its settings, whether it listens, who waits for an answer and who was approved. See docs/app/remote-access-discovery.md */
 export const remoteHostStateSchema = z.object({
   enabled: z.boolean(),
   name: z.string(),
   loopbackOnly: z.boolean(),
+  maxListeners: z.number().int().min(1).max(MAX_LISTENERS),
   port: z.number().optional(),
   running: z.boolean(),
   /** The short code of the certificate, which the listener shows too */
