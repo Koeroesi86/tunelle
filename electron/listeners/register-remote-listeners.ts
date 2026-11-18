@@ -3,6 +3,7 @@ import { app, ipcMain } from 'electron';
 import { serveTrack } from '../protocols/serve-track';
 import { createHostController } from '../remote/host-controller';
 import type { HostState } from '../remote/host-controller';
+import { deviceNameOf } from '../remote/device-name';
 import { deviceControlsSchema, deviceDecisionSchema, hostChangeSchema } from '../remote/host-requests';
 import { createHostStore } from '../remote/host-store';
 import { createListenerController } from '../remote/listener-controller';
@@ -46,7 +47,7 @@ const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
 
   const listener = createListenerController(
     createListenerStore(global._appDataPath),
-    hostname(),
+    deviceNameOf(hostname()),
     (state) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_LISTENER_STATE', state)
   );
   provideRemoteAudio(listener.audio);

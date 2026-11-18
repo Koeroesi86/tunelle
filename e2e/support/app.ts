@@ -31,6 +31,8 @@ interface Fixtures {
   session: Session;
   /** The fake station directory the app is pointed to; the first station plays silence and announces a song */
   directory: Directory;
+  /** A second app on a profile of its own, empty: the one that listens to `session` (docs/development/remote-listening-test-plan.md) */
+  second: Session;
 }
 
 const tracksInLibrary = albums.flatMap((album) => album.tracks).length;
@@ -96,6 +98,18 @@ export const test = base.extend<Fixtures>({
     const session = await start();
     await addFolder(session.page, music, tracksInLibrary);
     await use(session);
+  },
+
+  second: async ({ directory }, use) => {
+    const home = mkdtempSync(join(tmpdir(), 'tunelle-e2e-second-'));
+    const session = await launchApp({ home, radioDirectory: directory.origin, initScripts: [installActiveAudio, installAudioProbe] });
+    await use(session);
+    await quit(session.app);
+    try {
+      rmSync(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+    } catch (error) {
+      console.warn('profile not removed', error);
+    }
   },
 
   start: async ({ directory }, use) => {

@@ -69,6 +69,10 @@ For the listener, its main process receives the snapshots and the renderer's pla
 
 `holdSingleInstance` (`electron/windows/single-instance.ts`) takes the lock of the profile, and the lock follows the user data folder, so a start with its own `--user-data-dir` does not meet another one. The proof started the built app twice (headless, `--user-data-dir=<a|b>/user-data` and `TUNELLE_APP_DATA=<a|b>`, `ELECTRON_RUN_AS_NODE` unset): both stayed running with their own `tunelle/` library folder. The test plan and the end to end test use that; no new `TUNELLE_` variable is needed. Host port: each instance gets its own random free port, so they do not clash.
 
+## The name of the device
+
+The listener asks with its host name (`os.hostname()`), and the host answers `invalid` to a name that is empty or over 60 characters, so the listener showed "Could not reach the host: The host answered invalid" and no request reached the host. Symptom: the end to end test timed out on macOS only, where the host name of the runner is long. `deviceNameOf` (`electron/remote/device-name.ts`) cuts the name to the limit and falls back to `Tunelle`. To check: the failed run shows the listener's error text in `error-context.md` of the Playwright report.
+
 ## The code so far
 
 `electron/remote/` holds the pieces the proof settled, with tests (second and third to fifth pull request of #360, nothing calls them yet):
