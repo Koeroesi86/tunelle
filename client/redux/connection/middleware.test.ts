@@ -38,7 +38,7 @@ describe('connection middleware', () => {
     expect(store.getState().uiState.launcher).toEqual({ available: true, enabled: true, offered: true, external: false });
   });
 
-  const host = { enabled: true, name: 'Tunelle', loopbackOnly: false, running: true, code: 'AB12', pending: [], devices: [] };
+  const host = { enabled: true, name: 'Tunelle', loopbackOnly: false, maxListeners: 5, running: true, code: 'AB12', pending: [], devices: [] };
 
   it('asks for the state of the host when it starts, and stores what it reports', async () => {
     const { store, send, listen } = await setup();

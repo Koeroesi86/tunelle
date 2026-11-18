@@ -1,3 +1,4 @@
+import { DEFAULT_MAX_LISTENERS } from '../../shared/constants/remote-limits';
 import { AccessControl, type Control, type PendingRequest } from './access';
 import { startHostServer, type HostServer } from './host-server';
 import type { HostSettings, HostStore } from './host-store';
@@ -20,7 +21,7 @@ export interface HostState extends HostSettings {
   error?: string;
 }
 
-export type DeviceAction = 'approve' | 'deny' | 'revoke' | 'block';
+export type DeviceAction = 'approve' | 'deny' | 'revoke' | 'block' | 'disconnect';
 
 /** AccessControl that tells the page when a request starts to wait, so no timer is needed */
 class ObservedAccess extends AccessControl {
@@ -69,7 +70,7 @@ export const createHostController = (
   let changing: Promise<void> = Promise.resolve();
 
   const state = (): HostState => ({
-    ...(settings ?? { enabled: false, name: 'Tunelle', loopbackOnly: false }),
+    ...(settings ?? { enabled: false, name: 'Tunelle', loopbackOnly: false, maxListeners: DEFAULT_MAX_LISTENERS }),
     running: server !== undefined,
     code,
     error,
@@ -83,7 +84,7 @@ export const createHostController = (
   // a saved port that is taken falls back to a free one, which is saved for the next start
   const listen = async (current: HostSettings) => {
     const identity = await store.identity(current.name);
-    const options = { identity, access, loopbackOnly: current.loopbackOnly, onControl, serveAudio };
+    const options = { identity, access, loopbackOnly: current.loopbackOnly, maxListeners: current.maxListeners, onControl, serveAudio };
     const started = await startHostServer({ ...options, port: current.port }).catch((failure: unknown) =>
       isTaken(failure) && current.port ? startHostServer({ ...options, port: 0 }) : Promise.reject(failure)
     );
@@ -135,7 +136,7 @@ export const createHostController = (
     start: () => queue(apply),
     stop: () => queue(() => stop().then(publish)),
     state: () => state(),
-    update: (change: Partial<Pick<HostSettings, 'enabled' | 'name' | 'loopbackOnly' | 'port'>>) =>
+    update: (change: Partial<Pick<HostSettings, 'enabled' | 'name' | 'loopbackOnly' | 'port' | 'maxListeners'>>) =>
       queue(async () => {
         const current = settings ?? (await store.readSettings());
         settings = { ...current, ...change };
@@ -157,6 +158,8 @@ export const createHostController = (
         deny: () => access.deny(deviceId),
         revoke: () => access.revoke(deviceId),
         block: () => (access.block(deviceId), true),
+        // the device stays approved and may come back, so nothing is written
+        disconnect: () => (server?.disconnect(deviceId), false),
       }[action]();
       if (done) await saveDevices();
       server?.closeRevoked();

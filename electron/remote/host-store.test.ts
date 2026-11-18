@@ -14,21 +14,21 @@ describe('the store of the host', () => {
 
   describe('settings', () => {
     it('are off, named Tunelle and on the LAN when nothing was saved', async () => {
-      expect(await createHostStore(appData).readSettings()).toEqual({ enabled: false, name: 'Tunelle', loopbackOnly: false });
+      expect(await createHostStore(appData).readSettings()).toEqual({ enabled: false, name: 'Tunelle', loopbackOnly: false, maxListeners: 5 });
     });
 
     it('come back as they were saved', async () => {
       const store = createHostStore(appData);
-      await store.saveSettings({ enabled: true, name: 'Kitchen', loopbackOnly: true, port: 40000 });
+      await store.saveSettings({ enabled: true, name: 'Kitchen', loopbackOnly: true, port: 40000, maxListeners: 3 });
 
-      expect(await store.readSettings()).toEqual({ enabled: true, name: 'Kitchen', loopbackOnly: true, port: 40000 });
+      expect(await store.readSettings()).toEqual({ enabled: true, name: 'Kitchen', loopbackOnly: true, port: 40000, maxListeners: 3 });
     });
 
     it('keep the parts that are valid when another part is not', async () => {
       memoryFs.sync.mkdirSync(folder);
-      memoryFs.sync.writeFileSync(join(folder, 'host.json'), JSON.stringify({ enabled: true, name: '', port: 80, loopbackOnly: 'yes' }));
+      memoryFs.sync.writeFileSync(join(folder, 'host.json'), JSON.stringify({ enabled: true, name: '', port: 80, loopbackOnly: 'yes', maxListeners: 0 }));
 
-      expect(await createHostStore(appData).readSettings()).toEqual({ enabled: true, name: 'Tunelle', loopbackOnly: false });
+      expect(await createHostStore(appData).readSettings()).toEqual({ enabled: true, name: 'Tunelle', loopbackOnly: false, maxListeners: 5 });
     });
 
     it('are the defaults when the file is cut', async () => {

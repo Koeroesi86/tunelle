@@ -4,14 +4,15 @@ import style from './RemoteAccess.scss';
 import { useTranslation } from '../../../i18n';
 import Switch from '../../ui/switch/Switch';
 import type { Control } from '@shared/constants/remote-controls';
+import { MAX_LISTENERS } from '@shared/constants/remote-limits';
 import type { RemoteHostState } from '@shared/schemas/remote-host';
 
-type Action = 'approve' | 'deny' | 'revoke' | 'block';
+type Action = 'approve' | 'deny' | 'revoke' | 'block' | 'disconnect';
 
 interface RemoteAccessProps {
   state: RemoteHostState | undefined;
   setEnabled: (enabled: boolean) => void;
-  update: (change: { name?: string; loopbackOnly?: boolean }) => void;
+  update: (change: { name?: string; loopbackOnly?: boolean; port?: number; maxListeners?: number }) => void;
   decide: (deviceId: string, action: Action) => void;
   setControls: (deviceId: string, controls: Control[]) => void;
 }
@@ -29,6 +30,11 @@ const Device = ({ device, decide, setControls }: { device: RemoteHostState['devi
       <div className={style.rowHeader}>
         <span className={style.name}>{device.name}</span>
         {device.blocked && <span className={style.badge}>{t('remote.blocked')}</span>}
+        {!device.blocked && (
+          <button type="button" className={style.action} onClick={() => decide(device.id, 'disconnect')}>
+            {t('remote.disconnect')}
+          </button>
+        )}
         <button type="button" className={style.action} onClick={() => decide(device.id, 'revoke')}>
           {t(device.blocked ? 'remote.unblock' : 'remote.revoke')}
         </button>
@@ -102,6 +108,43 @@ const NameField = ({ name, update }: { name: string } & Pick<RemoteAccessProps, 
   );
 };
 
+/** A whole number setting; it is sent when the field is left or Enter is pressed, as a change restarts the host, and not when it is out of range or the same */
+const NumberField = ({
+  value,
+  label,
+  min,
+  max,
+  onCommit,
+}: {
+  value: number | undefined;
+  label: string;
+  min: number;
+  max: number;
+  onCommit: (value: number) => void;
+}) => {
+  const [draft, setDraft] = useState(value === undefined ? '' : String(value));
+  const commit = (event?: FormEvent) => {
+    event?.preventDefault();
+    const next = Number(draft);
+    if (!Number.isInteger(next) || next < min || next > max || next === value) return setDraft(value === undefined ? '' : String(value));
+    onCommit(next);
+  };
+
+  return (
+    <form className={style.field} onSubmit={commit}>
+      <input
+        value={draft}
+        inputMode="numeric"
+        aria-label={label}
+        placeholder={label}
+        autoComplete="off"
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => commit()}
+      />
+    </form>
+  );
+};
+
 /** Turns the host mode on and off, and answers the devices that ask to listen. Nothing listens until the switch is on. See docs/app/remote-access-discovery.md */
 const RemoteAccess = ({ state, setEnabled, update, decide, setControls }: RemoteAccessProps) => {
   const { t } = useTranslation();
@@ -120,8 +163,19 @@ const RemoteAccess = ({ state, setEnabled, update, decide, setControls }: Remote
         <input id="remote-loopback-only" type="checkbox" checked={state.loopbackOnly} onChange={() => update({ loopbackOnly: !state.loopbackOnly })} />
         {t('remote.loopbackOnly')}
       </label>
+      <NumberField
+        key={`max-${state.maxListeners}`}
+        value={state.maxListeners}
+        label={t('remote.maxListeners')}
+        min={1}
+        max={MAX_LISTENERS}
+        onCommit={(maxListeners) => update({ maxListeners })}
+      />
+      <NumberField key={`port-${state.port}`} value={state.port} label={t('remote.fixedPort')} min={1024} max={65535} onCommit={(port) => update({ port })} />
       {state.error && <div className={style.error}>{t('remote.error', { error: state.error })}</div>}
       {state.running && state.port && <div className={style.hint}>{t('remote.port', { port: state.port })}</div>}
+      {state.running && !state.loopbackOnly && <div className={style.hint}>{t('remote.network')}</div>}
+      {state.running && !state.loopbackOnly && state.devices.length === 0 && <div className={style.hint}>{t('remote.noListeners')}</div>}
       {state.running && state.code && <div className={style.hint}>{t('remote.code', { code: state.code })}</div>}
       {state.pending.length > 0 && (
         <ul className={style.list} aria-label={t('remote.pending')}>

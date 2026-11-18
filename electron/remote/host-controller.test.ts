@@ -8,6 +8,7 @@ import { remoteHostStateSchema } from '../../shared/schemas/remote-host';
 const mocks = vi.hoisted(() => ({
   start: vi.fn(),
   closeRevoked: vi.fn(),
+  disconnect: vi.fn(),
   close: vi.fn(),
   setNowPlaying: vi.fn(),
   advertise: vi.fn(),
@@ -25,7 +26,7 @@ const identity = { certificate: 'cert', key: 'key' };
 const playing: NowPlaying = { state: 'playing', title: 'Song', position: 3, at: 1000 };
 
 const fakeStore = (settings: Record<string, unknown> = {}): HostStore => ({
-  readSettings: vi.fn().mockResolvedValue({ enabled: false, name: 'Tunelle', loopbackOnly: false, ...settings }),
+  readSettings: vi.fn().mockResolvedValue({ enabled: false, name: 'Tunelle', loopbackOnly: false, maxListeners: 5, ...settings }),
   saveSettings: vi.fn().mockResolvedValue(undefined),
   readDevices: vi.fn().mockResolvedValue([]),
   saveDevices: vi.fn().mockResolvedValue(undefined),
@@ -47,9 +48,11 @@ describe('the host controller', () => {
       port: port || 41000,
       setNowPlaying: mocks.setNowPlaying,
       closeRevoked: mocks.closeRevoked,
+      disconnect: mocks.disconnect,
       close: mocks.close,
     }));
     mocks.closeRevoked.mockReset();
+    mocks.disconnect.mockReset();
     mocks.close.mockReset().mockResolvedValue(undefined);
     mocks.setNowPlaying.mockReset();
     mocks.stopAdvertising.mockReset().mockResolvedValue(undefined);
@@ -253,6 +256,29 @@ describe('the host controller', () => {
       await host.decide(deviceId, 'revoke');
 
       expect(mocks.closeRevoked).toHaveBeenCalledTimes(1);
+    });
+
+    it('disconnects a device without writing anything, as it stays approved', async () => {
+      const store = fakeStore({ enabled: true });
+      const { host, deviceId } = await waiting(store);
+      await host.decide(deviceId, 'approve');
+      vi.mocked(store.saveDevices).mockClear();
+
+      await host.decide(deviceId, 'disconnect');
+
+      expect(mocks.disconnect).toHaveBeenCalledWith(deviceId);
+      expect(store.saveDevices).not.toHaveBeenCalled();
+      expect(last().devices).toHaveLength(1);
+    });
+
+    it('gives the server the limit of listeners, which a change of it restarts', async () => {
+      const host = await create(fakeStore({ enabled: true }));
+      await host.start();
+      expect(mocks.start).toHaveBeenLastCalledWith(expect.objectContaining({ maxListeners: 5 }));
+
+      await host.update({ maxListeners: 2 });
+
+      expect(mocks.start).toHaveBeenLastCalledWith(expect.objectContaining({ maxListeners: 2 }));
     });
 
     it('writes nothing for a device that did not ask', async () => {

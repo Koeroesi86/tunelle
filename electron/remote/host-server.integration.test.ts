@@ -134,6 +134,25 @@ describe('the host server', () => {
     stream.stop();
   });
 
+  it('lets in no more devices than the host allows, and one more when a device left', async () => {
+    await host.close();
+    host = await startHostServer({ identity, access, loopbackOnly: true, maxListeners: 1 });
+    const first = approvedDevice();
+    const second = approvedDevice();
+    const stream = listen(first.deviceId, first.secret);
+    await vi.waitFor(() => expect(stream.events.join('')).toContain('"state":"idle"'));
+
+    const refused = await call('GET', '/remote/events', { headers: { 'x-tunelle-device': second.deviceId, authorization: `Bearer ${second.secret}` } });
+    expect(refused).toEqual({ status: 503, body: { status: 'full' } });
+
+    host.disconnect(first.deviceId);
+    await vi.waitFor(() => expect(stream.hasEnded()).toBe(true));
+    const admitted = listen(second.deviceId, second.secret);
+    await vi.waitFor(() => expect(admitted.events.join('')).toContain('"state":"idle"'));
+    stream.stop();
+    admitted.stop();
+  });
+
   it('ends the events of a device at once when the host revokes it, without waiting for the next event', async () => {
     const revoked = approvedDevice();
     const kept = approvedDevice();
