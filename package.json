@@ -37,6 +37,7 @@
     "lint:fix": "eslint --fix .",
     "fallow": "fallow",
     "site": "node scripts/tooling/serve-site.js",
+    "social-preview": "node scripts/tooling/generate-social-preview.js",
     "screenshots": "playwright test --project screenshots",
     "security:electron": "node scripts/checks/security-scan.js",
     "test:e2e": "playwright test --project e2e",
