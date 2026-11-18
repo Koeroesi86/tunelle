@@ -10,6 +10,8 @@ export interface HostServer {
   port: number;
   /** What the approved listeners are shown; the renderer sends a new one when the track, the play state or the position jumps */
   setNowPlaying: (snapshot: NowPlaying, trackPath?: string) => void;
+  /** Ends the streams and the audio of the devices that are no longer approved */
+  closeRevoked: () => void;
   close: () => Promise<void>;
 }
 
@@ -44,6 +46,7 @@ export const startHostServer = async ({ identity, access, port = 0, loopbackOnly
   return {
     port: address.port,
     setNowPlaying: routes.setNowPlaying,
+    closeRevoked: routes.closeRevoked,
     close: () => {
       server.closeAllConnections();
       return new Promise((resolve) => server.close(() => resolve()));

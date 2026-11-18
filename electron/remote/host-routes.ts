@@ -51,13 +51,19 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
   let nowPlaying: NowPlaying = { state: 'idle' };
   let trackPath: string | undefined;
   const streams = new Set<Stream>();
+  // the audio that is on its way to a device, which a revoke ends as it does an event stream
+  const relays = new Set<Stream>();
 
-  /** A device that was revoked or blocked since it connected is cut off here, so no event reaches it */
-  const writeToStreams = (chunk: string) =>
-    [...streams].forEach((stream) => {
-      if (!access.authenticate(stream.deviceId, stream.secret)) return stream.response.end();
-      stream.response.write(chunk);
-    });
+  /** Ends what a device that was revoked or blocked since it connected still has open: its events and its audio */
+  const closeRevoked = () =>
+    [...streams, ...relays]
+      .filter((stream) => !access.authenticate(stream.deviceId, stream.secret))
+      .forEach((stream) => (streams.delete(stream), relays.delete(stream), stream.response.destroy()));
+
+  const writeToStreams = (chunk: string) => {
+    closeRevoked();
+    streams.forEach((stream) => stream.response.write(chunk));
+  };
 
   const openStream = (response: ServerResponse, deviceId: string, secret: string) => {
     if (streams.size >= MAX_STREAMS) return send(response, 503, { status: 'full' });
@@ -92,10 +98,15 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
   };
 
   /** The track that plays now, and only it: the path is the host's own and no request names a file */
-  const audio = async (request: IncomingMessage, response: ServerResponse) => {
+  const audio = async (request: IncomingMessage, response: ServerResponse, device: StoredDevice, secret: string) => {
     if (!serveAudio || !trackPath) return send(response, 404, { status: 'no-track' });
     const abort = new AbortController();
-    response.on('close', () => abort.abort());
+    const relay = { response, deviceId: device.id, secret };
+    relays.add(relay);
+    response.on('close', () => {
+      relays.delete(relay);
+      abort.abort();
+    });
     const headers = request.headers.range ? { range: request.headers.range } : undefined;
     const answer = await serveAudio(trackPath, new Request('https://host/remote/audio', { headers, signal: abort.signal }));
     return relayResponse(answer, response);
@@ -112,7 +123,7 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
     if (request.method === 'GET' && path === '/remote/events')
       return authorized(request, response, (device, secret) => openStream(response, device.id, secret));
     if (request.method === 'GET' && path === '/remote/audio')
-      return authorized(request, response, () => audio(request, response).catch(() => response.destroy()));
+      return authorized(request, response, (device, secret) => audio(request, response, device, secret).catch(() => response.destroy()));
     if (request.method === 'POST' && path === '/remote/control') {
       const body = await readJson(request);
       return authorized(request, response, (device) => control(response, device, body));
@@ -125,6 +136,8 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
     handle: (request: IncomingMessage, response: ServerResponse) => {
       route(request, response).catch(() => send(response, 500, { status: 'error' }));
     },
+    /** After the access changed: a device that is no longer approved loses its open streams at once, not at the next event */
+    closeRevoked,
     /** `path` is the file of the track in the library: it stays here and is never sent */
     setNowPlaying: (snapshot: NowPlaying, path?: string) => {
       trackPath = snapshot.state === 'idle' ? undefined : path;

@@ -60,6 +60,7 @@ const listen = (deviceId: string, secret: string) => {
       response.on('data', (chunk) => events.push(`${chunk}`));
       response.on('end', () => (ended = true));
       response.on('error', () => (ended = true));
+      response.on('close', () => (ended = true));
     }
   );
   outgoing.on('error', () => (ended = true));
@@ -131,6 +132,70 @@ describe('the host server', () => {
     host.setNowPlaying({ state: 'idle' });
     await vi.waitFor(() => expect(stream.hasEnded()).toBe(true));
     stream.stop();
+  });
+
+  it('ends the events of a device at once when the host revokes it, without waiting for the next event', async () => {
+    const revoked = approvedDevice();
+    const kept = approvedDevice();
+    const stream = listen(revoked.deviceId, revoked.secret);
+    const other = listen(kept.deviceId, kept.secret);
+    await vi.waitFor(() => expect(stream.events.join('') && other.events.join('')).toContain('"state":"idle"'));
+
+    access.revoke(revoked.deviceId);
+    host.closeRevoked();
+
+    await vi.waitFor(() => expect(stream.hasEnded()).toBe(true));
+    expect(other.hasEnded()).toBe(false);
+    stream.stop();
+    other.stop();
+  });
+
+  it('ends the audio that is on its way to a device when the host blocks it', async () => {
+    await host.close();
+    let cancelled = false;
+    host = await startHostServer({
+      identity,
+      access,
+      loopbackOnly: true,
+      // a track that never ends: only the block can stop it
+      serveAudio: async () =>
+        new Response(
+          new ReadableStream({
+            pull: (controller) => new Promise((resolve) => setTimeout(() => (controller.enqueue(new Uint8Array(1024)), resolve(undefined)), 5)),
+            cancel: () => {
+              cancelled = true;
+            },
+          })
+        ),
+    });
+    const { deviceId, secret } = approvedDevice();
+    host.setNowPlaying({ state: 'playing', title: 'Song', position: 0, at: 1000 }, '/music/song.flac');
+    let received = 0;
+    let ended = false;
+    const outgoing = request(
+      {
+        host: '127.0.0.1',
+        port: host.port,
+        agent: false,
+        path: '/remote/audio',
+        headers: { 'x-tunelle-device': deviceId, authorization: `Bearer ${secret}` },
+        ...pinnedOptions(identity.certificate),
+      },
+      (response) => {
+        response.on('data', (chunk) => (received += chunk.length));
+        response.on('close', () => (ended = true));
+        response.on('error', () => undefined);
+      }
+    );
+    outgoing.on('error', () => (ended = true));
+    outgoing.end();
+    await vi.waitFor(() => expect(received).toBeGreaterThan(0));
+
+    access.block(deviceId);
+    host.closeRevoked();
+
+    await vi.waitFor(() => expect(ended).toBe(true));
+    await vi.waitFor(() => expect(cancelled).toBe(true));
   });
 
   it('carries a command only for a control that was granted, and tells the page', async () => {

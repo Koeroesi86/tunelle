@@ -156,6 +156,7 @@ export const createHostController = (
         block: () => (access.block(deviceId), true),
       }[action]();
       if (done) await saveDevices();
+      server?.closeRevoked();
       publish();
     },
     setControls: async (deviceId: string, controls: Control[]) => {
