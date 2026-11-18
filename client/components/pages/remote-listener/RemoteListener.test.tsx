@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { RemoteListenerState } from '@shared/schemas/remote-listener';
+import type { RemoteHostState } from '@shared/schemas/remote-host';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import RemoteListener from './RemoteListener';
 
 const target = { host: '192.168.1.5', port: 40000 };
 
-const setup = (state: RemoteListenerState | undefined, nearby: NearbyHost[] = []) => {
-  const props = { state, connect: vi.fn(), confirm: vi.fn(), leave: vi.fn(), control: vi.fn(), listenAlong: vi.fn(), nearby, browse: vi.fn() };
+const setup = (state: RemoteListenerState | undefined, nearby: NearbyHost[] = [], host?: RemoteHostState) => {
+  const props = { state, host, connect: vi.fn(), confirm: vi.fn(), leave: vi.fn(), control: vi.fn(), listenAlong: vi.fn(), nearby, browse: vi.fn() };
   const view = render(<RemoteListener {...props} />);
   return { ...props, ...view };
 };
@@ -16,6 +17,34 @@ const type = (label: string, value: string) => fireEvent.change(screen.getByLabe
 
 describe('RemoteListener', () => {
   afterEach(() => vi.useRealTimers());
+
+  it('is disabled while this app is a host, with the note and the way to connect to it, and does not look for hosts', () => {
+    const host: RemoteHostState = {
+      enabled: true,
+      name: 'Kitchen',
+      loopbackOnly: false,
+      maxListeners: 5,
+      running: true,
+      port: 41000,
+      code: 'AB12',
+      addresses: ['192.168.1.30'],
+      pending: [],
+      devices: [],
+    };
+    const { browse } = setup({ status: 'idle' }, [], host);
+
+    expect(screen.getByText('Host mode is on')).toBeTruthy();
+    expect(screen.getByText('Other devices connect to 192.168.1.30, port 41000. Code: AB12.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Connect' }).closest('fieldset')?.disabled).toBe(true);
+    expect(browse).not.toHaveBeenCalled();
+  });
+
+  it('is not disabled while the host mode is off', () => {
+    setup({ status: 'idle' });
+
+    expect(screen.getByRole('button', { name: 'Connect' }).closest('fieldset')?.disabled).toBe(false);
+    expect(screen.queryByText('Host mode is on')).toBeNull();
+  });
 
   it('shows nothing until the main process reported', () => {
     expect(setup(undefined).container.innerHTML).toBe('');
