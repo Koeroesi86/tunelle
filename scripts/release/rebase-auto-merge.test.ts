@@ -91,12 +91,15 @@ describe('squash merged base', () => {
     headRefName: 'child',
     isCrossRepository: false,
   };
-  const commits = ['p1', 'p2', 'c1'].map((sha) => ({ sha }));
+  const commitOf = (sha: string, date = sha) => ({ sha, commit: { author: { date }, message: `message of ${sha}` } });
+  const commits = ['p1', 'p2', 'c1'].map((sha) => commitOf(sha));
+  const closed = [{ number: 5, merged_at: '2026-11-02T07:00:00Z' }];
   const createStack = (node: object = stacked) =>
     vi.fn(async (path: string) => {
       if (path === '/graphql') return { data: { repository: { pullRequests: { nodes: [node] } } } };
+      if (path.includes('/pulls?state=closed')) return [];
       if (path.includes('/pulls/9/commits')) return commits;
-      return path.endsWith('/c1/pulls') ? [{ number: 9, merged_at: null }] : [{ number: 5, merged_at: '2026-11-02T07:00:00Z' }];
+      return path.endsWith('/c1/pulls') ? [{ number: 9, merged_at: null }] : closed;
     });
   const gitCalls = () => execFile.mock.calls.map(([, args]) => (Array.isArray(args) ? args.join(' ') : ''));
 
@@ -111,13 +114,28 @@ describe('squash merged base', () => {
   });
 
   it('finds the last commit of the merged pull request', async () => {
-    await expect(findOldBase(createStack(), 'owner/name', 9)).resolves.toBe('p2');
+    await expect(findOldBase(createStack(), 'owner/name', 'master', 9)).resolves.toBe('p2');
+  });
+
+  it('matches the commits of a merged pull request that was rebased before the merge by the author date and the message', async () => {
+    const rebased = commits.slice(0, 2).map((item) => ({ ...item, sha: `rebased-${item.sha}` }));
+    const request = vi.fn(async (path: string) => {
+      if (path.includes('/pulls?state=closed')) return closed;
+      if (path.includes('/pulls/5/commits')) return rebased;
+      if (path.includes('/pulls/9/commits')) return commits;
+      return [{ number: 9, merged_at: null }];
+    });
+
+    await expect(findOldBase(request, 'owner/name', 'master', 9)).resolves.toBe('p2');
   });
 
   it('has no old base when no commit belongs to a merged pull request', async () => {
-    const request = vi.fn(async (path: string) => (path.includes('/commits?') ? commits : [{ number: 9, merged_at: null }]));
+    const request = vi.fn(async (path: string) => {
+      if (path.includes('/pulls?state=closed')) return [];
+      return path.includes('/commits?') ? commits : [{ number: 9, merged_at: null }];
+    });
 
-    await expect(findOldBase(request, 'owner/name', 9)).resolves.toBeUndefined();
+    await expect(findOldBase(request, 'owner/name', 'master', 9)).resolves.toBeUndefined();
   });
 
   it('replays the own commits onto master and pushes with a lease on the head it saw', async () => {
@@ -142,6 +160,7 @@ describe('squash merged base', () => {
   it('does not touch git for a conflict without a merged pull request below', async () => {
     const request = vi.fn(async (path: string) => {
       if (path === '/graphql') return { data: { repository: { pullRequests: { nodes: [stacked] } } } };
+      if (path.includes('/pulls?state=closed')) return [];
       return path.includes('/commits?') ? commits : [{ number: 9, merged_at: null }];
     });
 

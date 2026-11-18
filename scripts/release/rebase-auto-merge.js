@@ -34,12 +34,30 @@ const createRequest = (token) => async (path, options) => {
   return response.json()
 }
 
+// a rebase keeps the author date and the message of a commit but gives it a new sha, so the commits of a pull request below that was rebased (by this script or
+// by hand) before it was squash merged are matched by them. See docs/release/releases.md
+const commitKey = ({ commit }) => `${commit.author.date} ${commit.message}`
+
+const findMergedKeys = async (request, repository, base, number) => {
+  const closed = await request(`/repos/${repository}/pulls?state=closed&base=${base}&sort=updated&direction=desc&per_page=30`)
+  const lists = await Promise.all(
+    closed
+      .filter((item) => item.merged_at && item.number !== number)
+      .map((item) => request(`/repos/${repository}/pulls/${item.number}/commits?per_page=100`))
+  )
+  return new Set(lists.flat().map(commitKey))
+}
+
 // the commits at the start of the branch that belong to a merged pull request are the ones of the pull request below, which was squash merged: the last one is
-// the old base. See docs/release/releases.md
-const findOldBase = async (request, repository, number) => {
+// the old base
+const findOldBase = async (request, repository, base, number) => {
   const commits = await request(`/repos/${repository}/pulls/${number}/commits?per_page=100`)
+  const keys = await findMergedKeys(request, repository, base, number)
   const merged = await Promise.all(
-    commits.map(async ({ sha }) => (await request(`/repos/${repository}/commits/${sha}/pulls`)).some((item) => item.merged_at && item.number !== number))
+    commits.map(
+      async (item) =>
+        keys.has(commitKey(item)) || (await request(`/repos/${repository}/commits/${item.sha}/pulls`)).some((pull) => pull.merged_at && pull.number !== number)
+    )
   )
   const own = merged.indexOf(false)
   return own > 0 ? commits[own - 1].sha : undefined
@@ -76,7 +94,7 @@ const replay = async (next, oldBase, base) => {
 }
 
 const rebaseConflicting = async (request, repository, base, next) => {
-  const oldBase = next.isCrossRepository ? undefined : await findOldBase(request, repository, next.number)
+  const oldBase = next.isCrossRepository ? undefined : await findOldBase(request, repository, base, next.number)
   if (!oldBase) return console.log(`#${next.number} has a conflict, the queue waits for its author`)
   if (!(await replay(next, oldBase, base))) return console.log(`#${next.number} has a conflict of its own commits, the queue waits for its author`)
   console.log(`Replayed the commits of #${next.number} after ${oldBase} onto ${base}`)
