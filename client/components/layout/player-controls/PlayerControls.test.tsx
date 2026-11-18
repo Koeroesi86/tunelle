@@ -32,6 +32,7 @@ const renderControls = (volume: number, currentSong: Track | null = null, curren
     nextSong: vi.fn(),
     previousSong: vi.fn(),
     followTrack: vi.fn(),
+    leaveRemoteHost: vi.fn(),
   };
   const view = render(<PlayerControls {...props} />);
   return { ...view, props, rerenderWithVolume: (next: number) => view.rerender(<PlayerControls {...props} volume={next} />) };

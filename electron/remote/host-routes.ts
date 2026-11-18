@@ -77,7 +77,12 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
     response.on('close', close);
     response.on('error', close);
     streams.add(stream);
-    response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
+    response.writeHead(200, {
+      'content-type': 'text/event-stream',
+      'cache-control': 'no-store',
+      connection: 'keep-alive',
+      'x-tunelle-time': String(Date.now()),
+    });
     response.write(`data: ${JSON.stringify(nowPlaying)}\n\n`);
   };
 

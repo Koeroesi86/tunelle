@@ -3,9 +3,20 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { NowPlaying } from '../../shared/schemas/now-playing';
 import { createHostController, type HostController, type HostState } from './host-controller';
 import { createHostStore } from './host-store';
-import { contact, fetchNowPlaying, requestToListen } from './listener-client';
+import { contact, followNowPlaying, requestToListen } from './listener-client';
+
+/** The first snapshot of the event stream, after which the stream is closed */
+const firstSnapshot = (target: { host: string; port: number }, certificate: string, deviceId: string, secret: string) => {
+  const stop = new AbortController();
+  return new Promise<NowPlaying>((resolve) => {
+    followNowPlaying(target, certificate, deviceId, secret, (snapshot) => (resolve(snapshot), stop.abort()), stop.signal).catch(() => undefined);
+  });
+};
+const revokedStream = (target: { host: string; port: number }, certificate: string, deviceId: string, secret: string) =>
+  followNowPlaying(target, certificate, deviceId, secret, () => undefined, new AbortController().signal);
 
 let folder: string;
 let state: HostState | undefined;
@@ -67,7 +78,7 @@ describe('the host controller with real files and a real server', () => {
     host.setNowPlaying({ state: 'paused', title: 'Song', position: 7, at: 1 });
 
     expect(state).toMatchObject({ running: true, port, code });
-    expect(await fetchNowPlaying(address(), certificate, deviceId, secret)).toMatchObject({ title: 'Song' });
+    expect(await firstSnapshot(address(), certificate, deviceId, secret)).toMatchObject({ title: 'Song' });
   });
 
   it('shows a waiting request to the page, and a revoked device gets nothing', async () => {
@@ -82,6 +93,6 @@ describe('the host controller with real files and a real server', () => {
     const secret = (await requestToListen(address(), certificate, asking(deviceId))).secret ?? '';
     await host.decide(deviceId, 'revoke');
 
-    expect(await fetchNowPlaying(address(), certificate, deviceId, secret)).toBeUndefined();
+    expect(await revokedStream(address(), certificate, deviceId, secret)).toBe('revoked');
   });
 });

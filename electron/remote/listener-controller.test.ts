@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { NowPlaying } from '../../shared/schemas/now-playing';
 import type { RemoteListenerState } from '../../shared/schemas/remote-listener';
 import { approvalCode } from './certificate';
-import { contact, fetchAudio, fetchNowPlaying, requestToListen } from './listener-client';
+import { contact, fetchAudio, followNowPlaying, requestToListen } from './listener-client';
 import { ASK_LIMIT_MS, createListenerController, POLL_MS } from './listener-controller';
 import type { ListenerStore, Pairing } from './listener-store';
 
@@ -48,6 +49,15 @@ describe('the listener controller', () => {
     await running;
   };
 
+  // a stream that gives the snapshots and stays open until the controller closes it
+  const streaming =
+    (...snapshots: NowPlaying[]): typeof followNowPlaying =>
+    (_address, _certificate, _deviceId, _secret, onSnapshot, signal) =>
+      new Promise((resolve, reject) => {
+        snapshots.forEach(onSnapshot);
+        signal.addEventListener('abort', () => reject(new Error('aborted')));
+      });
+
   const statuses = () => states.map(({ status }) => status);
 
   it('shows the code of the host and asks nothing before the user confirmed it', async () => {
@@ -73,7 +83,7 @@ describe('the listener controller', () => {
 
   it('asks pinned to the certificate that gave the code, until the host approves, and keeps the pairing', async () => {
     vi.mocked(requestToListen).mockResolvedValueOnce({ status: 'pending' }).mockResolvedValueOnce({ status: 'approved', secret: 'secret' });
-    vi.mocked(fetchNowPlaying).mockResolvedValue(snapshot);
+    vi.mocked(followNowPlaying).mockImplementation(streaming(snapshot));
     await listener.connect(address);
 
     const asking = listener.confirm('the kitchen');
@@ -134,19 +144,21 @@ describe('the listener controller', () => {
   describe('with a host it was approved by', () => {
     beforeEach(() => store.readPairing.mockResolvedValue(pairing));
 
-    it('follows the now playing from the start, once a second, and shows an error without losing the last track', async () => {
-      vi.mocked(fetchNowPlaying)
-        .mockResolvedValueOnce(snapshot)
+    it('follows the now playing as the host sends it, with no polling, and reconnects after the host closed the stream, without losing the last track', async () => {
+      vi.mocked(followNowPlaying)
+        .mockImplementationOnce(async (_a, _c, _d, _s, onSnapshot) => (onSnapshot(snapshot), 'ended'))
         .mockRejectedValueOnce(new Error('The host did not answer'))
-        .mockResolvedValue({ state: 'idle' });
+        .mockImplementation(streaming({ state: 'idle' }));
 
       const following = listener.start();
       await vi.advanceTimersByTimeAsync(POLL_MS * 2);
 
-      expect(fetchNowPlaying).toHaveBeenCalledWith(address, 'PEM', deviceId, 'secret');
+      expect(followNowPlaying).toHaveBeenCalledWith(address, 'PEM', deviceId, 'secret', expect.any(Function), expect.any(AbortSignal));
+      expect(followNowPlaying).toHaveBeenCalledTimes(3);
       expect(states.map(({ nowPlaying, error }) => [nowPlaying?.state, error])).toEqual([
         [undefined, undefined],
         ['playing', undefined],
+        ['playing', 'The host closed the connection'],
         ['playing', 'The host did not answer'],
         ['idle', undefined],
       ]);
@@ -154,7 +166,7 @@ describe('the listener controller', () => {
     });
 
     it('forgets the pairing when the host does not know the device any more', async () => {
-      vi.mocked(fetchNowPlaying).mockResolvedValue(undefined);
+      vi.mocked(followNowPlaying).mockResolvedValue('revoked');
 
       await listener.start();
 
@@ -163,21 +175,32 @@ describe('the listener controller', () => {
     });
 
     it('stops following when the user leaves, and forgets the host', async () => {
-      vi.mocked(fetchNowPlaying).mockResolvedValue(snapshot);
+      vi.mocked(followNowPlaying).mockImplementation(streaming(snapshot));
       const following = listener.start();
       await vi.advanceTimersByTimeAsync(0);
 
       await leaveAnd(following);
-      const calls = vi.mocked(fetchNowPlaying).mock.calls.length;
+      const calls = vi.mocked(followNowPlaying).mock.calls.length;
       await vi.advanceTimersByTimeAsync(POLL_MS * 3);
 
-      expect(vi.mocked(fetchNowPlaying).mock.calls.length).toBe(calls);
+      expect(vi.mocked(followNowPlaying).mock.calls.length).toBe(calls);
       expect(store.clearPairing).toHaveBeenCalled();
       expect(states.at(-1)).toEqual({ status: 'idle' });
     });
 
+    it('closes the stream of the host when the user leaves, at once', async () => {
+      let signal: AbortSignal | undefined;
+      vi.mocked(followNowPlaying).mockImplementation((_a, _c, _d, _s, _on, stop) => ((signal = stop), new Promise(() => undefined)));
+      void listener.start();
+      await vi.advanceTimersByTimeAsync(0);
+
+      await listener.leave();
+
+      expect(signal?.aborted).toBe(true);
+    });
+
     it('lets a new contact end the host that was followed', async () => {
-      vi.mocked(fetchNowPlaying).mockResolvedValue(snapshot);
+      vi.mocked(followNowPlaying).mockImplementation(streaming(snapshot));
       const following = listener.start();
       await vi.advanceTimersByTimeAsync(0);
 
@@ -199,7 +222,7 @@ describe('the listener controller', () => {
 
     it('comes from the host that is followed, with the range of the request, and from no other', async () => {
       store.readPairing.mockResolvedValue(pairing);
-      vi.mocked(fetchNowPlaying).mockResolvedValue(snapshot);
+      vi.mocked(followNowPlaying).mockImplementation(streaming(snapshot));
       vi.mocked(fetchAudio).mockResolvedValue(new Response('2345', { status: 206 }));
       const following = listener.start();
       await vi.advanceTimersByTimeAsync(0);
@@ -216,7 +239,7 @@ describe('the listener controller', () => {
 
     it('answers 502 when the host cannot be reached', async () => {
       store.readPairing.mockResolvedValue(pairing);
-      vi.mocked(fetchNowPlaying).mockResolvedValue(snapshot);
+      vi.mocked(followNowPlaying).mockImplementation(streaming(snapshot));
       vi.mocked(fetchAudio).mockRejectedValue(new Error('ECONNRESET'));
       const following = listener.start();
       await vi.advanceTimersByTimeAsync(0);
@@ -232,6 +255,6 @@ describe('the listener controller', () => {
     await listener.start();
 
     expect(listener.state()).toEqual({ status: 'idle' });
-    expect(fetchNowPlaying).not.toHaveBeenCalled();
+    expect(followNowPlaying).not.toHaveBeenCalled();
   });
 });

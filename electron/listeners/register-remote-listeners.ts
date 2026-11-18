@@ -33,7 +33,10 @@ const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
   ipcMain.on('GET_REMOTE_HOST', (event) => sendIfAlive(event.sender, 'REMOTE_HOST_STATE', host.state()));
   ipcMain.on('SET_REMOTE_HOST', (_event, payload: unknown) => {
     const change = parsePayload(hostChangeSchema, payload);
-    if (change) host.update(change).catch(logError);
+    if (!change) return;
+    // one mode at a time: a host that listens to nobody else, so turning it on ends what this app listens to
+    const leaving = change.enabled && listener.state().status !== 'idle' ? listener.leave() : Promise.resolve();
+    leaving.then(() => host.update(change)).catch(logError);
   });
   ipcMain.on('DECIDE_REMOTE_DEVICE', (_event, payload: unknown) => {
     const decision = parsePayload(deviceDecisionSchema, payload);
@@ -57,7 +60,10 @@ const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
   ipcMain.on('GET_REMOTE_LISTENER', (event) => sendIfAlive(event.sender, 'REMOTE_LISTENER_STATE', listener.state()));
   ipcMain.on('CONNECT_REMOTE_HOST', (_event, payload: unknown) => {
     const target = parsePayload(connectSchema, payload);
-    if (target) listener.connect(target).catch(logError);
+    if (!target) return;
+    // one mode at a time: connecting to a host turns the host mode of this app off
+    const closing = host.state().enabled ? host.update({ enabled: false }) : Promise.resolve();
+    closing.then(() => listener.connect(target)).catch(logError);
   });
   ipcMain.on('CONFIRM_REMOTE_HOST', (_event, payload: unknown) => {
     const request = parsePayload(confirmSchema, payload);

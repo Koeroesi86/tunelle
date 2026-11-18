@@ -1,9 +1,20 @@
 import { randomUUID } from 'node:crypto';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AccessControl } from './access';
 import { approvalCode, createHostIdentity } from './certificate';
 import { startHostServer, type HostServer } from './host-server';
-import { contact, fetchAudio, fetchNowPlaying, requestToListen } from './listener-client';
+import { contact, fetchAudio, followNowPlaying, requestToListen } from './listener-client';
+import type { NowPlaying } from '../../shared/schemas/now-playing';
+
+/** The first snapshot of the event stream, after which the stream is closed */
+const firstSnapshot = (target: { host: string; port: number }, certificate: string, deviceId: string, secret: string) => {
+  const stop = new AbortController();
+  return new Promise<NowPlaying>((resolve) => {
+    followNowPlaying(target, certificate, deviceId, secret, (snapshot) => (resolve(snapshot), stop.abort()), stop.signal).catch(() => undefined);
+  });
+};
+const revokedStream = (target: { host: string; port: number }, certificate: string, deviceId: string, secret: string) =>
+  followNowPlaying(target, certificate, deviceId, secret, () => undefined, new AbortController().signal);
 
 let identity = createHostIdentity('Host');
 let access = new AccessControl();
@@ -38,12 +49,31 @@ describe('the listener against a real host', () => {
     host.setNowPlaying({ state: 'paused', title: 'Song', position: 7, at: 1 });
 
     expect(approved.status).toBe('approved');
-    const snapshot = await fetchNowPlaying(address(), certificate, deviceId, approved.secret ?? '');
+    const snapshot = await firstSnapshot(address(), certificate, deviceId, approved.secret ?? '');
 
     // the time of the snapshot is put on the clock of this computer: the same computer here, so it moved by the time the answer took
     expect(snapshot).toMatchObject({ state: 'paused', title: 'Song', position: 7 });
-    expect(snapshot?.state === 'paused' ? snapshot.at : 0).toBeGreaterThanOrEqual(1);
-    expect(snapshot?.state === 'paused' ? snapshot.at : 0).toBeLessThan(1 + 2000);
+    expect(snapshot.state === 'paused' ? snapshot.at : 0).toBeGreaterThanOrEqual(1);
+    expect(snapshot.state === 'paused' ? snapshot.at : 0).toBeLessThan(1 + 2000);
+  });
+
+  it('gets each change as the host makes it, with the clock moved, and the end of the stream when the host revokes the device', async () => {
+    const { certificate } = await contact(address());
+    const deviceId = randomUUID();
+    await requestToListen(address(), certificate, asking(deviceId));
+    access.approve(deviceId);
+    const { secret } = await requestToListen(address(), certificate, asking(deviceId));
+    const seen: NowPlaying[] = [];
+    const ending = followNowPlaying(address(), certificate, deviceId, secret ?? '', (snapshot) => seen.push(snapshot), new AbortController().signal);
+
+    await vi.waitFor(() => expect(seen).toHaveLength(1));
+    host.setNowPlaying({ state: 'playing', title: 'Song', position: 1, at: 5 });
+    await vi.waitFor(() => expect(seen).toHaveLength(2));
+    access.revoke(deviceId);
+    host.closeRevoked();
+
+    expect(seen.map(({ state }) => state)).toEqual(['idle', 'playing']);
+    await expect(ending).rejects.toThrow();
   });
 
   it('relays the audio of the track that plays with its range, and a stop of the player ends it', async () => {
@@ -78,13 +108,13 @@ describe('the listener against a real host', () => {
     const { certificate } = await contact(address());
     const deviceId = randomUUID();
     await requestToListen(address(), certificate, asking(deviceId));
-    expect(await fetchNowPlaying(address(), certificate, deviceId, 'guess')).toBeUndefined();
+    expect(await revokedStream(address(), certificate, deviceId, 'guess')).toBe('revoked');
     access.approve(deviceId);
     const { secret } = await requestToListen(address(), certificate, asking(deviceId));
 
     access.revoke(deviceId);
 
-    expect(await fetchNowPlaying(address(), certificate, deviceId, secret ?? '')).toBeUndefined();
+    expect(await revokedStream(address(), certificate, deviceId, secret ?? '')).toBe('revoked');
   });
 
   it('refuses a host that came back with another certificate than the pinned one', async () => {

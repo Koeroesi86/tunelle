@@ -24,6 +24,7 @@ const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
     dispatch({ type: 'PLAY_TRACKS', payload: { tracks: [track] } });
     dispatch({ type: 'PLAY_TRACK', payload: { track } });
   },
+  leaveRemoteHost: () => dispatch({ type: 'LEAVE_REMOTE_HOST' }),
   setCurrentTime: (currentTime: number) => dispatch({ type: 'SET_CURRENT_TIME', payload: { currentTime } }),
   openEqualizer: () => dispatch({ type: 'SET_TAB', payload: { tab: 'equalizer' } }),
   openNowPlaying: () => dispatch({ type: 'SET_TAB', payload: { tab: 'now-playing' } }),
