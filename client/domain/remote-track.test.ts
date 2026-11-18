@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isRemoteTrack, isSameRemoteTrack, remoteKeyOf, toRemoteTrack } from './remote-track';
+import { isRemoteTrack, isSameRemoteTrack, remoteKeyOf, toRemoteTrack, trackCoverUrl } from './remote-track';
 
 const snapshot = { state: 'playing' as const, title: 'Song', artist: 'Band', album: 'LP', position: 3, at: 1000, duration: 200 };
 
@@ -38,5 +38,14 @@ describe('remote track', () => {
     expect(isSameRemoteTrack(snapshot, path)).toBe(true);
     expect(isSameRemoteTrack({ ...snapshot, title: 'Other' }, path)).toBe(false);
     expect(isSameRemoteTrack(snapshot, undefined)).toBe(false);
+  });
+
+  it('shows the cover of the host for a remote track and the own one for a file, and none without a picture', () => {
+    const remote = toRemoteTrack({ ...snapshot, cover: true });
+
+    expect(trackCoverUrl(remote)).toContain('/remote/cover?t=');
+    expect(trackCoverUrl({ path: '/music/a.flac', picture: 'abc.png' })).not.toContain('/remote/cover');
+    expect(trackCoverUrl(toRemoteTrack(snapshot))).toBeUndefined();
+    expect(trackCoverUrl({ path: '/music/a.flac', picture: null })).toBeUndefined();
   });
 });
