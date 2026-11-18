@@ -47,9 +47,16 @@ interface Stream {
 }
 
 /** The routes of the host and the now playing they answer with; no other route exists. See docs/app/remote-access-discovery.md */
-export const createRoutes = (access: AccessControl, onControl: (command: ControlCommand) => void, serveAudio: ServeAudio | undefined, maxListeners: number) => {
+export const createRoutes = (
+  access: AccessControl,
+  onControl: (command: ControlCommand) => void,
+  serveAudio: ServeAudio | undefined,
+  serveCover: ServeAudio | undefined,
+  maxListeners: number
+) => {
   let nowPlaying: NowPlaying = { state: 'idle' };
   let trackPath: string | undefined;
+  let coverKey: string | undefined;
   const streams = new Set<Stream>();
   // the audio that is on its way to a device, which a revoke ends as it does an event stream
   const relays = new Set<Stream>();
@@ -123,6 +130,14 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
     return relayResponse(answer, response);
   };
 
+  /** The cover of the track that plays now, and only it: the key is the host's own and no request names a file */
+  const cover = async (request: IncomingMessage, response: ServerResponse) => {
+    if (!serveCover || !coverKey) return send(response, 404, { status: 'no-cover' });
+    const abort = new AbortController();
+    response.on('close', () => abort.abort());
+    return relayResponse(await serveCover(coverKey, new Request('https://host/remote/cover', { signal: abort.signal })), response);
+  };
+
   const route = async (request: IncomingMessage, response: ServerResponse) => {
     const path = new URL(request.url ?? '/', 'https://host').pathname;
     if (request.method === 'POST' && path === '/remote/request') {
@@ -135,6 +150,8 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
       return authorized(request, response, (device, secret) => openStream(response, device.id, secret));
     if (request.method === 'GET' && path === '/remote/audio')
       return authorized(request, response, (device, secret) => audio(request, response, device, secret).catch(() => response.destroy()));
+    if (request.method === 'GET' && path === '/remote/cover')
+      return authorized(request, response, () => cover(request, response).catch(() => response.destroy()));
     if (request.method === 'POST' && path === '/remote/control') {
       const body = await readJson(request);
       return authorized(request, response, (device) => control(response, device, body));
@@ -159,10 +176,11 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
     },
     /** After the access changed: a device that is no longer approved loses its open streams at once, not at the next event */
     closeRevoked,
-    /** `path` is the file of the track in the library: it stays here and is never sent */
-    setNowPlaying: (snapshot: NowPlaying, path?: string) => {
+    /** `path` is the file of the track in the library and `cover` the key of its picture: they stay here and are never sent */
+    setNowPlaying: (snapshot: NowPlaying, path?: string, cover?: string) => {
       trackPath = snapshot.state === 'idle' ? undefined : path;
-      nowPlaying = nowPlayingSchema.parse(snapshot);
+      coverKey = snapshot.state === 'idle' ? undefined : cover;
+      nowPlaying = nowPlayingSchema.parse(snapshot.state !== 'idle' && coverKey ? { ...snapshot, cover: true } : snapshot);
       writeToStreams(`data: ${JSON.stringify(nowPlaying)}\n\n`);
     },
   };

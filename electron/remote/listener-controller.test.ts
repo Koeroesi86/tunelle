@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NowPlaying } from '../../shared/schemas/now-playing';
 import type { RemoteListenerState } from '../../shared/schemas/remote-listener';
 import { approvalCode } from './certificate';
-import { contact, fetchAudio, followNowPlaying, requestToListen, sendControl } from './listener-client';
+import { contact, fetchAudio, fetchCover, followNowPlaying, requestToListen, sendControl } from './listener-client';
 import { ASK_LIMIT_MS, createListenerController, POLL_MS } from './listener-controller';
 import type { ListenerStore, Pairing } from './listener-store';
 
@@ -288,6 +288,34 @@ describe('the listener controller', () => {
       await listener.leave();
       await vi.advanceTimersByTimeAsync(POLL_MS);
       await following;
+    });
+  });
+
+  describe('the cover of the host', () => {
+    it('has none before a host approved this device, and comes from the host that is followed after', async () => {
+      expect((await listener.cover(new Request('tunelle://app/remote/cover'))).status).toBe(404);
+      expect(fetchCover).not.toHaveBeenCalled();
+
+      store.readPairing.mockResolvedValue(pairing);
+      vi.mocked(followNowPlaying).mockImplementation(streaming(snapshot));
+      vi.mocked(fetchCover).mockResolvedValue(new Response('png'));
+      const following = listener.start();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect((await listener.cover(new Request('tunelle://app/remote/cover'))).status).toBe(200);
+      expect(fetchCover).toHaveBeenCalledWith(address, 'PEM', deviceId, 'secret', expect.any(AbortSignal));
+      await leaveAnd(following);
+    });
+
+    it('answers 502 when the host cannot be reached', async () => {
+      store.readPairing.mockResolvedValue(pairing);
+      vi.mocked(followNowPlaying).mockImplementation(streaming(snapshot));
+      vi.mocked(fetchCover).mockRejectedValue(new Error('ECONNRESET'));
+      const following = listener.start();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect((await listener.cover(new Request('tunelle://app/remote/cover'))).status).toBe(502);
+      await leaveAnd(following);
     });
   });
 

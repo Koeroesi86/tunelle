@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AccessControl } from './access';
 import { approvalCode, createHostIdentity } from './certificate';
 import { startHostServer, type HostServer } from './host-server';
-import { contact, fetchAudio, followNowPlaying, requestToListen, sendControl } from './listener-client';
+import { contact, fetchAudio, fetchCover, followNowPlaying, requestToListen, sendControl } from './listener-client';
 import type { NowPlaying } from '../../shared/schemas/now-playing';
 
 /** The first snapshot of the event stream, after which the stream is closed */
@@ -137,6 +137,32 @@ describe('the listener against a real host', () => {
     expect([part.status, part.headers.get('content-range'), await part.text()]).toEqual([206, 'bytes 2-5/10', '2345']);
     expect(denied.status).toBe(401);
     await expect(fetchAudio(address(), certificate, deviceId, secret ?? '', undefined, AbortSignal.abort())).rejects.toThrow();
+  });
+
+  it('relays the cover of the track that plays by the key of the host, and tells the listener there is one without the key', async () => {
+    const keys: string[] = [];
+    await host.close();
+    host = await startHostServer({
+      identity,
+      access,
+      loopbackOnly: true,
+      serveCover: async (key) => (keys.push(key), new Response('png', { headers: { 'content-type': 'image/png' } })),
+    });
+    const { certificate } = await contact(address());
+    const deviceId = randomUUID();
+    await requestToListen(address(), certificate, asking(deviceId));
+    access.approve(deviceId);
+    const { secret } = await requestToListen(address(), certificate, asking(deviceId));
+    host.setNowPlaying({ state: 'playing', title: 'Song', position: 0, at: 1 }, '/music/song.flac', 'abc-optimized.png');
+
+    const cover = await fetchCover(address(), certificate, deviceId, secret ?? '', new AbortController().signal);
+    const snapshot = await firstSnapshot(address(), certificate, deviceId, secret ?? '');
+
+    expect([cover.status, cover.headers.get('content-type'), await cover.text()]).toEqual([200, 'image/png', 'png']);
+    expect(keys).toEqual(['abc-optimized.png']);
+    expect(snapshot).toMatchObject({ cover: true });
+    expect(JSON.stringify(snapshot)).not.toContain('abc-optimized');
+    expect((await fetchCover(address(), certificate, deviceId, 'guess', new AbortController().signal)).status).toBe(401);
   });
 
   it('is told nothing once the host revoked or blocked it, and not before it was approved', async () => {

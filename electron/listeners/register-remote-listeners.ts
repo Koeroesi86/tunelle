@@ -1,5 +1,6 @@
 import { hostname } from 'node:os';
 import { app, ipcMain } from 'electron';
+import { serveCover } from '../remote/serve-cover';
 import { serveTrack } from '../protocols/serve-track';
 import { advertisementId, createHostController } from '../remote/host-controller';
 import type { HostState } from '../remote/host-controller';
@@ -12,7 +13,7 @@ import { confirmSchema, connectSchema } from '../remote/listener-requests';
 import { createListenerStore } from '../remote/listener-store';
 import { createNearby } from '../remote/nearby';
 import { nearbyRequestSchema } from '../remote/nearby-requests';
-import { provideRemoteAudio } from '../remote/remote-audio';
+import { provideRemoteMedia } from '../remote/remote-media';
 import { logError } from '../utils/log-error';
 import { parsePayload } from '../utils/parse-payload';
 import { sendIfAlive } from '../utils/send-if-alive';
@@ -25,6 +26,7 @@ const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
     (state: HostState) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_HOST_STATE', state),
     (command) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_CONTROL', command),
     (trackPath, request) => serveTrack(database, trackPath, request),
+    serveCover,
     app.getVersion()
   );
 
@@ -54,7 +56,7 @@ const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
     deviceNameOf(hostname()),
     (state) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_LISTENER_STATE', state)
   );
-  provideRemoteAudio(listener.audio);
+  provideRemoteMedia({ audio: listener.audio, cover: listener.cover });
   // a listener without a host it was approved by contacts nobody
   listener.start().catch(logError);
 

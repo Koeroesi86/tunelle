@@ -507,6 +507,7 @@
   "remote.listen.idle": "Nothing plays on the host.",
   "remote.listen.along": "Listen along",
   "remote.listen.leave": "Stop listening",
+  "remote.listen.next": "Next on the host: {track}",
   "remote.listen.controls": "Controls of the host",
   "remote.listen.control.playPause": "Play or pause",
   "remote.listen.control.previous": "Previous",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCoverUrl } from './cover-url';
+import { getCoverUrl, optimizedCoverOf } from './cover-url';
 
 describe('getCoverUrl', () => {
   it.each([
@@ -13,5 +13,9 @@ describe('getCoverUrl', () => {
 
   it('keeps a name with URL characters inside the path', () => {
     expect(getCoverUrl('/data/albumart/a?b#c.jpg')).toBe('tunelle://app/albumart/a%3Fb%23c-optimized.png');
+  });
+
+  it('names the optimized file for the host to serve, without a folder', () => {
+    expect(optimizedCoverOf('C:\\data\\albumart\\cover-abc.jpg')).toBe('cover-abc-optimized.png');
   });
 });

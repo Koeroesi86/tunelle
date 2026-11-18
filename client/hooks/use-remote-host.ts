@@ -9,6 +9,10 @@ interface RemoteHostInfo {
   duration: number;
   /** The library path of the file; undefined for a station, which has no file to relay. It never leaves the host */
   path: string | undefined;
+  /** The name of the cover file in the album art folder; like the path it stays on the host */
+  coverKey: string | undefined;
+  /** The track that plays after this one */
+  next: { title: string; artist: string | undefined } | undefined;
 }
 
 interface RemoteHostPlayback {
@@ -63,12 +67,14 @@ export const useRemoteHost = (info: RemoteHostInfo | undefined, { isPlaying, cur
             position: currentTime,
             at: Date.now(),
             path: info.path,
+            coverKey: info.coverKey,
+            next: info.next,
           }
         : { state: 'idle' }
     );
   };
 
-  useEffect(send, [info?.title, info?.artist, info?.album, info?.duration, info?.path, isPlaying]);
+  useEffect(send, [info?.title, info?.artist, info?.album, info?.duration, info?.path, info?.coverKey, info?.next?.title, info?.next?.artist, isPlaying]);
 
   useEffect(() => {
     if (!info) return;
