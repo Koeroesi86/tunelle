@@ -1,7 +1,11 @@
 import type { Track } from '@shared/types/library';
+import { localUrl } from '../services/local-url';
 import type { NowPlaying } from '@shared/schemas/now-playing';
 
 const remotePrefix = 'remote://';
+
+/** The picture of a track of the host: not a file of this app, the cover comes from the host through the protocol */
+const remoteCover = 'remote-cover';
 
 type PlayingSnapshot = Exclude<NowPlaying, { state: 'idle' }>;
 
@@ -18,7 +22,7 @@ export const toRemoteTrack = (snapshot: PlayingSnapshot): Track => ({
   track: '',
   disk: '',
   genre: '',
-  picture: null,
+  picture: snapshot.cover ? remoteCover : null,
   duration: snapshot.duration ?? null,
   codec: null,
   bitrate: null,
@@ -32,3 +36,6 @@ export const remoteKeyOf = (path: string) => (isRemoteTrack(path) ? path.slice(r
 
 /** True when the snapshot is the track that is loaded */
 export const isSameRemoteTrack = (snapshot: PlayingSnapshot, path: string | undefined) => path === `${remotePrefix}${keyOf(snapshot)}`;
+
+/** The address of the cover of the loaded track of the host, a new one for each track */
+export const remoteCoverUrl = (path: string) => localUrl(`/remote/cover?t=${remoteKeyOf(path) ?? ''}`);
