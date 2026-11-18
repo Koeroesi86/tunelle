@@ -76,7 +76,18 @@ export const useRemoteHost = (info: RemoteHostInfo | undefined, { isPlaying, cur
     );
   };
 
-  useEffect(send, [info?.title, info?.artist, info?.album, info?.duration, info?.path, info?.coverKey, info?.next?.title, info?.next?.artist, isPlaying, volume]);
+  useEffect(send, [
+    info?.title,
+    info?.artist,
+    info?.album,
+    info?.duration,
+    info?.path,
+    info?.coverKey,
+    info?.next?.title,
+    info?.next?.artist,
+    isPlaying,
+    volume,
+  ]);
 
   useEffect(() => {
     if (!info) return;
