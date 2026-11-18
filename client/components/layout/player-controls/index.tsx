@@ -7,6 +7,12 @@ import type { Track } from '@shared/types/library';
 import PlayerControls from './PlayerControls';
 import { Audio } from '../../../audio/context';
 
+/** The name the host announces, or its address while it is not among the Tunelles nearby; undefined while this app does not listen */
+const hostNameOf = ({ remoteListener, remoteNearby }: RootState['uiState']) => {
+  const target = remoteListener?.status === 'listening' ? remoteListener.target : undefined;
+  return target && (remoteNearby.find(({ host, port }) => host === target.host && port === target.port)?.name ?? `${target.host}:${target.port}`);
+};
+
 const mapState = (state: RootState) => ({
   isPlaying: state.uiState.isPlaying,
   volume: state.uiState.volume,
@@ -16,6 +22,7 @@ const mapState = (state: RootState) => ({
   currentSong: state.uiState.currentSong,
   upNext: state.uiState.upNext,
   hostNowPlaying: state.uiState.remoteListener?.status === 'listening' ? state.uiState.remoteListener.nowPlaying : undefined,
+  hostName: hostNameOf(state.uiState),
   streamTitle: state.uiState.streamTitle,
   streamArt: state.uiState.streamArt,
 });

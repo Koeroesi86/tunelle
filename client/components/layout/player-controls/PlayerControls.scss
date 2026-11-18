@@ -223,6 +223,40 @@
     }
   }
 
+  .following {
+    flex: 0 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  .followingName {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .followingLeave {
+    flex: 0 0 auto;
+    padding: 4px 10px;
+    border: 1px solid var(--overlay);
+    border-radius: 14px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+  }
+
   .right {
     display: flex;
     flex-direction: row;
@@ -277,6 +311,10 @@
       height: $touch-target;
     }
 
+    .followingLeave {
+      min-height: $touch-target;
+    }
+
     .playToggleButton {
       width: $touch-target;
       height: $touch-target;
@@ -321,6 +359,10 @@
 
     .secondary,
     .right {
+      display: none;
+    }
+
+    .following {
       display: none;
     }
 

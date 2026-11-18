@@ -180,6 +180,7 @@
   "player.unmute": "Unmute",
   "player.fullVolume": "Full volume",
   "player.live": "Live",
+  "player.following": "Listening to {host}",
   "player.seek": "Seek",
   "player.volume": "Volume",
   "player.nowPlaying": "Now playing: {title} by {artist}",
