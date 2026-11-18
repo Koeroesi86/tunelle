@@ -66,10 +66,10 @@ test('the listener loses the audio when the host revokes it', async ({ session: 
 test('the listener skips the host to the next track once the host granted it', async ({ session: host, second: listener }) => {
   await listenAlong(host.page, listener.page);
   await navigate(host.page, 'Settings');
-  await host.page
-    .getByRole('group', { name: /^What .* may control$/ })
-    .getByRole('checkbox', { name: ui('Skip') })
-    .check();
+  // the box follows the state of the host that comes back from the main process, so `check()` would read it before that and fail
+  const skip = host.page.getByRole('group', { name: /^What .* may control$/ }).getByRole('checkbox', { name: ui('Skip') });
+  await skip.click();
+  await expect(skip).toBeChecked();
 
   await navigate(listener.page, 'Nearby Tunelles');
   await listener.page
