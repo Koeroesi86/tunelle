@@ -1,7 +1,7 @@
 import type { Track } from '@shared/types/library';
-import { getCoverUrl, getRadioArtUrl, getRadioLogoUrl } from '../utils/cover-url';
+import { getRadioArtUrl, getRadioLogoUrl } from '../utils/cover-url';
 import { radioUuidOf } from './radio-track';
-import { isRemoteTrack, remoteCoverUrl } from './remote-track';
+import { trackCoverUrl } from './remote-track';
 
 /** The stream title is usually `Artist - Title`, without the separator it is all the title */
 export const splitStreamTitle = (streamTitle: string) => {
@@ -14,8 +14,7 @@ export const toNowPlaying = (track: Track, streamTitle: string | null, streamArt
   const uuid = radioUuidOf(track.path);
   const onAir = streamTitle && uuid ? { ...track, ...splitStreamTitle(streamTitle), album: track.title, picture: null } : track;
   const stationCover = streamArt ? getRadioArtUrl(streamArt) : uuid && streamTitle ? getRadioLogoUrl(uuid) : undefined;
-  const ownCover = onAir.picture ? (isRemoteTrack(onAir.path) ? remoteCoverUrl(onAir.path) : getCoverUrl(onAir.picture)) : undefined;
-  const cover = stationCover ?? ownCover;
+  const cover = stationCover ?? trackCoverUrl(onAir);
 
   return { track: onAir, cover };
 };

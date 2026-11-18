@@ -129,3 +129,7 @@ The listener asks with its host name (`os.hostname()`), and the host answers `in
 ## Position and cover while following (part 17)
 
 - Symptoms found by hand on two apps: listening along while the listener already played started the track from the beginning, a paused listener stayed where it was while the host went on, and the player bar showed no cover. Cause: the position was only compared when the host sent a snapshot, and the host sends one only when something changes; the remote track had no picture. `useRemoteFollow` now compares the position once when the track is loaded and every second after (`FOLLOW_MS`), whether the listener plays or not, and a remote track with a cover has the picture `remote-cover`, which `toNowPlaying` turns into `/remote/cover`. Check: join a host that plays 1 minute into a track from a listener that plays something else; the position is within a second of the host, and the cover shows in the player bar.
+
+## The cover on the home view (part 18)
+
+- The "continue" tile of the home view took the picture `remote-cover` of a followed track for a file name and asked `/covers/remote-cover`, which gives a 404 and an empty tile. `trackCoverUrl` (`client/domain/remote-track.ts`) is the one place that turns a track into a cover address, for the player bar and the tile. The recent list shows no cover for a followed track on purpose: the host serves only the cover of what it plays now. Check: follow a host with a cover, stop the player, open the home view; the tile shows the cover of the host.
