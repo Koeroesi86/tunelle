@@ -45,6 +45,8 @@ const initialState: UiState = {
   streamArt: null,
   streamSampleRate: null,
   launcher: { available: false, enabled: false, offered: false, external: false },
+  remoteHost: undefined,
+  remoteListener: undefined,
   shuffle: false,
   repeat: false,
   equalizer: defaultGains,
@@ -346,6 +348,10 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return state.playlistId === action.payload.id ? { ...state, playlistId: null, tab: state.tab === 'playlist' ? 'home' : state.tab } : state;
     case 'LAUNCHER_STATE':
       return { ...state, launcher: action.payload };
+    case 'REMOTE_HOST_STATE':
+      return { ...state, remoteHost: action.payload };
+    case 'REMOTE_LISTENER_STATE':
+      return { ...state, remoteListener: action.payload };
     case 'SET_LANGUAGE':
       return { ...state, language: action.payload.language };
     case 'SET_NORMALIZATION':

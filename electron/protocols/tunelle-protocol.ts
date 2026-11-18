@@ -3,13 +3,13 @@ import { protocol } from 'electron';
 import type { Database } from 'sqlite3';
 import { resolveAlbumArt } from '../library/art/album-art';
 import { getCoverAccent } from '../library/art/album-art-accents';
-import { findPlayableTrack } from '../repositories/library-repository';
 import { libraryRoutes } from './library-routes';
 import { serveRadio } from './radio-protocol';
 import type { RadioStreamDeps } from './radio-proxy';
 import type { RadioArtImage } from '../services/radio-art';
-import { playableFile } from './decoded-track';
 import { notFound, serveFile } from './serve-file';
+import { serveTrack } from './serve-track';
+import { serveRemoteAudio } from '../remote/remote-audio';
 import { artKeySchema, assetPathSchema, stationUuidSchema, trackPathSchema } from '../schemas/routes';
 
 const scheme = 'tunelle';
@@ -40,15 +40,11 @@ const route = async (request: Request, { getDatabase, radio, appRoot }: TunelleD
   const { pathname, searchParams } = new URL(request.url);
   if (Object.hasOwn(libraryRoutes, pathname)) return libraryRoutes[pathname](getDatabase(), searchParams);
 
-  if (pathname === '/track') {
-    const database = getDatabase();
-    const filePath = trackPathSchema.safeParse(searchParams.get('path')).data;
-    // only files of the library are served, the path comes from the database and not from the request
-    const track = database && filePath ? await findPlayableTrack(database, filePath) : undefined;
-    // a format that Chromium does not play is decoded to a WAV file first (docs/app/decoder-proxy.md)
-    const file = track ? await playableFile(track, request.signal) : undefined;
-    return file ? serveFile(file, request) : notFound();
-  }
+  // only files of the library are served, the path comes from the database and not from the request
+  if (pathname === '/track') return serveTrack(getDatabase(), trackPathSchema.safeParse(searchParams.get('path')).data, request);
+
+  // the audio of the host that this app listens to, relayed with the range of the request; the page names neither host nor file
+  if (pathname === '/remote/audio') return serveRemoteAudio(request);
 
   const { kind, key = '' } = assetPathSchema.safeParse(pathname).data ?? {};
   if (kind === 'radio') return serveRadio(key, request.signal, radio);

@@ -1,7 +1,10 @@
 import { AccessControl, type Control, type PendingRequest } from './access';
 import { startHostServer, type HostServer } from './host-server';
 import type { HostSettings, HostStore } from './host-store';
-import { nowPlayingSchema, type NowPlaying } from './now-playing';
+import { nowPlayingSchema, type NowPlaying } from '../../shared/schemas/now-playing';
+import { z } from 'zod';
+import type { ControlCommand } from './control-command';
+import type { ServeAudio } from './host-routes';
 import { approvalCode } from './certificate';
 
 export interface HostState extends HostSettings {
@@ -33,13 +36,21 @@ class ObservedAccess extends AccessControl {
   }
 }
 
+// the file of the track rides along with the snapshot from the page, and only the host knows it
+const pathOf = z.object({ path: z.string().min(1) });
+
 const isTaken = (error: unknown) => error instanceof Error && 'code' in error && error.code === 'EADDRINUSE';
 
 /**
  * Starts and stops the host server by its settings, keeps the approved devices on disk and reports the state to the page.
  * Nothing listens until the user turns host mode on. See docs/app/remote-access-discovery.md
  */
-export const createHostController = (store: HostStore, onChange: (state: HostState) => void) => {
+export const createHostController = (
+  store: HostStore,
+  onChange: (state: HostState) => void,
+  onControl: (command: ControlCommand) => void,
+  serveAudio?: ServeAudio
+) => {
   let settings: HostSettings | undefined;
   let access: AccessControl = new AccessControl();
   let server: HostServer | undefined;
@@ -47,6 +58,7 @@ export const createHostController = (store: HostStore, onChange: (state: HostSta
   let error: string | undefined;
   // the last now playing the page sent, which a start that comes after it still shows
   let nowPlaying: NowPlaying | undefined;
+  let trackPath: string | undefined;
   let changing: Promise<void> = Promise.resolve();
 
   const state = (): HostState => ({
@@ -64,7 +76,7 @@ export const createHostController = (store: HostStore, onChange: (state: HostSta
   // a saved port that is taken falls back to a free one, which is saved for the next start
   const listen = async (current: HostSettings) => {
     const identity = await store.identity(current.name);
-    const options = { identity, access, loopbackOnly: current.loopbackOnly };
+    const options = { identity, access, loopbackOnly: current.loopbackOnly, onControl, serveAudio };
     const started = await startHostServer({ ...options, port: current.port }).catch((failure: unknown) =>
       isTaken(failure) && current.port ? startHostServer({ ...options, port: 0 }) : Promise.reject(failure)
     );
@@ -88,7 +100,7 @@ export const createHostController = (store: HostStore, onChange: (state: HostSta
     try {
       access = new ObservedAccess(await store.readDevices(), publish);
       server = await listen(current);
-      if (nowPlaying) server.setNowPlaying(nowPlaying);
+      if (nowPlaying) server.setNowPlaying(nowPlaying, trackPath);
       settings = { ...current, port: server.port };
       await store.saveSettings(settings);
     } catch (failure) {
@@ -120,7 +132,8 @@ export const createHostController = (store: HostStore, onChange: (state: HostSta
       if (!parsed.success) return;
 
       nowPlaying = parsed.data;
-      server?.setNowPlaying(parsed.data);
+      trackPath = pathOf.safeParse(snapshot).data?.path;
+      server?.setNowPlaying(parsed.data, trackPath);
     },
     /** The page asked about a device; a device that is gone or a wrong id changes nothing */
     decide: async (deviceId: string, action: DeviceAction) => {

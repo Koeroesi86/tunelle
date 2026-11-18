@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AccessControl, MAX_NAME_LENGTH, MAX_NOTE_LENGTH, MAX_PENDING, MAX_REQUESTS_PER_MINUTE } from './access';
+import { AccessControl, MAX_NAME_LENGTH, MAX_NOTE_LENGTH, MAX_PENDING, MAX_REQUESTS_PER_MINUTE, MAX_WRONG_SECRETS_PER_MINUTE } from './access';
 
 const body = (overrides: Record<string, unknown> = {}) => ({ deviceId: randomUUID(), deviceName: 'Living room speaker', note: 'Hello', ...overrides });
 
@@ -227,6 +227,35 @@ describe('AccessControl', () => {
       expect(access.setControls(blocked.deviceId, ['seek'])).toBe(false);
       expect(access.setControls(randomUUID(), ['seek'])).toBe(false);
       expect(access.authenticate(request.deviceId, secret)?.controls).toEqual(['seek', 'volume']);
+    });
+  });
+
+  describe('wrong secrets', () => {
+    const approvedDevice = () => {
+      const access = new AccessControl();
+      const request = body();
+      access.request('10.0.0.2', request);
+      return { access, id: request.deviceId, secret: access.approve(request.deviceId)?.secret ?? '' };
+    };
+
+    it('are counted per address, and past the limit even the right secret waits until the minute is over', () => {
+      const { access, id, secret } = approvedDevice();
+      const guesses = Array.from({ length: MAX_WRONG_SECRETS_PER_MINUTE }, () => access.authorize('10.0.0.9', id, 'wrong').status);
+
+      expect(guesses).toEqual(Array(MAX_WRONG_SECRETS_PER_MINUTE).fill('unauthorized'));
+      expect(access.authorize('10.0.0.9', id, secret).status).toBe('rate-limited');
+      expect(access.authorize('10.0.0.3', id, secret).status).toBe('ok');
+
+      vi.setSystemTime(new Date('2026-11-17T10:01:01Z'));
+      expect(access.authorize('10.0.0.9', id, secret).status).toBe('ok');
+    });
+
+    it('do not count the right secrets of a listener that asks every second', () => {
+      const { access, id, secret } = approvedDevice();
+
+      const answers = Array.from({ length: MAX_WRONG_SECRETS_PER_MINUTE * 3 }, () => access.authorize('10.0.0.9', id, secret).status);
+
+      expect(new Set(answers)).toEqual(new Set(['ok']));
     });
   });
 });

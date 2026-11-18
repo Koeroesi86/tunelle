@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CONTROLS } from './access';
+import { CONTROLS } from '../../shared/constants/remote-controls';
 import { hostFields } from './host-store';
 
 // what the page asks of the host; a message of the wrong shape is dropped (electron/utils/parse-payload.ts)

@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HostState } from './host-controller';
 import type { HostStore } from './host-store';
-import type { NowPlaying } from './now-playing';
+import type { NowPlaying } from '../../shared/schemas/now-playing';
+import { remoteHostStateSchema } from '../../shared/schemas/remote-host';
 
 const mocks = vi.hoisted(() => ({ start: vi.fn(), close: vi.fn(), setNowPlaying: vi.fn() }));
 
@@ -23,9 +24,10 @@ const fakeStore = (settings: Record<string, unknown> = {}): HostStore => ({
 
 describe('the host controller', () => {
   const states: HostState[] = [];
+  const commands: unknown[] = [];
   const create = async (store: HostStore) => {
     const { createHostController } = await import('./host-controller');
-    return createHostController(store, (state) => states.push(state));
+    return createHostController(store, (state) => states.push(state), commands.push.bind(commands));
   };
   const last = () => states[states.length - 1];
 
@@ -36,6 +38,42 @@ describe('the host controller', () => {
       .mockImplementation(async ({ port }: { port?: number }) => ({ port: port || 41000, setNowPlaying: mocks.setNowPlaying, close: mocks.close }));
     mocks.close.mockReset().mockResolvedValue(undefined);
     mocks.setNowPlaying.mockReset();
+  });
+
+  it('gives the server the file of the track with the snapshot, and starts a later server with the last one', async () => {
+    const host = await create(fakeStore({ enabled: true }));
+    await host.start();
+    host.setNowPlaying({ state: 'playing', title: 'Song', position: 1, at: 2, path: '/music/song.flac' });
+
+    expect(mocks.setNowPlaying).toHaveBeenCalledWith({ state: 'playing', title: 'Song', position: 1, at: 2 }, '/music/song.flac');
+
+    await host.start();
+    expect(mocks.setNowPlaying).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Song' }), '/music/song.flac');
+  });
+
+  it('hands the server the way to the page for the commands of a listener', async () => {
+    const host = await create(fakeStore({ enabled: true }));
+    await host.start();
+
+    mocks.start.mock.calls[0][0].onControl({ control: 'skip', direction: 'next' });
+
+    expect(commands).toEqual([{ control: 'skip', direction: 'next' }]);
+  });
+
+  it('reports a state that the page accepts, with a device waiting and one approved', async () => {
+    const host = await create(fakeStore({ enabled: true }));
+    await host.start();
+    const { access } = mocks.start.mock.calls[0][0];
+    const [waiting, approved] = [randomUUID(), randomUUID()];
+    access.request('10.0.0.2', { deviceId: approved, deviceName: 'Phone' });
+    access.approve(approved, ['skip']);
+    access.request('10.0.0.3', { deviceId: waiting, deviceName: 'Tablet', note: 'Hi' });
+
+    expect(remoteHostStateSchema.parse(host.state())).toMatchObject({
+      pending: [{ deviceId: waiting }],
+      devices: [{ id: approved, controls: ['skip'] }],
+      running: true,
+    });
   });
 
   it('opens nothing while host mode is off', async () => {

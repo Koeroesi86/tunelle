@@ -2,13 +2,14 @@ import { once } from 'node:events';
 import { createServer, type Server } from 'node:https';
 import type { AccessControl } from './access';
 import type { HostIdentity } from './certificate';
-import { createRoutes } from './host-routes';
-import type { NowPlaying } from './now-playing';
+import type { ControlCommand } from './control-command';
+import { createRoutes, type ServeAudio } from './host-routes';
+import type { NowPlaying } from '../../shared/schemas/now-playing';
 
 export interface HostServer {
   port: number;
   /** What the approved listeners are shown; the renderer sends a new one when the track, the play state or the position jumps */
-  setNowPlaying: (snapshot: NowPlaying) => void;
+  setNowPlaying: (snapshot: NowPlaying, trackPath?: string) => void;
   close: () => Promise<void>;
 }
 
@@ -19,11 +20,15 @@ export interface HostOptions {
   port?: number;
   /** Only this machine, which is not advertised and asks for no firewall prompt */
   loopbackOnly?: boolean;
+  /** A command of a listener that the host allowed to control */
+  onControl?: (command: ControlCommand) => void;
+  /** Serves the file of the track that plays; without it the audio route answers 404 */
+  serveAudio?: ServeAudio;
 }
 
 /** The HTTPS server of the host around its routes (host-routes.ts). See docs/app/remote-access-discovery.md */
-export const startHostServer = async ({ identity, access, port = 0, loopbackOnly = false }: HostOptions): Promise<HostServer> => {
-  const routes = createRoutes(access);
+export const startHostServer = async ({ identity, access, port = 0, loopbackOnly = false, onControl, serveAudio }: HostOptions): Promise<HostServer> => {
+  const routes = createRoutes(access, onControl, serveAudio);
   const server: Server = createServer({ cert: identity.certificate, key: identity.key }, routes.handle);
   // a socket that fails ends there: an unhandled error would open the error dialog of the app
   server.on('tlsClientError', () => undefined);

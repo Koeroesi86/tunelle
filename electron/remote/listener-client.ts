@@ -1,13 +1,12 @@
+import type { IncomingMessage } from 'node:http';
 import { request, type RequestOptions } from 'node:https';
 import { TLSSocket } from 'node:tls';
 import { z } from 'zod';
 import { approvalCode, pinnedOptions, unpinnedOptions } from './certificate';
-import { nowPlayingSchema, type NowPlaying } from './now-playing';
+import { nowPlayingSchema, type NowPlaying } from '../../shared/schemas/now-playing';
 
 const TIMEOUT_MS = 5000;
 const MAX_ANSWER_BYTES = 64 * 1024;
-/** A listener that is further from the host than this seeks; smaller steps are left to the audio clock */
-export const DRIFT_SECONDS = 0.5;
 
 export interface HostAddress {
   host: string;
@@ -27,6 +26,8 @@ const pem = (der: Buffer) => `-----BEGIN CERTIFICATE-----\n${der.toString('base6
 
 interface Call {
   status: number;
+  /** The clock of the host when it answered, to put its snapshot on the clock of this computer */
+  hostTime: number | undefined;
   body: unknown;
   certificate: string;
 }
@@ -38,6 +39,7 @@ const call = (address: HostAddress, tls: RequestOptions, method: string, path: s
     const outgoing = request({ ...address, agent: false, method, path, headers, timeout: TIMEOUT_MS, ...tls }, (response) => {
       if (!(response.socket instanceof TLSSocket)) return reject(new Error('Not a TLS socket'));
       const certificate = pem(response.socket.getPeerCertificate().raw);
+      const hostTime = Number(response.headers['x-tunelle-time']) || undefined;
       const chunks: Buffer[] = [];
       let length = 0;
       response.on('data', (chunk: Buffer) => {
@@ -48,9 +50,9 @@ const call = (address: HostAddress, tls: RequestOptions, method: string, path: s
       response.on('error', reject);
       response.on('end', () => {
         try {
-          resolve({ status: response.statusCode ?? 0, body: JSON.parse(Buffer.concat(chunks).toString('utf8')), certificate });
+          resolve({ status: response.statusCode ?? 0, hostTime, body: JSON.parse(Buffer.concat(chunks).toString('utf8')), certificate });
         } catch {
-          resolve({ status: response.statusCode ?? 0, body: undefined, certificate });
+          resolve({ status: response.statusCode ?? 0, hostTime, body: undefined, certificate });
         }
       });
     });
@@ -83,19 +85,45 @@ export const fetchNowPlaying = async (address: HostAddress, certificate: string,
   });
   if (answer.status === 401) return undefined;
   if (answer.status !== 200) throw new Error(`The host answered ${answer.status}`);
-  return nowPlayingSchema.parse(answer.body);
+  const snapshot = nowPlayingSchema.parse(answer.body);
+  // the host stamps its snapshot with its own clock: the offset between the clocks is taken from the answer, so a listener
+  // whose clock is seconds off still seeks to the right place (the time of the answer on the way is left, it is a LAN)
+  if (snapshot.state === 'idle' || answer.hostTime === undefined) return snapshot;
+  return { ...snapshot, at: snapshot.at + (Date.now() - answer.hostTime) };
 };
 
-/** Where the host is now, from its snapshot: a playing track runs on from the time of the snapshot */
-export const expectedPosition = (snapshot: NowPlaying): number | undefined => {
-  if (snapshot.state === 'idle') return undefined;
-  if (snapshot.state === 'paused') return snapshot.position;
-  return snapshot.position + Math.max(0, Date.now() - snapshot.at) / 1000;
+// a stream of the answer that reads on demand: a player that stops reading holds the socket, and a cancel closes it
+const toWebStream = (response: IncomingMessage) => {
+  const chunks = response[Symbol.asyncIterator]();
+  return new ReadableStream<Uint8Array>({
+    pull: async (controller) => {
+      const next = await chunks.next();
+      if (next.done) controller.close();
+      else controller.enqueue(next.value);
+    },
+    cancel: () => {
+      response.destroy();
+    },
+  });
 };
 
-/** The position to seek to, or `undefined` when the listener is close enough */
-export const driftCorrection = (snapshot: NowPlaying, localPosition: number): number | undefined => {
-  const expected = expectedPosition(snapshot);
-  if (expected === undefined) return undefined;
-  return Math.abs(expected - localPosition) > DRIFT_SECONDS ? expected : undefined;
-};
+const audioHeaders = ['content-type', 'content-length', 'content-range', 'accept-ranges'];
+
+/** The audio of the track the host plays now, with the range of the request (so the player can seek); the answer is a stream and a failure before it is an error */
+export const fetchAudio = (address: HostAddress, certificate: string, deviceId: string, secret: string, range: string | undefined, signal: AbortSignal) =>
+  new Promise<Response>((resolve, reject) => {
+    const headers = { 'x-tunelle-device': deviceId, authorization: `Bearer ${secret}`, ...(range ? { range } : {}) };
+    const outgoing = request(
+      { ...address, ...pinnedOptions(certificate), agent: false, method: 'GET', path: '/remote/audio', headers, timeout: TIMEOUT_MS, signal },
+      (response) => {
+        // the stream may wait as long as the player does not read, so only the wait for the answer has a limit
+        outgoing.setTimeout(0);
+        const kept = Object.fromEntries(audioHeaders.flatMap((name) => (response.headers[name] ? [[name, String(response.headers[name])]] : [])));
+        const withBody = response.statusCode !== 204 && response.statusCode !== 304;
+        resolve(new Response(withBody ? toWebStream(response) : null, { status: response.statusCode ?? 502, headers: kept }));
+      }
+    );
+    outgoing.on('timeout', () => outgoing.destroy(new Error('The host did not answer')));
+    outgoing.on('error', reject);
+    outgoing.end();
+  });

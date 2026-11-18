@@ -71,6 +71,16 @@ describe('tunelle protocol', () => {
   });
 
   describe('the page', () => {
+    it('serves the audio of the host the listener follows at /remote/audio, and nothing before one is provided', async () => {
+      expect((await get('/remote/audio')).status).toBe(404);
+
+      const { provideRemoteAudio } = await import('../remote/remote-audio');
+      provideRemoteAudio(async (request) => new Response(request.headers.get('range'), { status: 206 }));
+      const answer = await get('/remote/audio', { headers: { range: 'bytes=2-5' } });
+
+      expect([answer.status, await answer.text()]).toEqual([206, 'bytes=2-5']);
+    });
+
     it('serves the index page for the root and by its name, with its type', async () => {
       for (const route of ['/', '/index.html']) {
         const response = await get(route);
