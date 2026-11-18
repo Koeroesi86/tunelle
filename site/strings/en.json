@@ -43,6 +43,8 @@
   "features.playlistfiles.text": "M3U, M3U8, PLS and XSPF files in your folders become playlists, and any playlist can be exported to one. An imported playlist can keep its file in sync (what the app does not write stays in the file), you can choose the encoding to read a file with and go back from a re-read, and you are asked before a character that the encoding of the file cannot hold would be lost.",
   "features.folders.title": "Folders that stay yours",
   "features.folders.text": "The library follows your folders within seconds, with no rescan, and looks less often at slow network and removable drives. A folder that is unplugged stays as Unavailable, its tracks and favourites wait for it, and nothing on disk is ever touched.",
+  "features.remote.title": "Listen along on another Tunelle",
+  "features.remote.text": "Turn on “Remote listening” in Settings and a second Tunelle on the same network can listen to what yours plays. You compare a short code on both screens and approve each device, and you can hand it the controls you choose: play and pause, skip, seek and volume. It is off until you turn it on, and you can revoke or block a device at any time.",
   "features.access.title": "Made for the keyboard, and for everyone",
   "features.access.text": "Navigation, lists and dialogs work with the keyboard, with Space, seek and volume keys and a skip link to the player. Controls are named for screen readers, forced colours and high contrast are followed, a Reduce motion setting stops the animations and the spectrum, and Ctrl with plus zooms the window.",
   "features.free.title": "Free, private, up to date",
