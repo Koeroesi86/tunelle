@@ -32,7 +32,7 @@ describe('useRemoteHost', () => {
   });
 
   it('sends the track with its path and where it is', () => {
-    renderHook(() => useRemoteHost(info, { isPlaying: true, currentTime: 12 }, commands()));
+    renderHook(() => useRemoteHost(info, { isPlaying: true, currentTime: 12, volume: 1 }, commands()));
 
     expect(send).toHaveBeenCalledWith('REMOTE_STATE', {
       state: 'playing',
@@ -44,12 +44,21 @@ describe('useRemoteHost', () => {
       at: 1_000,
       path: '/music/song.flac',
       coverKey: 'abc-optimized.png',
+      volume: 1,
       next: { title: 'After', artist: undefined },
     });
   });
 
+  it('sends the track again with the new volume when the host changes it', () => {
+    const { rerender } = renderHook(({ volume }) => useRemoteHost(info, { isPlaying: true, currentTime: 5, volume }, commands()), { initialProps: { volume: 1 } });
+
+    rerender({ volume: 0.4 });
+
+    expect(send).toHaveBeenLastCalledWith('REMOTE_STATE', expect.objectContaining({ volume: 0.4 }));
+  });
+
   it('sends a paused track again when it stops', () => {
-    const { rerender } = renderHook(({ isPlaying }) => useRemoteHost(info, { isPlaying, currentTime: 5 }, commands()), { initialProps: { isPlaying: true } });
+    const { rerender } = renderHook(({ isPlaying }) => useRemoteHost(info, { isPlaying, currentTime: 5, volume: 1 }, commands()), { initialProps: { isPlaying: true } });
 
     rerender({ isPlaying: false });
 
@@ -57,15 +66,15 @@ describe('useRemoteHost', () => {
   });
 
   it('sends idle when nothing plays, and no duration for a station', () => {
-    renderHook(() => useRemoteHost(undefined, { isPlaying: false, currentTime: 0 }, commands()));
-    renderHook(() => useRemoteHost({ ...info, duration: 0, path: undefined }, { isPlaying: true, currentTime: 0 }, commands()));
+    renderHook(() => useRemoteHost(undefined, { isPlaying: false, currentTime: 0, volume: 1 }, commands()));
+    renderHook(() => useRemoteHost({ ...info, duration: 0, path: undefined }, { isPlaying: true, currentTime: 0, volume: 1 }, commands()));
 
     expect(send).toHaveBeenCalledWith('REMOTE_STATE', { state: 'idle' });
     expect(send).toHaveBeenLastCalledWith('REMOTE_STATE', expect.objectContaining({ duration: undefined, path: undefined }));
   });
 
   it('sends the state again on a seek, not while the playback runs on', () => {
-    const { rerender } = renderHook(({ currentTime }) => useRemoteHost(info, { isPlaying: true, currentTime }, commands()), {
+    const { rerender } = renderHook(({ currentTime }) => useRemoteHost(info, { isPlaying: true, currentTime, volume: 1 }, commands()), {
       initialProps: { currentTime: 0 },
     });
     send.mockClear();
@@ -87,7 +96,7 @@ describe('useRemoteHost', () => {
     [{ control: 'skip', direction: 'previous' }, false, 'previousSong'],
   ] as const)('runs %j while playing is %s as %s', (command, isPlaying, called) => {
     const current = { ...commands(), isPlaying };
-    renderHook(() => useRemoteHost(info, { isPlaying, currentTime: 0 }, current));
+    renderHook(() => useRemoteHost(info, { isPlaying, currentTime: 0, volume: 1 }, current));
 
     control(command);
 
@@ -96,7 +105,7 @@ describe('useRemoteHost', () => {
 
   it('seeks and sets the volume', () => {
     const current = commands();
-    renderHook(() => useRemoteHost(info, { isPlaying: true, currentTime: 0 }, current));
+    renderHook(() => useRemoteHost(info, { isPlaying: true, currentTime: 0, volume: 1 }, current));
 
     control({ control: 'seek', position: 42 });
     control({ control: 'volume', level: 0.3 });
@@ -107,7 +116,7 @@ describe('useRemoteHost', () => {
 
   it('drops a command of the wrong shape and listens once', () => {
     const current = commands();
-    const { rerender } = renderHook(() => useRemoteHost(info, { isPlaying: true, currentTime: 0 }, current));
+    const { rerender } = renderHook(() => useRemoteHost(info, { isPlaying: true, currentTime: 0, volume: 1 }, current));
     rerender();
 
     control({ control: 'volume', level: 4 });
