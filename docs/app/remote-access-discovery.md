@@ -137,3 +137,7 @@ The listener asks with its host name (`os.hostname()`), and the host answers `in
 ## The sliders start where the host is (part 19)
 
 - The seek and volume sliders of the host controls started at 0 and 100 whatever the host did. The snapshot now has the optional `volume` (0 to 1; the host sends it again when it changes), the seek slider starts from `expectedPosition` and moves on every second, and the volume slider from the volume. A slider that is held (pointer or key down) is not moved until it is let go, or the drag would jump. Check: give a listener the seek and volume controls, play a track on the host at half volume; the sliders show the position and 50, and the position moves on.
+
+## Who the player follows (part 20)
+
+- While the app listens, the player bar shows "Listening to <name>" and a button to stop, so leaving does not need the settings page. The name is the one the host announces when it is among the Tunelles nearby, else its address (`hostNameOf` in `client/components/layout/player-controls/index.tsx`). The compact layout (below 600 px) has no room in its two rows and a 44 px target would not fit a third one, so it does not show it; leaving stays in the settings there. Check: follow a host, the bar shows the name and the button; the button stops the audio and the bar goes back.
