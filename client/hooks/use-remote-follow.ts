@@ -32,7 +32,9 @@ export const useRemoteFollow = (snapshot: NowPlaying | undefined, player: Remote
 
   useEffect(() => {
     const { currentSong, isPlaying, currentTime, play, pause, setCurrentTime, load } = latest.current;
-    if (!snapshot || !isRemoteTrack(currentSong?.path)) return;
+    if (!isRemoteTrack(currentSong?.path)) return;
+    // no snapshot: the host revoked or blocked this device, or the session ended; the element still holds what it buffered, so it is stopped
+    if (!snapshot) return isPlaying ? pause() : undefined;
 
     if (snapshot.state === 'idle') return isPlaying ? pause() : undefined;
     if (!isSameRemoteTrack(snapshot, currentSong?.path)) return load(toRemoteTrack(snapshot));
