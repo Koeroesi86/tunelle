@@ -54,7 +54,7 @@ export const useRemoteFollow = (snapshot: NowPlaying | undefined, player: Remote
   useEffect(() => {
     const correct = () => {
       const { currentSong, currentTime, setCurrentTime } = latest.current;
-      if (!snapshot || snapshot.state === 'idle' || !isSameRemoteTrack(snapshot, currentSong?.path)) return;
+      if (!snapshot || snapshot.state === 'idle' || snapshot.live || !isSameRemoteTrack(snapshot, currentSong?.path)) return;
       const correction = driftCorrection(snapshot, currentTime);
       if (correction !== undefined) setCurrentTime(correction);
     };

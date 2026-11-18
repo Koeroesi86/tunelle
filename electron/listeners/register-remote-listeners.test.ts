@@ -38,6 +38,7 @@ vi.mock('../remote/host-controller', () => ({
     _store: unknown,
     onChange: (state: unknown) => void,
     _onControl: unknown,
+    _version: string,
     serveAudio: (trackPath: string, request: Request) => Promise<Response>
   ) => {
     mocks.onChange = onChange;

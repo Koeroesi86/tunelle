@@ -65,7 +65,7 @@ describe('useRemoteHost', () => {
     renderHook(() =>
       useRemoteHost(
         { ...info, path: undefined, duration: 0, station: 'b3f1c1a0-0000-4000-8000-000000000001' },
-        { isPlaying: true, currentTime: 12 },
+        { isPlaying: true, currentTime: 12, volume: 1 },
         commands()
       )
     );
