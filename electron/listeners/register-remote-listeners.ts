@@ -25,9 +25,9 @@ const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
     createHostStore(global._appDataPath),
     (state: HostState) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_HOST_STATE', state),
     (command) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_CONTROL', command),
+    app.getVersion(),
     (trackPath, request) => serveTrack(database, trackPath, request),
-    serveCover,
-    app.getVersion()
+    serveCover
   );
 
   // a host that is off opens no socket: start() only reads the settings, and listens when they say so
