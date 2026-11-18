@@ -114,7 +114,7 @@ The listener asks with its host name (`os.hostname()`), and the host answers `in
 - The host's event stream carries a second kind of message, `event: controls` with the list of what this device may control. It is sent when the stream opens and again when the host changes the controls of a device or decides on it (`refreshControls` in `host-routes.ts`, called by `host-controller.ts`), so the buttons on the listener follow the host's checkboxes at once. `followNowPlaying` reads it into `onControls`; the controller keeps it as `controls` in the listener state (`shared/schemas/remote-listener.ts`).
 - `sendControl` posts a command to `/remote/control` (pinned, with the secret). The host still checks every command against what it allowed that device, so a page that sends a command it was not given gets a 403, which the listener shows as the error `The host answered 403`. The command schema moved to `shared/schemas/remote-control.ts`, used by both processes and the host page.
 - The page reaches it through the action `SEND_REMOTE_CONTROL` and the channel of the same name (parsed in the main process). The tile shows play or pause, previous and next, a position slider (only when the track has a length) and a volume slider, each only for a control that was granted; a slider sends its value when it is let go, not on each step. The sliders do not show the position or volume of the host, as the listener does not know the volume and the position moves.
-- `queue` is still not a command: the listener cannot name a track of the library of the host.
+- `queue` is not a command and is not planned: a listener does not add to the queue of the host.
 
 ## Cover and what plays next (part 15)
 
@@ -141,3 +141,10 @@ The listener asks with its host name (`os.hostname()`), and the host answers `in
 ## Who the player follows (part 20)
 
 - While the app listens, the player bar shows "Listening to <name>" and a button to stop, so leaving does not need the settings page. The name is the one the host announces when it is among the Tunelles nearby, else its address (`hostNameOf` in `client/components/layout/player-controls/index.tsx`). The compact layout (below 600 px) has no room in its two rows and a 44 px target would not fit a third one, so it does not show it; leaving stays in the settings there. Check: follow a host, the bar shows the name and the button; the button stops the audio and the bar goes back.
+
+## Words of the main process, the version and `queue` (part 21)
+
+- The errors that the listener shows (the host did not answer, answered with a status, closed the connection, was not answered, approved this device before) were English strings of `listener-controller.ts`. They are `remote.listen.failure.*` of `en.json` now, worded with `getMainTranslator()`. `listener-client.ts` runs in the integration tests without Electron, so it cannot import the translator: a command that the host refused throws `HostAnswerError` with the status, and the controller words it. The unit test of the controller mocks `../language` with the English translator; a test that mocks `./listener-client` must keep the real `HostAnswerError`, or the status is lost.
+- `createHostController` takes the version as a required argument (before the optional `serveAudio` and `serveCover`); the default `''` was there for the tests only.
+- `queue` is not planned: a listener does not add to the queue of the host, so the control is not granted or offered, and it needs no command.
+- `npm run security:electron` on this stack reports 8 findings, none new.

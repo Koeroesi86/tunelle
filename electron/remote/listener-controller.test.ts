@@ -2,11 +2,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NowPlaying } from '../../shared/schemas/now-playing';
 import type { RemoteListenerState } from '../../shared/schemas/remote-listener';
 import { approvalCode } from './certificate';
-import { contact, fetchAudio, fetchCover, followNowPlaying, requestToListen, sendControl } from './listener-client';
+import { contact, fetchAudio, fetchCover, followNowPlaying, HostAnswerError, requestToListen, sendControl } from './listener-client';
 import { ASK_LIMIT_MS, createListenerController, POLL_MS } from './listener-controller';
 import type { ListenerStore, Pairing } from './listener-store';
 
-vi.mock('./listener-client');
+vi.mock('./listener-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./listener-client')>()),
+  contact: vi.fn(),
+  fetchAudio: vi.fn(),
+  fetchCover: vi.fn(),
+  followNowPlaying: vi.fn(),
+  requestToListen: vi.fn(),
+  sendControl: vi.fn(),
+}));
+vi.mock('../language', async () => {
+  const { getTranslator } = await import('../../shared/locales');
+  return { getMainTranslator: () => getTranslator('en', []) };
+});
 vi.mock('./certificate', () => ({ approvalCode: vi.fn(() => 'ABCD-1234') }));
 
 describe('the listener controller', () => {
@@ -187,7 +199,7 @@ describe('the listener controller', () => {
 
     it('sends a command to the host that is followed, and shows why the host refused it', async () => {
       vi.mocked(followNowPlaying).mockImplementation(streaming(snapshot));
-      vi.mocked(sendControl).mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('The host answered 403'));
+      vi.mocked(sendControl).mockResolvedValueOnce(undefined).mockRejectedValueOnce(new HostAnswerError(403));
       void listener.start();
       await vi.advanceTimersByTimeAsync(0);
 
