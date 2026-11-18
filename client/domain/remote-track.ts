@@ -11,7 +11,8 @@ const remoteCover = 'remote-cover';
 type PlayingSnapshot = Exclude<NowPlaying, { state: 'idle' }>;
 
 /** What tells one track of the host from the next: a new key loads the audio again. The path of the host never reaches this app */
-const keyOf = ({ title, artist, album, duration }: PlayingSnapshot) => encodeURIComponent(JSON.stringify([title, artist ?? '', album ?? '', duration ?? 0]));
+const keyOf = ({ title, artist, album, duration, live }: PlayingSnapshot) =>
+  encodeURIComponent(JSON.stringify([title, artist ?? '', album ?? '', duration ?? 0, live ?? false]));
 
 /** The track of the host as this app plays it: its audio comes through the local protocol from the host that the app listens to */
 export const toRemoteTrack = (snapshot: PlayingSnapshot): Track => ({

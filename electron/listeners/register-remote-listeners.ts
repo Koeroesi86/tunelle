@@ -2,6 +2,8 @@ import { hostname } from 'node:os';
 import { app, ipcMain } from 'electron';
 import { serveCover } from '../remote/serve-cover';
 import { serveTrack } from '../protocols/serve-track';
+import { serveRadio } from '../protocols/radio-protocol';
+import { STATION_PREFIX } from '../../shared/constants/remote-source';
 import { advertisementId, createHostController } from '../remote/host-controller';
 import type { HostState } from '../remote/host-controller';
 import { deviceNameOf } from '../remote/device-name';
@@ -20,13 +22,18 @@ import { sendIfAlive } from '../utils/send-if-alive';
 import type { ListenerContext } from './listener-context';
 
 /** The host mode of the app (what the page asks: settings, the decision on a device, and the now playing it sends) and the listener side (pairing with a host). See docs/app/remote-access-discovery.md */
-const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
+const registerRemoteListeners = ({ database, windows, radio }: ListenerContext) => {
+  // a listener gets the stream of the station from the host, through a connection of its own to the station; the host's player is not shared
+  const station = { resolveStream: (uuid: string) => radio.resolveStream(uuid), onTitle: () => {}, onSampleRate: () => {} };
   const host = createHostController(
     createHostStore(global._appDataPath),
     (state: HostState) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_HOST_STATE', state),
     (command) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_CONTROL', command),
     app.getVersion(),
-    (trackPath, request) => serveTrack(database, trackPath, request),
+    (trackPath, request) =>
+      trackPath.startsWith(STATION_PREFIX)
+        ? serveRadio(trackPath.slice(STATION_PREFIX.length), request.signal, station)
+        : serveTrack(database, trackPath, request),
     serveCover
   );
 

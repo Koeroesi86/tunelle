@@ -11,6 +11,8 @@ export const nowPlayingSchema = z.discriminatedUnion('state', [
     position: z.number().nonnegative(),
     at: z.number(),
     duration: z.number().nonnegative().optional(),
+    /** True for a radio station: the audio is a live stream with no position, so the listener plays it as it comes and does not seek */
+    live: z.boolean().optional(),
     /** True when the host has a cover for this track, which `/remote/cover` serves; the file it comes from stays on the host */
     cover: z.boolean().optional(),
     /** The volume of the host between 0 and 1, which the volume slider of a listener with that control starts from */

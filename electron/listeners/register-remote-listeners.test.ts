@@ -12,6 +12,10 @@ const mocks = vi.hoisted(() => ({
     setNowPlaying: vi.fn(),
     state: vi.fn(),
   },
+  serveAudio: undefined as ((trackPath: string, request: Request) => Promise<Response>) | undefined,
+  serveRadio: vi.fn(),
+  serveTrack: vi.fn(),
+  resolveStream: vi.fn(),
   onChange: undefined as ((state: unknown) => void) | undefined,
   listener: { start: vi.fn(), state: vi.fn(), connect: vi.fn(), control: vi.fn(), confirm: vi.fn(), leave: vi.fn(), audio: vi.fn() },
   onListenerChange: undefined as ((state: unknown) => void) | undefined,
@@ -30,12 +34,20 @@ vi.mock('../remote/host-store', async (importOriginal) => ({
 }));
 vi.mock('../remote/host-controller', () => ({
   advertisementId: (code: string) => code.replace(/\W/g, '').toLowerCase(),
-  createHostController: (_store: unknown, onChange: (state: unknown) => void) => {
+  createHostController: (
+    _store: unknown,
+    onChange: (state: unknown) => void,
+    _onControl: unknown,
+    serveAudio: (trackPath: string, request: Request) => Promise<Response>
+  ) => {
     mocks.onChange = onChange;
+    mocks.serveAudio = serveAudio;
     return mocks.host;
   },
 }));
 
+vi.mock('../protocols/radio-protocol', () => ({ serveRadio: mocks.serveRadio }));
+vi.mock('../protocols/serve-track', () => ({ serveTrack: mocks.serveTrack }));
 vi.mock('../remote/nearby', () => ({
   createNearby: (onChange: (hosts: unknown) => void, ownId: () => string | undefined) => {
     mocks.onNearbyChange = onChange;
@@ -70,7 +82,7 @@ describe('registerRemoteListeners', () => {
     main.webContents.send.mockReset();
     global._appDataPath = '/user-data';
     const { default: registerRemoteListeners } = await import('./register-remote-listeners');
-    registerRemoteListeners({ windows: { main, loading: null } } as unknown as ListenerContext);
+    registerRemoteListeners({ windows: { main, loading: null }, radio: { resolveStream: mocks.resolveStream } } as unknown as ListenerContext);
   });
 
   it('starts the host by its saved settings, which open nothing while host mode is off', () => {
@@ -220,5 +232,21 @@ describe('registerRemoteListeners', () => {
 
       expect(main.webContents.send).toHaveBeenCalledWith('REMOTE_NEARBY', [{ id: 'a' }]);
     });
+  });
+
+  it('serves a station from the stream of the station and a file from the library, to the listeners of the host', async () => {
+    const request = new Request('https://host/remote/audio');
+    mocks.serveRadio.mockResolvedValue(new Response('live'));
+    mocks.serveTrack.mockResolvedValue(new Response('file'));
+
+    await mocks.serveAudio?.('station:b3f1c1a0-0000-4000-8000-000000000001', request);
+    await mocks.serveAudio?.('/music/song.flac', request);
+
+    expect(mocks.serveRadio).toHaveBeenCalledExactlyOnceWith(
+      'b3f1c1a0-0000-4000-8000-000000000001',
+      request.signal,
+      expect.objectContaining({ resolveStream: expect.any(Function) })
+    );
+    expect(mocks.serveTrack).toHaveBeenCalledExactlyOnceWith(undefined, '/music/song.flac', request);
   });
 });

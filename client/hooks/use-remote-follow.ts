@@ -45,7 +45,8 @@ export const useRemoteFollow = (snapshot: NowPlaying | undefined, player: Remote
     if (snapshot.state === 'playing' && !isPlaying) play();
     if (snapshot.state === 'paused' && isPlaying) pause();
 
-    const correction = driftCorrection(snapshot, currentTime);
+    // a station has no position: it plays as it comes
+    const correction = snapshot.live ? undefined : driftCorrection(snapshot, currentTime);
     if (correction !== undefined) setCurrentTime(correction);
   }, [snapshot]);
 
