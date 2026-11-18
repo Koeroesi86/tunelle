@@ -39,7 +39,7 @@ describe('the host controller', () => {
   const commands: unknown[] = [];
   const create = async (store: HostStore) => {
     const { createHostController } = await import('./host-controller');
-    return createHostController(store, (state) => states.push(state), commands.push.bind(commands));
+    return createHostController(store, (state) => states.push(state), commands.push.bind(commands), '26.1.7');
   };
   const last = () => states[states.length - 1];
 
@@ -147,7 +147,7 @@ describe('the host controller', () => {
       const host = await create(fakeStore({ enabled: true, name: 'Kitchen' }));
       await host.start();
 
-      expect(mocks.advertise).toHaveBeenCalledWith({ id: '3f9a04c1', name: 'Kitchen', port: 41000, version: '' });
+      expect(mocks.advertise).toHaveBeenCalledWith({ id: '3f9a04c1', name: 'Kitchen', port: 41000, version: '26.1.7' });
 
       await host.stop();
       expect(mocks.stopAdvertising).toHaveBeenCalledTimes(1);

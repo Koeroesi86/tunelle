@@ -55,9 +55,9 @@ export const createHostController = (
   store: HostStore,
   onChange: (state: HostState) => void,
   onControl: (command: ControlCommand) => void,
+  version: string,
   serveAudio?: ServeAudio,
-  serveCover?: ServeAudio,
-  version = ''
+  serveCover?: ServeAudio
 ) => {
   let settings: HostSettings | undefined;
   let access: AccessControl = new AccessControl();
