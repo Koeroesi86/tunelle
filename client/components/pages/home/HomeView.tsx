@@ -6,6 +6,7 @@ import type { Track } from '@shared/types/library';
 import type { Playlist } from '@shared/types/playlists';
 import type { RadioStation } from '@shared/types/radio';
 import { getCoverUrl } from '../../../utils/cover-url';
+import { trackCoverUrl } from '../../../domain/remote-track';
 import { getFavouriteTracks } from '../../../domain/favourite-tracks';
 import { isPlayingItem } from '../../../domain/history';
 import { useTranslation } from '../../../i18n';
@@ -111,7 +112,7 @@ const HomeView = ({
         )}
         {currentSong && !isPlaying && (
           <div className={style.continue}>
-            <div className={style.continueCover} style={currentSong.picture ? { backgroundImage: `url("${getCoverUrl(currentSong.picture)}")` } : undefined} />
+            <div className={style.continueCover} style={trackCoverUrl(currentSong) ? { backgroundImage: `url("${trackCoverUrl(currentSong)}")` } : undefined} />
             <div className={style.continueText}>
               <span className={style.continueLabel}>{t('home.continue')}</span>
               <span className={style.continueTitle}>{currentSong.title}</span>
