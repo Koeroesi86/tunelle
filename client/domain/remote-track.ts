@@ -39,7 +39,7 @@ export const remoteKeyOf = (path: string) => (isRemoteTrack(path) ? path.slice(r
 export const isSameRemoteTrack = (snapshot: PlayingSnapshot, path: string | undefined) => path === `${remotePrefix}${keyOf(snapshot)}`;
 
 /** The address of the cover of the loaded track of the host, a new one for each track */
-export const remoteCoverUrl = (path: string) => localUrl(`/remote/cover?t=${remoteKeyOf(path) ?? ''}`);
+const remoteCoverUrl = (path: string) => localUrl(`/remote/cover?t=${remoteKeyOf(path) ?? ''}`);
 
 /** The address of the cover of a track, from the host while it follows one, undefined without a picture */
 export const trackCoverUrl = ({ path, picture }: { path: string; picture: string | null }) =>
