@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import RemoteListener from './RemoteListener';
@@ -7,7 +7,7 @@ import RemoteListener from './RemoteListener';
 const target = { host: '192.168.1.5', port: 40000 };
 
 const setup = (state: RemoteListenerState | undefined, nearby: NearbyHost[] = []) => {
-  const props = { state, connect: vi.fn(), confirm: vi.fn(), leave: vi.fn(), listenAlong: vi.fn(), nearby, browse: vi.fn() };
+  const props = { state, connect: vi.fn(), confirm: vi.fn(), leave: vi.fn(), control: vi.fn(), listenAlong: vi.fn(), nearby, browse: vi.fn() };
   const view = render(<RemoteListener {...props} />);
   return { ...props, ...view };
 };
@@ -69,6 +69,42 @@ describe('RemoteListener', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(leave).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the buttons of the controls the host allowed, sends the command of each, and none of the others', () => {
+    const playing = { state: 'playing', title: 'Song', position: 1, at: 0, duration: 200 } as const;
+    const { control } = setup({ status: 'listening', target, nowPlaying: playing, controls: ['playPause', 'skip', 'volume'] });
+    const group = screen.getByRole('group', { name: 'Controls of the host' });
+
+    fireEvent.click(within(group).getByRole('button', { name: 'Play or pause' }));
+    fireEvent.click(within(group).getByRole('button', { name: 'Previous' }));
+    fireEvent.click(within(group).getByRole('button', { name: 'Next' }));
+    const volume = within(group).getByRole('slider', { name: 'Volume of the host' });
+    fireEvent.change(volume, { target: { value: '30' } });
+    expect(control).toHaveBeenCalledTimes(3);
+    fireEvent.pointerUp(volume);
+
+    expect(control.mock.calls).toEqual([
+      [{ control: 'playPause', action: 'toggle' }],
+      [{ control: 'skip', direction: 'previous' }],
+      [{ control: 'skip', direction: 'next' }],
+      [{ control: 'volume', level: 0.3 }],
+    ]);
+    expect(within(group).queryByRole('slider', { name: 'Position on the host' })).toBeNull();
+  });
+
+  it('sends the position of the slider when the host allowed seeking and a track has a length, and shows no controls when none is allowed', () => {
+    const playing = { state: 'playing', title: 'Song', position: 1, at: 0, duration: 200 } as const;
+    const { control, unmount } = setup({ status: 'listening', target, nowPlaying: playing, controls: ['seek'] });
+
+    const seek = screen.getByRole('slider', { name: 'Position on the host' });
+    fireEvent.change(seek, { target: { value: '90' } });
+    fireEvent.keyUp(seek);
+    expect(control).toHaveBeenCalledExactlyOnceWith({ control: 'seek', position: 90 });
+    unmount();
+
+    setup({ status: 'listening', target, nowPlaying: playing, controls: [] });
+    expect(screen.queryByRole('group', { name: 'Controls of the host' })).toBeNull();
   });
 
   it('shows what the host plays, as text, and stops listening on request', () => {

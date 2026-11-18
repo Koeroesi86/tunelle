@@ -4,7 +4,7 @@ import { startHostServer, type HostServer } from './host-server';
 import type { HostSettings, HostStore } from './host-store';
 import { nowPlayingSchema, type NowPlaying } from '../../shared/schemas/now-playing';
 import { z } from 'zod';
-import type { ControlCommand } from './control-command';
+import type { ControlCommand } from '../../shared/schemas/remote-control';
 import type { ServeAudio } from './host-routes';
 import { approvalCode } from './certificate';
 import { advertise } from './mdns';
@@ -163,10 +163,12 @@ export const createHostController = (
       }[action]();
       if (done) await saveDevices();
       server?.closeRevoked();
+      server?.refreshControls();
       publish();
     },
     setControls: async (deviceId: string, controls: Control[]) => {
       if (access.setControls(deviceId, controls)) await saveDevices();
+      server?.refreshControls();
       publish();
     },
   };

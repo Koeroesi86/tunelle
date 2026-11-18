@@ -1,4 +1,5 @@
 import type { Album, AlbumSummary, Folder, GroupSummary, Track } from '@shared/types/library';
+import type { ControlCommand } from '@shared/schemas/remote-control';
 import type { Favourite, FavouriteKey, HistoryItem, NewFavourite } from '@shared/types/favourites';
 import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
 import type { FailedLoudnessTrack, LoudnessProgress } from '@shared/types/loudness';
@@ -245,6 +246,7 @@ export type AppAction =
   | PayloadAction<'REMOTE_LISTENER_STATE', RemoteListenerState>
   | PayloadAction<'CONNECT_REMOTE_HOST', { host: string; port: number }>
   | PayloadAction<'CONFIRM_REMOTE_HOST', { note: string }>
+  | PayloadAction<'SEND_REMOTE_CONTROL', ControlCommand>
   | EmptyAction<'LEAVE_REMOTE_HOST'>
   | PayloadAction<'REMOTE_NEARBY', NearbyHost[]>
   | PayloadAction<'BROWSE_REMOTE_NEARBY', { active: boolean }>

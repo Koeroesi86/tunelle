@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AccessControl, StoredDevice } from './access';
-import { controlCommandSchema, permissionOf, type ControlCommand } from './control-command';
+import { controlCommandSchema, type ControlCommand } from '../../shared/schemas/remote-control';
+import { permissionOf } from './control-command';
 import { relayResponse } from './relay-response';
 import { nowPlayingSchema, type NowPlaying } from '../../shared/schemas/now-playing';
 
@@ -64,6 +65,9 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
     streams.forEach((stream) => stream.response.write(chunk));
   };
 
+  /** What a device may control, as an event of its own: the host changes it while the device listens, and it shows the buttons it can use */
+  const controlsEvent = (stream: Stream) => `event: controls\ndata: ${JSON.stringify(access.authenticate(stream.deviceId, stream.secret)?.controls ?? [])}\n\n`;
+
   const openStream = (response: ServerResponse, deviceId: string, secret: string) => {
     // the limit counts devices, so a device that reconnects before its old stream is noticed as gone does not take a second place
     const connected = new Set([...streams].map((stream) => stream.deviceId));
@@ -84,6 +88,7 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
       'x-tunelle-time': String(Date.now()),
     });
     response.write(`data: ${JSON.stringify(nowPlaying)}\n\n`);
+    response.write(controlsEvent(stream));
   };
 
   /** Runs the handler for an approved device, and answers 401 or 429 to anybody else */
@@ -147,6 +152,11 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
       [...streams, ...relays]
         .filter((stream) => stream.deviceId === deviceId)
         .forEach((stream) => (streams.delete(stream), relays.delete(stream), stream.response.destroy())),
+    /** After the controls of a device changed: each open stream is told what its device may control now */
+    refreshControls: () => {
+      closeRevoked();
+      streams.forEach((stream) => stream.response.write(controlsEvent(stream)));
+    },
     /** After the access changed: a device that is no longer approved loses its open streams at once, not at the next event */
     closeRevoked,
     /** `path` is the file of the track in the library: it stays here and is never sent */
