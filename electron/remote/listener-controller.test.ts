@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NowPlaying } from '../../shared/schemas/now-playing';
 import type { RemoteListenerState } from '../../shared/schemas/remote-listener';
 import { approvalCode } from './certificate';
-import { contact, fetchAudio, followNowPlaying, requestToListen } from './listener-client';
+import { contact, fetchAudio, followNowPlaying, requestToListen, sendControl } from './listener-client';
 import { ASK_LIMIT_MS, createListenerController, POLL_MS } from './listener-controller';
 import type { ListenerStore, Pairing } from './listener-store';
 
@@ -52,7 +52,7 @@ describe('the listener controller', () => {
   // a stream that gives the snapshots and stays open until the controller closes it
   const streaming =
     (...snapshots: NowPlaying[]): typeof followNowPlaying =>
-    (_address, _certificate, _deviceId, _secret, onSnapshot, signal) =>
+    (_address, _certificate, _deviceId, _secret, { onSnapshot }, signal) =>
       new Promise((resolve, reject) => {
         snapshots.forEach(onSnapshot);
         signal.addEventListener('abort', () => reject(new Error('aborted')));
@@ -146,14 +146,21 @@ describe('the listener controller', () => {
 
     it('follows the now playing as the host sends it, with no polling, and reconnects after the host closed the stream, without losing the last track', async () => {
       vi.mocked(followNowPlaying)
-        .mockImplementationOnce(async (_a, _c, _d, _s, onSnapshot) => (onSnapshot(snapshot), 'ended'))
+        .mockImplementationOnce(async (_a, _c, _d, _s, { onSnapshot }) => (onSnapshot(snapshot), 'ended'))
         .mockRejectedValueOnce(new Error('The host did not answer'))
         .mockImplementation(streaming({ state: 'idle' }));
 
       const following = listener.start();
       await vi.advanceTimersByTimeAsync(POLL_MS * 2);
 
-      expect(followNowPlaying).toHaveBeenCalledWith(address, 'PEM', deviceId, 'secret', expect.any(Function), expect.any(AbortSignal));
+      expect(followNowPlaying).toHaveBeenCalledWith(
+        address,
+        'PEM',
+        deviceId,
+        'secret',
+        { onSnapshot: expect.any(Function), onControls: expect.any(Function) },
+        expect.any(AbortSignal)
+      );
       expect(followNowPlaying).toHaveBeenCalledTimes(3);
       expect(states.map(({ nowPlaying, error }) => [nowPlaying?.state, error])).toEqual([
         [undefined, undefined],
@@ -163,6 +170,39 @@ describe('the listener controller', () => {
         ['idle', undefined],
       ]);
       await leaveAnd(following);
+    });
+
+    it('shows what the host allows this device to control, and keeps it with the next snapshot', async () => {
+      vi.mocked(followNowPlaying).mockImplementation(async (_a, _c, _d, _s, { onSnapshot, onControls }, signal) => {
+        onControls(['skip']);
+        onSnapshot(snapshot);
+        return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(new Error('aborted'))));
+      });
+
+      void listener.start();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(states.at(-1)).toMatchObject({ status: 'listening', controls: ['skip'], nowPlaying: { state: 'playing' } });
+    });
+
+    it('sends a command to the host that is followed, and shows why the host refused it', async () => {
+      vi.mocked(followNowPlaying).mockImplementation(streaming(snapshot));
+      vi.mocked(sendControl).mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('The host answered 403'));
+      void listener.start();
+      await vi.advanceTimersByTimeAsync(0);
+
+      await listener.control({ control: 'skip', direction: 'next' });
+      expect(sendControl).toHaveBeenCalledWith(address, 'PEM', deviceId, 'secret', { control: 'skip', direction: 'next' });
+      expect(states.at(-1)?.error).toBeUndefined();
+
+      await listener.control({ control: 'volume', level: 0.3 });
+      expect(states.at(-1)).toMatchObject({ status: 'listening', error: 'The host answered 403', nowPlaying: { state: 'playing' } });
+    });
+
+    it('sends nothing when no host is followed', async () => {
+      await listener.control({ control: 'skip', direction: 'next' });
+
+      expect(sendControl).not.toHaveBeenCalled();
     });
 
     it('forgets the pairing when the host does not know the device any more', async () => {

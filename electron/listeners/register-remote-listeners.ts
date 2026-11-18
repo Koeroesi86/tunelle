@@ -6,6 +6,7 @@ import type { HostState } from '../remote/host-controller';
 import { deviceNameOf } from '../remote/device-name';
 import { deviceControlsSchema, deviceDecisionSchema, hostChangeSchema } from '../remote/host-requests';
 import { createHostStore } from '../remote/host-store';
+import { controlCommandSchema } from '../../shared/schemas/remote-control';
 import { createListenerController } from '../remote/listener-controller';
 import { confirmSchema, connectSchema } from '../remote/listener-requests';
 import { createListenerStore } from '../remote/listener-store';
@@ -68,6 +69,10 @@ const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
   ipcMain.on('CONFIRM_REMOTE_HOST', (_event, payload: unknown) => {
     const request = parsePayload(confirmSchema, payload);
     if (request) listener.confirm(request.note).catch(logError);
+  });
+  ipcMain.on('SEND_REMOTE_CONTROL', (_event, payload: unknown) => {
+    const command = parsePayload(controlCommandSchema, payload);
+    if (command) listener.control(command).catch(logError);
   });
   ipcMain.on('LEAVE_REMOTE_HOST', () => listener.leave().catch(logError));
 

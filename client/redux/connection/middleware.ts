@@ -359,6 +359,7 @@ const handleActions = actionMiddleware((store) => [
   onAction('SET_REMOTE_DEVICE_CONTROLS', ({ payload }) => electronAPI.send('SET_REMOTE_DEVICE_CONTROLS', payload)),
   onAction('CONNECT_REMOTE_HOST', ({ payload }) => electronAPI.send('CONNECT_REMOTE_HOST', payload)),
   onAction('CONFIRM_REMOTE_HOST', ({ payload }) => electronAPI.send('CONFIRM_REMOTE_HOST', payload)),
+  onAction('SEND_REMOTE_CONTROL', ({ payload }) => electronAPI.send('SEND_REMOTE_CONTROL', payload)),
   onAction('LEAVE_REMOTE_HOST', () => electronAPI.send('LEAVE_REMOTE_HOST')),
   onAction('BROWSE_REMOTE_NEARBY', ({ payload }) => electronAPI.send('BROWSE_REMOTE_NEARBY', payload)),
   // the main process has text of its own and follows the language from the saved settings

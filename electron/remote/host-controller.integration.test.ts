@@ -12,11 +12,18 @@ import { contact, followNowPlaying, requestToListen } from './listener-client';
 const firstSnapshot = (target: { host: string; port: number }, certificate: string, deviceId: string, secret: string) => {
   const stop = new AbortController();
   return new Promise<NowPlaying>((resolve) => {
-    followNowPlaying(target, certificate, deviceId, secret, (snapshot) => (resolve(snapshot), stop.abort()), stop.signal).catch(() => undefined);
+    followNowPlaying(
+      target,
+      certificate,
+      deviceId,
+      secret,
+      { onSnapshot: (snapshot) => (resolve(snapshot), stop.abort()), onControls: () => undefined },
+      stop.signal
+    ).catch(() => undefined);
   });
 };
 const revokedStream = (target: { host: string; port: number }, certificate: string, deviceId: string, secret: string) =>
-  followNowPlaying(target, certificate, deviceId, secret, () => undefined, new AbortController().signal);
+  followNowPlaying(target, certificate, deviceId, secret, { onSnapshot: () => undefined, onControls: () => undefined }, new AbortController().signal);
 
 let folder: string;
 let state: HostState | undefined;

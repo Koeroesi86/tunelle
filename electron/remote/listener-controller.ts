@@ -1,6 +1,7 @@
+import type { ControlCommand } from '../../shared/schemas/remote-control';
 import type { RemoteListenerState } from '../../shared/schemas/remote-listener';
 import { approvalCode } from './certificate';
-import { contact, fetchAudio, followNowPlaying, requestToListen, type Contact, type HostAddress } from './listener-client';
+import { contact, fetchAudio, followNowPlaying, requestToListen, sendControl, type Contact, type HostAddress } from './listener-client';
 import type { ListenerStore, Pairing } from './listener-store';
 
 export const POLL_MS = 1000;
@@ -47,7 +48,10 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
       pairing.certificate,
       deviceId,
       pairing.secret,
-      (nowPlaying) => token === run && publish({ status: 'listening', target, code, nowPlaying }),
+      {
+        onSnapshot: (nowPlaying) => token === run && publish({ ...state, status: 'listening', target, code, nowPlaying, error: undefined }),
+        onControls: (controls) => token === run && publish({ ...state, status: 'listening', target, code, controls }),
+      },
       stop.signal
     ).catch((failure: unknown) => (token === run ? failure : 'ended'));
     if (token !== run) return false;
@@ -165,6 +169,15 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
         request.headers.get('range') ?? undefined,
         request.signal
       ).catch(() => new Response(undefined, { status: 502 }));
+    },
+    /** A command of the page for the host that is followed; the host checks it against what it allowed this device */
+    control: async (command: ControlCommand) => {
+      if (!active) return;
+
+      const { pairing, deviceId } = active;
+      await sendControl({ host: pairing.host, port: pairing.port }, pairing.certificate, deviceId, pairing.secret, command).catch((failure: unknown) =>
+        publish({ ...state, error: messageOf(failure) })
+      );
     },
     /** Stops listening and forgets the host: a new contact starts from the code again */
     leave: async () => {

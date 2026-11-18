@@ -1,13 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { z } from 'zod';
-
-/** What a listener may ask of the player; the same shape as the main process checks (electron/remote/control-command.ts) */
-const remoteControlSchema = z.discriminatedUnion('control', [
-  z.object({ control: z.literal('playPause'), action: z.enum(['play', 'pause', 'toggle']) }),
-  z.object({ control: z.literal('skip'), direction: z.enum(['next', 'previous']) }),
-  z.object({ control: z.literal('seek'), position: z.number().nonnegative() }),
-  z.object({ control: z.literal('volume'), level: z.number().min(0).max(1) }),
-]);
+import { controlCommandSchema, type ControlCommand } from '@shared/schemas/remote-control';
 
 interface RemoteHostInfo {
   title: string;
@@ -37,9 +29,7 @@ interface RemoteHostCommands {
 /** Where the position is more than this far from where the playback would be, it was a seek */
 const seekThreshold = 1.5;
 
-type RemoteControl = z.infer<typeof remoteControlSchema>;
-
-const run = (command: RemoteControl, { play, pause, isPlaying, previousSong, nextSong, setCurrentTime, setVolume }: RemoteHostCommands) => {
+const run = (command: ControlCommand, { play, pause, isPlaying, previousSong, nextSong, setCurrentTime, setVolume }: RemoteHostCommands) => {
   switch (command.control) {
     case 'playPause':
       return command.action === 'play' || (command.action === 'toggle' && !isPlaying) ? play() : pause();
@@ -94,7 +84,7 @@ export const useRemoteHost = (info: RemoteHostInfo | undefined, { isPlaying, cur
     // the page has no way to take a listener off, so there is one for its life and it calls what the player has now
     listening.current = true;
     window.electronAPI?.on<unknown>('REMOTE_CONTROL', (payload) => {
-      const command = remoteControlSchema.safeParse(payload).data;
+      const command = controlCommandSchema.safeParse(payload).data;
       if (command) run(command, current.current);
     });
   }, []);

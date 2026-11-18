@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
     state: vi.fn(),
   },
   onChange: undefined as ((state: unknown) => void) | undefined,
-  listener: { start: vi.fn(), state: vi.fn(), connect: vi.fn(), confirm: vi.fn(), leave: vi.fn(), audio: vi.fn() },
+  listener: { start: vi.fn(), state: vi.fn(), connect: vi.fn(), control: vi.fn(), confirm: vi.fn(), leave: vi.fn(), audio: vi.fn() },
   onListenerChange: undefined as ((state: unknown) => void) | undefined,
   nearby: { start: vi.fn(), stop: vi.fn() },
   onNearbyChange: undefined as ((hosts: unknown) => void) | undefined,
@@ -179,6 +179,14 @@ describe('registerRemoteListeners', () => {
       emit('CONFIRM_REMOTE_HOST', { note: 'x'.repeat(201) });
 
       expect(mocks.listener.confirm.mock.calls).toEqual([['the kitchen']]);
+    });
+
+    it('passes on a command of the page to the host, and drops one that is not a command', () => {
+      emit('SEND_REMOTE_CONTROL', { control: 'skip', direction: 'next' });
+      emit('SEND_REMOTE_CONTROL', { control: 'volume', level: 2 });
+      emit('SEND_REMOTE_CONTROL', { control: 'shutdown' });
+
+      expect(mocks.listener.control.mock.calls).toEqual([[{ control: 'skip', direction: 'next' }]]);
     });
 
     it('leaves the host', () => {
