@@ -7,7 +7,7 @@ import { toRemoteTrack } from '../../../domain/remote-track';
 import type { NowPlaying } from '@shared/schemas/now-playing';
 import RemoteListener from './RemoteListener';
 
-const mapState = ({ uiState: { remoteListener } }: RootState) => ({ state: remoteListener });
+const mapState = ({ uiState: { remoteListener, remoteNearby } }: RootState) => ({ state: remoteListener, nearby: remoteNearby });
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   connect: (host: string, port: number) => dispatch({ type: 'CONNECT_REMOTE_HOST', payload: { host, port } }),
@@ -17,6 +17,7 @@ const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
     dispatch({ type: 'PLAY_TRACKS', payload: { tracks: [track] } });
     dispatch({ type: 'PLAY_TRACK', payload: { track } });
   },
+  browse: (active: boolean) => dispatch({ type: 'BROWSE_REMOTE_NEARBY', payload: { active } }),
   leave: () => dispatch({ type: 'LEAVE_REMOTE_HOST' }),
 });
 

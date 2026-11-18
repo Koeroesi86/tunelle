@@ -50,6 +50,7 @@ function addListeners(store: Store) {
   onMessage('CLICKED_URL', messageSchemas.CLICKED_URL, (payload) => store.dispatch({ type: 'CLICKED_URL', payload }));
   onMessage('SET_PLAYING', messageSchemas.SET_PLAYING, (payload) => store.dispatch({ type: 'SET_PLAYING', payload }));
   onMessage('REMOTE_HOST_STATE', messageSchemas.REMOTE_HOST_STATE, (payload) => store.dispatch({ type: 'REMOTE_HOST_STATE', payload }));
+  onMessage('REMOTE_NEARBY', messageSchemas.REMOTE_NEARBY, (payload) => store.dispatch({ type: 'REMOTE_NEARBY', payload }));
   onMessage('REMOTE_LISTENER_STATE', messageSchemas.REMOTE_LISTENER_STATE, (payload) => store.dispatch({ type: 'REMOTE_LISTENER_STATE', payload }));
   onMessage('LAUNCHER_STATE', messageSchemas.LAUNCHER_STATE, (payload) => store.dispatch({ type: 'LAUNCHER_STATE', payload }));
   onMessage('UPDATE_STATE', messageSchemas.UPDATE_STATE, (payload) => store.dispatch({ type: 'UPDATE_STATE', payload }));
@@ -359,6 +360,7 @@ const handleActions = actionMiddleware((store) => [
   onAction('CONNECT_REMOTE_HOST', ({ payload }) => electronAPI.send('CONNECT_REMOTE_HOST', payload)),
   onAction('CONFIRM_REMOTE_HOST', ({ payload }) => electronAPI.send('CONFIRM_REMOTE_HOST', payload)),
   onAction('LEAVE_REMOTE_HOST', () => electronAPI.send('LEAVE_REMOTE_HOST')),
+  onAction('BROWSE_REMOTE_NEARBY', ({ payload }) => electronAPI.send('BROWSE_REMOTE_NEARBY', payload)),
   // the main process has text of its own and follows the language from the saved settings
   // the handlers run before the reducer, so the saved settings get the new language here
   onAction('SET_LANGUAGE', ({ payload }) => saveSettings({ ...store.getState().uiState, language: payload.language })),

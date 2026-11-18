@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { RemoteListenerState } from '@shared/schemas/remote-listener';
+import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import RemoteListener from './RemoteListener';
 
 const target = { host: '192.168.1.5', port: 40000 };
 
-const setup = (state: RemoteListenerState | undefined) => {
-  const props = { state, connect: vi.fn(), confirm: vi.fn(), leave: vi.fn(), listenAlong: vi.fn() };
+const setup = (state: RemoteListenerState | undefined, nearby: NearbyHost[] = []) => {
+  const props = { state, connect: vi.fn(), confirm: vi.fn(), leave: vi.fn(), listenAlong: vi.fn(), nearby, browse: vi.fn() };
   const view = render(<RemoteListener {...props} />);
   return { ...props, ...view };
 };
@@ -78,6 +79,35 @@ describe('RemoteListener', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Stop listening' }));
 
     expect(leave).toHaveBeenCalledTimes(1);
+  });
+
+  describe('the Tunelles on the network', () => {
+    const kitchen = { id: 'tunelle-a', name: 'Kitchen', host: '192.168.1.30', port: 41000, version: '1' };
+
+    it('looks for them while the form is shown, and stops when it goes away', () => {
+      const { browse, unmount } = setup({ status: 'idle' });
+
+      expect(browse).toHaveBeenCalledWith(true);
+      expect(screen.getByText(/Looking for Tunelles/)).toBeTruthy();
+
+      unmount();
+      expect(browse).toHaveBeenLastCalledWith(false);
+    });
+
+    it('asks to listen to the one that was picked, at its address, and shows its name as text', () => {
+      const { connect } = setup({ status: 'idle' }, [{ ...kitchen, name: '<b>Kitchen</b>' }]);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Connect to <b>Kitchen</b>' }));
+
+      expect(connect).toHaveBeenCalledWith('192.168.1.30', 41000);
+    });
+
+    it('does not look while the pairing goes on or the app listens', () => {
+      const { browse } = setup({ status: 'confirming', target, code: 'AB12-CD34' }, [kitchen]);
+
+      expect(browse).not.toHaveBeenCalled();
+      expect(screen.queryByRole('button', { name: /Connect to/ })).toBeNull();
+    });
   });
 
   it('plays along with what the host plays', () => {

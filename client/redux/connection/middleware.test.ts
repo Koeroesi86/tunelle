@@ -87,6 +87,18 @@ describe('connection middleware', () => {
     expect(send).toHaveBeenCalledWith('LEAVE_REMOTE_HOST');
   });
 
+  it('asks the main process to look for Tunelles on the network, and stores the ones it finds', async () => {
+    const { store, send, listen } = await setup();
+    const hosts = [{ id: 'tunelle-a', name: 'Kitchen', host: '192.168.1.30', port: 41000, version: '1' }];
+
+    store.dispatch({ type: 'BROWSE_REMOTE_NEARBY', payload: { active: true } });
+    listen('REMOTE_NEARBY', hosts);
+    listen('REMOTE_NEARBY', [{ id: 'x', port: 80 }]);
+
+    expect(send).toHaveBeenCalledWith('BROWSE_REMOTE_NEARBY', { active: true });
+    expect(store.getState().uiState.remoteNearby).toEqual(hosts);
+  });
+
   it('sends the request to add or remove the launcher to the main process', async () => {
     const { store, send } = await setup();
 

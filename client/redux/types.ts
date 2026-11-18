@@ -13,6 +13,7 @@ import type { AlbumSort, GroupKind, GroupSort, TrackSort } from '@shared/types/l
 import type { UpdateState } from '@shared/types/update';
 import type { RemoteHostState } from '@shared/schemas/remote-host';
 import type { RemoteListenerState } from '@shared/schemas/remote-listener';
+import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import type { Control } from '@shared/constants/remote-controls';
 import type { PowerSavingMode } from '@shared/schemas/settings';
 import type { LibraryView, OnlineView, PersistedSettings } from './persisted-settings';
@@ -103,6 +104,8 @@ export interface UiState extends PersistedSettings {
   remoteHost: RemoteHostState | undefined;
   /** What the listener side reports: undefined until the main process answers */
   remoteListener: RemoteListenerState | undefined;
+  /** The Tunelles that announce themselves on the network, while the listener tile asks for them */
+  remoteNearby: NearbyHost[];
 }
 
 type EmptyPayload = Record<string, never>;
@@ -243,6 +246,8 @@ export type AppAction =
   | PayloadAction<'CONNECT_REMOTE_HOST', { host: string; port: number }>
   | PayloadAction<'CONFIRM_REMOTE_HOST', { note: string }>
   | EmptyAction<'LEAVE_REMOTE_HOST'>
+  | PayloadAction<'REMOTE_NEARBY', NearbyHost[]>
+  | PayloadAction<'BROWSE_REMOTE_NEARBY', { active: boolean }>
   | PayloadAction<'SET_LANGUAGE', { language: string | undefined }>
   | PayloadAction<'SET_THEME_MODE', { mode: ThemeMode }>
   | PayloadAction<'SET_ACCENT', { accent: string | undefined }>

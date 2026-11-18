@@ -1,19 +1,43 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import style from './RemoteListener.scss';
 import { useTranslation } from '../../../i18n';
 import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NowPlaying as NowPlayingSnapshot } from '@shared/schemas/now-playing';
+import type { NearbyHost } from '@shared/schemas/remote-nearby';
 
 interface RemoteListenerProps {
   state: RemoteListenerState | undefined;
   connect: (host: string, port: number) => void;
   confirm: (note: string) => void;
   leave: () => void;
+  nearby: NearbyHost[];
+  browse: (active: boolean) => void;
   listenAlong: (snapshot: Exclude<NowPlayingSnapshot, { state: 'idle' }>) => void;
 }
 
 const isPort = (port: number) => Number.isInteger(port) && port >= 1024 && port <= 65535;
+
+/** The Tunelles that announce themselves on the network, while the form is shown. Picking one only starts the request: the host still shows a code to compare */
+const Nearby = ({ nearby, browse, connect }: Pick<RemoteListenerProps, 'nearby' | 'browse' | 'connect'>) => {
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    browse(true);
+    return () => browse(false);
+  }, []);
+
+  return (
+    <div className={style.nearby}>
+      <div className={style.hint}>{nearby.length > 0 ? t('remote.listen.nearby') : t('remote.listen.nearbyNone')}</div>
+      {nearby.map(({ id, name, host, port }) => (
+        <button key={id} type="button" className={style.action} title={`${host}:${port}`} onClick={() => connect(host, port)}>
+          {t('remote.listen.connectTo', { name })}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 const Connect = ({ state, connect }: Pick<RemoteListenerProps, 'state' | 'connect'>) => {
   const { t } = useTranslation();
@@ -102,7 +126,7 @@ const NowPlaying = ({ snapshot, listenAlong }: { snapshot: RemoteListenerState['
 };
 
 /** Pairs this app with another Tunelle that plays: the address, the code to compare, the request and what the host plays. See docs/app/remote-access-discovery.md */
-const RemoteListener = ({ state, connect, confirm, leave, listenAlong }: RemoteListenerProps) => {
+const RemoteListener = ({ state, connect, confirm, leave, listenAlong, nearby, browse }: RemoteListenerProps) => {
   const { t } = useTranslation();
 
   if (!state) return null;
@@ -117,7 +141,12 @@ const RemoteListener = ({ state, connect, confirm, leave, listenAlong }: RemoteL
       {status === 'error' && <div className={style.error}>{t('remote.listen.error', { error: state.error ?? '' })}</div>}
       {status === 'blocked' && <div className={style.error}>{t('remote.listen.blocked')}</div>}
       {status === 'revoked' && <div className={style.error}>{t('remote.listen.revoked')}</div>}
-      {['idle', 'contacting', 'error', 'blocked', 'revoked'].includes(status) && <Connect state={state} connect={connect} />}
+      {['idle', 'contacting', 'error', 'blocked', 'revoked'].includes(status) && (
+        <>
+          <Nearby nearby={nearby} browse={browse} connect={connect} />
+          <Connect state={state} connect={connect} />
+        </>
+      )}
       {status === 'confirming' && <Confirm code={state.code} confirm={confirm} leave={leave} />}
       {status === 'waiting' && (
         <>
