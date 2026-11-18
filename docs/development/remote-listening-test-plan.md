@@ -14,7 +14,7 @@ What checks #360 (a Tunelle listens to another one), and where. The design is in
 Two apps on one machine, each with its own profile: `session` is the host (with the library) and the `second` fixture of `e2e/support/app.ts` is the listener. The address is typed (127.0.0.1 and the port the host shows), as mDNS between two apps on one machine says nothing about a network.
 
 1. Host: Settings, switch "Remote listening" on; read the port from the text next to it.
-2. Listener: Settings, Address and Port, Connect, "The codes match, ask to listen".
+2. Listener: Nearby Tunelles in the sidebar, Address and Port, Connect, "The codes match, ask to listen".
 3. Host: Approve in the dialog that asks on whatever page is open. Listener: "Listening to 127.0.0.1:<port>".
 4. Host plays Pitch Perfect (440 Hz). Listener: "Listen along", and the audio it sends out is 440 Hz (`expectTone`).
 

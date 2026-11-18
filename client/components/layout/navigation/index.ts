@@ -1,12 +1,13 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
 import type { RootState } from '../../../redux/reducers';
-import type { AppAction, LibraryView, NavigationGroup, Tab } from '../../../redux/types';
+import type { AppAction, LibraryView, OnlineView, NavigationGroup, Tab } from '../../../redux/types';
 import Navigation from './Navigation';
 
 const mapState = (state: RootState) => ({
   tab: state.uiState.tab,
   view: state.uiState.view,
+  onlineView: state.uiState.onlineView,
   libraryOpen: state.uiState.libraryOpen,
   playlistsOpen: state.uiState.playlistsOpen,
   playlists: state.playlists,
@@ -18,6 +19,10 @@ const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   openLibraryView: (view: LibraryView) => {
     dispatch({ type: 'SET_VIEW', payload: { view } });
     dispatch({ type: 'SET_TAB', payload: { tab: 'local' } });
+  },
+  openOnlineView: (view: OnlineView) => {
+    dispatch({ type: 'SET_ONLINE_VIEW', payload: { view } });
+    dispatch({ type: 'SET_TAB', payload: { tab: 'online-sources' } });
   },
   setGroupOpen: (group: NavigationGroup, open: boolean) => dispatch({ type: 'SET_NAVIGATION_GROUP', payload: { group, open } }),
   openPlaylist: (id: number) => dispatch({ type: 'OPEN_PLAYLIST', payload: { id } }),
