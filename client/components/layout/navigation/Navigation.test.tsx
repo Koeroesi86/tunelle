@@ -79,6 +79,31 @@ describe('Navigation', () => {
     expect(Array.from(document.querySelectorAll('.footer .item')).map((item) => item.textContent)).toEqual(['Equalizer', 'Settings']);
   });
 
+  describe('online', () => {
+    it('lists the sources as children of the group, and none while it is closed', () => {
+      const { rerender } = render(<Navigation onlineOpen />);
+
+      expect(Array.from(document.querySelectorAll('.child')).map((item) => item.textContent)).toEqual(
+        expect.arrayContaining(['Radio stations', 'Nearby Tunelles'])
+      );
+
+      rerender(<Navigation onlineOpen={false} />);
+
+      expect(screen.queryByText('Nearby Tunelles')).toBeNull();
+    });
+
+    it('opens the group and the sources on click', () => {
+      const setGroupOpen = vi.fn();
+      const setTab = vi.fn();
+      render(<Navigation onlineOpen={false} setGroupOpen={setGroupOpen} setTab={setTab} />);
+
+      fireEvent.click(screen.getByText('Online'));
+
+      expect(setGroupOpen).toHaveBeenCalledWith('online', true);
+      expect(setTab).toHaveBeenCalledWith('online-sources');
+    });
+  });
+
   describe('library', () => {
     const views = ['Albums', 'Artists', 'Album artists', 'Genres', 'Songs', 'Folders'];
 

@@ -38,7 +38,7 @@ export type FavouritesSource = 'local' | 'online';
 export type FavouritesOrder = 'recent' | 'name' | 'details';
 
 /** The groups of the sidebar that open and close */
-export type NavigationGroup = 'library' | 'playlists';
+export type NavigationGroup = 'library' | 'online' | 'playlists';
 export type Tab = 'home' | 'now-playing' | 'local' | 'online-sources' | 'favourites' | 'playlist' | 'equalizer' | 'settings';
 
 export interface PlaylistItem {

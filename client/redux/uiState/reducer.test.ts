@@ -730,6 +730,14 @@ describe('uiState reducer', () => {
       expect(reopened).toMatchObject({ libraryOpen: true, playlistsOpen: false });
     });
 
+    it('opens and closes the online group without the others', () => {
+      const closed = run({ type: 'SET_NAVIGATION_GROUP', payload: { group: 'online', open: false } });
+
+      expect(closed).toMatchObject({ onlineOpen: false, libraryOpen: true, playlistsOpen: true });
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { onlineOpen: false } } })).toMatchObject({ onlineOpen: false });
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { view: 'tracks' } } })).toMatchObject({ onlineOpen: true });
+    });
+
     it('restores the saved state of the groups', () => {
       expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { libraryOpen: false, playlistsOpen: false } } })).toMatchObject({
         libraryOpen: false,

@@ -9,6 +9,7 @@ const mapState = (state: RootState) => ({
   view: state.uiState.view,
   onlineView: state.uiState.onlineView,
   libraryOpen: state.uiState.libraryOpen,
+  onlineOpen: state.uiState.onlineOpen,
   playlistsOpen: state.uiState.playlistsOpen,
   playlists: state.playlists,
   playlistId: state.uiState.playlistId,

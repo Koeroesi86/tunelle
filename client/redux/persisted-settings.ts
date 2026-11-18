@@ -22,6 +22,7 @@ const persistedShape = {
   onlineView: onlineViewSchema,
   /** Whether the Library group of the sidebar shows its views, and whether the Playlists group shows the playlists, both start open */
   libraryOpen: z.boolean(),
+  onlineOpen: z.boolean(),
   playlistsOpen: z.boolean(),
   nowPlaying: z.array(trackSchema),
   played: z.array(trackSchema),
