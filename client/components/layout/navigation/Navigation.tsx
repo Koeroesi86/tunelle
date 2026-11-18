@@ -20,6 +20,7 @@ import {
   MdPlaylistPlay as PlaylistIcon,
   MdRadio as RadioIcon,
   MdWifiTethering as NearbyIcon,
+  MdPublic as OnlineIcon,
   MdSettings as SettingsIcon,
 } from 'react-icons/md';
 import type { NavigationGroup, LibraryView, OnlineView, Tab } from '../../../redux/types';
@@ -41,6 +42,7 @@ interface NavigationProps {
   view?: LibraryView;
   onlineView?: OnlineView;
   libraryOpen?: boolean;
+  onlineOpen?: boolean;
   playlistsOpen?: boolean;
   playlists?: Playlist[];
   playlistId?: number | null;
@@ -60,6 +62,11 @@ const libraryViews = [
   { view: 'genres', label: 'library.genres', Icon: GenresIcon },
   { view: 'tracks', label: 'library.songs', Icon: TracksIcon },
   { view: 'folders', label: 'library.folders', Icon: FoldersIcon },
+] as const;
+
+const onlineViews = [
+  { view: 'radio', label: 'nav.radio', Icon: RadioIcon },
+  { view: 'nearby', label: 'nav.nearby', Icon: NearbyIcon },
 ] as const;
 
 interface ItemProps {
@@ -112,6 +119,7 @@ function Navigation({
   view = 'albums',
   onlineView = 'radio',
   libraryOpen = false,
+  onlineOpen = true,
   playlistsOpen = true,
   playlists = [],
   playlistId = null,
@@ -138,6 +146,10 @@ function Navigation({
   const openOnlineView = (next: OnlineView) => {
     openOnlineViewOf(next);
     onNavigate();
+  };
+  const toggleOnline = () => {
+    setGroupOpen('online', !onlineOpen);
+    if (!onlineOpen) setTabOf('online-sources');
   };
   const openPlaylist = (id: number) => {
     openPlaylistOf(id);
@@ -186,18 +198,30 @@ function Navigation({
               <span className={style.label}>{t(label)}</span>
             </button>
           ))}
-        <Item
-          label={t('nav.radio')}
-          icon={<RadioIcon size={'14px'} />}
-          active={tab === 'online-sources' && onlineView === 'radio'}
-          onClick={() => openOnlineView('radio')}
+        <Group
+          label={t('nav.online')}
+          icon={<OnlineIcon size={'14px'} />}
+          open={onlineOpen}
+          active={tab === 'online-sources' && !onlineOpen}
+          onClick={toggleOnline}
         />
-        <Item
-          label={t('nav.nearby')}
-          icon={<NearbyIcon size={'14px'} />}
-          active={tab === 'online-sources' && onlineView === 'nearby'}
-          onClick={() => openOnlineView('nearby')}
-        />
+        {onlineOpen &&
+          onlineViews.map(({ view: sourceView, label, Icon }) => {
+            const current = tab === 'online-sources' && onlineView === sourceView;
+            return (
+              <button
+                type="button"
+                key={sourceView}
+                title={t(label)}
+                onClick={() => openOnlineView(sourceView)}
+                aria-current={current ? 'page' : undefined}
+                className={classNames(style.item, style.child, { [style.active]: current })}
+              >
+                <Icon size={'12px'} />
+                <span className={style.label}>{t(label)}</span>
+              </button>
+            );
+          })}
         <Item label={t('nav.liked')} icon={<FavouritesIcon size={'14px'} />} active={tab === 'favourites'} onClick={() => setTab('favourites')} />
         <Group
           label={t('nav.playlists')}
