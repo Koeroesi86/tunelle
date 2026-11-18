@@ -15,9 +15,14 @@ const mocks = vi.hoisted(() => ({
   onChange: undefined as ((state: unknown) => void) | undefined,
   listener: { start: vi.fn(), state: vi.fn(), connect: vi.fn(), confirm: vi.fn(), leave: vi.fn(), audio: vi.fn() },
   onListenerChange: undefined as ((state: unknown) => void) | undefined,
+  nearby: { start: vi.fn(), stop: vi.fn() },
+  onNearbyChange: undefined as ((hosts: unknown) => void) | undefined,
 }));
 
-vi.mock('electron', () => ({ ipcMain: { on: (channel: string, listener: (...args: unknown[]) => void) => mocks.listeners.set(channel, listener) } }));
+vi.mock('electron', () => ({
+  app: { getVersion: () => '26.11.5' },
+  ipcMain: { on: (channel: string, listener: (...args: unknown[]) => void) => mocks.listeners.set(channel, listener) },
+}));
 vi.mock('../remote/host-store', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../remote/host-store')>()),
   createHostStore: () => ({}),
@@ -29,6 +34,12 @@ vi.mock('../remote/host-controller', () => ({
   },
 }));
 
+vi.mock('../remote/nearby', () => ({
+  createNearby: (onChange: (hosts: unknown) => void) => {
+    mocks.onNearbyChange = onChange;
+    return mocks.nearby;
+  },
+}));
 vi.mock('../remote/listener-store', () => ({ createListenerStore: () => ({}) }));
 vi.mock('../remote/listener-controller', () => ({
   createListenerController: (_store: unknown, _name: string, onChange: (state: unknown) => void) => {
@@ -43,8 +54,10 @@ describe('registerRemoteListeners', () => {
 
   beforeEach(async () => {
     mocks.listeners.clear();
-    Object.values({ ...mocks.host, ...mocks.listener }).forEach((mock) => mock.mockReset());
+    Object.values({ ...mocks.host, ...mocks.listener, ...mocks.nearby }).forEach((mock) => mock.mockReset());
     Object.values(mocks.listener).forEach((mock) => mock.mockResolvedValue(undefined));
+    mocks.nearby.start.mockResolvedValue(undefined);
+    mocks.nearby.stop.mockResolvedValue(undefined);
     mocks.host.start.mockResolvedValue(undefined);
     mocks.host.update.mockResolvedValue(undefined);
     mocks.host.decide.mockResolvedValue(undefined);
@@ -142,6 +155,24 @@ describe('registerRemoteListeners', () => {
       emit('LEAVE_REMOTE_HOST');
 
       expect(mocks.listener.leave).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('the nearby list', () => {
+    it('opens and closes the list as the page asks, and drops a request that is not one', () => {
+      emit('BROWSE_REMOTE_NEARBY', { active: true });
+      emit('BROWSE_REMOTE_NEARBY', { active: false });
+      emit('BROWSE_REMOTE_NEARBY', { active: 'yes' });
+      emit('BROWSE_REMOTE_NEARBY', undefined);
+
+      expect(mocks.nearby.start).toHaveBeenCalledTimes(1);
+      expect(mocks.nearby.stop).toHaveBeenCalledTimes(1);
+    });
+
+    it('sends the hosts that were found to the main window', () => {
+      mocks.onNearbyChange?.([{ id: 'a' }]);
+
+      expect(main.webContents.send).toHaveBeenCalledWith('REMOTE_NEARBY', [{ id: 'a' }]);
     });
   });
 });

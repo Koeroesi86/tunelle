@@ -1,5 +1,5 @@
 import { hostname } from 'node:os';
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import { serveTrack } from '../protocols/serve-track';
 import { createHostController } from '../remote/host-controller';
 import type { HostState } from '../remote/host-controller';
@@ -8,6 +8,8 @@ import { createHostStore } from '../remote/host-store';
 import { createListenerController } from '../remote/listener-controller';
 import { confirmSchema, connectSchema } from '../remote/listener-requests';
 import { createListenerStore } from '../remote/listener-store';
+import { createNearby } from '../remote/nearby';
+import { nearbyRequestSchema } from '../remote/nearby-requests';
 import { provideRemoteAudio } from '../remote/remote-audio';
 import { logError } from '../utils/log-error';
 import { parsePayload } from '../utils/parse-payload';
@@ -20,7 +22,8 @@ const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
     createHostStore(global._appDataPath),
     (state: HostState) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_HOST_STATE', state),
     (command) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_CONTROL', command),
-    (trackPath, request) => serveTrack(database, trackPath, request)
+    (trackPath, request) => serveTrack(database, trackPath, request),
+    app.getVersion()
   );
 
   // a host that is off opens no socket: start() only reads the settings, and listens when they say so
@@ -60,6 +63,12 @@ const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
     if (request) listener.confirm(request.note).catch(logError);
   });
   ipcMain.on('LEAVE_REMOTE_HOST', () => listener.leave().catch(logError));
+
+  const nearby = createNearby((hosts) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_NEARBY', hosts));
+  ipcMain.on('BROWSE_REMOTE_NEARBY', (_event, payload: unknown) => {
+    const request = parsePayload(nearbyRequestSchema, payload);
+    if (request) (request.active ? nearby.start() : nearby.stop()).catch(logError);
+  });
 };
 
 export default registerRemoteListeners;

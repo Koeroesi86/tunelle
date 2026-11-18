@@ -6,6 +6,7 @@ import { playlistImportReportSchema } from './playlists';
 import { radioOptionKindSchema, radioOptionSchema, radioStationSchema, radioTagSchema } from './radio';
 import { updateStateSchema } from './update';
 import { remoteHostStateSchema } from './remote-host';
+import { remoteNearbySchema } from './remote-nearby';
 import { remoteListenerStateSchema } from './remote-listener';
 import { radioSearchSchema } from '../types/radio-query';
 
@@ -34,6 +35,7 @@ export const messageSchemas = {
   LAUNCHER_STATE: z.object({ available: z.boolean(), enabled: z.boolean(), offered: z.boolean(), external: z.boolean() }),
   REMOTE_HOST_STATE: remoteHostStateSchema,
   REMOTE_LISTENER_STATE: remoteListenerStateSchema,
+  REMOTE_NEARBY: remoteNearbySchema,
   UPDATE_STATE: updateStateSchema,
   CLICKED_URL: z.object({ playlist: z.array(z.object({ file: z.string(), title: z.string().optional() })), url: z.string() }),
   SCANNING_FILE: z.object({ fileName: z.string(), progress: z.number(), totalCount: z.number() }),

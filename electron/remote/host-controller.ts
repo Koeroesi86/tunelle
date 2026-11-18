@@ -6,6 +6,8 @@ import { z } from 'zod';
 import type { ControlCommand } from './control-command';
 import type { ServeAudio } from './host-routes';
 import { approvalCode } from './certificate';
+import { advertise } from './mdns';
+import { logError } from '../utils/log-error';
 
 export interface HostState extends HostSettings {
   /** Whether the server listens now */
@@ -49,11 +51,13 @@ export const createHostController = (
   store: HostStore,
   onChange: (state: HostState) => void,
   onControl: (command: ControlCommand) => void,
-  serveAudio?: ServeAudio
+  serveAudio?: ServeAudio,
+  version = ''
 ) => {
   let settings: HostSettings | undefined;
   let access: AccessControl = new AccessControl();
   let server: HostServer | undefined;
+  let advertisement: Awaited<ReturnType<typeof advertise>> | undefined;
   let code: string | undefined;
   let error: string | undefined;
   // the last now playing the page sent, which a start that comes after it still shows
@@ -85,6 +89,8 @@ export const createHostController = (
   };
 
   const stop = async () => {
+    await advertisement?.stop().catch(logError);
+    advertisement = undefined;
     await server?.close();
     server = undefined;
     code = undefined;
@@ -103,6 +109,12 @@ export const createHostController = (
       if (nowPlaying) server.setNowPlaying(nowPlaying, trackPath);
       settings = { ...current, port: server.port };
       await store.saveSettings(settings);
+      // a host on loopback is not reachable from the network, so it is not announced; a failed announcement leaves the host working at its address
+      if (!current.loopbackOnly && code) {
+        advertisement = await advertise({ id: code.replace(/\W/g, '').toLowerCase(), name: current.name, port: server.port, version }).catch(
+          (failure: unknown) => (logError(failure), undefined)
+        );
+      }
     } catch (failure) {
       error = failure instanceof Error ? failure.message : 'The host did not start';
       await stop();
