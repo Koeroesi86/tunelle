@@ -13,7 +13,7 @@ const MINUTE = 60_000;
 export type { Control };
 
 // control characters (a note is shown as plain text, but a line break or an escape has no place in a name)
-const plain = (value: string) => value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim();
+export const plain = (value: string) => value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim();
 
 const connectRequestSchema = z.object({
   deviceId: z.uuid(),
