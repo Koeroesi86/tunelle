@@ -6,12 +6,7 @@ import type { AppAction } from '../../../redux/types';
 import type { Track } from '@shared/types/library';
 import PlayerControls from './PlayerControls';
 import { Audio } from '../../../audio/context';
-
-/** The name the host announces, or its address while it is not among the Tunelles nearby; undefined while this app does not listen */
-const hostNameOf = ({ remoteListener, remoteNearby }: RootState['uiState']) => {
-  const target = remoteListener?.status === 'listening' ? remoteListener.target : undefined;
-  return target && (remoteNearby.find(({ host, port }) => host === target.host && port === target.port)?.name ?? `${target.host}:${target.port}`);
-};
+import { hostNameOf } from '../../../domain/remote-host-name';
 
 const mapState = (state: RootState) => ({
   isPlaying: state.uiState.isPlaying,
