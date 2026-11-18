@@ -300,7 +300,7 @@ const PlayerControls = (props: PlayerControlsProps) => {
       coverKey: hostedFile && shown.track.picture ? optimizedCoverOf(shown.track.picture) : undefined,
       next: props.upNext ? { title: props.upNext.title, artist: props.upNext.artist || undefined } : undefined,
     },
-    { isPlaying, currentTime },
+    { isPlaying, currentTime, volume: props.volume },
     { play, pause, isPlaying, previousSong: props.previousSong, nextSong: props.nextSong, setCurrentTime, setVolume: props.setVolume }
   );
 
