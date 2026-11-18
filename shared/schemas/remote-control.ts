@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-/** What a listener may ask the host to do. `queue` is not here yet: it needs the library to be reachable by the listener */
+/** What a listener may ask the host to do. There is no `queue`: a listener does not add to the queue of the host */
 export const controlCommandSchema = z.discriminatedUnion('control', [
   z.object({ control: z.literal('playPause'), action: z.enum(['play', 'pause', 'toggle']).default('toggle') }),
   z.object({ control: z.literal('skip'), direction: z.enum(['next', 'previous']) }),

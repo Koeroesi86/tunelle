@@ -1,15 +1,30 @@
 import type { ControlCommand } from '../../shared/schemas/remote-control';
 import type { RemoteListenerState } from '../../shared/schemas/remote-listener';
 import { approvalCode } from './certificate';
-import { contact, fetchAudio, fetchCover, followNowPlaying, requestToListen, sendControl, type Contact, type HostAddress } from './listener-client';
+import {
+  contact,
+  fetchAudio,
+  fetchCover,
+  followNowPlaying,
+  HostAnswerError,
+  requestToListen,
+  sendControl,
+  type Contact,
+  type HostAddress,
+} from './listener-client';
 import type { ListenerStore, Pairing } from './listener-store';
+import { getMainTranslator } from '../language';
 
 export const POLL_MS = 1000;
 /** The host drops a request that nobody answered after ten minutes, so asking longer does not help */
 export const ASK_LIMIT_MS = 10 * 60 * 1000;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-const messageOf = (failure: unknown) => (failure instanceof Error ? failure.message : 'The host did not answer');
+const messageOf = (failure: unknown) => {
+  const { t } = getMainTranslator();
+  if (failure instanceof HostAnswerError) return t('remote.listen.failure.answered', { status: failure.status });
+  return failure instanceof Error ? failure.message : t('remote.listen.failure.silent');
+};
 
 /**
  * The listener side of the app: the first contact with a host, the request to listen, and the now playing of the host once approved.
@@ -58,7 +73,7 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
     if (ended === 'revoked') return revoke(token).then(() => false);
 
     // the stream ended or failed: the last track stays on the screen, and the host is asked again after the pause
-    publish({ ...state, status: 'listening', error: ended === 'ended' ? 'The host closed the connection' : messageOf(ended) });
+    publish({ ...state, status: 'listening', error: ended === 'ended' ? getMainTranslator().t('remote.listen.failure.closed') : messageOf(ended) });
     await wait(POLL_MS);
     return true;
   };
@@ -97,7 +112,7 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
       }
       // the secret comes once: an approval without it was picked up before, and only a new approval gives another
       if (answer.status === 'approved') {
-        publish({ status: 'error', ...base, error: 'The host approved this device before; ask the host to revoke it, then ask again' });
+        publish({ status: 'error', ...base, error: getMainTranslator().t('remote.listen.failure.approvedBefore') });
         return false;
       }
       if (answer.status === 'blocked') {
@@ -105,7 +120,7 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
         return false;
       }
       if (answer.status !== 'pending') {
-        publish({ status: 'error', ...base, error: `The host answered ${answer.status}` });
+        publish({ status: 'error', ...base, error: getMainTranslator().t('remote.listen.failure.answered', { status: answer.status }) });
         return false;
       }
 
@@ -115,7 +130,7 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
 
     let open = true;
     while (open && token === run && Date.now() < until) open = await once();
-    if (open && token === run) publish({ status: 'error', ...base, error: 'Nobody answered the request on the host' });
+    if (open && token === run) publish({ status: 'error', ...base, error: getMainTranslator().t('remote.listen.failure.unanswered') });
   };
 
   const fail = (token: number, failure: unknown, base: Partial<RemoteListenerState> = {}) => {
