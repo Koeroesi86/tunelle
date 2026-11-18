@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import RemoteListener from './RemoteListener';
@@ -15,6 +15,8 @@ const setup = (state: RemoteListenerState | undefined, nearby: NearbyHost[] = []
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 
 describe('RemoteListener', () => {
+  afterEach(() => vi.useRealTimers());
+
   it('shows nothing until the main process reported', () => {
     expect(setup(undefined).container.innerHTML).toBe('');
   });
@@ -105,6 +107,22 @@ describe('RemoteListener', () => {
 
     setup({ status: 'listening', target, nowPlaying: playing, controls: [] });
     expect(screen.queryByRole('group', { name: 'Controls of the host' })).toBeNull();
+  });
+
+  it('starts the sliders at the volume and the position of the host and moves the position on, but not while it is held', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    vi.setSystemTime(10_000);
+    const playing = { state: 'playing', title: 'Song', position: 30, at: 10_000, duration: 200, volume: 0.4 } as const;
+    setup({ status: 'listening', target, nowPlaying: playing, controls: ['seek', 'volume'] });
+    const seek = screen.getByRole('slider', { name: 'Position on the host' });
+
+    expect(screen.getByRole('slider', { name: 'Volume of the host' })).toHaveProperty('value', '40');
+    expect(seek).toHaveProperty('value', '30');
+    act(() => vi.advanceTimersByTime(5000));
+    expect(seek).toHaveProperty('value', '35');
+    fireEvent.pointerDown(seek);
+    act(() => vi.advanceTimersByTime(5000));
+    expect(seek).toHaveProperty('value', '35');
   });
 
   it('shows the cover that the host has for the track, through the protocol and not from the host, and what plays next', () => {

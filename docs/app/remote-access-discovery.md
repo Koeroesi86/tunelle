@@ -133,3 +133,7 @@ The listener asks with its host name (`os.hostname()`), and the host answers `in
 ## The cover on the home view (part 18)
 
 - The "continue" tile of the home view took the picture `remote-cover` of a followed track for a file name and asked `/covers/remote-cover`, which gives a 404 and an empty tile. `trackCoverUrl` (`client/domain/remote-track.ts`) is the one place that turns a track into a cover address, for the player bar and the tile. The recent list shows no cover for a followed track on purpose: the host serves only the cover of what it plays now. Check: follow a host with a cover, stop the player, open the home view; the tile shows the cover of the host.
+
+## The sliders start where the host is (part 19)
+
+- The seek and volume sliders of the host controls started at 0 and 100 whatever the host did. The snapshot now has the optional `volume` (0 to 1; the host sends it again when it changes), the seek slider starts from `expectedPosition` and moves on every second, and the volume slider from the volume. A slider that is held (pointer or key down) is not moved until it is let go, or the drag would jump. Check: give a listener the seek and volume controls, play a track on the host at half volume; the sliders show the position and 50, and the position moves on.

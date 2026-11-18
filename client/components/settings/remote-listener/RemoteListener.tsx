@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import style from './RemoteListener.scss';
 import { useTranslation } from '../../../i18n';
@@ -7,6 +7,7 @@ import type { NowPlaying as NowPlayingSnapshot } from '@shared/schemas/now-playi
 import { localUrl } from '../../../services/local-url';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import type { ControlCommand } from '@shared/schemas/remote-control';
+import { expectedPosition } from '@shared/utils/remote-position';
 
 interface RemoteListenerProps {
   state: RemoteListenerState | undefined;
@@ -144,7 +145,7 @@ const Confirm = ({ code, confirm, leave }: { code: string | undefined } & Pick<R
   );
 };
 
-/** A range that sends its value when it is let go or a key is released, not on every step of the drag */
+/** A range that follows the host, sends its value when it is let go or a key is released, not on every step of the drag, and stays where it is held meanwhile */
 const Slider = ({
   id,
   label,
@@ -161,6 +162,15 @@ const Slider = ({
   onCommit: (value: number) => void;
 }) => {
   const [draft, setDraft] = useState(value);
+  const held = useRef(false);
+  const commit = (next: number) => {
+    held.current = false;
+    onCommit(next);
+  };
+
+  useEffect(() => {
+    if (!held.current) setDraft(value);
+  }, [value]);
 
   return (
     <label htmlFor={id} className={style.slider}>
@@ -173,8 +183,10 @@ const Slider = ({
         step={step}
         value={draft}
         onChange={(event) => setDraft(Number(event.target.value))}
-        onPointerUp={(event) => onCommit(Number(event.currentTarget.value))}
-        onKeyUp={(event) => onCommit(Number(event.currentTarget.value))}
+        onPointerDown={() => (held.current = true)}
+        onKeyDown={() => (held.current = true)}
+        onPointerUp={(event) => commit(Number(event.currentTarget.value))}
+        onKeyUp={(event) => commit(Number(event.currentTarget.value))}
       />
     </label>
   );
@@ -188,7 +200,20 @@ const HostControls = ({
 }: { controls: NonNullable<RemoteListenerState['controls']>; snapshot: RemoteListenerState['nowPlaying'] } & Pick<RemoteListenerProps, 'control'>) => {
   const { t } = useTranslation();
   const duration = snapshot?.state === 'idle' ? undefined : snapshot?.duration;
+  const [, setTick] = useState(0);
+
+  const seeks = controls.includes('seek');
+
+  useEffect(() => {
+    if (!seeks) return;
+
+    const timer = setInterval(() => setTick((tick) => tick + 1), 1000);
+    return () => clearInterval(timer);
+  }, [seeks]);
+
   if (controls.length === 0) return null;
+  const position = Math.min(Math.round((snapshot && expectedPosition(snapshot)) ?? 0), duration ?? 0);
+  const volume = snapshot?.state === 'idle' ? undefined : snapshot?.volume;
 
   return (
     <div className={style.hostControls} role="group" aria-label={t('remote.listen.controls')}>
@@ -213,7 +238,7 @@ const HostControls = ({
           label={t('remote.listen.control.seek')}
           max={duration}
           step={1}
-          value={0}
+          value={position}
           onCommit={(position) => control({ control: 'seek', position })}
         />
       )}
@@ -223,7 +248,7 @@ const HostControls = ({
           label={t('remote.listen.control.volume')}
           max={100}
           step={1}
-          value={100}
+          value={Math.round((volume ?? 1) * 100)}
           onCommit={(level) => control({ control: 'volume', level: level / 100 })}
         />
       )}

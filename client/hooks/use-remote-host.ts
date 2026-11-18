@@ -18,6 +18,7 @@ interface RemoteHostInfo {
 interface RemoteHostPlayback {
   isPlaying: boolean;
   currentTime: number;
+  volume: number;
 }
 
 interface RemoteHostCommands {
@@ -47,7 +48,7 @@ const run = (command: ControlCommand, { play, pause, isPlaying, previousSong, ne
 };
 
 /** Sends what plays to the listeners that the host approved, and lets the controls they were given drive the player. See docs/app/remote-access-discovery.md */
-export const useRemoteHost = (info: RemoteHostInfo | undefined, { isPlaying, currentTime }: RemoteHostPlayback, commands: RemoteHostCommands) => {
+export const useRemoteHost = (info: RemoteHostInfo | undefined, { isPlaying, currentTime, volume }: RemoteHostPlayback, commands: RemoteHostCommands) => {
   const latest = useRef({ currentTime, at: Date.now(), isPlaying });
   const current = useRef(commands);
   const listening = useRef(false);
@@ -68,13 +69,14 @@ export const useRemoteHost = (info: RemoteHostInfo | undefined, { isPlaying, cur
             at: Date.now(),
             path: info.path,
             coverKey: info.coverKey,
+            volume,
             next: info.next,
           }
         : { state: 'idle' }
     );
   };
 
-  useEffect(send, [info?.title, info?.artist, info?.album, info?.duration, info?.path, info?.coverKey, info?.next?.title, info?.next?.artist, isPlaying]);
+  useEffect(send, [info?.title, info?.artist, info?.album, info?.duration, info?.path, info?.coverKey, info?.next?.title, info?.next?.artist, isPlaying, volume]);
 
   useEffect(() => {
     if (!info) return;
