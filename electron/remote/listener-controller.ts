@@ -139,12 +139,12 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
 
   return {
     state: () => state,
-    /** Follows the host of the last approval, when there is one */
+    /** Follows the host of the last approval, when there is one and the user did not leave it */
     start: async () => {
       const token = begin();
       active = undefined;
       const [pairing, deviceId] = await Promise.all([store.readPairing(), store.deviceId()]);
-      if (pairing && token === run) await follow(pairing, deviceId, token);
+      if (pairing && !pairing.left && token === run) await follow(pairing, deviceId, token);
     },
     /** The first contact: the code of the certificate goes to both screens, and nothing is asked before the user compared them */
     connect: async (address: HostAddress) => {
@@ -158,6 +158,15 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
       );
       if (token !== run) return;
       if ('failure' in reached) return fail(token, reached.failure, { target: address });
+
+      const known = await store.readPairing();
+      if (token !== run) return;
+      // a host that approved this device before knows it: no second request (it would not give the secret again), the pinned certificate is the proof
+      if (known && known.certificate === reached.found.certificate) {
+        const again = { ...known, ...address, left: undefined };
+        await store.savePairing(again);
+        return follow(again, await store.deviceId(), token);
+      }
 
       contacted = { ...reached.found, ...address };
       publish({ status: 'confirming', target: address, code: reached.found.code });
@@ -203,12 +212,13 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
         publish({ ...state, error: messageOf(failure) })
       );
     },
-    /** Stops listening and forgets the host: a new contact starts from the code again */
+    /** Stops listening. The approval stays (marked as left), so the same host can be listened to again without a new request */
     leave: async () => {
       begin();
       active = undefined;
       contacted = undefined;
-      await store.clearPairing();
+      const saved = await store.readPairing();
+      if (saved) await store.savePairing({ ...saved, left: true });
       publish({ status: 'idle' });
     },
   };

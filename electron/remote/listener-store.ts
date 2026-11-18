@@ -9,6 +9,8 @@ const pairingSchema = z.object({
   /** The certificate of the host that the user approved the code of; every later call is pinned to it */
   certificate: z.string().min(1),
   secret: z.string().min(1),
+  /** The user stopped listening: the host still knows this device, so a new contact with the same certificate follows it again without a request, and a start does not */
+  left: z.boolean().optional(),
 });
 export type Pairing = z.infer<typeof pairingSchema>;
 
