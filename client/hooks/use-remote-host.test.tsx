@@ -50,7 +50,9 @@ describe('useRemoteHost', () => {
   });
 
   it('sends the track again with the new volume when the host changes it', () => {
-    const { rerender } = renderHook(({ volume }) => useRemoteHost(info, { isPlaying: true, currentTime: 5, volume }, commands()), { initialProps: { volume: 1 } });
+    const { rerender } = renderHook(({ volume }) => useRemoteHost(info, { isPlaying: true, currentTime: 5, volume }, commands()), {
+      initialProps: { volume: 1 },
+    });
 
     rerender({ volume: 0.4 });
 
@@ -58,7 +60,9 @@ describe('useRemoteHost', () => {
   });
 
   it('sends a paused track again when it stops', () => {
-    const { rerender } = renderHook(({ isPlaying }) => useRemoteHost(info, { isPlaying, currentTime: 5, volume: 1 }, commands()), { initialProps: { isPlaying: true } });
+    const { rerender } = renderHook(({ isPlaying }) => useRemoteHost(info, { isPlaying, currentTime: 5, volume: 1 }, commands()), {
+      initialProps: { isPlaying: true },
+    });
 
     rerender({ isPlaying: false });
 
