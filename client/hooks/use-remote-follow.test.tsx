@@ -47,6 +47,16 @@ describe('useRemoteFollow', () => {
     expect(target.leave).toHaveBeenCalledTimes(1);
   });
 
+  it('pauses what is buffered when the session with the host ends, and does nothing while another track plays', () => {
+    const ended = player();
+    renderHook(() => useRemoteFollow(undefined, ended));
+    expect(ended.pause).toHaveBeenCalledTimes(1);
+
+    const other = player({ currentSong: local });
+    renderHook(() => useRemoteFollow(undefined, other));
+    expect(other.pause).not.toHaveBeenCalled();
+  });
+
   it('loads the next track of the host', () => {
     const target = player();
     renderHook(() => useRemoteFollow({ ...playing, title: 'Other' }, target));
