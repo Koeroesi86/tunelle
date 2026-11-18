@@ -5,7 +5,15 @@ import type { HostStore } from './host-store';
 import type { NowPlaying } from '../../shared/schemas/now-playing';
 import { remoteHostStateSchema } from '../../shared/schemas/remote-host';
 
-const mocks = vi.hoisted(() => ({ start: vi.fn(), close: vi.fn(), setNowPlaying: vi.fn(), advertise: vi.fn(), stopAdvertising: vi.fn(), logError: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  start: vi.fn(),
+  closeRevoked: vi.fn(),
+  close: vi.fn(),
+  setNowPlaying: vi.fn(),
+  advertise: vi.fn(),
+  stopAdvertising: vi.fn(),
+  logError: vi.fn(),
+}));
 
 vi.mock('./host-server', () => ({ startHostServer: mocks.start }));
 vi.mock('./mdns', () => ({ advertise: mocks.advertise }));
@@ -35,9 +43,13 @@ describe('the host controller', () => {
 
   beforeEach(() => {
     states.length = 0;
-    mocks.start
-      .mockReset()
-      .mockImplementation(async ({ port }: { port?: number }) => ({ port: port || 41000, setNowPlaying: mocks.setNowPlaying, close: mocks.close }));
+    mocks.start.mockReset().mockImplementation(async ({ port }: { port?: number }) => ({
+      port: port || 41000,
+      setNowPlaying: mocks.setNowPlaying,
+      closeRevoked: mocks.closeRevoked,
+      close: mocks.close,
+    }));
+    mocks.closeRevoked.mockReset();
     mocks.close.mockReset().mockResolvedValue(undefined);
     mocks.setNowPlaying.mockReset();
     mocks.stopAdvertising.mockReset().mockResolvedValue(undefined);
@@ -231,6 +243,16 @@ describe('the host controller', () => {
 
       await host.decide(deviceId, 'revoke');
       expect(last().devices).toEqual([]);
+    });
+
+    it('ends the open streams of the devices after each decision, so a revoke or a block does not wait for the next event', async () => {
+      const { host, deviceId } = await waiting(fakeStore({ enabled: true }));
+      await host.decide(deviceId, 'approve');
+      mocks.closeRevoked.mockClear();
+
+      await host.decide(deviceId, 'revoke');
+
+      expect(mocks.closeRevoked).toHaveBeenCalledTimes(1);
     });
 
     it('writes nothing for a device that did not ask', async () => {

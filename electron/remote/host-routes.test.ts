@@ -16,7 +16,7 @@ const call = async (routes: ReturnType<typeof createRoutes>, method: string, url
 };
 
 const openStream = (routes: ReturnType<typeof createRoutes>) => {
-  const response = Object.assign(new EventEmitter(), { headersSent: false, writeHead: vi.fn(), write: vi.fn(), end: vi.fn() });
+  const response = Object.assign(new EventEmitter(), { headersSent: false, writeHead: vi.fn(), write: vi.fn(), end: vi.fn(), destroy: vi.fn() });
   const request = Object.assign(Readable.from([]), { method: 'GET', url: '/remote/events', headers: approved, socket: { remoteAddress: '10.0.0.2' } });
   routes.handle(request as unknown as IncomingMessage, response as unknown as ServerResponse);
   return response;
@@ -129,8 +129,21 @@ describe('createRoutes', () => {
       access.authenticate.mockReturnValue(undefined);
       routes.setNowPlaying({ state: 'idle' });
 
-      expect(stream.end).toHaveBeenCalled();
+      expect(stream.destroy).toHaveBeenCalled();
       expect(stream.write).toHaveBeenCalledTimes(1);
+    });
+
+    it('ends the stream of a device that was revoked when told so, with no event to carry it', async () => {
+      const routes = create();
+      const stream = openStream(routes);
+      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(1));
+      routes.closeRevoked();
+      expect(stream.destroy).not.toHaveBeenCalled();
+
+      access.authenticate.mockReturnValue(undefined);
+      routes.closeRevoked();
+
+      expect(stream.destroy).toHaveBeenCalledTimes(1);
     });
 
     it('pings now and then so a dead peer is found, and stops when the stream closes', async () => {
