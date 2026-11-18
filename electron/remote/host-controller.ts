@@ -7,12 +7,14 @@ import { z } from 'zod';
 import type { ControlCommand } from '../../shared/schemas/remote-control';
 import type { ServeAudio } from './host-routes';
 import { approvalCode } from './certificate';
-import { advertise } from './mdns';
+import { advertise, lanAddresses } from './mdns';
 import { logError } from '../utils/log-error';
 
 export interface HostState extends HostSettings {
   /** Whether the server listens now */
   running: boolean;
+  /** The addresses that other devices connect to while it listens */
+  addresses: string[];
   /** The short code of the certificate, which listeners show too */
   code?: string;
   pending: Pick<PendingRequest, 'deviceId' | 'deviceName' | 'note' | 'at'>[];
@@ -74,6 +76,7 @@ export const createHostController = (
   const state = (): HostState => ({
     ...(settings ?? { enabled: false, name: 'Tunelle', loopbackOnly: false, maxListeners: DEFAULT_MAX_LISTENERS }),
     running: server !== undefined,
+    addresses: !server ? [] : settings?.loopbackOnly ? ['127.0.0.1'] : lanAddresses(),
     code,
     error,
     pending: access.pending().map(({ deviceId, deviceName, note, at }) => ({ deviceId, deviceName, note, at })),

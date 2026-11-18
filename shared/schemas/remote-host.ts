@@ -10,6 +10,8 @@ export const remoteHostStateSchema = z.object({
   maxListeners: z.number().int().min(1).max(MAX_LISTENERS),
   port: z.number().optional(),
   running: z.boolean(),
+  /** The addresses that other devices connect to while it listens: the ones of the networks, or the loopback one */
+  addresses: z.array(z.string()),
   /** The short code of the certificate, which the listener shows too */
   code: z.string().optional(),
   error: z.string().optional(),

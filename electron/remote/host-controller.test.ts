@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('./host-server', () => ({ startHostServer: mocks.start }));
-vi.mock('./mdns', () => ({ advertise: mocks.advertise }));
+vi.mock('./mdns', () => ({ advertise: mocks.advertise, lanAddresses: () => ['192.168.1.30'] }));
 vi.mock('../utils/log-error', () => ({ logError: mocks.logError }));
 vi.mock('./certificate', () => ({ approvalCode: () => '3F9A 04C1' }));
 
@@ -119,6 +119,7 @@ describe('the host controller', () => {
       pending: [{ deviceId: waiting }],
       devices: [{ id: approved, controls: ['skip'] }],
       running: true,
+      addresses: ['192.168.1.30'],
     });
   });
 

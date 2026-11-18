@@ -25,6 +25,21 @@
     @include tile;
   }
 
+  // a disabled page keeps its place and dims, the browser leaves the controls in it alone
+  .fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
+
   .sectionTitle {
     @include tile-title;
   }
