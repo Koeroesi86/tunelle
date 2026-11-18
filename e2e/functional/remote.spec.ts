@@ -13,7 +13,7 @@ const pair = async (host: Page, listener: Page) => {
     .then((text) => text?.match(/\d+/)?.[0] ?? '');
   expect(port).not.toBe('');
 
-  await navigate(listener, 'Settings');
+  await navigate(listener, 'Nearby Tunelles');
   await listener.getByRole('textbox', { name: ui('Address'), exact: true }).fill('127.0.0.1');
   await listener.getByRole('textbox', { name: ui('Port'), exact: true }).fill(port);
   await listener.getByRole('button', { name: ui('Connect'), exact: true }).click();
@@ -25,7 +25,7 @@ const pair = async (host: Page, listener: Page) => {
   const dialog = host.locator('[class*="Confirm__confirm"]').filter({ hasText: 'asks to listen to Tunelle' });
   await expect(dialog).toBeInViewport();
   await dialog.getByRole('button', { name: ui('Approve'), exact: true }).click();
-  await expect(listener.getByText(`Listening to 127.0.0.1:${port}`)).toBeVisible();
+  await expect(listener.locator('[class*="RemoteListener__hint"]').getByText(`Listening to 127.0.0.1:${port}`)).toBeVisible();
   return port;
 };
 
@@ -87,7 +87,7 @@ test('the listener skips the host to the next track once the host granted it', a
     .getByRole('checkbox', { name: ui('Skip') })
     .check();
 
-  await navigate(listener.page, 'Settings');
+  await navigate(listener.page, 'Nearby Tunelles');
   await listener.page
     .getByRole('group', { name: ui('Controls of the host') })
     .getByRole('button', { name: ui('Next') })

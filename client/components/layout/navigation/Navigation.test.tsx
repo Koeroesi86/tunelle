@@ -6,7 +6,6 @@ describe('Navigation', () => {
   it.each([
     ['Home', 'home'],
     ['Now playing', 'now-playing'],
-    ['Radio stations', 'online-sources'],
     ['Liked', 'favourites'],
     ['Equalizer', 'equalizer'],
     ['Settings', 'settings'],
@@ -17,6 +16,25 @@ describe('Navigation', () => {
     fireEvent.click(screen.getByText(label));
 
     expect(setTab).toHaveBeenCalledWith(tab);
+  });
+
+  it.each([
+    ['Radio stations', 'radio'],
+    ['Nearby Tunelles', 'nearby'],
+  ])('opens the %s source of the online sources', (label, view) => {
+    const openOnlineView = vi.fn();
+    render(<Navigation openOnlineView={openOnlineView} />);
+
+    fireEvent.click(screen.getByText(label));
+
+    expect(openOnlineView).toHaveBeenCalledWith(view);
+  });
+
+  it('marks the source that is shown, and only that one', () => {
+    render(<Navigation tab="online-sources" onlineView="nearby" />);
+
+    const active = Array.from(document.querySelectorAll('.active')).map((item) => item.textContent);
+    expect(active).toEqual(['Nearby Tunelles']);
   });
 
   it('marks only the current tab as active', () => {

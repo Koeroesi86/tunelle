@@ -19,9 +19,10 @@ import {
   MdPerson as ArtistsIcon,
   MdPlaylistPlay as PlaylistIcon,
   MdRadio as RadioIcon,
+  MdWifiTethering as NearbyIcon,
   MdSettings as SettingsIcon,
 } from 'react-icons/md';
-import type { NavigationGroup, LibraryView, Tab } from '../../../redux/types';
+import type { NavigationGroup, LibraryView, OnlineView, Tab } from '../../../redux/types';
 import type { Playlist } from '@shared/types/playlists';
 import { useDragReorder } from '../../../hooks/use-drag-reorder';
 import style from './Navigation.scss';
@@ -38,11 +39,13 @@ interface NavigationProps {
   setTab?: (tab: Tab) => void;
   tab?: Tab;
   view?: LibraryView;
+  onlineView?: OnlineView;
   libraryOpen?: boolean;
   playlistsOpen?: boolean;
   playlists?: Playlist[];
   playlistId?: number | null;
   openLibraryView?: (view: LibraryView) => void;
+  openOnlineView?: (view: OnlineView) => void;
   setGroupOpen?: (group: NavigationGroup, open: boolean) => void;
   openPlaylist?: (id: number) => void;
   createPlaylist?: (name: string) => void;
@@ -107,11 +110,13 @@ function Navigation({
   setTab: setTabOf = () => {},
   tab = 'home',
   view = 'albums',
+  onlineView = 'radio',
   libraryOpen = false,
   playlistsOpen = true,
   playlists = [],
   playlistId = null,
   openLibraryView: openLibraryViewOf = () => {},
+  openOnlineView: openOnlineViewOf = () => {},
   setGroupOpen = () => {},
   openPlaylist: openPlaylistOf = () => {},
   createPlaylist = () => {},
@@ -128,6 +133,10 @@ function Navigation({
   };
   const openLibraryView = (next: LibraryView) => {
     openLibraryViewOf(next);
+    onNavigate();
+  };
+  const openOnlineView = (next: OnlineView) => {
+    openOnlineViewOf(next);
     onNavigate();
   };
   const openPlaylist = (id: number) => {
@@ -177,7 +186,18 @@ function Navigation({
               <span className={style.label}>{t(label)}</span>
             </button>
           ))}
-        <Item label={t('nav.radio')} icon={<RadioIcon size={'14px'} />} active={tab === 'online-sources'} onClick={() => setTab('online-sources')} />
+        <Item
+          label={t('nav.radio')}
+          icon={<RadioIcon size={'14px'} />}
+          active={tab === 'online-sources' && onlineView === 'radio'}
+          onClick={() => openOnlineView('radio')}
+        />
+        <Item
+          label={t('nav.nearby')}
+          icon={<NearbyIcon size={'14px'} />}
+          active={tab === 'online-sources' && onlineView === 'nearby'}
+          onClick={() => openOnlineView('nearby')}
+        />
         <Item label={t('nav.liked')} icon={<FavouritesIcon size={'14px'} />} active={tab === 'favourites'} onClick={() => setTab('favourites')} />
         <Group
           label={t('nav.playlists')}
