@@ -4,6 +4,9 @@ import type { NowPlaying } from '@shared/schemas/now-playing';
 import { driftCorrection } from '@shared/utils/remote-position';
 import { isRemoteTrack, isSameRemoteTrack, toRemoteTrack } from '../domain/remote-track';
 
+/** How often the position of the listener is compared with where the host is */
+const FOLLOW_MS = 1000;
+
 interface RemoteFollowPlayer {
   currentSong: Track | null;
   isPlaying: boolean;
@@ -45,4 +48,17 @@ export const useRemoteFollow = (snapshot: NowPlaying | undefined, player: Remote
     const correction = driftCorrection(snapshot, currentTime);
     if (correction !== undefined) setCurrentTime(correction);
   }, [snapshot]);
+
+  // the host only sends a snapshot when something changes: a track that was loaded after the last one, or a listener that is paused while the host plays, would stay where it is
+  useEffect(() => {
+    const correct = () => {
+      const { currentSong, currentTime, setCurrentTime } = latest.current;
+      if (!snapshot || snapshot.state === 'idle' || !isSameRemoteTrack(snapshot, currentSong?.path)) return;
+      const correction = driftCorrection(snapshot, currentTime);
+      if (correction !== undefined) setCurrentTime(correction);
+    };
+    correct();
+    const timer = setInterval(correct, FOLLOW_MS);
+    return () => clearInterval(timer);
+  }, [snapshot, path]);
 };

@@ -94,4 +94,19 @@ describe('useRemoteFollow', () => {
 
     expect(target.setCurrentTime).not.toHaveBeenCalled();
   });
+
+  it('catches up with the host after the track is loaded, and keeps following while the listener is paused', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    vi.setSystemTime(1_000);
+    const target = player({ isPlaying: false, currentTime: 0 });
+    const { rerender } = renderHook(({ current }) => useRemoteFollow(playing, { ...target, currentTime: current }), { initialProps: { current: 0 } });
+    expect(target.setCurrentTime).toHaveBeenLastCalledWith(10);
+
+    // the host went on for a minute without a new snapshot
+    vi.setSystemTime(61_000);
+    rerender({ current: 10 });
+    vi.advanceTimersByTime(1000);
+
+    expect(target.setCurrentTime).toHaveBeenLastCalledWith(71);
+  });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { splitStreamTitle, toNowPlaying } from './now-playing';
 import { toRadioTrack } from './radio-track';
+import { remoteKeyOf, toRemoteTrack } from './remote-track';
 
 const station = toRadioTrack({ uuid: 'abc', name: 'Jazz FM', country: 'Hungary', tags: ['jazz'], codec: 'MP3', bitrate: 128 });
 
@@ -41,5 +42,13 @@ describe('now playing', () => {
     const track = { ...station, path: '/music/a.flac', picture: '/art/x.png' };
 
     expect(toNowPlaying(track, 'Artist - Song', null)).toEqual({ track, cover: 'tunelle://app/albumart/x-optimized.png' });
+  });
+
+  it('shows the cover of the host for a track of the host that has one, and none for one that has not', () => {
+    const base = toRemoteTrack({ state: 'playing', title: 'Song', position: 0, at: 1 });
+    const withCover = toRemoteTrack({ state: 'playing', title: 'Song', position: 0, at: 1, cover: true });
+
+    expect(toNowPlaying(withCover, null, null).cover).toBe(`tunelle://app/remote/cover?t=${remoteKeyOf(withCover.path)}`);
+    expect(toNowPlaying(base, null, null).cover).toBeUndefined();
   });
 });
