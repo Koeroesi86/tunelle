@@ -8,7 +8,7 @@ import type { NowPlaying } from '@shared/schemas/now-playing';
 import type { ControlCommand } from '@shared/schemas/remote-control';
 import RemoteListener from './RemoteListener';
 
-const mapState = ({ uiState: { remoteListener, remoteNearby } }: RootState) => ({ state: remoteListener, nearby: remoteNearby });
+const mapState = ({ uiState: { remoteListener, remoteNearby, remoteHost } }: RootState) => ({ state: remoteListener, nearby: remoteNearby, host: remoteHost });
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   connect: (host: string, port: number) => dispatch({ type: 'CONNECT_REMOTE_HOST', payload: { host, port } }),

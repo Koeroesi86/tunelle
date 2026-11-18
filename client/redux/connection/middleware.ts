@@ -166,6 +166,7 @@ const persistedKeys = [
   'view',
   'onlineView',
   'libraryOpen',
+  'onlineOpen',
   'playlistsOpen',
   'nowPlaying',
   'played',

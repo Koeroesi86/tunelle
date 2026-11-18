@@ -145,7 +145,8 @@
   .playlists {
     -webkit-app-region: no-drag;
     flex: 1 1 0;
-    min-height: 0;
+    // two rows at least: in a short window the sidebar scrolls and the list never shrinks to nothing under the spectrum. See docs/development/responsive-layout.md
+    min-height: 72px;
     overflow-x: hidden;
     overflow-y: auto;
   }

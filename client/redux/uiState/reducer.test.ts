@@ -351,7 +351,7 @@ describe('uiState reducer', () => {
   });
 
   it('stores what the host reports, and knows nothing before', () => {
-    const host = { enabled: true, name: 'Tunelle', loopbackOnly: false, maxListeners: 5, running: true, pending: [], devices: [] };
+    const host = { enabled: true, name: 'Tunelle', loopbackOnly: false, maxListeners: 5, running: true, addresses: [], pending: [], devices: [] };
 
     expect(initial.remoteHost).toBeUndefined();
     expect(run({ type: 'REMOTE_HOST_STATE', payload: host }).remoteHost).toEqual(host);
@@ -728,6 +728,14 @@ describe('uiState reducer', () => {
       expect(closedLibrary).toMatchObject({ libraryOpen: false, playlistsOpen: true });
       expect(closed).toMatchObject({ libraryOpen: false, playlistsOpen: false });
       expect(reopened).toMatchObject({ libraryOpen: true, playlistsOpen: false });
+    });
+
+    it('opens and closes the online group without the others', () => {
+      const closed = run({ type: 'SET_NAVIGATION_GROUP', payload: { group: 'online', open: false } });
+
+      expect(closed).toMatchObject({ onlineOpen: false, libraryOpen: true, playlistsOpen: true });
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { onlineOpen: false } } })).toMatchObject({ onlineOpen: false });
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { view: 'tracks' } } })).toMatchObject({ onlineOpen: true });
     });
 
     it('restores the saved state of the groups', () => {

@@ -40,3 +40,7 @@ It belongs to the `screenshots` project, not to `e2e`, so CI does not run it: a 
 What it does not do: a touch screen (`pointer: coarse` and `hover: none` are not emulated), zoom and a large system font, and a window moved between displays of different density. Check these by hand.
 
 Findings from the first run: the clock of the player has to be held (`holdAt`), or the picture is never the same twice; the page of an album takes the library area only (the player bar stays), and the buttons are checked as everywhere; a window that is taller than its list shows all of it, so the portrait size of the scroll test is kept low on purpose.
+
+## The sidebar in a short window
+
+Symptom (macOS CI, `collections.spec.ts` "keeps a playlist of an album, and plays it"): the click on a playlist timed out with "the spectrum strip (then the Playlists toggle) intercepts pointer events". Cause: the groups of the sidebar (Library with six views, Online with two, both open by default) do not shrink, and the list of playlists was `min-height: 0`, so in a short window it collapsed to nothing and its rows lay under the spectrum. The list keeps `min-height: 72px` (two rows) and the sidebar itself scrolls when the rest does not fit. Check: shrink the window to the minimum height (480 px) and open a playlist.

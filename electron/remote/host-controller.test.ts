@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('./host-server', () => ({ startHostServer: mocks.start }));
-vi.mock('./mdns', () => ({ advertise: mocks.advertise }));
+vi.mock('./mdns', () => ({ advertise: mocks.advertise, lanAddresses: () => ['192.168.1.30'] }));
 vi.mock('../utils/log-error', () => ({ logError: mocks.logError }));
 vi.mock('./certificate', () => ({ approvalCode: () => '3F9A 04C1' }));
 
@@ -39,7 +39,7 @@ describe('the host controller', () => {
   const commands: unknown[] = [];
   const create = async (store: HostStore) => {
     const { createHostController } = await import('./host-controller');
-    return createHostController(store, (state) => states.push(state), commands.push.bind(commands));
+    return createHostController(store, (state) => states.push(state), commands.push.bind(commands), '26.1.7');
   };
   const last = () => states[states.length - 1];
 
@@ -61,6 +61,26 @@ describe('the host controller', () => {
     mocks.stopAdvertising.mockReset().mockResolvedValue(undefined);
     mocks.advertise.mockReset().mockResolvedValue({ stop: mocks.stopAdvertising });
     mocks.logError.mockReset();
+  });
+
+  it('gives the server a station as a source of its own and tells the listeners that it is live, without a path', async () => {
+    const host = await create(fakeStore({ enabled: true }));
+    await host.start();
+    host.setNowPlaying({ state: 'playing', title: 'FM', position: 1, at: 2, station: 'b3f1c1a0-0000-4000-8000-000000000001', path: '/music/song.flac' });
+
+    expect(mocks.setNowPlaying).toHaveBeenCalledWith(
+      { state: 'playing', title: 'FM', position: 1, at: 2, live: true },
+      'station:b3f1c1a0-0000-4000-8000-000000000001',
+      undefined
+    );
+  });
+
+  it('ignores a station that is not a uuid', async () => {
+    const host = await create(fakeStore({ enabled: true }));
+    await host.start();
+    host.setNowPlaying({ state: 'playing', title: 'FM', position: 1, at: 2, station: '../../etc/passwd' });
+
+    expect(mocks.setNowPlaying).toHaveBeenCalledWith({ state: 'playing', title: 'FM', position: 1, at: 2 }, undefined, undefined);
   });
 
   it('gives the server the file of the track with the snapshot, and starts a later server with the last one', async () => {
@@ -119,6 +139,7 @@ describe('the host controller', () => {
       pending: [{ deviceId: waiting }],
       devices: [{ id: approved, controls: ['skip'] }],
       running: true,
+      addresses: ['192.168.1.30'],
     });
   });
 
@@ -147,7 +168,7 @@ describe('the host controller', () => {
       const host = await create(fakeStore({ enabled: true, name: 'Kitchen' }));
       await host.start();
 
-      expect(mocks.advertise).toHaveBeenCalledWith({ id: '3f9a04c1', name: 'Kitchen', port: 41000, version: '' });
+      expect(mocks.advertise).toHaveBeenCalledWith({ id: '3f9a04c1', name: 'Kitchen', port: 41000, version: '26.1.7' });
 
       await host.stop();
       expect(mocks.stopAdvertising).toHaveBeenCalledTimes(1);

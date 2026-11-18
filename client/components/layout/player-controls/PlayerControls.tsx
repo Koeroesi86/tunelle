@@ -314,6 +314,7 @@ const PlayerControls = (props: PlayerControlsProps) => {
       album: shown.track.album,
       duration: radioUuidOf(shown.track.path) ? 0 : (shown.track.duration ?? 0),
       path: radioUuidOf(shown.track.path) || isRemoteTrack(shown.track.path) ? undefined : shown.track.path,
+      station: radioUuidOf(shown.track.path),
       coverKey: hostedFile && shown.track.picture ? optimizedCoverOf(shown.track.picture) : undefined,
       next: props.upNext ? { title: props.upNext.title, artist: props.upNext.artist || undefined } : undefined,
     },

@@ -33,7 +33,8 @@ const open = () => {
   host = createHostController(
     createHostStore(folder),
     (next) => (state = next),
-    () => undefined
+    () => undefined,
+    '26.1.7'
   );
   return host;
 };

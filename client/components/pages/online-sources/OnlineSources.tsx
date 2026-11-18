@@ -1,6 +1,7 @@
 import { useTranslation } from '../../../i18n';
 import type { OnlineView } from '../../../redux/types';
 import RadioStations from '../radio-stations';
+import RemoteListener from '../remote-listener';
 import ViewSwitcher from '../../ui/view-switcher/ViewSwitcher';
 import type { ViewItem } from '../../ui/view-switcher/ViewSwitcher';
 
@@ -11,7 +12,11 @@ interface OnlineSourcesProps {
 
 const OnlineSources = ({ view, setView }: OnlineSourcesProps) => {
   const { t } = useTranslation();
-  const views: ViewItem<OnlineView>[] = [{ view: 'radio', label: t('online.radio'), panel: <RadioStations /> }];
+  const views: ViewItem<OnlineView>[] = [
+    { view: 'radio', label: t('online.radio'), panel: <RadioStations /> },
+    // only the shown one looks for hosts: it browses the network while it is mounted
+    { view: 'nearby', label: t('online.nearby'), panel: view === 'nearby' && <RemoteListener /> },
+  ];
 
   return <ViewSwitcher views={views} current={view} setView={setView} tabs={false} />;
 };

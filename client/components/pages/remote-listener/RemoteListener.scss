@@ -1,0 +1,144 @@
+@use '../../../styles/settings-tile' as *;
+
+.remoteListener {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+
+  // the same width as the text of the other pages, the tiles under each other
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 640px;
+    padding: 24px 24px 32px;
+  }
+
+  .title {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .tile {
+    @include tile;
+  }
+
+  // a disabled page keeps its place and dims, the browser leaves the controls in it alone
+  .fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
+
+  .sectionTitle {
+    @include tile-title;
+  }
+
+  .hint {
+    @include tile-hint;
+  }
+
+  .error {
+    @include tile-hint;
+    color: var(--danger, var(--text));
+  }
+
+  .form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    input {
+      flex: 1 1 120px;
+      box-sizing: border-box;
+      min-width: 0;
+      height: 28px;
+      padding: 0 8px;
+      font: inherit;
+      font-size: 12px;
+      color: var(--text);
+      background: var(--overlay);
+      border: 1px solid transparent;
+      border-radius: 3px;
+      outline: 0;
+
+      &:focus {
+        background: var(--overlay-faint);
+        border-color: var(--accent);
+      }
+    }
+
+    .port {
+      flex: 0 1 80px;
+    }
+
+    .hint {
+      flex: 1 1 100%;
+    }
+  }
+
+  .found {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+  }
+
+  .hostName {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .status {
+    @include tile-hint;
+  }
+
+  .cover {
+    width: 96px;
+    height: 96px;
+    border-radius: 4px;
+    object-fit: cover;
+  }
+
+  .hostControls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .slider {
+    display: flex;
+    flex: 1 1 100%;
+    align-items: center;
+    gap: 8px;
+
+    input {
+      flex: 1;
+      min-height: 44px;
+    }
+  }
+
+  .buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .action {
+    @include tile-button;
+  }
+}

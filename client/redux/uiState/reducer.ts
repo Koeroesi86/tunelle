@@ -18,6 +18,7 @@ const initialState: UiState = {
   view: 'albums',
   onlineView: 'radio',
   libraryOpen: true,
+  onlineOpen: true,
   playlistsOpen: true,
   tab: 'home',
   favouritesSource: 'local',
@@ -336,7 +337,8 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, tab: action.payload.tab, selectedAlbum: null };
     case 'SET_NAVIGATION_GROUP': {
       const { group, open } = action.payload;
-      return group === 'library' ? { ...state, libraryOpen: open } : { ...state, playlistsOpen: open };
+      if (group === 'library') return { ...state, libraryOpen: open };
+      return group === 'online' ? { ...state, onlineOpen: open } : { ...state, playlistsOpen: open };
     }
     case 'PLAYLIST_IMPORT_REPORTED':
       return { ...state, playlistImport: action.payload.reports };
@@ -392,8 +394,9 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
         // a tab saved by an earlier version does not decide where the app opens
         tab: state.tab,
         ...(settings.onlineView && { onlineView: restoreOnlineView() }),
-        // the sidebar starts with both groups open, only a saved closed one closes it
+        // the sidebar starts with the groups open, only a saved closed one closes it
         ...('libraryOpen' in settings && { libraryOpen: settings.libraryOpen !== false }),
+        ...('onlineOpen' in settings && { onlineOpen: settings.onlineOpen !== false }),
         ...('playlistsOpen' in settings && { playlistsOpen: settings.playlistsOpen !== false }),
         ...(settings.equalizer && { equalizer: restoreGains(settings.equalizer) }),
         ...('outputDevice' in settings && { outputDevice: restoreOutputDevice(settings.outputDevice) }),

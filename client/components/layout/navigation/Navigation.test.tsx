@@ -6,7 +6,6 @@ describe('Navigation', () => {
   it.each([
     ['Home', 'home'],
     ['Now playing', 'now-playing'],
-    ['Radio stations', 'online-sources'],
     ['Liked', 'favourites'],
     ['Equalizer', 'equalizer'],
     ['Settings', 'settings'],
@@ -17,6 +16,25 @@ describe('Navigation', () => {
     fireEvent.click(screen.getByText(label));
 
     expect(setTab).toHaveBeenCalledWith(tab);
+  });
+
+  it.each([
+    ['Radio stations', 'radio'],
+    ['Nearby Tunelles', 'nearby'],
+  ])('opens the %s source of the online sources', (label, view) => {
+    const openOnlineView = vi.fn();
+    render(<Navigation openOnlineView={openOnlineView} />);
+
+    fireEvent.click(screen.getByText(label));
+
+    expect(openOnlineView).toHaveBeenCalledWith(view);
+  });
+
+  it('marks the source that is shown, and only that one', () => {
+    render(<Navigation tab="online-sources" onlineView="nearby" />);
+
+    const active = Array.from(document.querySelectorAll('.active')).map((item) => item.textContent);
+    expect(active).toEqual(['Nearby Tunelles']);
   });
 
   it('marks only the current tab as active', () => {
@@ -59,6 +77,31 @@ describe('Navigation', () => {
     render(<Navigation />);
 
     expect(Array.from(document.querySelectorAll('.footer .item')).map((item) => item.textContent)).toEqual(['Equalizer', 'Settings']);
+  });
+
+  describe('online', () => {
+    it('lists the sources as children of the group, and none while it is closed', () => {
+      const { rerender } = render(<Navigation onlineOpen />);
+
+      expect(Array.from(document.querySelectorAll('.child')).map((item) => item.textContent)).toEqual(
+        expect.arrayContaining(['Radio stations', 'Nearby Tunelles'])
+      );
+
+      rerender(<Navigation onlineOpen={false} />);
+
+      expect(screen.queryByText('Nearby Tunelles')).toBeNull();
+    });
+
+    it('opens the group and the sources on click', () => {
+      const setGroupOpen = vi.fn();
+      const setTab = vi.fn();
+      render(<Navigation onlineOpen={false} setGroupOpen={setGroupOpen} setTab={setTab} />);
+
+      fireEvent.click(screen.getByText('Online'));
+
+      expect(setGroupOpen).toHaveBeenCalledWith('online', true);
+      expect(setTab).toHaveBeenCalledWith('online-sources');
+    });
   });
 
   describe('library', () => {

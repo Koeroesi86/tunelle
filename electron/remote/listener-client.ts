@@ -7,6 +7,13 @@ import { CONTROLS, type Control } from '../../shared/constants/remote-controls';
 import { nowPlayingSchema, type NowPlaying } from '../../shared/schemas/now-playing';
 import type { ControlCommand } from '../../shared/schemas/remote-control';
 
+/** The host answered a command with a status other than 200; the controller words it in the language of the app */
+export class HostAnswerError extends Error {
+  constructor(readonly status: number) {
+    super(`The host answered ${status}`);
+  }
+}
+
 const TIMEOUT_MS = 5000;
 const MAX_ANSWER_BYTES = 64 * 1024;
 
@@ -148,7 +155,7 @@ export const sendControl = async (address: HostAddress, certificate: string, dev
     { 'x-tunelle-device': deviceId, authorization: `Bearer ${secret}`, 'content-type': 'application/json' },
     command
   );
-  if (answer.status !== 200) throw new Error(`The host answered ${answer.status}`);
+  if (answer.status !== 200) throw new HostAnswerError(answer.status);
 };
 
 // a stream of the answer that reads on demand: a player that stops reading holds the socket, and a cancel closes it

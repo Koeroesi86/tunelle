@@ -11,6 +11,7 @@ const state = (change: Partial<RemoteHostState> = {}): RemoteHostState => ({
   loopbackOnly: false,
   maxListeners: 5,
   running: true,
+  addresses: ['192.168.1.30'],
   code: 'AB12',
   pending: [],
   devices: [],

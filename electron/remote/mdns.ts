@@ -46,7 +46,7 @@ interface Channel {
 }
 
 /** The IPv4 addresses of the interfaces that are up and not loopback: a VPN or docker interface is listed too, which is why the A records are for the listener to try */
-const lanAddresses = () =>
+export const lanAddresses = () =>
   Object.values(networkInterfaces())
     .flatMap((list) => list ?? [])
     .filter(({ family, internal }) => family === 'IPv4' && !internal)

@@ -5,12 +5,15 @@ import { useTranslation } from '../../../i18n';
 import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NowPlaying as NowPlayingSnapshot } from '@shared/schemas/now-playing';
 import { localUrl } from '../../../services/local-url';
+import type { RemoteHostState } from '@shared/schemas/remote-host';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import type { ControlCommand } from '@shared/schemas/remote-control';
 import { expectedPosition } from '@shared/utils/remote-position';
 
 interface RemoteListenerProps {
   state: RemoteListenerState | undefined;
+  /** While this app is a host it cannot listen to another one: the page is shown, and disabled with the way to connect to this host */
+  host: RemoteHostState | undefined;
   connect: (host: string, port: number) => void;
   confirm: (note: string) => void;
   leave: () => void;
@@ -33,13 +36,19 @@ const statusOf = (state: RemoteListenerState, { host, port }: NearbyHost): HostS
 };
 
 /** The Tunelles that announce themselves on the network, while the tile is shown. Picking one only starts the request: the host still shows a code to compare */
-const Nearby = ({ state, nearby, browse, connect }: { state: RemoteListenerState } & Pick<RemoteListenerProps, 'nearby' | 'browse' | 'connect'>) => {
+const Nearby = ({
+  state,
+  nearby,
+  browse,
+  connect,
+  active,
+}: { state: RemoteListenerState; active: boolean } & Pick<RemoteListenerProps, 'nearby' | 'browse' | 'connect'>) => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    browse(true);
+    if (active) browse(true);
     return () => browse(false);
-  }, []);
+  }, [active]);
 
   // asks again at once: the socket is closed and opened, as the list is rebuilt from the answers
   const refresh = () => {
@@ -48,22 +57,26 @@ const Nearby = ({ state, nearby, browse, connect }: { state: RemoteListenerState
   };
 
   return (
-    <div className={style.nearby}>
-      <div className={style.hint}>{nearby.length > 0 ? t('remote.listen.nearby') : t('remote.listen.nearbyNone')}</div>
+    <div className={style.tile}>
+      <div className={style.sectionTitle}>{t('remote.listen.nearby')}</div>
+      {nearby.length === 0 && <div className={style.hint}>{t('remote.listen.nearbyNone')}</div>}
       {nearby.map((found) => {
         const status = statusOf(state, found);
         return (
           <div key={found.id} className={style.found}>
+            <span className={style.hostName} title={`${found.host}:${found.port}`}>
+              {found.name}
+            </span>
+            <span className={style.status}>{t(`remote.listen.status.${status}`)}</span>
             <button
               type="button"
               className={style.action}
-              title={`${found.host}:${found.port}`}
+              aria-label={t('remote.listen.connectTo', { name: found.name })}
               disabled={status === 'pending' || status === 'approved'}
               onClick={() => connect(found.host, found.port)}
             >
-              {t('remote.listen.connectTo', { name: found.name })}
+              {t('remote.listen.connect')}
             </button>
-            <span className={style.status}>{t(`remote.listen.status.${status}`)}</span>
           </div>
         );
       })}
@@ -282,43 +295,62 @@ const NowPlaying = ({ snapshot, listenAlong }: { snapshot: RemoteListenerState['
 };
 
 /** Pairs this app with another Tunelle that plays: the address, the code to compare, the request and what the host plays. See docs/app/remote-access-discovery.md */
-const RemoteListener = ({ state, connect, confirm, leave, control, listenAlong, nearby, browse }: RemoteListenerProps) => {
+const RemoteListener = ({ state, host, connect, confirm, leave, control, listenAlong, nearby, browse }: RemoteListenerProps) => {
   const { t } = useTranslation();
 
   if (!state) return null;
 
   const { status, target } = state;
+  const hosting = host?.enabled === true;
   const address = target ? `${target.host}:${target.port}` : '';
 
   return (
     <section className={style.remoteListener}>
-      <div className={style.sectionTitle}>{t('remote.listen.title')}</div>
-      <div className={style.hint}>{t('remote.listen.hint')}</div>
-      {status === 'error' && <div className={style.error}>{t('remote.listen.error', { error: state.error ?? '' })}</div>}
-      {status === 'blocked' && <div className={style.error}>{t('remote.listen.blocked')}</div>}
-      {status === 'revoked' && <div className={style.error}>{t('remote.listen.revoked')}</div>}
-      <Nearby state={state} nearby={nearby} browse={browse} connect={connect} />
-      {['idle', 'contacting', 'error', 'blocked', 'revoked'].includes(status) && <Connect state={state} connect={connect} />}
-      {status === 'confirming' && <Confirm code={state.code} confirm={confirm} leave={leave} />}
-      {status === 'waiting' && (
-        <>
-          <div className={style.hint}>{t('remote.listen.waiting', { address, code: state.code ?? '' })}</div>
-          <button type="button" className={style.action} onClick={leave}>
-            {t('remote.listen.cancel')}
-          </button>
-        </>
-      )}
-      {status === 'listening' && (
-        <>
-          <div className={style.hint}>{t('remote.listen.listening', { address })}</div>
-          {state.error && <div className={style.error}>{t('remote.listen.error', { error: state.error })}</div>}
-          <NowPlaying snapshot={state.nowPlaying} listenAlong={listenAlong} />
-          <HostControls controls={state.controls ?? []} snapshot={state.nowPlaying} control={control} />
-          <button type="button" className={style.action} onClick={leave}>
-            {t('remote.listen.leave')}
-          </button>
-        </>
-      )}
+      <div className={style.content}>
+        <h1 className={style.title}>{t('remote.listen.title')}</h1>
+        {status === 'error' && <div className={style.error}>{t('remote.listen.error', { error: state.error ?? '' })}</div>}
+        {status === 'blocked' && <div className={style.error}>{t('remote.listen.blocked')}</div>}
+        {status === 'revoked' && <div className={style.error}>{t('remote.listen.revoked')}</div>}
+        {hosting && (
+          <div className={style.tile}>
+            <div className={style.sectionTitle}>{t('remote.listen.hosting')}</div>
+            <div className={style.hint}>{t('remote.listen.hostingHint')}</div>
+            {host.running && host.port && (
+              <div className={style.hint}>
+                {t('remote.listen.hostAddress', { addresses: host.addresses.join(', '), port: host.port, code: host.code ?? '' })}
+              </div>
+            )}
+          </div>
+        )}
+        <fieldset className={style.fieldset} disabled={hosting}>
+          <Nearby state={state} nearby={nearby} browse={browse} connect={connect} active={!hosting} />
+          <div className={style.tile}>
+            <div className={style.sectionTitle}>{t('remote.listen.byAddress')}</div>
+            <div className={style.hint}>{t('remote.listen.hint')}</div>
+            {['idle', 'contacting', 'error', 'blocked', 'revoked'].includes(status) && <Connect state={state} connect={connect} />}
+            {status === 'confirming' && <Confirm code={state.code} confirm={confirm} leave={leave} />}
+            {status === 'waiting' && (
+              <>
+                <div className={style.hint}>{t('remote.listen.waiting', { address, code: state.code ?? '' })}</div>
+                <button type="button" className={style.action} onClick={leave}>
+                  {t('remote.listen.cancel')}
+                </button>
+              </>
+            )}
+            {status === 'listening' && (
+              <>
+                <div className={style.hint}>{t('remote.listen.listening', { address })}</div>
+                {state.error && <div className={style.error}>{t('remote.listen.error', { error: state.error })}</div>}
+                <NowPlaying snapshot={state.nowPlaying} listenAlong={listenAlong} />
+                <HostControls controls={state.controls ?? []} snapshot={state.nowPlaying} control={control} />
+                <button type="button" className={style.action} onClick={leave}>
+                  {t('remote.listen.leave')}
+                </button>
+              </>
+            )}
+          </div>
+        </fieldset>
+      </div>
     </section>
   );
 };

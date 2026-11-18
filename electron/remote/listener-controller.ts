@@ -1,15 +1,30 @@
 import type { ControlCommand } from '../../shared/schemas/remote-control';
 import type { RemoteListenerState } from '../../shared/schemas/remote-listener';
 import { approvalCode } from './certificate';
-import { contact, fetchAudio, fetchCover, followNowPlaying, requestToListen, sendControl, type Contact, type HostAddress } from './listener-client';
+import {
+  contact,
+  fetchAudio,
+  fetchCover,
+  followNowPlaying,
+  HostAnswerError,
+  requestToListen,
+  sendControl,
+  type Contact,
+  type HostAddress,
+} from './listener-client';
 import type { ListenerStore, Pairing } from './listener-store';
+import { getMainTranslator } from '../language';
 
 export const POLL_MS = 1000;
 /** The host drops a request that nobody answered after ten minutes, so asking longer does not help */
 export const ASK_LIMIT_MS = 10 * 60 * 1000;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-const messageOf = (failure: unknown) => (failure instanceof Error ? failure.message : 'The host did not answer');
+const messageOf = (failure: unknown) => {
+  const { t } = getMainTranslator();
+  if (failure instanceof HostAnswerError) return t('remote.listen.failure.answered', { status: failure.status });
+  return failure instanceof Error ? failure.message : t('remote.listen.failure.silent');
+};
 
 /**
  * The listener side of the app: the first contact with a host, the request to listen, and the now playing of the host once approved.
@@ -58,7 +73,7 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
     if (ended === 'revoked') return revoke(token).then(() => false);
 
     // the stream ended or failed: the last track stays on the screen, and the host is asked again after the pause
-    publish({ ...state, status: 'listening', error: ended === 'ended' ? 'The host closed the connection' : messageOf(ended) });
+    publish({ ...state, status: 'listening', error: ended === 'ended' ? getMainTranslator().t('remote.listen.failure.closed') : messageOf(ended) });
     await wait(POLL_MS);
     return true;
   };
@@ -97,7 +112,7 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
       }
       // the secret comes once: an approval without it was picked up before, and only a new approval gives another
       if (answer.status === 'approved') {
-        publish({ status: 'error', ...base, error: 'The host approved this device before; ask the host to revoke it, then ask again' });
+        publish({ status: 'error', ...base, error: getMainTranslator().t('remote.listen.failure.approvedBefore') });
         return false;
       }
       if (answer.status === 'blocked') {
@@ -105,7 +120,7 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
         return false;
       }
       if (answer.status !== 'pending') {
-        publish({ status: 'error', ...base, error: `The host answered ${answer.status}` });
+        publish({ status: 'error', ...base, error: getMainTranslator().t('remote.listen.failure.answered', { status: answer.status }) });
         return false;
       }
 
@@ -115,7 +130,7 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
 
     let open = true;
     while (open && token === run && Date.now() < until) open = await once();
-    if (open && token === run) publish({ status: 'error', ...base, error: 'Nobody answered the request on the host' });
+    if (open && token === run) publish({ status: 'error', ...base, error: getMainTranslator().t('remote.listen.failure.unanswered') });
   };
 
   const fail = (token: number, failure: unknown, base: Partial<RemoteListenerState> = {}) => {
@@ -124,12 +139,12 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
 
   return {
     state: () => state,
-    /** Follows the host of the last approval, when there is one */
+    /** Follows the host of the last approval, when there is one and the user did not leave it */
     start: async () => {
       const token = begin();
       active = undefined;
       const [pairing, deviceId] = await Promise.all([store.readPairing(), store.deviceId()]);
-      if (pairing && token === run) await follow(pairing, deviceId, token);
+      if (pairing && !pairing.left && token === run) await follow(pairing, deviceId, token);
     },
     /** The first contact: the code of the certificate goes to both screens, and nothing is asked before the user compared them */
     connect: async (address: HostAddress) => {
@@ -143,6 +158,15 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
       );
       if (token !== run) return;
       if ('failure' in reached) return fail(token, reached.failure, { target: address });
+
+      const known = await store.readPairing();
+      if (token !== run) return;
+      // a host that approved this device before knows it: no second request (it would not give the secret again), the pinned certificate is the proof
+      if (known && known.certificate === reached.found.certificate) {
+        const again = { ...known, ...address, left: undefined };
+        await store.savePairing(again);
+        return follow(again, await store.deviceId(), token);
+      }
 
       contacted = { ...reached.found, ...address };
       publish({ status: 'confirming', target: address, code: reached.found.code });
@@ -188,12 +212,13 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
         publish({ ...state, error: messageOf(failure) })
       );
     },
-    /** Stops listening and forgets the host: a new contact starts from the code again */
+    /** Stops listening. The approval stays (marked as left), so the same host can be listened to again without a new request */
     leave: async () => {
       begin();
       active = undefined;
       contacted = undefined;
-      await store.clearPairing();
+      const saved = await store.readPairing();
+      if (saved) await store.savePairing({ ...saved, left: true });
       publish({ status: 'idle' });
     },
   };

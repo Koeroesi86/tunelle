@@ -14,7 +14,7 @@ const albumSchema = z.custom<Album>(
 
 const libraryViewSchema = z.enum(['albums', 'artists', 'albumArtists', 'genres', 'tracks', 'folders']);
 
-const onlineViewSchema = z.enum(['radio']);
+const onlineViewSchema = z.enum(['radio', 'nearby']);
 
 /** The part of the UI state that is persisted between sessions, by key (the keys are saved by client/redux/connection/middleware.ts) */
 const persistedShape = {
@@ -22,6 +22,7 @@ const persistedShape = {
   onlineView: onlineViewSchema,
   /** Whether the Library group of the sidebar shows its views, and whether the Playlists group shows the playlists, both start open */
   libraryOpen: z.boolean(),
+  onlineOpen: z.boolean(),
   playlistsOpen: z.boolean(),
   nowPlaying: z.array(trackSchema),
   played: z.array(trackSchema),

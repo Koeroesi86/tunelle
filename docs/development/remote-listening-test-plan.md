@@ -14,7 +14,7 @@ What checks #360 (a Tunelle listens to another one), and where. The design is in
 Two apps on one machine, each with its own profile: `session` is the host (with the library) and the `second` fixture of `e2e/support/app.ts` is the listener. The address is typed (127.0.0.1 and the port the host shows), as mDNS between two apps on one machine says nothing about a network.
 
 1. Host: Settings, switch "Remote listening" on; read the port from the text next to it.
-2. Listener: Settings, Address and Port, Connect, "The codes match, ask to listen".
+2. Listener: Nearby Tunelles in the sidebar, Address and Port, Connect, "The codes match, ask to listen".
 3. Host: Approve in the dialog that asks on whatever page is open. Listener: "Listening to 127.0.0.1:<port>".
 4. Host plays Pitch Perfect (440 Hz). Listener: "Listen along", and the audio it sends out is 440 Hz (`expectTone`).
 
@@ -32,7 +32,7 @@ The steps that need a person, a shell or a second computer. Each says what runs 
 | 2 | Host mode off: `ss -ltnp` and `avahi-browse -art _tunelle._tcp` (`dns-sd -B _tunelle._tcp` on macOS and Windows) | Nothing listens on a port of the app and nothing is advertised | `host-controller.integration.test.ts` |
 | 3 | Switch it on | The host is in the listener's nearby list and in `avahi-browse`; the TXT holds name, version, protocol and port, no path or track; the address typed by hand works with multicast blocked | `mdns.test.ts` |
 | 4 | Ask from the listener with a note | The host shows the note as text; `curl -k https://127.0.0.1:<port>/remote/now-playing` and `/remote/audio` with no credential and with the pending id answer 401; Deny keeps them at 401; Approve shows the same code on both screens and the listener hears the track | `host-server.integration.test.ts`, `remote.spec.ts` |
-| 5 | Seek, pause, skip and change the queue on the host; stop the listener's network for a while and bring it back; play a track of the listener's own | The listener follows each; it joins again without a prompt; an own track leaves the session; a stopped host shows as nothing playing | `remote.spec.ts`, `use-remote-follow.test.tsx` |
+| 5 | Seek, pause, skip and change the queue on the host; stop the listener's network for a while and bring it back; play a track of the listener's own | The listener follows each; it joins again without a prompt; an own track leaves the session; a stopped host shows as nothing playing | `use-remote-follow.test.tsx`, `listener-client.integration.test.ts`, `remote.spec.ts` (pause and play, skip with the granted control) |
 | 6 | Revoke, then block | The stream and the audio end at once; a new request needs a new approval; a blocked device shows no prompt | `host-server.integration.test.ts`, `remote.spec.ts` |
 | 7 | Delete the host's certificate so it makes a new one | The approved listener refuses the connection and asks again | `listener-client.integration.test.ts` |
 | 8 | 100 requests in a loop with `curl -k`, a 1 MB note and a note with `<img src=x onerror=alert(1)>` | The limits hold, no flood of prompts, the note is text | `access.test.ts`, `host-server.integration.test.ts` |

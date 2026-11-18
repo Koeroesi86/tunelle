@@ -19,9 +19,11 @@ import {
   MdPerson as ArtistsIcon,
   MdPlaylistPlay as PlaylistIcon,
   MdRadio as RadioIcon,
+  MdWifiTethering as NearbyIcon,
+  MdPublic as OnlineIcon,
   MdSettings as SettingsIcon,
 } from 'react-icons/md';
-import type { NavigationGroup, LibraryView, Tab } from '../../../redux/types';
+import type { NavigationGroup, LibraryView, OnlineView, Tab } from '../../../redux/types';
 import type { Playlist } from '@shared/types/playlists';
 import { useDragReorder } from '../../../hooks/use-drag-reorder';
 import style from './Navigation.scss';
@@ -38,11 +40,14 @@ interface NavigationProps {
   setTab?: (tab: Tab) => void;
   tab?: Tab;
   view?: LibraryView;
+  onlineView?: OnlineView;
   libraryOpen?: boolean;
+  onlineOpen?: boolean;
   playlistsOpen?: boolean;
   playlists?: Playlist[];
   playlistId?: number | null;
   openLibraryView?: (view: LibraryView) => void;
+  openOnlineView?: (view: OnlineView) => void;
   setGroupOpen?: (group: NavigationGroup, open: boolean) => void;
   openPlaylist?: (id: number) => void;
   createPlaylist?: (name: string) => void;
@@ -57,6 +62,11 @@ const libraryViews = [
   { view: 'genres', label: 'library.genres', Icon: GenresIcon },
   { view: 'tracks', label: 'library.songs', Icon: TracksIcon },
   { view: 'folders', label: 'library.folders', Icon: FoldersIcon },
+] as const;
+
+const onlineViews = [
+  { view: 'radio', label: 'nav.radio', Icon: RadioIcon },
+  { view: 'nearby', label: 'nav.nearby', Icon: NearbyIcon },
 ] as const;
 
 interface ItemProps {
@@ -107,11 +117,14 @@ function Navigation({
   setTab: setTabOf = () => {},
   tab = 'home',
   view = 'albums',
+  onlineView = 'radio',
   libraryOpen = false,
+  onlineOpen = true,
   playlistsOpen = true,
   playlists = [],
   playlistId = null,
   openLibraryView: openLibraryViewOf = () => {},
+  openOnlineView: openOnlineViewOf = () => {},
   setGroupOpen = () => {},
   openPlaylist: openPlaylistOf = () => {},
   createPlaylist = () => {},
@@ -129,6 +142,14 @@ function Navigation({
   const openLibraryView = (next: LibraryView) => {
     openLibraryViewOf(next);
     onNavigate();
+  };
+  const openOnlineView = (next: OnlineView) => {
+    openOnlineViewOf(next);
+    onNavigate();
+  };
+  const toggleOnline = () => {
+    setGroupOpen('online', !onlineOpen);
+    if (!onlineOpen) setTabOf('online-sources');
   };
   const openPlaylist = (id: number) => {
     openPlaylistOf(id);
@@ -177,7 +198,30 @@ function Navigation({
               <span className={style.label}>{t(label)}</span>
             </button>
           ))}
-        <Item label={t('nav.radio')} icon={<RadioIcon size={'14px'} />} active={tab === 'online-sources'} onClick={() => setTab('online-sources')} />
+        <Group
+          label={t('nav.online')}
+          icon={<OnlineIcon size={'14px'} />}
+          open={onlineOpen}
+          active={tab === 'online-sources' && !onlineOpen}
+          onClick={toggleOnline}
+        />
+        {onlineOpen &&
+          onlineViews.map(({ view: sourceView, label, Icon }) => {
+            const current = tab === 'online-sources' && onlineView === sourceView;
+            return (
+              <button
+                type="button"
+                key={sourceView}
+                title={t(label)}
+                onClick={() => openOnlineView(sourceView)}
+                aria-current={current ? 'page' : undefined}
+                className={classNames(style.item, style.child, { [style.active]: current })}
+              >
+                <Icon size={'12px'} />
+                <span className={style.label}>{t(label)}</span>
+              </button>
+            );
+          })}
         <Item label={t('nav.liked')} icon={<FavouritesIcon size={'14px'} />} active={tab === 'favourites'} onClick={() => setTab('favourites')} />
         <Group
           label={t('nav.playlists')}
