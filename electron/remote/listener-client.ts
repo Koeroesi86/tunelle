@@ -168,12 +168,20 @@ const toWebStream = (response: IncomingMessage) => {
 
 const audioHeaders = ['content-type', 'content-length', 'content-range', 'accept-ranges'];
 
-/** The audio of the track the host plays now, with the range of the request (so the player can seek); the answer is a stream and a failure before it is an error */
-export const fetchAudio = (address: HostAddress, certificate: string, deviceId: string, secret: string, range: string | undefined, signal: AbortSignal) =>
+/** A media route of the host (the audio or the cover of what plays now), with the range of the request; the answer is a stream and a failure before it is an error */
+const fetchMedia = (
+  route: '/remote/audio' | '/remote/cover',
+  address: HostAddress,
+  certificate: string,
+  deviceId: string,
+  secret: string,
+  range: string | undefined,
+  signal: AbortSignal
+) =>
   new Promise<Response>((resolve, reject) => {
     const headers = { 'x-tunelle-device': deviceId, authorization: `Bearer ${secret}`, ...(range ? { range } : {}) };
     const outgoing = request(
-      { ...address, ...pinnedOptions(certificate), agent: false, method: 'GET', path: '/remote/audio', headers, timeout: TIMEOUT_MS, signal },
+      { ...address, ...pinnedOptions(certificate), agent: false, method: 'GET', path: route, headers, timeout: TIMEOUT_MS, signal },
       (response) => {
         // the stream may wait as long as the player does not read, so only the wait for the answer has a limit
         outgoing.setTimeout(0);
@@ -186,3 +194,11 @@ export const fetchAudio = (address: HostAddress, certificate: string, deviceId: 
     outgoing.on('error', reject);
     outgoing.end();
   });
+
+/** The audio of the track the host plays now, with the range of the request (so the player can seek) */
+export const fetchAudio = (address: HostAddress, certificate: string, deviceId: string, secret: string, range: string | undefined, signal: AbortSignal) =>
+  fetchMedia('/remote/audio', address, certificate, deviceId, secret, range, signal);
+
+/** The cover of the track the host plays now */
+export const fetchCover = (address: HostAddress, certificate: string, deviceId: string, secret: string, signal: AbortSignal) =>
+  fetchMedia('/remote/cover', address, certificate, deviceId, secret, undefined, signal);

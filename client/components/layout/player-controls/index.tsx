@@ -14,6 +14,7 @@ const mapState = (state: RootState) => ({
   repeat: state.uiState.repeat,
   currentTime: state.uiState.currentTime,
   currentSong: state.uiState.currentSong,
+  upNext: state.uiState.upNext,
   hostNowPlaying: state.uiState.remoteListener?.status === 'listening' ? state.uiState.remoteListener.nowPlaying : undefined,
   streamTitle: state.uiState.streamTitle,
   streamArt: state.uiState.streamArt,

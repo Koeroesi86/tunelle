@@ -11,6 +11,10 @@ export const nowPlayingSchema = z.discriminatedUnion('state', [
     position: z.number().nonnegative(),
     at: z.number(),
     duration: z.number().nonnegative().optional(),
+    /** True when the host has a cover for this track, which `/remote/cover` serves; the file it comes from stays on the host */
+    cover: z.boolean().optional(),
+    /** The track that plays after this one, when there is one */
+    next: z.object({ title: z.string(), artist: z.string().optional() }).optional(),
   }),
 ]);
 export type NowPlaying = z.infer<typeof nowPlayingSchema>;
