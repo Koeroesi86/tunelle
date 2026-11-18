@@ -239,8 +239,8 @@ export type AppAction =
   | PayloadAction<'LAUNCHER_STATE', { available: boolean; enabled: boolean; offered: boolean; external: boolean }>
   | PayloadAction<'SET_LAUNCHER', { enabled: boolean }>
   | PayloadAction<'REMOTE_HOST_STATE', RemoteHostState>
-  | PayloadAction<'SET_REMOTE_HOST', { enabled?: boolean; name?: string; loopbackOnly?: boolean }>
-  | PayloadAction<'DECIDE_REMOTE_DEVICE', { deviceId: string; action: 'approve' | 'deny' | 'revoke' | 'block' }>
+  | PayloadAction<'SET_REMOTE_HOST', { enabled?: boolean; name?: string; loopbackOnly?: boolean; port?: number; maxListeners?: number }>
+  | PayloadAction<'DECIDE_REMOTE_DEVICE', { deviceId: string; action: 'approve' | 'deny' | 'revoke' | 'block' | 'disconnect' }>
   | PayloadAction<'SET_REMOTE_DEVICE_CONTROLS', { deviceId: string; controls: Control[] }>
   | PayloadAction<'REMOTE_LISTENER_STATE', RemoteListenerState>
   | PayloadAction<'CONNECT_REMOTE_HOST', { host: string; port: number }>

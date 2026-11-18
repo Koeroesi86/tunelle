@@ -5,7 +5,6 @@ import { relayResponse } from './relay-response';
 import { nowPlayingSchema, type NowPlaying } from '../../shared/schemas/now-playing';
 
 const MAX_BODY_BYTES = 4096;
-const MAX_STREAMS = 20;
 const HEARTBEAT_MS = 25_000;
 
 const requestStatus = { pending: 202, approved: 200, invalid: 400, blocked: 403, 'rate-limited': 429, full: 503 } as const;
@@ -47,7 +46,7 @@ interface Stream {
 }
 
 /** The routes of the host and the now playing they answer with; no other route exists. See docs/app/remote-access-discovery.md */
-export const createRoutes = (access: AccessControl, onControl: (command: ControlCommand) => void = () => undefined, serveAudio?: ServeAudio) => {
+export const createRoutes = (access: AccessControl, onControl: (command: ControlCommand) => void, serveAudio: ServeAudio | undefined, maxListeners: number) => {
   let nowPlaying: NowPlaying = { state: 'idle' };
   let trackPath: string | undefined;
   const streams = new Set<Stream>();
@@ -66,7 +65,9 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
   };
 
   const openStream = (response: ServerResponse, deviceId: string, secret: string) => {
-    if (streams.size >= MAX_STREAMS) return send(response, 503, { status: 'full' });
+    // the limit counts devices, so a device that reconnects before its old stream is noticed as gone does not take a second place
+    const connected = new Set([...streams].map((stream) => stream.deviceId));
+    if (!connected.has(deviceId) && connected.size >= maxListeners) return send(response, 503, { status: 'full' });
     const stream = { response, deviceId, secret };
     const heartbeat = setInterval(() => writeToStreams(': ping\n\n'), HEARTBEAT_MS);
     const close = () => {
@@ -136,6 +137,11 @@ export const createRoutes = (access: AccessControl, onControl: (command: Control
     handle: (request: IncomingMessage, response: ServerResponse) => {
       route(request, response).catch(() => send(response, 500, { status: 'error' }));
     },
+    /** Ends what a device has open, and leaves it approved: it may connect again */
+    disconnect: (deviceId: string) =>
+      [...streams, ...relays]
+        .filter((stream) => stream.deviceId === deviceId)
+        .forEach((stream) => (streams.delete(stream), relays.delete(stream), stream.response.destroy())),
     /** After the access changed: a device that is no longer approved loses its open streams at once, not at the next event */
     closeRevoked,
     /** `path` is the file of the track in the library: it stays here and is never sent */

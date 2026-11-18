@@ -24,7 +24,7 @@ const openStream = (routes: ReturnType<typeof createRoutes>) => {
 
 const commands: unknown[] = [];
 const serveAudio = vi.fn();
-const create = () => createRoutes(access as unknown as AccessControl, (command) => commands.push(command), serveAudio);
+const create = (maxListeners = 20) => createRoutes(access as unknown as AccessControl, (command) => commands.push(command), serveAudio, maxListeners);
 const approved = { 'x-tunelle-device': 'id', authorization: 'Bearer secret' };
 
 describe('createRoutes', () => {
@@ -115,10 +115,38 @@ describe('createRoutes', () => {
       access.authorize.mockReturnValue({ status: 'rate-limited' });
       expect((await call(create(), 'GET', '/remote/events', '', approved)).status).toBe(429);
 
-      access.authorize.mockReturnValue({ status: 'ok', device: { id: 'id' } });
-      const routes = create();
-      Array.from({ length: 20 }, () => openStream(routes));
+      let next = 0;
+      access.authorize.mockImplementation(() => ({ status: 'ok', device: { id: `device-${next++}` } }));
+      const routes = create(3);
+      Array.from({ length: 3 }, () => openStream(routes));
       expect((await call(routes, 'GET', '/remote/events', '', approved)).status).toBe(503);
+    });
+
+    it('counts devices and not streams against the limit, so a device that connects again keeps its place', async () => {
+      access.authorize.mockReturnValue({ status: 'ok', device: { id: 'same' } });
+      const routes = create(1);
+
+      openStream(routes);
+      openStream(routes);
+
+      access.authorize.mockReturnValue({ status: 'ok', device: { id: 'other' } });
+      expect((await call(routes, 'GET', '/remote/events', '', approved)).status).toBe(503);
+    });
+
+    it('ends what one device has open and leaves the others, and the device stays approved', async () => {
+      let device = 'one';
+      access.authorize.mockImplementation(() => ({ status: 'ok', device: { id: device } }));
+      const routes = create();
+      const first = openStream(routes);
+      device = 'two';
+      const second = openStream(routes);
+      await vi.waitFor(() => expect(second.write).toHaveBeenCalledTimes(1));
+
+      routes.disconnect('one');
+
+      expect(first.destroy).toHaveBeenCalledTimes(1);
+      expect(second.destroy).not.toHaveBeenCalled();
+      expect(access.authenticate).not.toHaveReturnedWith(undefined);
     });
 
     it('ends the stream of a device that was revoked, at the next event or ping', async () => {

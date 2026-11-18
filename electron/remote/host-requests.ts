@@ -9,7 +9,7 @@ export const hostChangeSchema = z.strictObject(hostFields).partial();
 
 export const deviceDecisionSchema = z.object({
   deviceId: z.uuid(),
-  action: z.enum(['approve', 'deny', 'revoke', 'block']),
+  action: z.enum(['approve', 'deny', 'revoke', 'block', 'disconnect']),
 });
 
 export const deviceControlsSchema = z.object({

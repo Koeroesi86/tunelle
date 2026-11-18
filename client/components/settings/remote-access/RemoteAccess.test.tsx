@@ -9,6 +9,7 @@ const state = (change: Partial<RemoteHostState> = {}): RemoteHostState => ({
   enabled: true,
   name: 'Tunelle',
   loopbackOnly: false,
+  maxListeners: 5,
   running: true,
   code: 'AB12',
   pending: [],
@@ -131,6 +132,44 @@ describe('RemoteAccess', () => {
     fireEvent.submit(field);
 
     expect(props.update).toHaveBeenCalledWith({ name: 'Hall' });
+  });
+
+  it('sends the most listeners and the fixed port when the field is left, and not a value out of range or the same', () => {
+    const props = setup(state({ port: 41000 }));
+    const most = screen.getByRole('textbox', { name: /Most devices listening at once/ });
+    const port = screen.getByRole('textbox', { name: /^Port \(advanced/ });
+
+    fireEvent.change(most, { target: { value: '0' } });
+    fireEvent.blur(most);
+    fireEvent.change(most, { target: { value: '3' } });
+    fireEvent.blur(most);
+    fireEvent.change(port, { target: { value: '80' } });
+    fireEvent.blur(port);
+    fireEvent.change(port, { target: { value: '41000' } });
+    fireEvent.blur(port);
+    fireEvent.change(port, { target: { value: '42000' } });
+    fireEvent.submit(port);
+
+    expect(props.update.mock.calls).toEqual([[{ maxListeners: 3 }], [{ port: 42000 }]]);
+  });
+
+  it('tells about the network permission while the host listens, and what to check when nobody connected, but not on this computer only', () => {
+    const { unmount } = render(<RemoteAccess {...{ state: state(), setEnabled: vi.fn(), update: vi.fn(), decide: vi.fn(), setControls: vi.fn() }} />);
+    expect(screen.getByText(/may ask to allow network access/)).toBeTruthy();
+    expect(screen.getByText(/client isolation/)).toBeTruthy();
+    unmount();
+
+    setup(state({ loopbackOnly: true }));
+    expect(screen.queryByText(/may ask to allow network access/)).toBeNull();
+    expect(screen.queryByText(/client isolation/)).toBeNull();
+  });
+
+  it('disconnects an approved device without revoking it', () => {
+    const props = setup(state({ devices: [{ id: phone, name: 'Phone', blocked: false, controls: [] }] }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
+
+    expect(props.decide).toHaveBeenCalledExactlyOnceWith(phone, 'disconnect');
   });
 
   it('switches the host to this computer only and back', () => {

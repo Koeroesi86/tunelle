@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { z } from 'zod';
 import type { StoredDevice } from './access';
+import { DEFAULT_MAX_LISTENERS, MAX_LISTENERS } from '../../shared/constants/remote-limits';
 import { createHostIdentity, type HostIdentity } from './certificate';
 
 /** The rules of each setting, which a change from the page must meet and a stored file may fail one by one */
@@ -10,6 +11,7 @@ export const hostFields = {
   name: z.string().trim().min(1).max(60),
   loopbackOnly: z.boolean(),
   port: z.number().int().min(1024).max(65535),
+  maxListeners: z.number().int().min(1).max(MAX_LISTENERS),
 };
 
 const hostSettingsSchema = z
@@ -20,8 +22,9 @@ const hostSettingsSchema = z
     loopbackOnly: hostFields.loopbackOnly.catch(false),
     /** The port of the last start, reused until it is taken; undefined before the first start */
     port: hostFields.port.optional().catch(undefined),
+    maxListeners: hostFields.maxListeners.catch(DEFAULT_MAX_LISTENERS),
   })
-  .catch({ enabled: false, name: 'Tunelle', loopbackOnly: false });
+  .catch({ enabled: false, name: 'Tunelle', loopbackOnly: false, maxListeners: DEFAULT_MAX_LISTENERS });
 
 export type HostSettings = z.infer<typeof hostSettingsSchema>;
 
