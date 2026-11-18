@@ -98,17 +98,35 @@ describe('createRoutes', () => {
     it('sends the now playing at once and again on each change, to an approved device only', async () => {
       const routes = create();
       const stream = openStream(routes);
-      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(1));
+      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(2));
 
       routes.setNowPlaying({ state: 'playing', title: 'Song', position: 3, at: 1000 });
 
       expect(stream.writeHead).toHaveBeenCalledWith(200, expect.objectContaining({ 'content-type': 'text/event-stream' }));
       expect(stream.write).toHaveBeenNthCalledWith(1, 'data: {"state":"idle"}\n\n');
-      expect(stream.write.mock.calls[1][0]).toMatch(/^data: \{"state":"playing","title":"Song"/);
+      expect(stream.write.mock.calls[2][0]).toMatch(/^data: \{"state":"playing","title":"Song"/);
 
       access.authorize.mockReturnValue({ status: 'unauthorized' });
       const refused = await call(routes, 'GET', '/remote/events', '', approved);
       expect(refused.status).toBe(401);
+    });
+
+    it('tells a device what it may control when the stream opens and each time the host refreshes it, and nothing once it is revoked', async () => {
+      access.authenticate.mockReturnValue({ id: 'id', controls: ['skip'] });
+      const routes = create();
+      const stream = openStream(routes);
+      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(2));
+
+      access.authenticate.mockReturnValue({ id: 'id', controls: ['skip', 'seek'] });
+      routes.refreshControls();
+
+      expect(stream.write).toHaveBeenNthCalledWith(2, 'event: controls\ndata: ["skip"]\n\n');
+      expect(stream.write).toHaveBeenNthCalledWith(3, 'event: controls\ndata: ["skip","seek"]\n\n');
+
+      access.authenticate.mockReturnValue(undefined);
+      routes.refreshControls();
+      expect(stream.write).toHaveBeenCalledTimes(3);
+      expect(stream.destroy).toHaveBeenCalledTimes(1);
     });
 
     it('answers 429 to an address with too many wrong secrets, and 503 when the streams are full', async () => {
@@ -140,7 +158,7 @@ describe('createRoutes', () => {
       const first = openStream(routes);
       device = 'two';
       const second = openStream(routes);
-      await vi.waitFor(() => expect(second.write).toHaveBeenCalledTimes(1));
+      await vi.waitFor(() => expect(second.write).toHaveBeenCalledTimes(2));
 
       routes.disconnect('one');
 
@@ -152,19 +170,19 @@ describe('createRoutes', () => {
     it('ends the stream of a device that was revoked, at the next event or ping', async () => {
       const routes = create();
       const stream = openStream(routes);
-      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(1));
+      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(2));
 
       access.authenticate.mockReturnValue(undefined);
       routes.setNowPlaying({ state: 'idle' });
 
       expect(stream.destroy).toHaveBeenCalled();
-      expect(stream.write).toHaveBeenCalledTimes(1);
+      expect(stream.write).toHaveBeenCalledTimes(2);
     });
 
     it('ends the stream of a device that was revoked when told so, with no event to carry it', async () => {
       const routes = create();
       const stream = openStream(routes);
-      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(1));
+      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(2));
       routes.closeRevoked();
       expect(stream.destroy).not.toHaveBeenCalled();
 
@@ -176,14 +194,14 @@ describe('createRoutes', () => {
 
     it('pings now and then so a dead peer is found, and stops when the stream closes', async () => {
       const stream = openStream(create());
-      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(1));
+      await vi.waitFor(() => expect(stream.write).toHaveBeenCalledTimes(2));
 
       vi.advanceTimersByTime(25_000);
       expect(stream.write).toHaveBeenLastCalledWith(': ping\n\n');
 
       stream.emit('close');
       vi.advanceTimersByTime(60_000);
-      expect(stream.write).toHaveBeenCalledTimes(2);
+      expect(stream.write).toHaveBeenCalledTimes(3);
     });
   });
 

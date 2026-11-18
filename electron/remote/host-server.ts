@@ -3,7 +3,7 @@ import { createServer, type Server } from 'node:https';
 import type { AccessControl } from './access';
 import type { HostIdentity } from './certificate';
 import { DEFAULT_MAX_LISTENERS } from '../../shared/constants/remote-limits';
-import type { ControlCommand } from './control-command';
+import type { ControlCommand } from '../../shared/schemas/remote-control';
 import { createRoutes, type ServeAudio } from './host-routes';
 import type { NowPlaying } from '../../shared/schemas/now-playing';
 
@@ -15,6 +15,7 @@ export interface HostServer {
   disconnect: (deviceId: string) => void;
   /** Ends the streams and the audio of the devices that are no longer approved */
   closeRevoked: () => void;
+  refreshControls: () => void;
   close: () => Promise<void>;
 }
 
@@ -61,6 +62,7 @@ export const startHostServer = async ({
     setNowPlaying: routes.setNowPlaying,
     disconnect: routes.disconnect,
     closeRevoked: routes.closeRevoked,
+    refreshControls: routes.refreshControls,
     close: () => {
       server.closeAllConnections();
       return new Promise((resolve) => server.close(() => resolve()));

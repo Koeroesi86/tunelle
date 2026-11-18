@@ -58,6 +58,25 @@
     .status {
       opacity: 0.7;
     }
+
+    .hostControls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .slider {
+      display: flex;
+      flex: 1 1 100%;
+      align-items: center;
+      gap: 8px;
+
+      input {
+        flex: 1;
+        min-height: 44px;
+      }
+    }
   }
 
   .nearby {

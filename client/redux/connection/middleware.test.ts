@@ -80,10 +80,12 @@ describe('connection middleware', () => {
 
     store.dispatch({ type: 'CONNECT_REMOTE_HOST', payload: { host: '192.168.1.5', port: 40000 } });
     store.dispatch({ type: 'CONFIRM_REMOTE_HOST', payload: { note: 'kitchen' } });
+    store.dispatch({ type: 'SEND_REMOTE_CONTROL', payload: { control: 'skip', direction: 'next' } });
     store.dispatch({ type: 'LEAVE_REMOTE_HOST' });
 
     expect(send).toHaveBeenCalledWith('CONNECT_REMOTE_HOST', { host: '192.168.1.5', port: 40000 });
     expect(send).toHaveBeenCalledWith('CONFIRM_REMOTE_HOST', { note: 'kitchen' });
+    expect(send).toHaveBeenCalledWith('SEND_REMOTE_CONTROL', { control: 'skip', direction: 'next' });
     expect(send).toHaveBeenCalledWith('LEAVE_REMOTE_HOST');
   });
 

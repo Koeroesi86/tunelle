@@ -507,6 +507,12 @@
   "remote.listen.idle": "Nothing plays on the host.",
   "remote.listen.along": "Listen along",
   "remote.listen.leave": "Stop listening",
+  "remote.listen.controls": "Controls of the host",
+  "remote.listen.control.playPause": "Play or pause",
+  "remote.listen.control.previous": "Previous",
+  "remote.listen.control.next": "Next",
+  "remote.listen.control.volume": "Volume of the host",
+  "remote.listen.control.seek": "Position on the host",
   "remote.listen.error": "Could not reach the host: {error}",
   "remote.listen.blocked": "The host blocked this device.",
   "remote.listen.revoked": "The host does not know this device any more. Ask again."

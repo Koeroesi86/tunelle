@@ -8,6 +8,7 @@ import { remoteHostStateSchema } from '../../shared/schemas/remote-host';
 const mocks = vi.hoisted(() => ({
   start: vi.fn(),
   closeRevoked: vi.fn(),
+  refreshControls: vi.fn(),
   disconnect: vi.fn(),
   close: vi.fn(),
   setNowPlaying: vi.fn(),
@@ -48,10 +49,12 @@ describe('the host controller', () => {
       port: port || 41000,
       setNowPlaying: mocks.setNowPlaying,
       closeRevoked: mocks.closeRevoked,
+      refreshControls: mocks.refreshControls,
       disconnect: mocks.disconnect,
       close: mocks.close,
     }));
     mocks.closeRevoked.mockReset();
+    mocks.refreshControls.mockReset();
     mocks.disconnect.mockReset();
     mocks.close.mockReset().mockResolvedValue(undefined);
     mocks.setNowPlaying.mockReset();
@@ -256,6 +259,17 @@ describe('the host controller', () => {
       await host.decide(deviceId, 'revoke');
 
       expect(mocks.closeRevoked).toHaveBeenCalledTimes(1);
+    });
+
+    it('tells the open streams what each device may control after the controls or a decision changed', async () => {
+      const { host, deviceId } = await waiting(fakeStore({ enabled: true }));
+      await host.decide(deviceId, 'approve');
+      mocks.refreshControls.mockClear();
+
+      await host.setControls(deviceId, ['seek']);
+      await host.decide(deviceId, 'block');
+
+      expect(mocks.refreshControls).toHaveBeenCalledTimes(2);
     });
 
     it('disconnects a device without writing anything, as it stays approved', async () => {

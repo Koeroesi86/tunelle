@@ -3,18 +3,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AccessControl } from './access';
 import { approvalCode, createHostIdentity } from './certificate';
 import { startHostServer, type HostServer } from './host-server';
-import { contact, fetchAudio, followNowPlaying, requestToListen } from './listener-client';
+import { contact, fetchAudio, followNowPlaying, requestToListen, sendControl } from './listener-client';
 import type { NowPlaying } from '../../shared/schemas/now-playing';
 
 /** The first snapshot of the event stream, after which the stream is closed */
 const firstSnapshot = (target: { host: string; port: number }, certificate: string, deviceId: string, secret: string) => {
   const stop = new AbortController();
   return new Promise<NowPlaying>((resolve) => {
-    followNowPlaying(target, certificate, deviceId, secret, (snapshot) => (resolve(snapshot), stop.abort()), stop.signal).catch(() => undefined);
+    followNowPlaying(
+      target,
+      certificate,
+      deviceId,
+      secret,
+      { onSnapshot: (snapshot) => (resolve(snapshot), stop.abort()), onControls: () => undefined },
+      stop.signal
+    ).catch(() => undefined);
   });
 };
 const revokedStream = (target: { host: string; port: number }, certificate: string, deviceId: string, secret: string) =>
-  followNowPlaying(target, certificate, deviceId, secret, () => undefined, new AbortController().signal);
+  followNowPlaying(target, certificate, deviceId, secret, { onSnapshot: () => undefined, onControls: () => undefined }, new AbortController().signal);
 
 let identity = createHostIdentity('Host');
 let access = new AccessControl();
@@ -64,16 +71,44 @@ describe('the listener against a real host', () => {
     access.approve(deviceId);
     const { secret } = await requestToListen(address(), certificate, asking(deviceId));
     const seen: NowPlaying[] = [];
-    const ending = followNowPlaying(address(), certificate, deviceId, secret ?? '', (snapshot) => seen.push(snapshot), new AbortController().signal);
+    const allowed: string[][] = [];
+    const ending = followNowPlaying(
+      address(),
+      certificate,
+      deviceId,
+      secret ?? '',
+      { onSnapshot: (snapshot) => seen.push(snapshot), onControls: (controls) => allowed.push(controls) },
+      new AbortController().signal
+    );
 
     await vi.waitFor(() => expect(seen).toHaveLength(1));
     host.setNowPlaying({ state: 'playing', title: 'Song', position: 1, at: 5 });
     await vi.waitFor(() => expect(seen).toHaveLength(2));
+    expect(allowed).toEqual([[]]);
+    access.setControls(deviceId, ['skip']);
+    host.refreshControls();
+    await vi.waitFor(() => expect(allowed).toEqual([[], ['skip']]));
     access.revoke(deviceId);
     host.closeRevoked();
 
     expect(seen.map(({ state }) => state)).toEqual(['idle', 'playing']);
     await expect(ending).rejects.toThrow();
+  });
+
+  it('sends a command that the host allowed, and fails on one that it did not', async () => {
+    const commands: unknown[] = [];
+    await host.close();
+    host = await startHostServer({ identity, access, loopbackOnly: true, onControl: (command) => commands.push(command) });
+    const { certificate } = await contact(address());
+    const deviceId = randomUUID();
+    await requestToListen(address(), certificate, asking(deviceId));
+    access.approve(deviceId, ['skip']);
+    const { secret } = await requestToListen(address(), certificate, asking(deviceId));
+
+    await sendControl(address(), certificate, deviceId, secret ?? '', { control: 'skip', direction: 'next' });
+    await expect(sendControl(address(), certificate, deviceId, secret ?? '', { control: 'volume', level: 0.5 })).rejects.toThrow('403');
+
+    expect(commands).toEqual([{ control: 'skip', direction: 'next' }]);
   });
 
   it('relays the audio of the track that plays with its range, and a stop of the player ends it', async () => {

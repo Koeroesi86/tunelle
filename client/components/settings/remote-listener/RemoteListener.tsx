@@ -5,6 +5,7 @@ import { useTranslation } from '../../../i18n';
 import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NowPlaying as NowPlayingSnapshot } from '@shared/schemas/now-playing';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
+import type { ControlCommand } from '@shared/schemas/remote-control';
 
 interface RemoteListenerProps {
   state: RemoteListenerState | undefined;
@@ -13,6 +14,7 @@ interface RemoteListenerProps {
   leave: () => void;
   nearby: NearbyHost[];
   browse: (active: boolean) => void;
+  control: (command: ControlCommand) => void;
   listenAlong: (snapshot: Exclude<NowPlayingSnapshot, { state: 'idle' }>) => void;
 }
 
@@ -141,6 +143,93 @@ const Confirm = ({ code, confirm, leave }: { code: string | undefined } & Pick<R
   );
 };
 
+/** A range that sends its value when it is let go or a key is released, not on every step of the drag */
+const Slider = ({
+  id,
+  label,
+  max,
+  step,
+  value,
+  onCommit,
+}: {
+  id: string;
+  label: string;
+  max: number;
+  step: number;
+  value: number;
+  onCommit: (value: number) => void;
+}) => {
+  const [draft, setDraft] = useState(value);
+
+  return (
+    <label htmlFor={id} className={style.slider}>
+      {label}
+      <input
+        id={id}
+        type="range"
+        min={0}
+        max={max}
+        step={step}
+        value={draft}
+        onChange={(event) => setDraft(Number(event.target.value))}
+        onPointerUp={(event) => onCommit(Number(event.currentTarget.value))}
+        onKeyUp={(event) => onCommit(Number(event.currentTarget.value))}
+      />
+    </label>
+  );
+};
+
+/** The buttons of what the host allowed this device to control, and none of the rest */
+const HostControls = ({
+  controls,
+  snapshot,
+  control,
+}: { controls: NonNullable<RemoteListenerState['controls']>; snapshot: RemoteListenerState['nowPlaying'] } & Pick<RemoteListenerProps, 'control'>) => {
+  const { t } = useTranslation();
+  const duration = snapshot?.state === 'idle' ? undefined : snapshot?.duration;
+  if (controls.length === 0) return null;
+
+  return (
+    <div className={style.hostControls} role="group" aria-label={t('remote.listen.controls')}>
+      {controls.includes('playPause') && (
+        <button type="button" className={style.action} onClick={() => control({ control: 'playPause', action: 'toggle' })}>
+          {t('remote.listen.control.playPause')}
+        </button>
+      )}
+      {controls.includes('skip') && (
+        <>
+          <button type="button" className={style.action} onClick={() => control({ control: 'skip', direction: 'previous' })}>
+            {t('remote.listen.control.previous')}
+          </button>
+          <button type="button" className={style.action} onClick={() => control({ control: 'skip', direction: 'next' })}>
+            {t('remote.listen.control.next')}
+          </button>
+        </>
+      )}
+      {controls.includes('seek') && duration && (
+        <Slider
+          id="remote-host-seek"
+          label={t('remote.listen.control.seek')}
+          max={duration}
+          step={1}
+          value={0}
+          onCommit={(position) => control({ control: 'seek', position })}
+        />
+      )}
+      {controls.includes('volume') && (
+        <Slider
+          id="remote-host-volume"
+          label={t('remote.listen.control.volume')}
+          max={100}
+          step={1}
+          value={100}
+          onCommit={(level) => control({ control: 'volume', level: level / 100 })}
+        />
+      )}
+    </div>
+  );
+};
+
 const NowPlaying = ({ snapshot, listenAlong }: { snapshot: RemoteListenerState['nowPlaying'] } & Pick<RemoteListenerProps, 'listenAlong'>) => {
   const { t } = useTranslation();
   if (!snapshot) return null;
@@ -157,7 +246,7 @@ const NowPlaying = ({ snapshot, listenAlong }: { snapshot: RemoteListenerState['
 };
 
 /** Pairs this app with another Tunelle that plays: the address, the code to compare, the request and what the host plays. See docs/app/remote-access-discovery.md */
-const RemoteListener = ({ state, connect, confirm, leave, listenAlong, nearby, browse }: RemoteListenerProps) => {
+const RemoteListener = ({ state, connect, confirm, leave, control, listenAlong, nearby, browse }: RemoteListenerProps) => {
   const { t } = useTranslation();
 
   if (!state) return null;
@@ -188,6 +277,7 @@ const RemoteListener = ({ state, connect, confirm, leave, listenAlong, nearby, b
           <div className={style.hint}>{t('remote.listen.listening', { address })}</div>
           {state.error && <div className={style.error}>{t('remote.listen.error', { error: state.error })}</div>}
           <NowPlaying snapshot={state.nowPlaying} listenAlong={listenAlong} />
+          <HostControls controls={state.controls ?? []} snapshot={state.nowPlaying} control={control} />
           <button type="button" className={style.action} onClick={leave}>
             {t('remote.listen.leave')}
           </button>
