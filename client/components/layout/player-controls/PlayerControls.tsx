@@ -36,6 +36,8 @@ interface PlayerControlsProps {
   currentSong: Track | null;
   /** What the host that this app listens to plays, undefined while it does not listen */
   hostNowPlaying?: NowPlaying;
+  /** The name or address of the host that this app listens to, undefined while it does not listen */
+  hostName?: string;
   upNext: Track | null;
   followTrack: (track: Track) => void;
   leaveRemoteHost: () => void;
@@ -259,6 +261,21 @@ const VolumeControls = ({ volume, setVolume, openEqualizer }: Pick<PlayerControl
   );
 };
 
+const Following = ({ hostName, leave }: { hostName: string; leave: () => void }) => {
+  const { t } = useTranslation();
+
+  return (
+    <div className={style.following}>
+      <span className={style.followingName} title={hostName}>
+        {t('player.following', { host: hostName })}
+      </span>
+      <button type="button" className={style.followingLeave} onClick={leave}>
+        {t('remote.listen.leave')}
+      </button>
+    </div>
+  );
+};
+
 const PlayerControls = (props: PlayerControlsProps) => {
   const {
     currentSong,
@@ -364,6 +381,7 @@ const PlayerControls = (props: PlayerControlsProps) => {
           <SeekBar currentSong={currentSong} currentTime={currentTime} setCurrentTime={setCurrentTime} />
         )}
       </div>
+      {props.hostName && <Following hostName={props.hostName} leave={props.leaveRemoteHost} />}
       <div className={style.right}>
         <VolumeControls volume={props.volume} setVolume={props.setVolume} openEqualizer={props.openEqualizer} />
       </div>

@@ -117,6 +117,17 @@ describe('PlayerControls', () => {
     expect(props.openEqualizer).toHaveBeenCalled();
   });
 
+  it('names the host that it listens to, with a button that leaves it, and shows neither otherwise', () => {
+    const { props, rerender } = renderControls(0.5);
+    expect(screen.queryByText('Listening to Kitchen')).toBeNull();
+
+    rerender(<PlayerControls {...props} hostName="Kitchen" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Stop listening' }));
+
+    expect(screen.getByText('Listening to Kitchen')).toBeTruthy();
+    expect(props.leaveRemoteHost).toHaveBeenCalledTimes(1);
+  });
+
   it('opens the page of what plays from the track, which is the way from the mini player to the full view', () => {
     const { props } = renderControls(0.5);
 
