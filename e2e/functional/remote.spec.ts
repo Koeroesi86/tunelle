@@ -25,7 +25,8 @@ const pair = async (host: Page, listener: Page) => {
   const dialog = host.locator('[class*="Confirm__confirm"]').filter({ hasText: 'asks to listen to Tunelle' });
   await expect(dialog).toBeInViewport();
   await dialog.getByRole('button', { name: ui('Approve'), exact: true }).click();
-  await expect(listener.getByText(`Listening to 127.0.0.1:${port}`)).toBeVisible();
+  // the settings hint and the follow chip of the player bar show the same text, so the hint is picked by its place
+  await expect(listener.locator('[class*="RemoteListener__hint"]').getByText(`Listening to 127.0.0.1:${port}`)).toBeVisible();
   return port;
 };
 
