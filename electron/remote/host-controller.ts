@@ -40,7 +40,7 @@ class ObservedAccess extends AccessControl {
 }
 
 // the file of the track rides along with the snapshot from the page, and only the host knows it
-const pathOf = z.object({ path: z.string().min(1) });
+const sourceOf = z.object({ path: z.string().min(1).optional(), coverKey: z.string().min(1).optional() });
 
 /** What the host advertises as its id: its code, so it is the same one the listeners show */
 export const advertisementId = (code: string) => code.replace(/\W/g, '').toLowerCase();
@@ -56,6 +56,7 @@ export const createHostController = (
   onChange: (state: HostState) => void,
   onControl: (command: ControlCommand) => void,
   serveAudio?: ServeAudio,
+  serveCover?: ServeAudio,
   version = ''
 ) => {
   let settings: HostSettings | undefined;
@@ -67,6 +68,7 @@ export const createHostController = (
   // the last now playing the page sent, which a start that comes after it still shows
   let nowPlaying: NowPlaying | undefined;
   let trackPath: string | undefined;
+  let coverKey: string | undefined;
   let changing: Promise<void> = Promise.resolve();
 
   const state = (): HostState => ({
@@ -84,7 +86,7 @@ export const createHostController = (
   // a saved port that is taken falls back to a free one, which is saved for the next start
   const listen = async (current: HostSettings) => {
     const identity = await store.identity(current.name);
-    const options = { identity, access, loopbackOnly: current.loopbackOnly, maxListeners: current.maxListeners, onControl, serveAudio };
+    const options = { identity, access, loopbackOnly: current.loopbackOnly, maxListeners: current.maxListeners, onControl, serveAudio, serveCover };
     const started = await startHostServer({ ...options, port: current.port }).catch((failure: unknown) =>
       isTaken(failure) && current.port ? startHostServer({ ...options, port: 0 }) : Promise.reject(failure)
     );
@@ -110,7 +112,7 @@ export const createHostController = (
     try {
       access = new ObservedAccess(await store.readDevices(), publish);
       server = await listen(current);
-      if (nowPlaying) server.setNowPlaying(nowPlaying, trackPath);
+      if (nowPlaying) server.setNowPlaying(nowPlaying, trackPath, coverKey);
       settings = { ...current, port: server.port };
       await store.saveSettings(settings);
       // a host on loopback is not reachable from the network, so it is not announced; a failed announcement leaves the host working at its address
@@ -148,8 +150,10 @@ export const createHostController = (
       if (!parsed.success) return;
 
       nowPlaying = parsed.data;
-      trackPath = pathOf.safeParse(snapshot).data?.path;
-      server?.setNowPlaying(parsed.data, trackPath);
+      const source = sourceOf.safeParse(snapshot).data;
+      trackPath = source?.path;
+      coverKey = source?.coverKey;
+      server?.setNowPlaying(parsed.data, trackPath, coverKey);
     },
     /** The page asked about a device; a device that is gone or a wrong id changes nothing */
     decide: async (deviceId: string, action: DeviceAction) => {

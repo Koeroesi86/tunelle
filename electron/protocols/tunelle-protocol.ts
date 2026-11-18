@@ -9,7 +9,7 @@ import type { RadioStreamDeps } from './radio-proxy';
 import type { RadioArtImage } from '../services/radio-art';
 import { notFound, serveFile } from './serve-file';
 import { serveTrack } from './serve-track';
-import { serveRemoteAudio } from '../remote/remote-audio';
+import { serveRemoteAudio, serveRemoteCover } from '../remote/remote-media';
 import { artKeySchema, assetPathSchema, stationUuidSchema, trackPathSchema } from '../schemas/routes';
 
 const scheme = 'tunelle';
@@ -45,6 +45,7 @@ const route = async (request: Request, { getDatabase, radio, appRoot }: TunelleD
 
   // the audio of the host that this app listens to, relayed with the range of the request; the page names neither host nor file
   if (pathname === '/remote/audio') return serveRemoteAudio(request);
+  if (pathname === '/remote/cover') return serveRemoteCover(request);
 
   const { kind, key = '' } = assetPathSchema.safeParse(pathname).data ?? {};
   if (kind === 'radio') return serveRadio(key, request.signal, radio);

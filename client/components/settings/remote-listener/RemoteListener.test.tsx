@@ -107,6 +107,23 @@ describe('RemoteListener', () => {
     expect(screen.queryByRole('group', { name: 'Controls of the host' })).toBeNull();
   });
 
+  it('shows the cover that the host has for the track, through the protocol and not from the host, and what plays next', () => {
+    setup({
+      status: 'listening',
+      target,
+      nowPlaying: { state: 'playing', title: 'Song', artist: 'Band', position: 1, at: 0, cover: true, next: { title: 'After', artist: 'Band' } },
+    });
+
+    expect(document.querySelector('img')?.getAttribute('src')).toBe('tunelle://app/remote/cover?t=Song%7CBand%7C');
+    expect(screen.getByText('Next on the host: After – Band')).toBeTruthy();
+  });
+
+  it('shows no cover when the host has none', () => {
+    setup({ status: 'listening', target, nowPlaying: { state: 'playing', title: 'Song', position: 1, at: 0 } });
+
+    expect(document.querySelector('img')).toBeNull();
+  });
+
   it('shows what the host plays, as text, and stops listening on request', () => {
     const { leave } = setup({ status: 'listening', target, nowPlaying: { state: 'playing', title: '<b>Song</b>', artist: 'Band', position: 1, at: 0 } });
 

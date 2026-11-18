@@ -1,7 +1,7 @@
 import type { ControlCommand } from '../../shared/schemas/remote-control';
 import type { RemoteListenerState } from '../../shared/schemas/remote-listener';
 import { approvalCode } from './certificate';
-import { contact, fetchAudio, followNowPlaying, requestToListen, sendControl, type Contact, type HostAddress } from './listener-client';
+import { contact, fetchAudio, fetchCover, followNowPlaying, requestToListen, sendControl, type Contact, type HostAddress } from './listener-client';
 import type { ListenerStore, Pairing } from './listener-store';
 
 export const POLL_MS = 1000;
@@ -169,6 +169,15 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
         request.headers.get('range') ?? undefined,
         request.signal
       ).catch(() => new Response(undefined, { status: 502 }));
+    },
+    /** The cover of the track the host plays, for the tile of the page */
+    cover: async (request: Request) => {
+      if (!active) return new Response(undefined, { status: 404 });
+
+      const { pairing, deviceId } = active;
+      return fetchCover({ host: pairing.host, port: pairing.port }, pairing.certificate, deviceId, pairing.secret, request.signal).catch(
+        () => new Response(undefined, { status: 502 })
+      );
     },
     /** A command of the page for the host that is followed; the host checks it against what it allowed this device */
     control: async (command: ControlCommand) => {

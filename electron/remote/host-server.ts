@@ -10,7 +10,7 @@ import type { NowPlaying } from '../../shared/schemas/now-playing';
 export interface HostServer {
   port: number;
   /** What the approved listeners are shown; the renderer sends a new one when the track, the play state or the position jumps */
-  setNowPlaying: (snapshot: NowPlaying, trackPath?: string) => void;
+  setNowPlaying: (snapshot: NowPlaying, trackPath?: string, coverKey?: string) => void;
   /** Ends what one device has open, and leaves it approved */
   disconnect: (deviceId: string) => void;
   /** Ends the streams and the audio of the devices that are no longer approved */
@@ -30,6 +30,8 @@ export interface HostOptions {
   onControl?: (command: ControlCommand) => void;
   /** Serves the file of the track that plays; without it the audio route answers 404 */
   serveAudio?: ServeAudio;
+  /** Serves the cover of the track that plays, by its key; without it the cover route answers 404 */
+  serveCover?: ServeAudio;
   /** How many devices may be connected at once */
   maxListeners?: number;
 }
@@ -42,9 +44,10 @@ export const startHostServer = async ({
   loopbackOnly = false,
   onControl = () => undefined,
   serveAudio,
+  serveCover,
   maxListeners = DEFAULT_MAX_LISTENERS,
 }: HostOptions): Promise<HostServer> => {
-  const routes = createRoutes(access, onControl, serveAudio, maxListeners);
+  const routes = createRoutes(access, onControl, serveAudio, serveCover, maxListeners);
   const server: Server = createServer({ cert: identity.certificate, key: identity.key }, routes.handle);
   // a socket that fails ends there: an unhandled error would open the error dialog of the app
   server.on('tlsClientError', () => undefined);

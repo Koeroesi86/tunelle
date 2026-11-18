@@ -31,6 +31,7 @@ const renderControls = (volume: number, currentSong: Track | null = null, curren
     toggleShuffle: vi.fn(),
     nextSong: vi.fn(),
     previousSong: vi.fn(),
+    upNext: null,
     followTrack: vi.fn(),
     leaveRemoteHost: vi.fn(),
   };

@@ -4,6 +4,7 @@ import style from './RemoteListener.scss';
 import { useTranslation } from '../../../i18n';
 import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NowPlaying as NowPlayingSnapshot } from '@shared/schemas/now-playing';
+import { localUrl } from '../../../services/local-url';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import type { ControlCommand } from '@shared/schemas/remote-control';
 
@@ -237,7 +238,17 @@ const NowPlaying = ({ snapshot, listenAlong }: { snapshot: RemoteListenerState['
 
   return (
     <>
+      {snapshot.cover && (
+        <img
+          className={style.cover}
+          src={localUrl(`/remote/cover?t=${encodeURIComponent([snapshot.title, snapshot.artist, snapshot.album].join('|'))}`)}
+          alt=""
+        />
+      )}
       <div className={style.hint}>{[snapshot.title, snapshot.artist].filter(Boolean).join(' – ')}</div>
+      {snapshot.next && (
+        <div className={style.hint}>{t('remote.listen.next', { track: [snapshot.next.title, snapshot.next.artist].filter(Boolean).join(' – ') })}</div>
+      )}
       <button type="button" className={style.action} onClick={() => listenAlong(snapshot)}>
         {t('remote.listen.along')}
       </button>

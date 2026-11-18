@@ -24,7 +24,9 @@ const openStream = (routes: ReturnType<typeof createRoutes>) => {
 
 const commands: unknown[] = [];
 const serveAudio = vi.fn();
-const create = (maxListeners = 20) => createRoutes(access as unknown as AccessControl, (command) => commands.push(command), serveAudio, maxListeners);
+const serveCover = vi.fn();
+const create = (maxListeners = 20) =>
+  createRoutes(access as unknown as AccessControl, (command) => commands.push(command), serveAudio, serveCover, maxListeners);
 const approved = { 'x-tunelle-device': 'id', authorization: 'Bearer secret' };
 
 describe('createRoutes', () => {
@@ -306,6 +308,50 @@ describe('createRoutes', () => {
       routes.setNowPlaying({ state: 'playing', title: 'Song', position: 0, at: 1000 }, '/music/song.flac');
 
       expect((await call(routes, 'GET', '/remote/now-playing', '', approved)).body).not.toContain('/music');
+    });
+  });
+
+  describe('the cover route', () => {
+    const playing = { state: 'playing', title: 'Song', position: 0, at: 1000 } as const;
+    const cover = async (routes: ReturnType<typeof create>) => {
+      const request = Object.assign(Readable.from([]), { method: 'GET', url: '/remote/cover', headers: approved, socket: { remoteAddress: '10.0.0.2' } });
+      const response = Object.assign(new PassThrough(), { headersSent: false, writeHead: vi.fn() });
+      routes.handle(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+      await vi.waitFor(() => expect(response.writableEnded).toBe(true));
+      return response.writeHead.mock.calls[0]?.[0];
+    };
+
+    beforeEach(() => {
+      serveCover.mockReset().mockResolvedValue(new Response('png', { status: 200, headers: { 'content-type': 'image/png' } }));
+      access.authorize.mockReturnValue({ status: 'ok', device: { id: 'id', controls: [] } });
+    });
+
+    it('serves the cover of the track that plays by the key of the host, tells the listener that there is one, and never sends the key', async () => {
+      const routes = create();
+      routes.setNowPlaying(playing, '/music/song.flac', 'abc123');
+
+      expect(await cover(routes)).toBe(200);
+      expect(serveCover).toHaveBeenCalledWith('abc123', expect.any(Request));
+      const answer = (await call(routes, 'GET', '/remote/now-playing', '', approved)).body;
+      expect(JSON.parse(answer)).toMatchObject({ cover: true });
+      expect(answer).not.toContain('abc123');
+    });
+
+    it('has no cover while nothing plays, the page sent no key, or the device is not approved', async () => {
+      const routes = create();
+
+      routes.setNowPlaying(playing, '/music/song.flac');
+      expect(await cover(routes)).toBe(404);
+      expect(JSON.parse((await call(routes, 'GET', '/remote/now-playing', '', approved)).body).cover).toBeUndefined();
+
+      routes.setNowPlaying(playing, '/music/song.flac', 'abc123');
+      routes.setNowPlaying({ state: 'idle' }, '/music/song.flac', 'abc123');
+      expect(await cover(routes)).toBe(404);
+
+      routes.setNowPlaying(playing, '/music/song.flac', 'abc123');
+      access.authorize.mockReturnValue({ status: 'unauthorized' });
+      expect(await cover(routes)).toBe(401);
+      expect(serveCover).not.toHaveBeenCalled();
     });
   });
 

@@ -68,10 +68,33 @@ describe('the host controller', () => {
     await host.start();
     host.setNowPlaying({ state: 'playing', title: 'Song', position: 1, at: 2, path: '/music/song.flac' });
 
-    expect(mocks.setNowPlaying).toHaveBeenCalledWith({ state: 'playing', title: 'Song', position: 1, at: 2 }, '/music/song.flac');
+    expect(mocks.setNowPlaying).toHaveBeenCalledWith({ state: 'playing', title: 'Song', position: 1, at: 2 }, '/music/song.flac', undefined);
 
     await host.start();
-    expect(mocks.setNowPlaying).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Song' }), '/music/song.flac');
+    expect(mocks.setNowPlaying).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Song' }), '/music/song.flac', undefined);
+  });
+
+  it('gives the server the key of the cover beside the file, and keeps it out of the snapshot', async () => {
+    const host = await create(fakeStore({ enabled: true }));
+    await host.start();
+    host.setNowPlaying({
+      state: 'playing',
+      title: 'Song',
+      position: 1,
+      at: 2,
+      path: '/music/song.flac',
+      coverKey: 'abc-optimized.png',
+      next: { title: 'After' },
+    });
+
+    expect(mocks.setNowPlaying).toHaveBeenCalledWith(
+      { state: 'playing', title: 'Song', position: 1, at: 2, next: { title: 'After' } },
+      '/music/song.flac',
+      'abc-optimized.png'
+    );
+
+    await host.start();
+    expect(mocks.setNowPlaying).toHaveBeenLastCalledWith(expect.anything(), '/music/song.flac', 'abc-optimized.png');
   });
 
   it('hands the server the way to the page for the commands of a listener', async () => {

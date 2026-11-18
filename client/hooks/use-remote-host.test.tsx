@@ -4,7 +4,15 @@ import { useRemoteHost } from './use-remote-host';
 
 const send = vi.fn();
 const on = vi.fn();
-const info = { title: 'Song', artist: 'Artist', album: 'Album', duration: 200, path: '/music/song.flac' };
+const info = {
+  title: 'Song',
+  artist: 'Artist',
+  album: 'Album',
+  duration: 200,
+  path: '/music/song.flac',
+  coverKey: 'abc-optimized.png',
+  next: { title: 'After', artist: undefined },
+};
 const commands = () => ({
   play: vi.fn(),
   pause: vi.fn(),
@@ -35,6 +43,8 @@ describe('useRemoteHost', () => {
       position: 12,
       at: 1_000,
       path: '/music/song.flac',
+      coverKey: 'abc-optimized.png',
+      next: { title: 'After', artist: undefined },
     });
   });
 

@@ -15,6 +15,7 @@ import Slider from '../../ui/slider/Slider';
 import type { Track } from '@shared/types/library';
 import { toNowPlaying } from '../../../domain/now-playing';
 import { radioUuidOf } from '../../../domain/radio-track';
+import { optimizedCoverOf } from '../../../utils/cover-url';
 import { isRemoteTrack } from '../../../domain/remote-track';
 import { useMediaSession, useMediaSessionActions } from '../../../hooks/use-media-session';
 import { useMpris, useMprisCommands } from '../../../hooks/use-mpris';
@@ -35,6 +36,7 @@ interface PlayerControlsProps {
   currentSong: Track | null;
   /** What the host that this app listens to plays, undefined while it does not listen */
   hostNowPlaying?: NowPlaying;
+  upNext: Track | null;
   followTrack: (track: Track) => void;
   leaveRemoteHost: () => void;
   streamTitle: string | null;
@@ -287,6 +289,7 @@ const PlayerControls = (props: PlayerControlsProps) => {
     },
     { isPlaying, currentTime }
   );
+  const hostedFile = shown !== undefined && !radioUuidOf(shown.track.path) && !isRemoteTrack(shown.track.path);
   useRemoteHost(
     shown && {
       title: shown.track.title,
@@ -294,6 +297,8 @@ const PlayerControls = (props: PlayerControlsProps) => {
       album: shown.track.album,
       duration: radioUuidOf(shown.track.path) ? 0 : (shown.track.duration ?? 0),
       path: radioUuidOf(shown.track.path) || isRemoteTrack(shown.track.path) ? undefined : shown.track.path,
+      coverKey: hostedFile && shown.track.picture ? optimizedCoverOf(shown.track.picture) : undefined,
+      next: props.upNext ? { title: props.upNext.title, artist: props.upNext.artist || undefined } : undefined,
     },
     { isPlaying, currentTime },
     { play, pause, isPlaying, previousSong: props.previousSong, nextSong: props.nextSong, setCurrentTime, setVolume: props.setVolume }
