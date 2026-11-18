@@ -1,7 +1,29 @@
 @use '../../../styles/settings-tile' as *;
 
 .remoteListener {
-  @include tile;
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+
+  // the same width as the text of the other pages, the tiles under each other
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 640px;
+    padding: 24px 24px 32px;
+  }
+
+  .title {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .tile {
+    @include tile;
+  }
 
   .sectionTitle {
     @include tile-title;
@@ -48,51 +70,51 @@
     .hint {
       flex: 1 1 100%;
     }
-
-    .found {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .status {
-      opacity: 0.7;
-    }
-
-    .cover {
-      width: 96px;
-      height: 96px;
-      border-radius: 4px;
-      object-fit: cover;
-    }
-
-    .hostControls {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .slider {
-      display: flex;
-      flex: 1 1 100%;
-      align-items: center;
-      gap: 8px;
-
-      input {
-        flex: 1;
-        min-height: 44px;
-      }
-    }
   }
 
-  .nearby {
+  .found {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+  }
+
+  .hostName {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .status {
+    @include tile-hint;
+  }
+
+  .cover {
+    width: 96px;
+    height: 96px;
+    border-radius: 4px;
+    object-fit: cover;
+  }
+
+  .hostControls {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
+  }
 
-    .hint {
-      flex: 1 1 100%;
+  .slider {
+    display: flex;
+    flex: 1 1 100%;
+    align-items: center;
+    gap: 8px;
+
+    input {
+      flex: 1;
+      min-height: 44px;
     }
   }
 
