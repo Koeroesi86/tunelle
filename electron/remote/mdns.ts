@@ -12,6 +12,7 @@ import {
   type DecodedRecord,
   type DnsRecord,
 } from './dns-packet';
+import { REMOTE_PROTOCOL } from '../../shared/constants/remote-protocol';
 import type { NearbyHost } from '../../shared/schemas/remote-nearby';
 import { logError } from '../utils/log-error';
 
@@ -27,6 +28,9 @@ const ANNOUNCE_DELAYS = [0, 1000];
 const FIRST_QUERY_DELAY = 1000;
 const MAX_QUERY_DELAY = 60_000;
 const PRUNE_INTERVAL = 10_000;
+
+/** The instance name of a host with this id, which the host leaves out of its own list */
+const instanceName = (id: string) => `tunelle-${id}`;
 
 export interface Advertisement {
   /** What makes the instance name of this host differ from another one called the same */
@@ -94,12 +98,12 @@ const isAskedFor = (message: Buffer) =>
  * the records end and says goodbye (a ttl of 0) when it stops. See docs/app/remote-access-discovery.md
  */
 export const advertise = async ({ id, name, port, version }: Advertisement) => {
-  const instance = `tunelle-${id}.${SERVICE}`;
-  const target = `tunelle-${id}.local`;
+  const instance = `${instanceName(id)}.${SERVICE}`;
+  const target = `${instanceName(id)}.local`;
   const records = (): DnsRecord[] => [
     { name: SERVICE, type: RecordType.PTR, data: encodeName(instance) },
     { name: instance, type: RecordType.SRV, data: encodeSrv(port, target) },
-    { name: instance, type: RecordType.TXT, data: encodeTxt({ name, version, port: String(port), approval: 'request' }) },
+    { name: instance, type: RecordType.TXT, data: encodeTxt({ name, version, port: String(port), approval: 'request', protocol: REMOTE_PROTOCOL }) },
     ...lanAddresses().map((address) => ({ name: target, type: RecordType.A, data: encodeA(address) })),
   ];
   const announce = (ttl: number) => channel.send(encodeResponse(records(), ttl));
@@ -129,7 +133,7 @@ interface Cached {
 const keyOf = (record: DecodedRecord) =>
   [record.kind, record.name, record.kind === 'ptr' ? record.target : record.kind === 'a' ? record.address : ''].join('|');
 
-const hostsOf = (cache: Map<string, Cached>): NearbyHost[] => {
+const hostsOf = (cache: Map<string, Cached>, ownId: string | undefined): NearbyHost[] => {
   const records = [...cache.values()].map(({ record }) => record);
 
   return records
@@ -139,6 +143,9 @@ const hostsOf = (cache: Map<string, Cached>): NearbyHost[] => {
       const txt = records.find((record) => record.kind === 'txt' && record.name === instance);
       const address = records.find((record) => record.kind === 'a' && srv?.kind === 'srv' && record.name === srv.target);
       if (srv?.kind !== 'srv' || address?.kind !== 'a') return [];
+      // a host of another protocol cannot be listened to, and this app's own host is not a place to listen to
+      if (txt?.kind !== 'txt' || txt.entries.protocol !== REMOTE_PROTOCOL) return [];
+      if (ownId && instance.split('.')[0] === instanceName(ownId)) return [];
 
       return [
         {
@@ -157,12 +164,12 @@ const hostsOf = (cache: Map<string, Cached>): NearbyHost[] => {
  * Looks for other Tunelles on the network while it runs: asks at 1 s and then less and less often, reads the answers (and the ones that others ask for)
  * and tells which hosts are there when that changes. A goodbye removes a host at once, a host that is not heard from leaves when its records end.
  */
-export const browse = async (onChange: (hosts: NearbyHost[]) => void) => {
+export const browse = async (onChange: (hosts: NearbyHost[]) => void, ownId: () => string | undefined) => {
   const cache = new Map<string, Cached>();
   let shown = '[]';
 
   const publish = () => {
-    const hosts = hostsOf(cache);
+    const hosts = hostsOf(cache, ownId());
     const next = JSON.stringify(hosts);
     if (next === shown) return;
     shown = next;

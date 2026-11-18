@@ -84,7 +84,7 @@ describe('RemoteListener', () => {
   describe('the Tunelles on the network', () => {
     const kitchen = { id: 'tunelle-a', name: 'Kitchen', host: '192.168.1.30', port: 41000, version: '1' };
 
-    it('looks for them while the form is shown, and stops when it goes away', () => {
+    it('looks for them while the tile is shown, and stops when it goes away', () => {
       const { browse, unmount } = setup({ status: 'idle' });
 
       expect(browse).toHaveBeenCalledWith(true);
@@ -102,11 +102,38 @@ describe('RemoteListener', () => {
       expect(connect).toHaveBeenCalledWith('192.168.1.30', 41000);
     });
 
-    it('does not look while the pairing goes on or the app listens', () => {
-      const { browse } = setup({ status: 'confirming', target, code: 'AB12-CD34' }, [kitchen]);
+    it('shows each host as not paired, waiting, approved or blocked, by what the app does with that address', () => {
+      const bedroom = { ...kitchen, id: 'tunelle-b', name: 'Bedroom', host: '192.168.1.31' };
+      const at = { host: kitchen.host, port: kitchen.port };
+      const statuses = (state: Parameters<typeof setup>[0]) => {
+        const { unmount } = setup(state, [kitchen, bedroom]);
+        const found = screen.getAllByText(/Not paired|Waiting for approval|Approved|Blocked/).map((node) => node.textContent);
+        unmount();
+        return found;
+      };
 
-      expect(browse).not.toHaveBeenCalled();
-      expect(screen.queryByRole('button', { name: /Connect to/ })).toBeNull();
+      expect(statuses({ status: 'idle' })).toEqual(['Not paired', 'Not paired']);
+      expect(statuses({ status: 'waiting', target: at })).toEqual(['Waiting for approval', 'Not paired']);
+      expect(statuses({ status: 'listening', target: at })).toEqual(['Approved', 'Not paired']);
+      expect(statuses({ status: 'blocked', target: at })).toEqual(['Blocked', 'Not paired']);
+      expect(statuses({ status: 'revoked', target: at })).toEqual(['Not paired', 'Not paired']);
+    });
+
+    it('keeps looking while the app waits or listens, and does not connect again to the host that is paired', () => {
+      const at = { host: kitchen.host, port: kitchen.port };
+      const { browse } = setup({ status: 'listening', target: at }, [kitchen]);
+
+      expect(browse).toHaveBeenCalledWith(true);
+      expect((screen.getByRole('button', { name: 'Connect to Kitchen' }) as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it('looks again on request, by closing the socket and opening a new one', () => {
+      const { browse } = setup({ status: 'idle' }, [kitchen]);
+      browse.mockClear();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Look again' }));
+
+      expect(browse.mock.calls).toEqual([[false], [true]]);
     });
   });
 

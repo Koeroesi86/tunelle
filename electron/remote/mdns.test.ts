@@ -44,12 +44,12 @@ const lan = () =>
     wlan0: [wifi, { family: 'IPv6', internal: false, address: 'fe80::1' }],
   });
 const records = (socket: FakeSocket) => socket.sent.flatMap((message) => decodeMessage(message)?.records ?? []);
-const answer = (ttl = 120, port = 41000) =>
+const answer = (ttl = 120, port = 41000, protocol = '1') =>
   encodeResponse(
     [
       { name: SERVICE, type: RecordType.PTR, data: encodeName(INSTANCE) },
       { name: INSTANCE, type: RecordType.SRV, data: encodeSrv(port, 'tunelle-3f9a04c1.local') },
-      { name: INSTANCE, type: RecordType.TXT, data: encodeTxt({ name: 'Kitchen', version: '26.11.5' }) },
+      { name: INSTANCE, type: RecordType.TXT, data: encodeTxt({ name: 'Kitchen', version: '26.11.5', ...(protocol ? { protocol } : {}) }) },
       { name: 'tunelle-3f9a04c1.local', type: RecordType.A, data: encodeA('192.168.1.30') },
     ],
     ttl
@@ -96,7 +96,7 @@ describe('mdns', () => {
       expect(records(socket).slice(0, 4)).toEqual([
         { kind: 'ptr', name: SERVICE, ttl: 120, target: INSTANCE },
         { kind: 'srv', name: INSTANCE, ttl: 120, port: 41000, target: 'tunelle-3f9a04c1.local' },
-        { kind: 'txt', name: INSTANCE, ttl: 120, entries: { name: 'Kitchen', version: '26.11.5', port: '41000', approval: 'request' } },
+        { kind: 'txt', name: INSTANCE, ttl: 120, entries: { name: 'Kitchen', version: '26.11.5', port: '41000', approval: 'request', protocol: '1' } },
         { kind: 'a', name: 'tunelle-3f9a04c1.local', ttl: 120, address: '192.168.1.20' },
       ]);
     });
@@ -172,10 +172,13 @@ describe('mdns', () => {
   });
 
   describe('browse', () => {
-    const open = async () => {
+    const open = async (ownId?: string) => {
       const { browse } = await import('./mdns');
       const changes: unknown[] = [];
-      const browser = await browse((hosts) => changes.push(hosts));
+      const browser = await browse(
+        (hosts) => changes.push(hosts),
+        () => ownId
+      );
       return { browser, changes, socket: FakeSocket.all[0] };
     };
 
@@ -202,6 +205,26 @@ describe('mdns', () => {
       socket.emit('message', answer());
 
       expect(changes).toEqual([[{ id: 'tunelle-3f9a04c1', name: 'Kitchen', host: '192.168.1.30', port: 41000, version: '26.11.5' }]]);
+    });
+
+    it('does not list a host that advertises another protocol or none', async () => {
+      const { socket, changes } = await open();
+
+      socket.emit('message', answer(120, 41000, '2'));
+      socket.emit('message', answer(120, 41000, ''));
+
+      expect(changes).toEqual([]);
+    });
+
+    it('does not list the host of this app, by the id it advertises, and lists another one', async () => {
+      const own = await open('3f9a04c1');
+      own.socket.emit('message', answer());
+      expect(own.changes).toEqual([]);
+
+      FakeSocket.all.length = 0;
+      const other = await open('00000000');
+      other.socket.emit('message', answer());
+      expect(other.changes).toHaveLength(1);
     });
 
     it('does not list a host that lacks an address', async () => {

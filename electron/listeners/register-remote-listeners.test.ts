@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   onListenerChange: undefined as ((state: unknown) => void) | undefined,
   nearby: { start: vi.fn(), stop: vi.fn() },
   onNearbyChange: undefined as ((hosts: unknown) => void) | undefined,
+  ownId: undefined as (() => string | undefined) | undefined,
 }));
 
 vi.mock('electron', () => ({
@@ -28,6 +29,7 @@ vi.mock('../remote/host-store', async (importOriginal) => ({
   createHostStore: () => ({}),
 }));
 vi.mock('../remote/host-controller', () => ({
+  advertisementId: (code: string) => code.replace(/\W/g, '').toLowerCase(),
   createHostController: (_store: unknown, onChange: (state: unknown) => void) => {
     mocks.onChange = onChange;
     return mocks.host;
@@ -35,8 +37,9 @@ vi.mock('../remote/host-controller', () => ({
 }));
 
 vi.mock('../remote/nearby', () => ({
-  createNearby: (onChange: (hosts: unknown) => void) => {
+  createNearby: (onChange: (hosts: unknown) => void, ownId: () => string | undefined) => {
     mocks.onNearbyChange = onChange;
+    mocks.ownId = ownId;
     return mocks.nearby;
   },
 }));
@@ -167,6 +170,14 @@ describe('registerRemoteListeners', () => {
 
       expect(mocks.nearby.start).toHaveBeenCalledTimes(1);
       expect(mocks.nearby.stop).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves the host of this app out by the id it advertises, and none while host mode is off', () => {
+      mocks.host.state.mockReturnValue({ code: '3F9A 04C1' });
+      expect(mocks.ownId?.()).toBe('3f9a04c1');
+
+      mocks.host.state.mockReturnValue({ code: undefined });
+      expect(mocks.ownId?.()).toBeUndefined();
     });
 
     it('sends the hosts that were found to the main window', () => {
