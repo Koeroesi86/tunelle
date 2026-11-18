@@ -18,8 +18,18 @@ interface RemoteListenerProps {
 
 const isPort = (port: number) => Number.isInteger(port) && port >= 1024 && port <= 65535;
 
-/** The Tunelles that announce themselves on the network, while the form is shown. Picking one only starts the request: the host still shows a code to compare */
-const Nearby = ({ nearby, browse, connect }: Pick<RemoteListenerProps, 'nearby' | 'browse' | 'connect'>) => {
+type HostStatus = 'unpaired' | 'pending' | 'approved' | 'denied';
+
+/** What this app knows of a host in the list: only the host it is talking to has more than the first one */
+const statusOf = (state: RemoteListenerState, { host, port }: NearbyHost): HostStatus => {
+  if (state.target?.host !== host || state.target.port !== port) return 'unpaired';
+  if (state.status === 'waiting') return 'pending';
+  if (state.status === 'listening') return 'approved';
+  return state.status === 'blocked' ? 'denied' : 'unpaired';
+};
+
+/** The Tunelles that announce themselves on the network, while the tile is shown. Picking one only starts the request: the host still shows a code to compare */
+const Nearby = ({ state, nearby, browse, connect }: { state: RemoteListenerState } & Pick<RemoteListenerProps, 'nearby' | 'browse' | 'connect'>) => {
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -27,14 +37,35 @@ const Nearby = ({ nearby, browse, connect }: Pick<RemoteListenerProps, 'nearby' 
     return () => browse(false);
   }, []);
 
+  // asks again at once: the socket is closed and opened, as the list is rebuilt from the answers
+  const refresh = () => {
+    browse(false);
+    browse(true);
+  };
+
   return (
     <div className={style.nearby}>
       <div className={style.hint}>{nearby.length > 0 ? t('remote.listen.nearby') : t('remote.listen.nearbyNone')}</div>
-      {nearby.map(({ id, name, host, port }) => (
-        <button key={id} type="button" className={style.action} title={`${host}:${port}`} onClick={() => connect(host, port)}>
-          {t('remote.listen.connectTo', { name })}
-        </button>
-      ))}
+      {nearby.map((found) => {
+        const status = statusOf(state, found);
+        return (
+          <div key={found.id} className={style.found}>
+            <button
+              type="button"
+              className={style.action}
+              title={`${found.host}:${found.port}`}
+              disabled={status === 'pending' || status === 'approved'}
+              onClick={() => connect(found.host, found.port)}
+            >
+              {t('remote.listen.connectTo', { name: found.name })}
+            </button>
+            <span className={style.status}>{t(`remote.listen.status.${status}`)}</span>
+          </div>
+        );
+      })}
+      <button type="button" className={style.action} onClick={refresh}>
+        {t('remote.listen.refresh')}
+      </button>
     </div>
   );
 };
@@ -141,12 +172,8 @@ const RemoteListener = ({ state, connect, confirm, leave, listenAlong, nearby, b
       {status === 'error' && <div className={style.error}>{t('remote.listen.error', { error: state.error ?? '' })}</div>}
       {status === 'blocked' && <div className={style.error}>{t('remote.listen.blocked')}</div>}
       {status === 'revoked' && <div className={style.error}>{t('remote.listen.revoked')}</div>}
-      {['idle', 'contacting', 'error', 'blocked', 'revoked'].includes(status) && (
-        <>
-          <Nearby nearby={nearby} browse={browse} connect={connect} />
-          <Connect state={state} connect={connect} />
-        </>
-      )}
+      <Nearby state={state} nearby={nearby} browse={browse} connect={connect} />
+      {['idle', 'contacting', 'error', 'blocked', 'revoked'].includes(status) && <Connect state={state} connect={connect} />}
       {status === 'confirming' && <Confirm code={state.code} confirm={confirm} leave={leave} />}
       {status === 'waiting' && (
         <>

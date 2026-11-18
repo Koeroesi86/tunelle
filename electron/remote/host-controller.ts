@@ -41,6 +41,9 @@ class ObservedAccess extends AccessControl {
 // the file of the track rides along with the snapshot from the page, and only the host knows it
 const pathOf = z.object({ path: z.string().min(1) });
 
+/** What the host advertises as its id: its code, so it is the same one the listeners show */
+export const advertisementId = (code: string) => code.replace(/\W/g, '').toLowerCase();
+
 const isTaken = (error: unknown) => error instanceof Error && 'code' in error && error.code === 'EADDRINUSE';
 
 /**
@@ -111,7 +114,7 @@ export const createHostController = (
       await store.saveSettings(settings);
       // a host on loopback is not reachable from the network, so it is not announced; a failed announcement leaves the host working at its address
       if (!current.loopbackOnly && code) {
-        advertisement = await advertise({ id: code.replace(/\W/g, '').toLowerCase(), name: current.name, port: server.port, version }).catch(
+        advertisement = await advertise({ id: advertisementId(code), name: current.name, port: server.port, version }).catch(
           (failure: unknown) => (logError(failure), undefined)
         );
       }

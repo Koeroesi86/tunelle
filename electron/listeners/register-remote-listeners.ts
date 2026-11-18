@@ -1,7 +1,7 @@
 import { hostname } from 'node:os';
 import { app, ipcMain } from 'electron';
 import { serveTrack } from '../protocols/serve-track';
-import { createHostController } from '../remote/host-controller';
+import { advertisementId, createHostController } from '../remote/host-controller';
 import type { HostState } from '../remote/host-controller';
 import { deviceNameOf } from '../remote/device-name';
 import { deviceControlsSchema, deviceDecisionSchema, hostChangeSchema } from '../remote/host-requests';
@@ -65,7 +65,13 @@ const registerRemoteListeners = ({ database, windows }: ListenerContext) => {
   });
   ipcMain.on('LEAVE_REMOTE_HOST', () => listener.leave().catch(logError));
 
-  const nearby = createNearby((hosts) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_NEARBY', hosts));
+  const nearby = createNearby(
+    (hosts) => windows.main && sendIfAlive(windows.main.webContents, 'REMOTE_NEARBY', hosts),
+    () => {
+      const { code } = host.state();
+      return code ? advertisementId(code) : undefined;
+    }
+  );
   ipcMain.on('BROWSE_REMOTE_NEARBY', (_event, payload: unknown) => {
     const request = parsePayload(nearbyRequestSchema, payload);
     if (request) (request.active ? nearby.start() : nearby.stop()).catch(logError);

@@ -10,7 +10,11 @@ const host: NearbyHost = { id: 'tunelle-a', name: 'Kitchen', host: '192.168.1.30
 
 describe('the nearby list', () => {
   const changes: NearbyHost[][] = [];
-  const create = async () => (await import('./nearby')).createNearby((hosts) => changes.push(hosts));
+  const create = async () =>
+    (await import('./nearby')).createNearby(
+      (hosts) => changes.push(hosts),
+      () => '3f9a04c1'
+    );
 
   beforeEach(() => {
     changes.length = 0;
@@ -31,6 +35,14 @@ describe('the nearby list', () => {
 
     expect(mocks.browse).toHaveBeenCalledTimes(1);
     expect(changes).toEqual([[host]]);
+  });
+
+  it('gives the browse the way to tell the id of this app, which can change while the list is shown', async () => {
+    const nearby = await create();
+
+    await nearby.start();
+
+    expect(mocks.browse.mock.calls[0][1]()).toBe('3f9a04c1');
   });
 
   it('closes the socket and empties the list when it is hidden', async () => {
