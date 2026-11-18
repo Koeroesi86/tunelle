@@ -218,6 +218,7 @@ const HostControls = ({
       )}
       {controls.includes('volume') && (
         <Slider
+          id="remote-host-volume"
           label={t('remote.listen.control.volume')}
           max={100}
           step={1}
