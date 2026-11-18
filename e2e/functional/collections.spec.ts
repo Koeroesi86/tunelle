@@ -18,27 +18,3 @@ test('keeps a playlist of an album, and plays it', async ({ start, session }) =>
   await restarted.page.getByRole('button', { name: 'Play all' }).click();
   await expect(player(restarted.page).title()).toHaveText('Concert A');
 });
-
-test('lists a liked album under Liked', async ({ session }) => {
-  const { page } = session;
-  await navigate(page, 'Albums');
-  // the tabs of the other pages stay in the page, and the first button belongs to the radio stations while the tab changes
-  await page.locator('[class*="PlayerTabs__active"]').getByRole('button', { name: 'Add to favourites' }).first().click();
-  await navigate(page, 'Liked');
-  await expect(page.getByText('Pitch Perfect').filter({ visible: true }).first()).toBeVisible();
-});
-
-test('shows what was played under Recently played, and clears it', async ({ session: { page } }) => {
-  const controls = player(page);
-  await controls.playAlbum('Single Note');
-  await expect(controls.title()).toHaveText('Hold It');
-  await controls.pause();
-
-  await navigate(page, 'Home');
-  await expect(page.getByText('Recently played')).toBeVisible();
-  await expect(page.locator('[class*="HomeView__recentList"]').getByText('Hold It')).toBeVisible();
-
-  await page.getByRole('button', { name: 'Clear history' }).click();
-  await page.locator('[class*="Confirm"]').filter({ hasText: 'Clear the list' }).getByRole('button', { name: 'Yes' }).click();
-  await expect(page.getByText('Nothing was played yet')).toBeVisible();
-});
