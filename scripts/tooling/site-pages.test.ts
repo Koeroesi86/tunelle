@@ -1,7 +1,7 @@
 import { existsSync } from 'fs';
 import { join, posix, resolve } from 'path';
 import { describe, expect, it } from 'vitest';
-import { defaultLanguage, loadLanguages, loadTemplates, pagePath, relativeLink, renderPage, renderPages } from './site-pages';
+import { defaultLanguage, loadLanguages, loadTemplates, pagePath, relativeLink, renderFiles, renderPage, renderPages } from './site-pages';
 
 const languages: Record<string, Record<string, string>> = loadLanguages();
 const templates: Record<string, string> = loadTemplates();
@@ -98,5 +98,35 @@ describe('relativeLink', () => {
 
   it('writes the English page at the root', () => {
     expect(pagePath('en', 'privacy')).toBe('privacy.html');
+  });
+});
+
+describe('sitemap.xml and robots.txt', () => {
+  const files = Object.fromEntries(renderFiles());
+  const pagePaths = renderPages().map(([path]) => path);
+  const urls = [...files['sitemap.xml'].matchAll(/<loc>https:\/\/koeroesi86\.github\.io\/tunelle\/([^<]*)<\/loc>/g)].map(([, target]) => target);
+
+  it('lists every built page once, and only built pages', () => {
+    expect(urls.map((target) => (target === '' || target.endsWith('/') ? `${target}index.html` : target)).sort()).toEqual([...pagePaths].sort());
+  });
+
+  it('gives every page its alternates and x-default', () => {
+    expect([...files['sitemap.xml'].matchAll(/<xhtml:link rel="alternate" hreflang="x-default"/g)]).toHaveLength(pagePaths.length);
+  });
+
+  it('points robots.txt at the sitemap', () => {
+    expect(files['robots.txt']).toContain('Sitemap: https://koeroesi86.github.io/tunelle/sitemap.xml');
+  });
+});
+
+describe('the link preview and the structured data of the home page', () => {
+  it.each(renderPages().filter(([path]) => path.endsWith('index.html')))('%s has the twitter and image tags and a SoftwareApplication', (_path, html) => {
+    const data = JSON.parse(/<script type="application\/ld\+json">(.*?)<\/script>/s.exec(html)?.[1] ?? '{}');
+
+    ['twitter:title', 'twitter:description', 'twitter:image', 'og:image:alt', 'og:image:width', 'og:image:height'].forEach((name) =>
+      expect(html).toMatch(new RegExp(`<meta (?:name|property)="${name}" content="[^"]+"`))
+    );
+    expect(data).toMatchObject({ '@type': 'SoftwareApplication', name: 'Tunelle', offers: { price: '0' } });
+    expect(existsSync(join(site, 'social-preview.png'))).toBe(true);
   });
 });

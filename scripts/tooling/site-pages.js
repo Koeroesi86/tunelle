@@ -31,6 +31,30 @@ const renderAlternates = (tags, name) =>
     .map(([tag, url]) => `<link rel="alternate" hreflang="${tag}" href="${url}" />`)
     .join('\n    ')
 
+const imageUrl = `${origin}social-preview.png`
+const releasesUrl = 'https://github.com/Koeroesi86/tunelle/releases/latest'
+
+// the structured data of the home page for search engines; "<" is escaped so that no text can close the script tag
+const renderStructuredData = (strings, url) =>
+  JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Tunelle',
+    description: strings['meta.description'],
+    url,
+    image: imageUrl,
+    applicationCategory: 'MultimediaApplication',
+    operatingSystem: 'Windows, macOS, Linux',
+    license: 'https://opensource.org/license/mit',
+    downloadUrl: releasesUrl,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  }).replace(/</g, '\\u003c')
+
+// the site token of Cloudflare Web Analytics (public, it is in the page); without one no beacon is written. See docs/development/website.md.
+const analyticsToken = '1a10e458610043719bb6fe0b8aa335ff'
+const renderAnalytics = () =>
+  analyticsToken ? `<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "${analyticsToken}"}'></script>` : ''
+
 const renderSwitcher = (languages, tag, name) =>
   `<span class="languages" role="group" aria-label="${languages[tag]['meta.languages']}">${Object.entries(languages)
     .filter(([other]) => other !== tag)
@@ -50,7 +74,32 @@ const renderPage = (template, { languages, tag, name }) => {
     .replace(/\{\{url\}\}/g, pageUrl(tag, name))
     .replace(/\{\{alternates\}\}/g, renderAlternates(Object.keys(languages), name))
     .replace(/\{\{switcher\}\}/g, renderSwitcher(languages, tag, name))
+    .replace(/\{\{analytics\}\}/g, renderAnalytics())
+    .replace(/\{\{structuredData\}\}/g, renderStructuredData(strings, pageUrl(tag, name)))
 }
+
+// sitemap.xml lists every page with its alternates and robots.txt points at it: [path, content]
+const renderSitemap = (tags, names) =>
+  `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${tags
+  .flatMap((tag) => names.map((name) => [tag, name]))
+  .map(
+    ([tag, name]) =>
+      `  <url>\n    <loc>${pageUrl(tag, name)}</loc>\n${[...tags.map((other) => [other, pageUrl(other, name)]), ['x-default', pageUrl(defaultLanguage, name)]]
+        .map(([other, url]) => `    <xhtml:link rel="alternate" hreflang="${other}" href="${url}" />\n`)
+        .join('')}  </url>`
+  )
+  .join('\n')}
+</urlset>
+`
+
+const renderRobots = () => `User-agent: *\nAllow: /\n\nSitemap: ${origin}sitemap.xml\n`
+
+const renderFiles = () => [
+  ['sitemap.xml', renderSitemap(Object.keys(loadLanguages()), Object.keys(loadTemplates()))],
+  ['robots.txt', renderRobots()],
+]
 
 // every page of every language: [path, html] (the release is written in afterwards by stampSite)
 const renderPages = () => {
@@ -59,4 +108,4 @@ const renderPages = () => {
   return Object.keys(languages).flatMap((tag) => Object.entries(templates).map(([name, template]) => [pagePath(tag, name), renderPage(template, { languages, tag, name })]))
 }
 
-module.exports = { defaultLanguage, loadLanguages, loadTemplates, pagePath, pageUrl, relativeLink, renderPage, renderPages }
+module.exports = { defaultLanguage, loadLanguages, loadTemplates, pagePath, pageUrl, releasesUrl, relativeLink, renderFiles, renderPage, renderPages }

@@ -1,12 +1,11 @@
 const { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } = require('fs')
 const { join, resolve } = require('path')
-const { renderPages } = require('./site-pages')
+const { releasesUrl, renderFiles, renderPages } = require('./site-pages')
 
 // usage: node scripts/tooling/build-site.js <release.json> <out folder>
 // copies site/ to the out folder and writes the pages of every language (scripts/tooling/site-pages.js) with the latest release: the version, the installer of each system and the titles of the
 // changes (release.json is the answer of `gh api repos/<owner>/<repo>/releases/latest`), so the page needs no script to know the release
 // {{version}}, {{notes}} and {{asset:<system>-<arch>}} are the placeholders; a system without an installer links to the page of the latest release
-const releasesUrl = 'https://github.com/Koeroesi86/tunelle/releases/latest'
 const maxNotes = 6
 
 // the installer of a system, from the name of the asset: x64 is the one that has no architecture in its name (macOS) or one of several spellings (Linux)
@@ -65,6 +64,7 @@ const buildSite = (releasePath, outPath) => {
     mkdirSync(join(outPath, path, '..'), { recursive: true })
     writeFileSync(join(outPath, path), stampSite(html, release))
   })
+  renderFiles().forEach(([path, content]) => writeFileSync(join(outPath, path), content))
 }
 
 if (require.main === module) {
