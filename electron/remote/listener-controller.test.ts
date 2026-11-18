@@ -226,7 +226,7 @@ describe('the listener controller', () => {
       expect(states.at(-1)).toEqual({ status: 'revoked', target: address, code: 'ABCD-1234' });
     });
 
-    it('stops following when the user leaves, and forgets the host', async () => {
+    it('stops following when the user leaves, and keeps the approval marked as left', async () => {
       vi.mocked(followNowPlaying).mockImplementation(streaming(snapshot));
       const following = listener.start();
       await vi.advanceTimersByTimeAsync(0);
@@ -236,8 +236,39 @@ describe('the listener controller', () => {
       await vi.advanceTimersByTimeAsync(POLL_MS * 3);
 
       expect(vi.mocked(followNowPlaying).mock.calls.length).toBe(calls);
-      expect(store.clearPairing).toHaveBeenCalled();
+      expect(store.clearPairing).not.toHaveBeenCalled();
+      expect(store.savePairing).toHaveBeenCalledWith({ ...pairing, left: true });
       expect(states.at(-1)).toEqual({ status: 'idle' });
+    });
+
+    it('does not follow a host that the user left when the app starts', async () => {
+      store.readPairing.mockResolvedValue({ ...pairing, left: true });
+
+      await listener.start();
+
+      expect(followNowPlaying).not.toHaveBeenCalled();
+      expect(states).toEqual([]);
+    });
+
+    it('follows a host that approved the device before as soon as it is contacted again, with no request', async () => {
+      store.readPairing.mockResolvedValue({ ...pairing, left: true });
+      vi.mocked(followNowPlaying).mockImplementation(streaming(snapshot));
+
+      void listener.connect({ host: '192.168.1.9', port: 41000 });
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(requestToListen).not.toHaveBeenCalled();
+      expect(store.savePairing).toHaveBeenCalledWith({ ...pairing, host: '192.168.1.9', port: 41000, left: undefined });
+      expect(states.at(-1)).toMatchObject({ status: 'listening', target: { host: '192.168.1.9', port: 41000 } });
+    });
+
+    it('asks as before when the host has another certificate than the one that approved the device', async () => {
+      store.readPairing.mockResolvedValue({ ...pairing, certificate: 'OTHER', left: true });
+
+      await listener.connect(address);
+
+      expect(states.at(-1)).toMatchObject({ status: 'confirming', code: 'ABCD-1234' });
+      expect(followNowPlaying).not.toHaveBeenCalled();
     });
 
     it('closes the stream of the host when the user leaves, at once', async () => {
@@ -256,6 +287,7 @@ describe('the listener controller', () => {
       const following = listener.start();
       await vi.advanceTimersByTimeAsync(0);
 
+      vi.mocked(contact).mockResolvedValue({ certificate: 'OTHER', code: 'ABCD-1234' });
       await listener.connect({ host: '10.0.0.2', port: 41000 });
       await vi.advanceTimersByTimeAsync(POLL_MS);
       await following;
