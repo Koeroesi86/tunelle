@@ -38,11 +38,11 @@ const listenAlong = async (host: Page, listener: Page) => {
   await expectTone(listener, 440);
 };
 
-test('a second app listens along to what the host plays after the host approved it', async ({ session: host, second: listener }) => {
-  await listenAlong(host.page, listener.page);
-});
-
-test('the listener is silent while the host pauses, and hears the tone again when the host plays', async ({ session: host, second: listener }) => {
+// the follow of a next track, a seek and the position of the host is tried in use-remote-follow.test.tsx and listener-client.integration.test.ts: here the audio that leaves the app is what counts
+test('a second app listens along to what the host plays after the host approved it, and is silent while the host pauses', async ({
+  session: host,
+  second: listener,
+}) => {
   await listenAlong(host.page, listener.page);
 
   await player(host.page).pause();
@@ -50,23 +50,6 @@ test('the listener is silent while the host pauses, and hears the tone again whe
 
   await player(host.page).play();
   await expectTone(listener.page, 440);
-});
-
-test('the listener follows the host to the next track', async ({ session: host, second: listener }) => {
-  await listenAlong(host.page, listener.page);
-
-  await player(host.page).next();
-
-  await expectTone(host.page, 880);
-  await expectTone(listener.page, 880);
-});
-
-test('the listener moves to where the host seeks to', async ({ session: host, second: listener }) => {
-  await listenAlong(host.page, listener.page);
-
-  await player(host.page).seekTo(2);
-
-  await expect.poll(async () => Math.abs((await player(listener.page).currentTime()) - (await player(host.page).currentTime()))).toBeLessThan(1.5);
 });
 
 test('the listener loses the audio when the host revokes it', async ({ session: host, second: listener }) => {
