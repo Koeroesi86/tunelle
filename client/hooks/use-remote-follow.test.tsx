@@ -88,6 +88,14 @@ describe('useRemoteFollow', () => {
     expect(target.setCurrentTime).toHaveBeenCalledWith(10);
   });
 
+  it('does not seek a station, which has no position', () => {
+    const station: NowPlaying = { state: 'playing', title: 'FM', position: 500, at: 1_000, live: true };
+    const target = player({ currentSong: toRemoteTrack({ ...station, state: 'playing' }), currentTime: 3 });
+    renderHook(() => useRemoteFollow(station, target));
+
+    expect(target.setCurrentTime).not.toHaveBeenCalled();
+  });
+
   it('leaves the position alone when it is close', () => {
     const target = player({ currentTime: 10.2 });
     renderHook(() => useRemoteFollow(playing, target));

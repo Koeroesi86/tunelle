@@ -4,6 +4,8 @@ import { startHostServer, type HostServer } from './host-server';
 import type { HostSettings, HostStore } from './host-store';
 import { nowPlayingSchema, type NowPlaying } from '../../shared/schemas/now-playing';
 import { z } from 'zod';
+import { STATION_PREFIX } from '../../shared/constants/remote-source';
+import { stationUuidSchema } from '../schemas/routes';
 import type { ControlCommand } from '../../shared/schemas/remote-control';
 import type { ServeAudio } from './host-routes';
 import { approvalCode } from './certificate';
@@ -40,7 +42,10 @@ class ObservedAccess extends AccessControl {
 }
 
 // the file of the track rides along with the snapshot from the page, and only the host knows it
-const sourceOf = z.object({ path: z.string().min(1).optional(), coverKey: z.string().min(1).optional() });
+const sourceOf = z.object({ path: z.string().min(1).optional(), station: stationUuidSchema.optional(), coverKey: z.string().min(1).optional() });
+
+/** What the relay of the audio gets for a station: not a file, so no path of the host is mistaken for it */
+const stationSource = (uuid: string) => `${STATION_PREFIX}${uuid}`;
 
 /** What the host advertises as its id: its code, so it is the same one the listeners show */
 export const advertisementId = (code: string) => code.replace(/\W/g, '').toLowerCase();
@@ -149,11 +154,11 @@ export const createHostController = (
       const parsed = nowPlayingSchema.safeParse(snapshot);
       if (!parsed.success) return;
 
-      nowPlaying = parsed.data;
       const source = sourceOf.safeParse(snapshot).data;
-      trackPath = source?.path;
+      nowPlaying = parsed.data.state !== 'idle' && source?.station ? { ...parsed.data, live: true } : parsed.data;
+      trackPath = source?.station ? stationSource(source.station) : source?.path;
       coverKey = source?.coverKey;
-      server?.setNowPlaying(parsed.data, trackPath, coverKey);
+      server?.setNowPlaying(nowPlaying, trackPath, coverKey);
     },
     /** The page asked about a device; a device that is gone or a wrong id changes nothing */
     decide: async (deviceId: string, action: DeviceAction) => {

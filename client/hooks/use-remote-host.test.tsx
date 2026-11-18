@@ -10,6 +10,7 @@ const info = {
   album: 'Album',
   duration: 200,
   path: '/music/song.flac',
+  station: undefined,
   coverKey: 'abc-optimized.png',
   next: { title: 'After', artist: undefined },
 };
@@ -43,9 +44,25 @@ describe('useRemoteHost', () => {
       position: 12,
       at: 1_000,
       path: '/music/song.flac',
+      station: undefined,
       coverKey: 'abc-optimized.png',
       next: { title: 'After', artist: undefined },
     });
+  });
+
+  it('sends the uuid of a station and no path or duration', () => {
+    renderHook(() =>
+      useRemoteHost(
+        { ...info, path: undefined, duration: 0, station: 'b3f1c1a0-0000-4000-8000-000000000001' },
+        { isPlaying: true, currentTime: 12 },
+        commands()
+      )
+    );
+
+    expect(send).toHaveBeenCalledWith(
+      'REMOTE_STATE',
+      expect.objectContaining({ station: 'b3f1c1a0-0000-4000-8000-000000000001', path: undefined, duration: undefined })
+    );
   });
 
   it('sends a paused track again when it stops', () => {

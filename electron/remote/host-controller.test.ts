@@ -63,6 +63,26 @@ describe('the host controller', () => {
     mocks.logError.mockReset();
   });
 
+  it('gives the server a station as a source of its own and tells the listeners that it is live, without a path', async () => {
+    const host = await create(fakeStore({ enabled: true }));
+    await host.start();
+    host.setNowPlaying({ state: 'playing', title: 'FM', position: 1, at: 2, station: 'b3f1c1a0-0000-4000-8000-000000000001', path: '/music/song.flac' });
+
+    expect(mocks.setNowPlaying).toHaveBeenCalledWith(
+      { state: 'playing', title: 'FM', position: 1, at: 2, live: true },
+      'station:b3f1c1a0-0000-4000-8000-000000000001',
+      undefined
+    );
+  });
+
+  it('ignores a station that is not a uuid', async () => {
+    const host = await create(fakeStore({ enabled: true }));
+    await host.start();
+    host.setNowPlaying({ state: 'playing', title: 'FM', position: 1, at: 2, station: '../../etc/passwd' });
+
+    expect(mocks.setNowPlaying).toHaveBeenCalledWith({ state: 'playing', title: 'FM', position: 1, at: 2 }, undefined, undefined);
+  });
+
   it('gives the server the file of the track with the snapshot, and starts a later server with the last one', async () => {
     const host = await create(fakeStore({ enabled: true }));
     await host.start();
