@@ -36,6 +36,7 @@ interface PlayerControlsProps {
   /** What the host that this app listens to plays, undefined while it does not listen */
   hostNowPlaying?: NowPlaying;
   followTrack: (track: Track) => void;
+  leaveRemoteHost: () => void;
   streamTitle: string | null;
   streamArt: string | null;
   currentTime: number;
@@ -298,7 +299,16 @@ const PlayerControls = (props: PlayerControlsProps) => {
     { play, pause, isPlaying, previousSong: props.previousSong, nextSong: props.nextSong, setCurrentTime, setVolume: props.setVolume }
   );
 
-  useRemoteFollow(props.hostNowPlaying, { currentSong, isPlaying, currentTime, play, pause, setCurrentTime, load: props.followTrack });
+  useRemoteFollow(props.hostNowPlaying, {
+    currentSong,
+    isPlaying,
+    currentTime,
+    play,
+    pause,
+    setCurrentTime,
+    load: props.followTrack,
+    leave: props.leaveRemoteHost,
+  });
 
   const live = !!currentSong && !!radioUuidOf(currentSong.path);
   usePlayerShortcuts({

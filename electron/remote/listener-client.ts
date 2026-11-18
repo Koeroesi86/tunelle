@@ -77,20 +77,60 @@ export const requestToListen = async (
   return requestAnswerSchema.parse(answer.body);
 };
 
-/** The now playing of the host, or `undefined` when the host does not know this device (revoked, blocked or never approved) */
-export const fetchNowPlaying = async (address: HostAddress, certificate: string, deviceId: string, secret: string): Promise<NowPlaying | undefined> => {
-  const answer = await call(address, pinnedOptions(certificate), 'GET', '/remote/now-playing', {
-    'x-tunelle-device': deviceId,
-    authorization: `Bearer ${secret}`,
-  });
-  if (answer.status === 401) return undefined;
-  if (answer.status !== 200) throw new Error(`The host answered ${answer.status}`);
-  const snapshot = nowPlayingSchema.parse(answer.body);
-  // the host stamps its snapshot with its own clock: the offset between the clocks is taken from the answer, so a listener
-  // whose clock is seconds off still seeks to the right place (the time of the answer on the way is left, it is a LAN)
-  if (snapshot.state === 'idle' || answer.hostTime === undefined) return snapshot;
-  return { ...snapshot, at: snapshot.at + (Date.now() - answer.hostTime) };
+const snapshotOf = (json: string) => {
+  try {
+    return nowPlayingSchema.safeParse(JSON.parse(json)).data;
+  } catch {
+    return undefined;
+  }
 };
+
+/** The host sends a ping every 25 s, so a stream that is silent for this long is gone */
+const EVENTS_IDLE_MS = 60_000;
+
+/**
+ * The now playing of the host as it changes (`/remote/events`), each snapshot on the clock of this computer.
+ * Resolves with `revoked` when the host does not know this device (401) and with `ended` when the host closed the stream; a failure rejects
+ */
+export const followNowPlaying = (
+  address: HostAddress,
+  certificate: string,
+  deviceId: string,
+  secret: string,
+  onSnapshot: (snapshot: NowPlaying) => void,
+  signal: AbortSignal
+) =>
+  new Promise<'revoked' | 'ended'>((resolve, reject) => {
+    const headers = { 'x-tunelle-device': deviceId, authorization: `Bearer ${secret}` };
+    const outgoing = request(
+      { ...address, ...pinnedOptions(certificate), agent: false, method: 'GET', path: '/remote/events', headers, timeout: EVENTS_IDLE_MS, signal },
+      (response) => {
+        if (response.statusCode === 401) return resolve((response.resume(), 'revoked'));
+        if (response.statusCode !== 200) return reject((response.resume(), new Error(`The host answered ${response.statusCode}`)));
+        // the offset between the clocks is taken once, when the stream opens: the host stamps each snapshot with its own clock
+        const hostTime = Number(response.headers['x-tunelle-time']) || undefined;
+        const offset = hostTime === undefined ? 0 : Date.now() - hostTime;
+        let pending = '';
+        response.setEncoding('utf8');
+        response.on('data', (chunk: string) => {
+          const messages = (pending + chunk).split('\n\n');
+          pending = messages.pop() ?? '';
+          if (pending.length > MAX_ANSWER_BYTES) return response.destroy(new Error('The answer of the host is too long'));
+          messages
+            .flatMap((message) => message.split('\n').filter((line) => line.startsWith('data: ')))
+            .forEach((line) => {
+              const parsed = snapshotOf(line.slice(6));
+              if (parsed) onSnapshot(parsed.state === 'idle' ? parsed : { ...parsed, at: parsed.at + offset });
+            });
+        });
+        response.on('error', reject);
+        response.on('end', () => resolve('ended'));
+      }
+    );
+    outgoing.on('timeout', () => outgoing.destroy(new Error('The host did not answer')));
+    outgoing.on('error', reject);
+    outgoing.end();
+  });
 
 // a stream of the answer that reads on demand: a player that stops reading holds the socket, and a cancel closes it
 const toWebStream = (response: IncomingMessage) => {

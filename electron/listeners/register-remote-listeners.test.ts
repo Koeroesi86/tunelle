@@ -61,6 +61,8 @@ describe('registerRemoteListeners', () => {
     Object.values(mocks.listener).forEach((mock) => mock.mockResolvedValue(undefined));
     mocks.nearby.start.mockResolvedValue(undefined);
     mocks.nearby.stop.mockResolvedValue(undefined);
+    mocks.host.state.mockReturnValue({ enabled: false });
+    mocks.listener.state.mockReturnValue({ status: 'idle' });
     mocks.host.start.mockResolvedValue(undefined);
     mocks.host.update.mockResolvedValue(undefined);
     mocks.host.decide.mockResolvedValue(undefined);
@@ -87,13 +89,26 @@ describe('registerRemoteListeners', () => {
     ]);
   });
 
-  it('changes the settings with the parts that are valid, and drops a message that is not one', () => {
+  it('changes the settings with the parts that are valid, and drops a message that is not one', async () => {
     emit('SET_REMOTE_HOST', { enabled: true, name: 'Kitchen' });
     emit('SET_REMOTE_HOST', { enabled: 'yes' });
     emit('SET_REMOTE_HOST', { enabled: true, extra: 1 });
     emit('SET_REMOTE_HOST', { port: 80 });
 
+    await vi.waitFor(() => expect(mocks.host.update).toHaveBeenCalledTimes(1));
     expect(mocks.host.update.mock.calls).toEqual([[{ enabled: true, name: 'Kitchen' }]]);
+    expect(mocks.listener.leave).not.toHaveBeenCalled();
+  });
+
+  it('ends what this app listens to before the host mode goes on, as only one mode runs at a time', async () => {
+    mocks.listener.state.mockReturnValue({ status: 'listening' });
+
+    emit('SET_REMOTE_HOST', { name: 'Kitchen' });
+    emit('SET_REMOTE_HOST', { enabled: true });
+
+    await vi.waitFor(() => expect(mocks.host.update).toHaveBeenCalledTimes(2));
+    expect(mocks.listener.leave).toHaveBeenCalledTimes(1);
+    expect(mocks.listener.leave.mock.invocationCallOrder[0]).toBeLessThan(mocks.host.update.mock.invocationCallOrder[1]);
   });
 
   it('passes on the decision on a device, and drops one for a wrong id or action', () => {
@@ -138,13 +153,25 @@ describe('registerRemoteListeners', () => {
       ]);
     });
 
-    it('contacts the host the page named, and drops a port or address that is not valid', () => {
+    it('contacts the host the page named, and drops a port or address that is not valid', async () => {
       emit('CONNECT_REMOTE_HOST', { host: '192.168.1.5', port: 40000 });
       emit('CONNECT_REMOTE_HOST', { host: '', port: 40000 });
       emit('CONNECT_REMOTE_HOST', { host: 'x', port: 80 });
       emit('CONNECT_REMOTE_HOST', { host: 'x', port: '40000' });
 
+      await vi.waitFor(() => expect(mocks.listener.connect).toHaveBeenCalledTimes(1));
       expect(mocks.listener.connect.mock.calls).toEqual([[{ host: '192.168.1.5', port: 40000 }]]);
+      expect(mocks.host.update).not.toHaveBeenCalled();
+    });
+
+    it('turns the host mode off before it contacts a host, as only one mode runs at a time', async () => {
+      mocks.host.state.mockReturnValue({ enabled: true });
+
+      emit('CONNECT_REMOTE_HOST', { host: '192.168.1.5', port: 40000 });
+
+      await vi.waitFor(() => expect(mocks.listener.connect).toHaveBeenCalledTimes(1));
+      expect(mocks.host.update).toHaveBeenCalledExactlyOnceWith({ enabled: false });
+      expect(mocks.host.update.mock.invocationCallOrder[0]).toBeLessThan(mocks.listener.connect.mock.invocationCallOrder[0]);
     });
 
     it('passes on the note of the request, and drops one that is too long', () => {

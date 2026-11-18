@@ -16,6 +16,7 @@ const player = (overrides: Partial<Parameters<typeof useRemoteFollow>[1]> = {}) 
   pause: vi.fn(),
   setCurrentTime: vi.fn(),
   load: vi.fn(),
+  leave: vi.fn(),
   ...overrides,
 });
 
@@ -32,6 +33,18 @@ describe('useRemoteFollow', () => {
     expect(target.load).not.toHaveBeenCalled();
     expect(target.setCurrentTime).not.toHaveBeenCalled();
     expect(target.pause).not.toHaveBeenCalled();
+  });
+
+  it('leaves the session when a track of this app is loaded after the one of the host, and not before or between remote ones', () => {
+    const target = player({ currentSong: local });
+    const { rerender } = renderHook(({ current }) => useRemoteFollow(undefined, { ...target, currentSong: current }), { initialProps: { current: local } });
+    rerender({ current: remote });
+    rerender({ current: toRemoteTrack({ ...playing, title: 'Next' }) });
+    expect(target.leave).not.toHaveBeenCalled();
+
+    rerender({ current: local });
+
+    expect(target.leave).toHaveBeenCalledTimes(1);
   });
 
   it('loads the next track of the host', () => {

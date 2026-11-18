@@ -12,12 +12,23 @@ interface RemoteFollowPlayer {
   pause: () => void;
   setCurrentTime: (currentTime: number) => void;
   load: (track: Track) => void;
+  /** Ends the session with the host: the main process closes its stream and forgets the pairing */
+  leave: () => void;
 }
 
-/** Plays what the host plays while the loaded track is the remote one, and leaves as soon as any other track is. See docs/app/remote-access-discovery.md */
+/** Plays what the host plays while the loaded track is the remote one, and leaves the session as soon as any other track is loaded. See docs/app/remote-access-discovery.md */
 export const useRemoteFollow = (snapshot: NowPlaying | undefined, player: RemoteFollowPlayer) => {
   const latest = useRef(player);
   latest.current = player;
+
+  const wasRemote = useRef(false);
+  const path = player.currentSong?.path;
+
+  useEffect(() => {
+    const remote = isRemoteTrack(path);
+    if (wasRemote.current && !remote && path !== undefined) latest.current.leave();
+    wasRemote.current = remote;
+  }, [path]);
 
   useEffect(() => {
     const { currentSong, isPlaying, currentTime, play, pause, setCurrentTime, load } = latest.current;
