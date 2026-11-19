@@ -108,3 +108,15 @@ test('speaks the language that is picked', async ({ session }) => {
   await session.page.locator('select[class*="LanguageSelect__select"]').selectOption('hu');
   await expect(session.page.locator('[class*="Navigation__label"]').getByText('Kezdőlap')).toBeVisible();
 });
+
+// the policy is set on the response of the page by the main process (docs/development/electron-security.md): a script that is written into the page is refused
+test('enforces the content security policy on the page', async ({ session: { page } }) => {
+  const ran = await page.evaluate(() => {
+    document.body.append(Object.assign(document.createElement('script'), { textContent: 'globalThis.inlineScriptRan = true' }));
+    return Reflect.get(globalThis, 'inlineScriptRan') === true;
+  });
+  const policy = await page.evaluate(async () => (await fetch(location.href)).headers.get('content-security-policy'));
+
+  expect(policy).toContain("script-src 'self'");
+  expect(ran).toBe(false);
+});

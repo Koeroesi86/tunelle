@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 const setPermissionCheckHandler = vi.hoisted(() => vi.fn());
-vi.mock('electron', () => ({ session: { defaultSession: { setPermissionCheckHandler } } }));
+const setPermissionRequestHandler = vi.hoisted(() => vi.fn());
+vi.mock('electron', () => ({ session: { defaultSession: { setPermissionCheckHandler, setPermissionRequestHandler } } }));
 
 const register = async (pageUrl: string | undefined) => {
   const { watchMediaCheck } = await import('./media-permission');
@@ -28,5 +29,19 @@ describe('watchMediaCheck', () => {
   it('says no while there is no window, and to an origin that is not an address', async () => {
     expect((await register(undefined))(null, 'media', 'tunelle://app')).toBe(false);
     expect((await register('tunelle://app/index.html'))(null, 'media', '')).toBe(false);
+  });
+
+  it('answers a request for media of the page with yes, and any other request with no', async () => {
+    await register('tunelle://app/index.html');
+    const request = setPermissionRequestHandler.mock.lastCall?.[0];
+    const answer = (permission: string, requestingUrl: string) => {
+      const callback = vi.fn();
+      request(null, permission, callback, { requestingUrl });
+      return callback.mock.lastCall?.[0];
+    };
+
+    expect(answer('media', 'tunelle://app/index.html')).toBe(true);
+    expect(answer('media', 'https://example.com/')).toBe(false);
+    expect(answer('notifications', 'tunelle://app/index.html')).toBe(false);
   });
 });

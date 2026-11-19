@@ -1,10 +1,6 @@
 [
-  "AUXCLICK_JS_CHECK windows/create-window.ts",
-  "CONTEXT_ISOLATION_JS_CHECK windows/create-window.ts",
-  "CSP_GLOBAL_CHECK file:///",
+  "CSP_GLOBAL_CHECK protocols/tunelle-protocol.ts",
   "OPEN_EXTERNAL_JS_CHECK listeners/register-update-listeners.ts",
-  "PERMISSION_REQUEST_HANDLER_GLOBAL_CHECK file:///",
   "PRELOAD_JS_CHECK library/loudness/loudness-window.ts",
-  "PRELOAD_JS_CHECK windows/create-window.ts",
-  "SANDBOX_JS_CHECK windows/create-window.ts"
+  "PRELOAD_JS_CHECK windows/create-window.ts"
 ]

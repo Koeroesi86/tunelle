@@ -11,7 +11,11 @@ import { notFound, serveFile } from './serve-file';
 import { serveTrack } from './serve-track';
 import { handleTunelleProtocol, handleTunelleRequest, registerTunelleScheme, tunelleOrigin } from './tunelle-protocol';
 
-vi.mock('electron', () => ({ protocol: { registerSchemesAsPrivileged: vi.fn(), handle: vi.fn() } }));
+const onHeadersReceived = vi.hoisted(() => vi.fn());
+vi.mock('electron', () => ({
+  protocol: { registerSchemesAsPrivileged: vi.fn(), handle: vi.fn() },
+  session: { defaultSession: { webRequest: { onHeadersReceived } } },
+}));
 vi.mock('../library/art/album-art', () => ({ resolveAlbumArt: vi.fn() }));
 vi.mock('../library/art/album-art-accents', () => ({ getCoverAccent: vi.fn() }));
 vi.mock('../remote/remote-media', () => ({ serveRemoteAudio: vi.fn(), serveRemoteCover: vi.fn() }));
@@ -130,5 +134,19 @@ describe('the tunelle protocol', () => {
 
     vi.mocked(serveTrack).mockRejectedValue(new Error('broken'));
     expect((await ask('/track?path=/m/a.flac')).status).toBe(500);
+  });
+
+  it('adds the content security policy to the response of the page, and of nothing else', () => {
+    handleTunelleProtocol({ getDatabase: () => database, radio, appRoot: '/app/out' });
+    const [filter, listener] = onHeadersReceived.mock.lastCall ?? [];
+    const callback = vi.fn();
+    listener({ responseHeaders: { 'Content-Type': ['text/html'] } }, callback);
+
+    const policy = callback.mock.lastCall?.[0].responseHeaders['Content-Security-Policy'].join();
+
+    expect(filter.urls).toEqual(['tunelle://app/', 'tunelle://app/index.html']);
+    expect(callback.mock.lastCall?.[0].responseHeaders['Content-Type']).toEqual(['text/html']);
+    expect(policy).toContain("script-src 'self'");
+    expect(policy).not.toContain("'unsafe-eval'");
   });
 });
