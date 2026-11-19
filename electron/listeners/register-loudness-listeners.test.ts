@@ -1,16 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IpcMainEvent } from 'electron';
-import type { Database } from 'sqlite3';
 import type { ListenerContext } from './listener-context';
 import registerLoudnessListeners from './register-loudness-listeners';
-import executeQuery from '../database/execute-query';
-import { createTestDatabase } from '../test-database';
-import { saveTrackLoudness } from '../repositories/loudness-repository';
+import { fakeDatabase } from '../test-fake-database';
+import { clearTrackLoudness } from '../repositories/loudness-repository';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
 
 const listeners = new Map<string, Listener>();
 
+vi.mock('../repositories/loudness-repository', () => ({ clearTrackLoudness: vi.fn() }));
 vi.mock('electron', () => ({
   ipcMain: { on: (channel: string, listener: Listener) => listeners.set(channel, listener) },
 }));
@@ -21,16 +20,16 @@ describe('registerLoudnessListeners', () => {
   const status = { total: 4, measured: 3, failed: 1 };
   const failed = [{ path: '/music/a.flac', reason: 'silent' }];
   const loudness = { status: vi.fn(), failed: vi.fn(), restart: vi.fn(), prioritise: vi.fn() };
-  let database: Database;
+  const database = fakeDatabase();
 
-  beforeEach(async () => {
+  beforeEach(() => {
     listeners.clear();
     send.mockReset();
     loudness.status.mockReset().mockResolvedValue(status);
     loudness.failed.mockReset().mockResolvedValue(failed);
     loudness.restart.mockReset().mockResolvedValue(undefined);
     loudness.prioritise.mockReset().mockResolvedValue(undefined);
-    database = await createTestDatabase();
+    vi.mocked(clearTrackLoudness).mockReset().mockResolvedValue([]);
     registerLoudnessListeners({ database, loudness } as unknown as ListenerContext);
   });
 
@@ -62,24 +61,9 @@ describe('registerLoudnessListeners', () => {
   });
 
   it('forgets every measurement and starts over when the window asks to clear them', async () => {
-    await saveTrackLoudness(database, {
-      path: '/music/a.flac',
-      status: 'failed',
-      trackGain: null,
-      trackPeak: null,
-      albumGain: null,
-      albumPeak: null,
-      albumTracks: null,
-      fileModified: 1,
-      fileSize: 1,
-      analysisVersion: 1,
-      reason: 'silent',
-      analysis: null,
-    });
-
     listeners.get('LOUDNESS_CLEAR')?.(event);
     await vi.waitFor(() => expect(loudness.restart).toHaveBeenCalled());
 
-    expect(await executeQuery(database, { query: 'SELECT path FROM track_loudness', variables: [] })).toEqual([]);
+    expect(clearTrackLoudness).toHaveBeenCalledExactlyOnceWith(database);
   });
 });

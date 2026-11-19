@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WebContents } from 'electron';
-import type { Database } from 'sqlite3';
 import { applyWatchSetting, checkLibraryWatching, refreshLibraryWatching, startLibraryWatching } from './library-watching';
 import { findOfflineFolders } from './folder-availability';
 import { getFolders } from '../../repositories/library-repository';
@@ -8,6 +7,7 @@ import { getSettings } from '../../repositories/settings-repository';
 import rescanChanges from '../scan/rescan-changes';
 import rescanLibrary from '../scan/rescan-library';
 import { backgroundQueue } from '../tasks/background-queue';
+import { fakeDatabase } from '../../test-fake-database';
 
 const power = vi.hoisted(() => ({ listeners: new Set<(saving: boolean) => void>() }));
 
@@ -38,7 +38,7 @@ vi.mock('../scan/rescan-library', () => ({ default: vi.fn() }));
 vi.mock('../scan/rescan-changes', () => ({ default: vi.fn() }));
 
 describe('libraryWatching', () => {
-  const database = {} as Database;
+  const database = fakeDatabase();
   const handlers = new Map<string, () => void>();
   const sender = { once: (event: string, handler: () => void) => handlers.set(event, handler) } as unknown as WebContents;
   const folders = ['/music', '/usb'].map((path) => ({ path, lastModified: 0 }));

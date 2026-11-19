@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { Database } from 'sqlite3';
 import type { LoudnessAnalysis, LoudnessProgress, TrackLoudness } from '@shared/types/loudness';
 import { analysisVersion } from '@shared/constants/loudness';
 import { backgroundQueue } from '../tasks/background-queue';
@@ -14,9 +13,9 @@ import { mountGuard } from '../mounts/mount-guard';
 import { onPowerSavingChange, savingPower } from '../../power/power-state';
 import { registerLoudness } from './loudness-source';
 import type { Task } from '../tasks/task-queue';
+import { fakeDatabase } from '../../test-fake-database';
 
 // everything the source reads or does outside of itself is replaced: the database and what is read from it, the drives, the window, the system and the queue
-vi.mock('sqlite3', () => ({ Database: class {} }));
 vi.mock('../../power/power-state', () => ({ savingPower: vi.fn(), onPowerSavingChange: vi.fn() }));
 vi.mock('./album-gains', () => ({ poolAlbumGains: vi.fn() }));
 vi.mock('./loudness-window', () => ({ createLoudnessWindow: vi.fn() }));
@@ -70,7 +69,7 @@ const rest = 60_000;
 const byPath = (a: TrackToMeasure, b: TrackToMeasure) => a.path.localeCompare(b.path);
 
 describe('the measurement of the loudness as a source of the background queue', () => {
-  const database = new Database(':memory:');
+  const database = fakeDatabase();
   let measure: Mock<(path: string, duration?: number) => Promise<Measurement>>;
   let close: Mock<() => void>;
   let isReadable: Mock<(mount: string, file: string) => Promise<boolean>>;

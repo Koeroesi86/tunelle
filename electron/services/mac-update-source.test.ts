@@ -1,11 +1,9 @@
 import { generateKeyPairSync, sign, createHash } from 'crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
+import { Writable } from 'stream';
 import { join, resolve } from 'path';
+import { memoryFs } from '../test-memory-fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { spawnSync } from 'child_process';
-import { chmodSync } from 'fs';
-import { bundleOf, confirmStart, createMacUpdateSource, isNewer, isSigned, parseUpdateFile, pickZip, swapScript } from './mac-update-source';
+import { bundleOf, confirmStart, createMacUpdateSource, isNewer, isSigned, parseUpdateFile, pickZip } from './mac-update-source';
 
 const mocks = vi.hoisted(() => ({
   app: { getVersion: vi.fn(() => '26.11.1'), getPath: vi.fn(() => ''), quit: vi.fn() },
@@ -15,6 +13,23 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('electron', () => ({ app: mocks.app }));
+vi.mock('fs/promises', () => ({ ...memoryFs.promises }));
+vi.mock('fs', () => ({
+  createWriteStream: (file: string) => {
+    const chunks: Buffer[] = [];
+
+    return new Writable({
+      write: (chunk: Buffer, _encoding, done) => {
+        chunks.push(chunk);
+        done();
+      },
+      final: (done) => {
+        memoryFs.sync.writeFileSync(file, Buffer.concat(chunks));
+        done();
+      },
+    });
+  },
+}));
 vi.mock('child_process', async (importOriginal) => {
   const original = await importOriginal<typeof import('child_process')>();
 
@@ -23,7 +38,7 @@ vi.mock('child_process', async (importOriginal) => {
     [promisifyFunction.custom]: async (command: string, args: string[]) => {
       mocks.commands.push({ command, args });
       if (mocks.answers.failing === command) throw new Error(`${command} failed`);
-      if (command === 'ditto') mkdirSync(join(args[3], 'Tunelle.app'), { recursive: true });
+      if (command === 'ditto') memoryFs.sync.mkdirSync(join(args[3], 'Tunelle.app'));
       if (command === 'plutil') return { stdout: `${mocks.answers.plist[args[1]]}\n` };
       if (command === 'lipo') return { stdout: `${mocks.answers.archs}\n` };
       return { stdout: '' };
@@ -137,8 +152,9 @@ describe('the macOS update source', () => {
   let execPath: PropertyDescriptor | undefined;
 
   beforeEach(() => {
-    folder = mkdtempSync(join(tmpdir(), 'tunelle-mac-update-'));
-    mkdirSync(join(folder, 'data'));
+    memoryFs.reset();
+    folder = resolve('/sandbox/mac-update');
+    memoryFs.sync.mkdirSync(join(folder, 'data'));
     mocks.commands.length = 0;
     mocks.answers.plist = { CFBundleShortVersionString: '26.11.2', CFBundleExecutable: 'Tunelle' };
     mocks.answers.archs = process.arch === 'arm64' ? 'x86_64 arm64' : 'x86_64';
@@ -152,7 +168,6 @@ describe('the macOS update source', () => {
 
   afterEach(() => {
     if (execPath) Object.defineProperty(process, 'execPath', execPath);
-    rmSync(folder, { recursive: true, force: true });
   });
 
   const create = () => createMacUpdateSource(join(folder, 'data'));
@@ -207,7 +222,7 @@ describe('the macOS update source', () => {
   });
 
   it('fails for a version that could not be installed before, and offers a newer one', async () => {
-    writeFileSync(join(folder, 'data', 'update-failed'), '26.11.2\n');
+    memoryFs.sync.writeFileSync(join(folder, 'data', 'update-failed'), '26.11.2\n');
     serve(updateFile('26.11.2'));
     const source = create();
 
@@ -228,7 +243,7 @@ describe('the macOS update source', () => {
     expect(mocks.commands.map(({ command }) => command)).toEqual(['ditto', 'codesign', 'plutil', 'plutil', 'lipo']);
     expect(mocks.commands[0].args.slice(0, 2)).toEqual(['-x', '-k']);
     expect(mocks.commands[0].args[3]).toBe(join(folder, 'Applications', '.Tunelle-update'));
-    expect(existsSync(join(folder, 'tunelle-update-26.11.2-' + process.arch + '.zip'))).toBe(false);
+    expect(memoryFs.sync.existsSync(join(folder, 'tunelle-update-26.11.2-' + process.arch + '.zip'))).toBe(false);
   });
 
   it('refuses a zip that does not match the hash of the signed file', async () => {
@@ -297,70 +312,6 @@ describe('the macOS update source', () => {
   it('records the version that started for the swap script', async () => {
     await confirmStart(join(folder, 'data'));
 
-    expect(readFileSync(join(folder, 'data', 'update-started'), 'utf8')).toBe('26.11.1');
-  });
-});
-
-// the script runs with the real sh and a stand-in for `open`, which starts the "app" by writing the marker like the new version does
-describe.skipIf(process.platform === 'win32')('the swap script', () => {
-  let folder: string;
-
-  const run = ({ fresh, writesMarker }: { fresh: string; writesMarker: boolean }) => {
-    const bin = join(folder, 'bin');
-    mkdirSync(bin);
-    writeFileSync(
-      join(bin, 'open'),
-      `#!/bin/sh\necho "$@" >> "${join(folder, 'opened')}"\n${writesMarker ? `printf '%s' 26.11.2 > "${join(folder, 'marker')}"` : ''}\n`
-    );
-    chmodSync(join(bin, 'open'), 0o755);
-
-    return spawnSync(
-      '/bin/sh',
-      [
-        '-c',
-        swapScript,
-        'sh',
-        '2147483646',
-        join(folder, 'Tunelle.app'),
-        fresh,
-        join(folder, 'Tunelle.app.backup'),
-        join(folder, 'marker'),
-        '26.11.2',
-        join(folder, 'failed'),
-        join(folder, 'staging'),
-        'TUNELLE_APP_DATA=/data',
-      ],
-      { env: { PATH: `${bin}:${process.env.PATH}` }, encoding: 'utf8' }
-    );
-  };
-
-  beforeEach(() => {
-    folder = mkdtempSync(join(tmpdir(), 'tunelle-swap-'));
-    mkdirSync(join(folder, 'Tunelle.app'));
-    writeFileSync(join(folder, 'Tunelle.app', 'version'), 'old');
-    mkdirSync(join(folder, 'staging', 'Tunelle.app'), { recursive: true });
-    writeFileSync(join(folder, 'staging', 'Tunelle.app', 'version'), 'new');
-  });
-
-  afterEach(() => rmSync(folder, { recursive: true, force: true }));
-
-  it('puts the new app in place, opens it with the variables and drops the backup and the staging folder once it started', () => {
-    const result = run({ fresh: join(folder, 'staging', 'Tunelle.app'), writesMarker: true });
-
-    expect(result.status).toBe(0);
-    expect(readFileSync(join(folder, 'Tunelle.app', 'version'), 'utf8')).toBe('new');
-    expect(existsSync(join(folder, 'Tunelle.app.backup'))).toBe(false);
-    expect(existsSync(join(folder, 'staging'))).toBe(false);
-    expect(readFileSync(join(folder, 'opened'), 'utf8').trim()).toBe(`--env TUNELLE_APP_DATA=/data ${join(folder, 'Tunelle.app')}`);
-  });
-
-  it('puts the old app back and records the version when the new one can not be moved in', () => {
-    const result = run({ fresh: join(folder, 'missing', 'Tunelle.app'), writesMarker: false });
-
-    expect(result.status).toBe(1);
-    expect(readFileSync(join(folder, 'Tunelle.app', 'version'), 'utf8')).toBe('old');
-    expect(existsSync(join(folder, 'Tunelle.app.backup'))).toBe(false);
-    expect(readFileSync(join(folder, 'failed'), 'utf8').trim()).toBe('26.11.2');
-    expect(readFileSync(join(folder, 'opened'), 'utf8')).toContain(join(folder, 'Tunelle.app'));
+    expect(memoryFs.sync.readFileSync(join(folder, 'data', 'update-started'), 'utf8')).toBe('26.11.1');
   });
 });

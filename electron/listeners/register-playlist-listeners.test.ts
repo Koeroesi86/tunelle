@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Database } from 'sqlite3';
 import { dialog } from 'electron';
 import type { IpcMainEvent } from 'electron';
 import type { PlaylistImportReport, StoredPlaylist } from '@shared/types/playlists';
@@ -22,13 +21,13 @@ import { findTrackFormat } from '../repositories/library-repository';
 import { exportPlaylist, writeBackPlaylist } from '../library/playlists/export-playlist';
 import { importPlaylistFiles, reimportPlaylistFile } from '../library/playlists/import-playlist-files';
 import { handleWriteFailure } from '../library/playlists/handle-write-failure';
+import { fakeDatabase } from '../test-fake-database';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
 
 const listeners = new Map<string, Listener>();
 
 // what the listeners call is replaced: the database, the repositories of the playlists and of the library
-vi.mock('sqlite3', () => ({ Database: class {} }));
 vi.mock('electron', () => ({
   ipcMain: { on: (channel: string, listener: Listener) => listeners.set(channel, listener) },
   BrowserWindow: { fromWebContents: () => null },
@@ -79,7 +78,7 @@ const stored: StoredPlaylist[] = [
 ];
 
 describe('registerPlaylistListeners', () => {
-  const database = new Database(':memory:');
+  const database = fakeDatabase();
   const send = vi.fn();
   const event = { sender: { send, isDestroyed: () => false } } as unknown as IpcMainEvent;
   /** What the listeners do is a chain of promises that are all answered at once: the time goes by until they are done */

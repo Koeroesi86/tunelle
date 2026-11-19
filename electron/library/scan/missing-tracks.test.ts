@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Track } from '@shared/types/library';
+import { mountGuard } from '../mounts/mount-guard';
 import { findMissingTracks } from './missing-tracks';
+
+vi.mock('../mounts/mount-guard', () => ({ mountGuard: vi.fn() }));
 
 const track = (trackPath: string): Track => ({
   path: trackPath,
@@ -19,17 +19,15 @@ const track = (trackPath: string): Track => ({
 });
 
 describe('findMissingTracks', () => {
-  let root: string;
-  // the scan stores the paths with forward slashes
-  const at = (...segments: string[]) => path.join(root, ...segments).replace(/\\/g, '/');
+  const root = '/music';
+  const at = (...segments: string[]) => [root, ...segments].join('/');
+  const list = vi.fn();
 
   beforeEach(() => {
-    root = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-missing-'));
-    fs.mkdirSync(path.join(root, 'album'));
-    fs.writeFileSync(path.join(root, 'album', 'one.flac'), '');
+    // /music/album has one.flac, /music/gone and anything below a file are gone
+    list.mockReset().mockImplementation(async (_mount: string, folder: string) => (folder === at('album') ? { names: ['one.flac'] } : { code: 'ENOENT' }));
+    vi.mocked(mountGuard).mockReturnValue({ list } as unknown as ReturnType<typeof mountGuard>);
   });
-
-  afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
 
   it('finds the tracks whose file is gone, in a folder that is there and in one that is not', async () => {
     const tracks = [track(at('album', 'one.flac')), track(at('album', 'two.flac')), track(at('gone', 'three.flac'))];
@@ -38,23 +36,29 @@ describe('findMissingTracks', () => {
   });
 
   it('finds a track below a file, as that folder is gone', async () => {
+    list.mockResolvedValue({ code: 'ENOTDIR' });
+
     expect(await findMissingTracks([track(at('album', 'one.flac', 'inside.flac'))], [root])).toHaveLength(1);
   });
 
   // macOS answers EPERM for a protected folder that the app has no access to (again) after an update
   it.each(['EACCES', 'EPERM'])('keeps the tracks of a folder that cannot be read for another reason than that it is gone: %s', async (code) => {
-    const readdir = vi.spyOn(fs.promises, 'readdir').mockRejectedValueOnce(Object.assign(new Error('denied'), { code }));
+    list.mockResolvedValue({ code });
 
     expect(await findMissingTracks([track(at('album', 'two.flac'))], [root])).toEqual([]);
-    readdir.mockRestore();
   });
 
-  it('reads a folder once for all its tracks', async () => {
-    const readdir = vi.spyOn(fs.promises, 'readdir');
+  it('keeps the tracks of a folder that does not answer', async () => {
+    list.mockResolvedValue({});
+
+    expect(await findMissingTracks([track(at('album', 'two.flac'))], [root])).toEqual([]);
+  });
+
+  it('reads a folder once for all its tracks, by the process of the library folder it is in', async () => {
     await findMissingTracks([track(at('album', 'one.flac')), track(at('album', 'two.flac')), track(at('album', 'three.flac'))], [root]);
 
-    expect(readdir).toHaveBeenCalledTimes(1);
-    readdir.mockRestore();
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledWith(root, at('album'));
   });
 
   it('finds nothing among no tracks', async () => {

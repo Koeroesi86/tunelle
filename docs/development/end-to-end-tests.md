@@ -1,6 +1,6 @@
 # Testing the app
 
-`e2e/` holds the Playwright tests with `_electron`; run `npm run test:e2e` after `npm run build`, as they start the built `out/`.
+`e2e/` holds the Playwright tests with `_electron`; run `npm run test:e2e` after `npm run build`, as they start the built `out/`. An end to end test is the last tier: unit test everything first ([unit-tests.md](unit-tests.md)), then what a unit test can not cover is an integration test ([integration-tests.md](integration-tests.md)), and only what neither can show (sound, the window, Chromium, the operating system) is written here.
 
 ## Layout
 

@@ -1,9 +1,19 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
 import { join } from 'path';
-import { describe, expect, it } from 'vitest';
+import { parseBuffer } from 'music-metadata';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { memoryFs } from '../../electron/test-memory-fs';
 import { planLibrary, writePlan } from './perf-library';
 import { profileOf, tags } from './perf-profile';
+
+vi.mock('fs', () => ({ ...memoryFs.sync, default: memoryFs.sync }));
+
+const folder = '/library';
+const parse = (async (path: string) => parseBuffer(Buffer.from(memoryFs.sync.readFileSync(path)))) as unknown as Parameters<typeof profileOf>[2];
+
+beforeEach(() => {
+  memoryFs.reset();
+  memoryFs.sync.mkdirSync(folder);
+});
 
 const profile = {
   tracks: 100,
@@ -24,14 +34,12 @@ const profile = {
 
 describe('profileOf', () => {
   it('reads the shape of a library back from its files, as numbers only', async () => {
-    const { parseFile } = await import('music-metadata');
-    const folder = mkdtempSync(join(tmpdir(), 'perf-profile-'));
     const plan = planLibrary(profile, 24, 9);
     writePlan(folder, plan, { coverSize: 32 });
-    mkdirSync(join(folder, 'no-music'));
-    writeFileSync(join(folder, 'no-music', 'notes.txt'), 'text');
+    memoryFs.sync.mkdirSync(join(folder, 'no-music'));
+    memoryFs.sync.writeFileSync(join(folder, 'no-music', 'notes.txt'), 'text');
 
-    const read = await profileOf(folder, 10, parseFile);
+    const read = await profileOf(folder, 10, parse);
 
     expect(read.tracks).toBe(24);
     expect(read.tracksPerAlbumFolder).toEqual([6, 6, 6, 6]);
@@ -48,7 +56,6 @@ describe('profileOf', () => {
         .flatMap(({ album, albumArtist, tracks }) => [album, albumArtist, ...tracks.map(({ tags }) => String(tags.TITLE))])
         .filter((name) => written.includes(name))
     ).toEqual([]);
-    rmSync(folder, { recursive: true, force: true });
   });
 });
 
@@ -83,12 +90,10 @@ describe('tags', () => {
 
 describe('profileOf with files that cannot be read', () => {
   it('leaves them out of the sample', async () => {
-    const folder = mkdtempSync(join(tmpdir(), 'perf-profile-'));
     writePlan(folder, planLibrary(profile, 6, 2), { coverSize: 32 });
 
     const read = await profileOf(folder, 6, () => Promise.reject(new Error('unreadable')));
 
     expect(read).toMatchObject({ tracks: 6, tags: { sampled: 0 } });
-    rmSync(folder, { recursive: true, force: true });
   });
 });

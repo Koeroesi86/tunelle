@@ -1,240 +1,234 @@
 import { EventEmitter } from 'events';
-import fs from 'fs';
-import os from 'os';
 import path from 'path';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { spawn } from 'child_process';
+import { memoryFs } from '../test-memory-fs';
+import { decodeTrack, playableFile } from './decoded-track';
+import { logError } from '../utils/log-error';
 
-const { temp, spawn } = vi.hoisted(() => ({ temp: { folder: '' }, spawn: vi.fn() }));
+const sizes = vi.hoisted(() => new Map<string, number>());
 
-vi.mock('electron', () => ({ app: { getPath: () => temp.folder, getAppPath: () => path.join(temp.folder, 'out'), isPackaged: false } }));
-vi.mock('child_process', () => ({ spawn }));
-// the files of the cache count as big ones, so the limit is reached without writing gigabytes
-vi.mock('fs/promises', async (importOriginal) => {
-  const original = await importOriginal<typeof import('fs/promises')>();
-  return {
-    ...original,
-    stat: async (file: string) => {
-      const stats = await original.stat(file);
-      return Object.assign(Object.create(stats), { size: file.endsWith('.wav') ? 1.5 * 1024 ** 3 : stats.size });
-    },
-  };
-});
+vi.mock('fs/promises', async () => ({
+  ...memoryFs.promises,
+  stat: async (file: string) => {
+    const stats = await memoryFs.promises.stat(file);
+    return { ...stats, size: sizes.get(path.basename(file)) ?? stats.size };
+  },
+}));
+vi.mock('child_process', () => ({ spawn: vi.fn() }));
+vi.mock('electron', () => ({ app: { getPath: () => '/temp', getAppPath: () => '/app/dist', isPackaged: false } }));
+vi.mock('../utils/log-error', () => ({ logError: vi.fn() }));
 
-const { decodeTrack, playableFile } = await import('./decoded-track');
+const cache = path.join('/temp', 'tunelle-decoded');
 
-interface FakeChild extends EventEmitter {
-  stderr: EventEmitter;
-  kill: ReturnType<typeof vi.fn>;
-  args: string[];
-  finish: (code?: number, error?: string) => void;
-}
+type Behaviour = { code: number; error?: Error; hold?: boolean };
 
-describe('decoded track', () => {
-  const children: FakeChild[] = [];
-  const cached = () => fs.readdirSync(path.join(temp.folder, 'tunelle-decoded')).filter((name) => name.endsWith('.wav'));
-  const source = (name: string, content = 'alac') => {
-    const file = path.join(temp.folder, name);
-    fs.writeFileSync(file, content);
-    return file;
-  };
-  const never = new AbortController().signal;
-  const alac = { codec: 'ALAC', bitDepth: 16 };
+/** A decoder that writes its output file and closes, or fails, or waits until it is killed */
+const decoder = ({ code, error, hold }: Behaviour) => {
+  const child = Object.assign(new EventEmitter(), { stderr: new EventEmitter(), kill: vi.fn(() => void child.emit('close', null)) });
+  vi.mocked(spawn).mockImplementationOnce(((_program: string, args: string[]) => {
+    setImmediate(() => {
+      if (error) return child.emit('error', error);
+      if (hold) return undefined;
+      if (code === 0) memoryFs.sync.writeFileSync(args[args.indexOf('-y') + 1], 'wav');
+      else child.stderr.emit('data', Buffer.from('broken\n'));
+      return child.emit('close', code);
+    });
+    return child;
+  }) as unknown as typeof spawn);
+  return child;
+};
 
-  beforeAll(() => {
-    temp.folder = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-decoded-test-'));
-  });
+describe('decodeTrack', () => {
+  const signal = () => new AbortController().signal;
+  const format = { codec: 'DSD', bitDepth: 1 };
+  let source = '';
+  let count = 0;
 
   beforeEach(() => {
-    children.length = 0;
-    fs.rmSync(path.join(temp.folder, 'tunelle-decoded'), { recursive: true, force: true });
-    spawn.mockReset();
-    // the fake decoder writes the output file (the last argument) when it is let to finish
-    spawn.mockImplementation((_program: string, args: string[]) => {
-      const child = Object.assign(new EventEmitter(), {
-        stderr: new EventEmitter(),
-        kill: vi.fn(() => child.emit('close', null)),
-        args,
-        finish: (code = 0, error = '') => {
-          if (code === 0) fs.writeFileSync(args[args.length - 1], 'RIFF');
-          if (error) child.stderr.emit('data', Buffer.from(error));
-          child.emit('close', code);
-        },
-      });
-      children.push(child);
-      return child;
-    });
+    memoryFs.reset();
+    memoryFs.sync.mkdirSync('/music');
+    count += 1;
+    source = `/music/track-${count}.dsf`;
+    memoryFs.sync.writeFileSync(source, 'dsd');
+    sizes.clear();
+    vi.mocked(spawn).mockReset();
   });
 
-  afterAll(() => fs.rmSync(temp.folder, { recursive: true, force: true }));
+  it('writes the track as a wav into the cache and gives its path', async () => {
+    decoder({ code: 0 });
 
-  const started = () => vi.waitFor(() => expect(children.length).toBeGreaterThan(0));
+    const file = await decodeTrack(source, format, signal());
 
-  it('decodes the first audio stream to a WAV of the depth of the file, written under another name', async () => {
-    const file = source('a.m4a');
-    const result = decodeTrack(file, { codec: 'ALAC', bitDepth: 24 }, never);
-    await started();
-    children[0].finish();
+    expect(path.dirname(file ?? '')).toBe(cache);
+    expect(memoryFs.sync.readdirSync(cache)).toEqual([path.basename(file ?? '')]);
+    expect(memoryFs.sync.readFileSync(file ?? '', 'utf8')).toBe('wav');
+  });
 
-    const target = await result;
-    expect(path.basename(target ?? '')).toMatch(/^[0-9a-f]{32}\.wav$/);
-    expect(fs.readFileSync(target ?? '', 'utf8')).toBe('RIFF');
-    expect(children[0].args).toEqual(expect.arrayContaining(['-i', file, '-map', '0:a:0', '-c:a', 'pcm_s24le', '-f', 'wav']));
-    expect(children[0].args.at(-1)).toBe(`${target}.part`);
+  it('runs the ffmpeg of the development folder, one audio stream, no metadata', async () => {
+    decoder({ code: 0 });
+
+    await decodeTrack(source, format, signal());
+
+    const [program, args] = vi.mocked(spawn).mock.calls[0] as unknown as [string, string[]];
+    expect(program).toBe(path.join('/app', '.cache', 'ffmpeg', 'install', 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'));
+    expect(args).toEqual(expect.arrayContaining(['-i', source, '-map', '0:a:0', '-map_metadata', '-1', '-f', 'wav']));
   });
 
   it.each([
-    [null, 'pcm_s16le'],
-    [16, 'pcm_s16le'],
-    [32, 'pcm_s32le'],
-  ])('encodes a depth of %s as %s', async (bitDepth, encoder) => {
-    const result = decodeTrack(source(`depth-${bitDepth}.m4a`), { codec: 'ALAC', bitDepth }, never);
-    await started();
-    children[0].finish();
-    await result;
+    [{ codec: 'DSD', bitDepth: 1 }, ['-ar', '88200', '-c:a', 'pcm_s24le']],
+    [{ codec: 'ALAC', bitDepth: null }, ['-c:a', 'pcm_s16le']],
+    [{ codec: 'ALAC', bitDepth: 16 }, ['-c:a', 'pcm_s16le']],
+    [{ codec: 'ALAC', bitDepth: 24 }, ['-c:a', 'pcm_s24le']],
+    [{ codec: 'AIFF', bitDepth: 32 }, ['-c:a', 'pcm_s32le']],
+  ])('keeps the depth of %j in the wav', async (given, encoder) => {
+    decoder({ code: 0 });
 
-    expect(children[0].args).toContain(encoder);
+    await decodeTrack(source, given, signal());
+
+    const [, args] = vi.mocked(spawn).mock.calls[0] as unknown as [string, string[]];
+    expect(args.join(' ')).toContain(encoder.join(' '));
   });
 
-  it.each([1, 8])('decodes DSD of %s bit to 88.2 kHz and 24 bit, whatever its rate', async (bitDepth) => {
-    const result = decodeTrack(source(`dsd-${bitDepth}.dsf`), { codec: 'DSD', bitDepth }, never);
-    await started();
-    children[0].finish();
-    await result;
+  it('answers a second request for the same file from the cache, without decoding again', async () => {
+    decoder({ code: 0 });
+    const first = await decodeTrack(source, format, signal());
 
-    expect(children[0].args).toEqual(expect.arrayContaining(['-ar', '88200', '-c:a', 'pcm_s24le']));
-    expect(children[0].args).not.toContain('pcm_s16le');
+    const second = await decodeTrack(source, format, signal());
+
+    expect(second).toBe(first);
+    expect(spawn).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the decoded copy of a DSD file apart from a PCM decode of the same file', async () => {
-    const file = source('same.dsf');
-    const dsd = decodeTrack(file, { codec: 'DSD', bitDepth: 1 }, never);
-    const pcm = decodeTrack(file, { codec: 'ALAC', bitDepth: 16 }, never);
-    await vi.waitFor(() => expect(children).toHaveLength(2));
-    children.forEach((child) => child.finish());
+  it('decodes once for the requests that ask while the decode runs', async () => {
+    decoder({ code: 0 });
 
-    expect(await dsd).not.toBe(await pcm);
-  });
+    const [one, two] = await Promise.all([decodeTrack(source, format, signal()), decodeTrack(source, format, signal())]);
 
-  it('serves the second request from the cache without a decoder', async () => {
-    const file = source('b.m4a');
-    const first = decodeTrack(file, alac, never);
-    await started();
-    children[0].finish();
-
-    expect(await decodeTrack(file, alac, never)).toBe(await first);
+    expect(one).toBeDefined();
+    expect(two).toBe(one);
     expect(spawn).toHaveBeenCalledTimes(1);
   });
 
   it('decodes again when the file changed', async () => {
-    const file = source('c.m4a');
-    const first = decodeTrack(file, alac, never);
-    await started();
-    children[0].finish();
-    await first;
+    decoder({ code: 0 });
+    const first = await decodeTrack(source, format, signal());
+    memoryFs.sync.writeFileSync(source, 'dsd changed');
+    decoder({ code: 0 });
 
-    source('c.m4a', 'changed and longer');
-    const second = decodeTrack(file, alac, never);
-    await vi.waitFor(() => expect(children).toHaveLength(2));
-    children[1].finish();
+    const second = await decodeTrack(source, format, signal());
 
-    expect(await second).not.toBe(await first);
+    expect(second).not.toBe(first);
+    expect(spawn).toHaveBeenCalledTimes(2);
   });
 
-  it('shares one decoder between the requests for the same track', async () => {
-    const file = source('d.m4a');
-    const results = [decodeTrack(file, alac, never), decodeTrack(file, alac, never)];
-    await started();
-    children[0].finish();
+  it('gives nothing for a file that is not there, a folder, or a request that is gone', async () => {
+    const gone = new AbortController();
+    gone.abort();
 
-    expect(new Set(await Promise.all(results)).size).toBe(1);
-    expect(spawn).toHaveBeenCalledTimes(1);
+    expect(await decodeTrack('/music/missing.dsf', format, signal())).toBeUndefined();
+    expect(await decodeTrack('/music', format, signal())).toBeUndefined();
+    expect(await decodeTrack(source, format, gone.signal)).toBeUndefined();
+    expect(spawn).not.toHaveBeenCalled();
   });
 
-  it('kills the decoder when the only request is aborted, and not while another one waits', async () => {
-    const [first, second] = [new AbortController(), new AbortController()];
-    const file = source('e.m4a');
-    const results = [decodeTrack(file, alac, first.signal), decodeTrack(file, alac, second.signal)];
-    await started();
+  it('logs what ffmpeg said, leaves no partial file and gives nothing when the decode fails', async () => {
+    decoder({ code: 1 });
 
-    first.abort();
-    expect(children[0].kill).not.toHaveBeenCalled();
-    second.abort();
+    const file = await decodeTrack(source, format, signal());
 
-    expect(children[0].kill).toHaveBeenCalledTimes(1);
-    expect(await Promise.all(results)).toEqual([undefined, undefined]);
-    expect(cached()).toEqual([]);
+    expect(file).toBeUndefined();
+    expect(memoryFs.sync.readdirSync(cache)).toEqual([]);
+    expect(logError).toHaveBeenCalledWith(expect.objectContaining({ message: `ffmpeg failed on ${source}: broken` }));
   });
 
-  it('does not start for a request that is already aborted', async () => {
+  it('logs and gives nothing when ffmpeg can not start', async () => {
+    const error = new Error('spawn ffmpeg ENOENT');
+    decoder({ code: 0, error });
+
+    expect(await decodeTrack(source, format, signal())).toBeUndefined();
+    expect(logError).toHaveBeenCalledWith(error);
+  });
+
+  it('stops the decode when the only request that waits for it is gone, without logging a failure', async () => {
     const controller = new AbortController();
+    const child = decoder({ code: 0, hold: true });
+    const pending = decodeTrack(source, format, controller.signal);
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalled());
+
     controller.abort();
 
-    expect(await decodeTrack(source('f.m4a'), alac, controller.signal)).toBeUndefined();
+    expect(await pending).toBeUndefined();
+    expect(child.kill).toHaveBeenCalledOnce();
+    expect(logError).not.toHaveBeenCalled();
+  });
+
+  it('keeps the decode while another request still waits for it', async () => {
+    const first = new AbortController();
+    const child = decoder({ code: 0, hold: true });
+    const one = decodeTrack(source, format, first.signal);
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalled());
+    const two = decodeTrack(source, format, signal());
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    first.abort();
+
+    expect(child.kill).not.toHaveBeenCalled();
+    child.emit('close', null);
+    await Promise.all([one, two]);
+  });
+
+  it('removes the oldest files when the cache is over its limit, and keeps the track it just made', async () => {
+    const gib = 1024 ** 3;
+    memoryFs.sync.mkdirSync(cache);
+    ['old.wav', 'newer.wav'].forEach((name, index) => {
+      memoryFs.sync.writeFileSync(path.join(cache, name), 'x');
+      void memoryFs.promises.utimes(path.join(cache, name), new Date(), new Date(1000 + index));
+      sizes.set(name, 1.5 * gib);
+    });
+    decoder({ code: 0 });
+
+    const file = await decodeTrack(source, format, signal());
+
+    expect(memoryFs.sync.readdirSync(cache).sort()).toEqual(['newer.wav', path.basename(file ?? '')].sort());
+  });
+
+  it('leaves the cache alone while it fits', async () => {
+    memoryFs.sync.mkdirSync(cache);
+    memoryFs.sync.writeFileSync(path.join(cache, 'old.wav'), 'x');
+    decoder({ code: 0 });
+
+    await decodeTrack(source, format, signal());
+
+    expect(memoryFs.sync.readdirSync(cache)).toHaveLength(2);
+  });
+});
+
+describe('playableFile', () => {
+  beforeEach(() => {
+    memoryFs.reset();
+    vi.mocked(spawn).mockReset();
+  });
+
+  it('gives the file itself for a codec that Chromium plays', async () => {
+    expect(await playableFile({ path: '/music/a.flac', codec: 'FLAC', bitDepth: 16 }, new AbortController().signal)).toBe('/music/a.flac');
     expect(spawn).not.toHaveBeenCalled();
   });
 
-  it('gives nothing, and leaves no file, when the decoder fails', async () => {
-    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const result = decodeTrack(source('g.m4a'), alac, never);
-    await started();
-    children[0].finish(1, 'Invalid data');
+  it('gives the decoded copy for a codec that it does not play', async () => {
+    memoryFs.sync.mkdirSync('/music');
+    memoryFs.sync.writeFileSync('/music/a.aiff', 'aiff');
+    vi.mocked(spawn).mockImplementationOnce(((_program: string, args: string[]) => {
+      const child = Object.assign(new EventEmitter(), { stderr: new EventEmitter(), kill: vi.fn() });
+      setImmediate(() => {
+        memoryFs.sync.writeFileSync(args[args.indexOf('-y') + 1], 'wav');
+        child.emit('close', 0);
+      });
+      return child;
+    }) as unknown as typeof spawn);
 
-    expect(await result).toBeUndefined();
-    expect(errors).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Invalid data') }));
-    expect(fs.readdirSync(path.join(temp.folder, 'tunelle-decoded'))).toEqual([]);
-    errors.mockRestore();
-  });
+    const file = await playableFile({ path: '/music/a.aiff', codec: 'AIFF', bitDepth: 16 }, new AbortController().signal);
 
-  it('gives nothing when the decoder can not be started', async () => {
-    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const result = decodeTrack(source('h.m4a'), alac, never);
-    await started();
-    children[0].emit('error', new Error('spawn ffmpeg ENOENT'));
-
-    expect(await result).toBeUndefined();
-    errors.mockRestore();
-  });
-
-  it('gives nothing for a file that is gone', async () => {
-    expect(await decodeTrack(path.join(temp.folder, 'gone.m4a'), alac, never)).toBeUndefined();
-  });
-
-  it('runs two decoders at a time and starts the next when one ends', async () => {
-    const results = ['i1', 'i2', 'i3'].map((name) => decodeTrack(source(`${name}.m4a`), alac, never));
-    await vi.waitFor(() => expect(children).toHaveLength(2));
-    await new Promise((resolve) => setTimeout(resolve, 20));
-
-    expect(children).toHaveLength(2);
-    children[0].finish();
-    await vi.waitFor(() => expect(children).toHaveLength(3));
-    children[1].finish();
-    children[2].finish();
-    expect((await Promise.all(results)).every(Boolean)).toBe(true);
-  });
-
-  it('removes the oldest decoded files over the limit, and keeps the ones served last', async () => {
-    const names = ['j1', 'j2', 'j3', 'j4'];
-    const targets: (string | undefined)[] = [];
-    // a file older than the others: the modification time orders the files, the clock of a fast test would not
-    for (const [index, name] of names.entries()) {
-      const result = decodeTrack(source(`${name}.m4a`), alac, never);
-      await vi.waitFor(() => expect(children).toHaveLength(index + 1));
-      children[index].finish();
-      targets.push(await result);
-      fs.utimesSync(targets[index] ?? '', new Date(Date.now() - (names.length - index) * 1000), new Date(Date.now() - (names.length - index) * 1000));
-    }
-
-    expect(targets.map((target) => fs.existsSync(target ?? ''))).toEqual([false, true, true, true]);
-  });
-
-  it('serves a file that Chromium plays as it is, and decodes ALAC', async () => {
-    const file = source('k.m4a');
-    expect(await playableFile({ path: file, codec: 'FLAC', bitDepth: 16 }, never)).toBe(file);
-    expect(spawn).not.toHaveBeenCalled();
-
-    const result = playableFile({ path: file, codec: 'ALAC', bitDepth: 16 }, never);
-    await started();
-    children[0].finish();
-    expect(await result).toMatch(/\.wav$/);
+    expect(file).toMatch(/\.wav$/);
   });
 });

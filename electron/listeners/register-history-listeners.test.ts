@@ -1,17 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Database } from 'sqlite3';
 import type { IpcMainEvent } from 'electron';
 import type { ListenerContext } from './listener-context';
 import registerHistoryListeners from './register-history-listeners';
 import { clearHistory, getHistory, recordPlayed } from '../repositories/history-repository';
 import { withAvailability } from '../library/watch/favourite-availability';
+import { fakeDatabase } from '../test-fake-database';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
 
 const listeners = new Map<string, Listener>();
 
 // what the listeners call is replaced: the database, the repository and the look at the library for the availability
-vi.mock('sqlite3', () => ({ Database: class {} }));
 vi.mock('electron', () => ({
   ipcMain: { on: (channel: string, listener: Listener) => listeners.set(channel, listener) },
 }));
@@ -23,7 +22,7 @@ const key = { source: 'radio', kind: 'station', id: 'abc' };
 const played = [{ ...key, snapshot: station, playedAt: 1 }];
 
 describe('registerHistoryListeners', () => {
-  const database = new Database(':memory:');
+  const database = fakeDatabase();
   const send = vi.fn();
   const event = { sender: { send, isDestroyed: () => false } } as unknown as IpcMainEvent;
   const context = { database, radio: { findStations: async () => [station] } } as unknown as ListenerContext;

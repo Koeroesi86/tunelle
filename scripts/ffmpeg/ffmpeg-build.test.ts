@@ -1,9 +1,9 @@
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { memoryFs, spyOnFs } from '../../electron/test-memory-fs';
 import source from './ffmpeg-source.json';
-import { checkBinary, checkFlags, download, fetchTarball, checkTarball, posixPath, sha256Of, toolchainFlags } from './ffmpeg-build';
+import { checkBinary, checkFlags, download, checkTarball, posixPath, sha256Of, toolchainFlags } from './ffmpeg-build';
 
 const legend = ' A..... = Audio\n ------\n';
 const decoderLines = legend + source.decoders.map((name) => ` A....D ${name}   some decoder`).join('\n');
@@ -116,7 +116,18 @@ describe('download', () => {
 describe('fetchTarball', () => {
   const content = Buffer.from('tarball');
   const pinned = { url: 'https://example.test/ffmpeg-1.tar.xz', version: '1', sha256: sha256Of(content) };
-  const keep = () => fs.mkdtempSync(path.join(os.tmpdir(), 'ffmpeg-keep-'));
+  const keep = () => {
+    memoryFs.sync.mkdirSync('/keep');
+    return '/keep';
+  };
+  let fetchTarball: (typeof import('./ffmpeg-build'))['fetchTarball'];
+
+  beforeEach(async () => {
+    memoryFs.reset();
+    spyOnFs(fs);
+    vi.resetModules();
+    ({ fetchTarball } = await import('./ffmpeg-build'));
+  });
 
   afterEach(() => vi.unstubAllGlobals());
 
@@ -126,20 +137,20 @@ describe('fetchTarball', () => {
     vi.stubGlobal('fetch', fetcher);
 
     expect(await fetchTarball(folder, pinned)).toEqual(content);
-    expect(fs.readFileSync(path.join(folder, 'ffmpeg-1.tar.xz'))).toEqual(content);
+    expect(memoryFs.sync.readFileSync(path.join(folder, 'ffmpeg-1.tar.xz'))).toEqual(content);
     expect(await fetchTarball(folder, pinned)).toEqual(content);
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it('downloads again when the kept file is not the pinned one', async () => {
     const folder = keep();
-    fs.writeFileSync(path.join(folder, 'ffmpeg-1.tar.xz'), 'damaged');
+    memoryFs.sync.writeFileSync(path.join(folder, 'ffmpeg-1.tar.xz'), 'damaged');
     const fetcher = vi.fn(async () => new Response(content));
     vi.stubGlobal('fetch', fetcher);
 
     expect(await fetchTarball(folder, pinned)).toEqual(content);
     expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(fs.readFileSync(path.join(folder, 'ffmpeg-1.tar.xz'))).toEqual(content);
+    expect(memoryFs.sync.readFileSync(path.join(folder, 'ffmpeg-1.tar.xz'))).toEqual(content);
   });
 
   it('keeps nothing that fails the check', async () => {
@@ -147,7 +158,7 @@ describe('fetchTarball', () => {
     vi.stubGlobal('fetch', async () => new Response('other'));
 
     await expect(fetchTarball(folder, pinned)).rejects.toThrow('expected');
-    expect(fs.readdirSync(folder)).toEqual([]);
+    expect(memoryFs.sync.readdirSync(folder)).toEqual([]);
   });
 
   it('only downloads when there is no place to keep it', async () => {

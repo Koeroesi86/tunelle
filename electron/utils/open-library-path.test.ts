@@ -1,17 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import path from 'path';
-import { Database } from 'sqlite3';
 import { getFolders } from '../repositories/library-repository';
 import openLibraryPath from './open-library-path';
+import { fakeDatabase } from '../test-fake-database';
 
 // the folders of the library come from a repository that is replaced, with the database it reads
-vi.mock('sqlite3', () => ({ Database: class {} }));
 vi.mock('../repositories/library-repository', () => ({ getFolders: vi.fn() }));
 
 describe('openLibraryPath', () => {
   const library = path.resolve('music');
   const open = vi.fn<(target: string) => Promise<string>>();
-  const database = new Database(':memory:');
+  const database = fakeDatabase();
 
   beforeEach(() => {
     open.mockReset().mockResolvedValue('');
