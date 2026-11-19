@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
+import fs from 'fs';
 import { join } from 'path';
-import { describe, expect, it } from 'vitest';
-import { change, flatten, median, readSystems, toMarkdown } from './perf-summary';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { memoryFs } from '../../electron/test-memory-fs';
+import { change, flatten, median, toMarkdown } from './perf-summary';
 
 describe('flatten', () => {
   it('names the numbers by their path and leaves out lists and text', () => {
@@ -94,27 +94,40 @@ describe('toMarkdown', () => {
 });
 
 describe('readSystems', () => {
-  it('reads the perf files of each artifact folder, the base ones apart', () => {
-    const folder = mkdtempSync(join(tmpdir(), 'perf-summary-'));
-    mkdirSync(join(folder, 'perf-windows-2025'));
-    mkdirSync(join(folder, 'base-perf-windows-2025'));
-    writeFileSync(join(folder, 'perf-windows-2025', 'perf-startup.json'), '{"a":1}');
-    writeFileSync(join(folder, 'perf-windows-2025', 'other.json'), '{"b":2}');
-    writeFileSync(join(folder, 'base-perf-windows-2025', 'perf-startup.json'), '{"a":2}');
+  const folder = '/artifacts';
 
-    expect(readSystems(folder)).toEqual({ 'windows-2025': { pr: { startup: { a: 1 } }, base: { startup: { a: 2 } } } });
-    rmSync(folder, { recursive: true });
+  // the script takes the functions of fs when it loads, so it loads again after the spies are set
+  const load = async () => {
+    vi.spyOn(fs, 'readdirSync').mockImplementation(memoryFs.sync.readdirSync as never);
+    vi.spyOn(fs, 'readFileSync').mockImplementation(memoryFs.sync.readFileSync as never);
+    vi.spyOn(fs, 'statSync').mockImplementation(memoryFs.sync.statSync as never);
+    vi.resetModules();
+    return (await import('./perf-summary')).readSystems;
+  };
+
+  beforeEach(() => {
+    memoryFs.reset();
+    memoryFs.sync.mkdirSync(folder);
   });
 
-  it('takes the median of the runs of a measurement, the later runs being perf-<name>.<n>.json', () => {
-    const folder = mkdtempSync(join(tmpdir(), 'perf-summary-'));
-    mkdirSync(join(folder, 'perf-ubuntu-latest'));
-    writeFileSync(join(folder, 'perf-ubuntu-latest', 'perf-startup.json'), '{"scan":{"seconds":10},"tracks":5}');
-    writeFileSync(join(folder, 'perf-ubuntu-latest', 'perf-startup.1.json'), '{"scan":{"seconds":30},"tracks":5}');
-    writeFileSync(join(folder, 'perf-ubuntu-latest', 'perf-startup.2.json'), '{"scan":{"seconds":12},"tracks":5}');
+  it('reads the perf files of each artifact folder, the base ones apart', async () => {
+    memoryFs.sync.mkdirSync(join(folder, 'perf-windows-2025'));
+    memoryFs.sync.mkdirSync(join(folder, 'base-perf-windows-2025'));
+    memoryFs.sync.writeFileSync(join(folder, 'perf-windows-2025', 'perf-startup.json'), '{"a":1}');
+    memoryFs.sync.writeFileSync(join(folder, 'perf-windows-2025', 'other.json'), '{"b":2}');
+    memoryFs.sync.writeFileSync(join(folder, 'base-perf-windows-2025', 'perf-startup.json'), '{"a":2}');
+    memoryFs.sync.writeFileSync(join(folder, 'notes.txt'), 'not a folder');
 
-    expect(readSystems(folder)).toEqual({ 'ubuntu-latest': { pr: { startup: { 'scan.seconds': 12, tracks: 5 } } } });
-    rmSync(folder, { recursive: true });
+    expect((await load())(folder)).toEqual({ 'windows-2025': { pr: { startup: { a: 1 } }, base: { startup: { a: 2 } } } });
+  });
+
+  it('takes the median of the runs of a measurement, the later runs being perf-<name>.<n>.json', async () => {
+    memoryFs.sync.mkdirSync(join(folder, 'perf-ubuntu-latest'));
+    memoryFs.sync.writeFileSync(join(folder, 'perf-ubuntu-latest', 'perf-startup.json'), '{"scan":{"seconds":10},"tracks":5}');
+    memoryFs.sync.writeFileSync(join(folder, 'perf-ubuntu-latest', 'perf-startup.1.json'), '{"scan":{"seconds":30},"tracks":5}');
+    memoryFs.sync.writeFileSync(join(folder, 'perf-ubuntu-latest', 'perf-startup.2.json'), '{"scan":{"seconds":12},"tracks":5}');
+
+    expect((await load())(folder)).toEqual({ 'ubuntu-latest': { pr: { startup: { 'scan.seconds': 12, tracks: 5 } } } });
   });
 });
 

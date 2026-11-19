@@ -49,6 +49,13 @@ const createMemoryFs = () => {
       [...links.keys()].filter((link) => link === target || inside(link, target)).forEach((link) => links.delete(link));
       [...folders].filter((folder) => folder === target || inside(folder, target)).forEach((folder) => folders.delete(folder));
     },
+    statSync: (path: string) => {
+      const target = followed(path);
+      const data = files.get(target);
+      if (!data && !folders.has(target)) throw missing(path);
+
+      return { size: data?.length ?? 0, mtimeMs: modified.get(target) ?? 0, isFile: () => data !== undefined, isDirectory: () => data === undefined };
+    },
     readdirSync: (path: string) => {
       const folder = folderOf(path);
       const prefix = folder.endsWith(sep) ? folder : `${folder}${sep}`;
@@ -101,13 +108,7 @@ const createMemoryFs = () => {
       if (sync.readdirSync(target).length > 0) throw Object.assign(new Error(`ENOTEMPTY: directory not empty, rmdir '${path}'`), { code: 'ENOTEMPTY' });
       folders.delete(target);
     },
-    stat: async (path: string) => {
-      const target = followed(path);
-      const data = files.get(target);
-      if (!data && !folders.has(target)) throw missing(path);
-
-      return { size: data?.length ?? 0, mtimeMs: modified.get(target) ?? 0, isFile: () => data !== undefined, isDirectory: () => data === undefined };
-    },
+    stat: async (path: string) => sync.statSync(path),
     utimes: async (path: string, _atime: Date, mtime: Date) => {
       if (!sync.existsSync(path)) throw missing(path);
       modified.set(clean(path), mtime.getTime());
