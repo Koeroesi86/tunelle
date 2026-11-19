@@ -23,6 +23,11 @@ if [[ "$CMD" =~ (gh[[:space:]]+run[[:space:]]+view.*--log|gh[[:space:]]+pr[[:spa
   deny "this prints a whole log or diff; pipe it through 'tail -n 120' or 'grep', or use 'npx tsx scripts/checks/ci-failure.ts' for a failed run."
 fi
 
+SMALL='--(stat|numstat|shortstat|name-only|name-status|quiet|jq)([[:space:]=]|$)|[[:space:]]-q[[:space:]]'
+if [[ "$CMD" =~ (git[[:space:]]+(show|diff)|gh[[:space:]]+issue[[:space:]]+view)([[:space:]]|$) ]] && ! [[ "$CMD" =~ $BOUNDED || "$CMD" =~ $SMALL ]]; then
+  deny "this prints a whole diff, file or issue; add '--stat' or '--name-only', pipe it through 'head -n 120' or 'grep', or give a path to 'git diff'/'git show' and 'sed -n A,Bp'."
+fi
+
 while IFS= read -r segment; do
   segment="${segment#"${segment%%[![:space:]]*}"}"
   [[ "$segment" =~ ^cat[[:space:]] ]] || continue

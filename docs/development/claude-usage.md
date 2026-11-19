@@ -7,15 +7,36 @@ An analysis of 197 sessions (Oct 17 to Nov 9, 2026) showed where the usage goes,
 - Tool output is small in comparison; the outliers were `cat` of several files (20 to 28K characters).
 - About 30% of the output is thinking.
 
+A second analysis of 110 sessions (Nov 9 to 19, 5052 calls, 88M weighted tokens) after the hooks below: calls over 200K tokens of context fell to 7% (longest context 315K), but the start context grew to 45K and, re-read on every call, is about 26% of the total. The 5 longest sessions are still 32%. 161 tool results of over 8K characters (1.9M characters) were unbounded `git show`, `git diff`, `gh issue view` and whole-file Reads of files of 500 lines. Thinking is probably about 60% of the output; its text is redacted in the transcript, so this is an estimate. Run the analysis again with the transcripts in `~/.claude/projects/` (`usage` of every `assistant` entry; ids repeat per content block, count each once).
+
 ## What enforces it
 
 All in `.claude/hooks/`, wired in `.claude/settings.json`, tested in `claude-hooks.integration.test.ts`:
 
-- `guard-output.sh` (PreToolUse, Bash) blocks `cat` of several files, of a glob or of a file over 300 lines, and a whole log or diff (`gh run view --log`, `gh pr diff`, `npm ci`, `npm install`) that is not piped through `tail`, `head`, `grep`, `wc`, `jq` or `sed -n`, or redirected. `npx tsx scripts/checks/ci-failure.ts` prints only what failed.
-- `context-nudge.sh` (PostToolUse) says once at 150K and once at 250K tokens of context that the session should end. The count comes from the last `usage` of the transcript.
+- `guard-output.sh` (PreToolUse, Bash) blocks `cat` of several files, of a glob or of a file over 300 lines, and a whole log, diff or issue (`gh run view --log`, `gh pr diff`, `git show`, `git diff`, `gh issue view`, `npm ci`, `npm install`) that is not piped through `tail`, `head`, `grep`, `wc`, `jq` or `sed -n`, redirected, or (for `git`) limited with `--stat`, `--name-only` or `--name-status`. `npx tsx scripts/checks/ci-failure.ts` prints only what failed.
+- `guard-read.sh` (PreToolUse, Read) blocks reading a whole text file of over 300 lines; give `offset` and `limit`.
+- `edit-nudge.sh` (PreToolUse, Bash) says once per session that a change to one file is cheaper with the Edit tool than with `sed -i` or a `python3 -` script, whose text stays in the context (about 200 such calls in the second analysis; it does not block, as Edit needs a Read first).
+- `session-state.sh` (SessionStart) puts the branch, the commits ahead, the uncommitted files and the pull request into the context in one line, so the session does not spend its first calls on `git status` and `gh pr view`.
+- `context-nudge.sh` (PostToolUse) says once at 120K and once at 200K tokens of context that the session should end. The count comes from the last `usage` of the transcript.
 - `repeat-failure.sh` (PostToolUseFailure, Bash) says to stop after the same command fails 3 times in a row.
 
 The `handoff` skill writes the 15 lines a new session needs. The skills that only the user starts (`open-pr`, `task-gaps`, `handoff`) have `disable-model-invocation: true`, so their descriptions are not in the context. `verify-change` and `verify-task` do not, as `open-pr` and `verify-change` call them.
+
+## Settings and rules
+
+- `env` in `.claude/settings.json`: `CLAUDE_CODE_SUBAGENT_MODEL=haiku` (subagents are for searches and logs, which a small model does as well; the `session-state.sh` line points at the Explore agent, which was used 6 times in 110 sessions) and `CLAUDE_CODE_AUTO_COMPACT_WINDOW=220000` (the conversation is summarized at 220K tokens, above the nudge of 200K, so a session that goes on has a ceiling; the summary loses detail, so end the session at the nudge when you can).
+- `.claude/rules/` (`tests`, `protocol`, `migrations`, `client`, `releases`) hold the rules that only matter in one area, with `paths` so that they load when a file of it is read; `CLAUDE.md` keeps one line with the links. This took `CLAUDE.md` from 11.4 to 8.4 KB, about 750 tokens on every call. A rule loads on a read, not on a new file, so the hooks stay the guard for what must not be missed (`version`, `release.yml`, migrations that shipped).
+
+## Scripts and the skill
+
+Deterministic scripts in `scripts/claude/` (unit tested next to them) give in one call what took several, each with a bounded output:
+
+- `npx tsx scripts/claude/usage.ts [--since YYYY-MM-DD] [--top N]`: this analysis from the transcripts in `~/.claude/projects/` (cost per day, the share of cache reads, writes and output, of calls over 200K tokens and of the costliest sessions, the start context and the largest tool results with the command). Run it after a change to a guard to see what it did.
+- `npx tsx scripts/claude/context.ts [issue]`: the branch, the pull request with the state of its checks, the issue it closes (title and the start of each section, at most 60 lines; the number comes from the argument, the pull request or the branch name) and the changed files against `origin/master`.
+- `npx tsx scripts/claude/test-failure.ts [vitest arguments]`: `vitest run` with only the totals and, for each failed test, its name and the first 8 lines of its message. For one test file or project; `scripts/checks/verify.ts` stays for the whole chain.
+- `npx tsx scripts/claude/handoff.ts <file> --next … --decisions … --unverified …`: used by the `handoff` skill (which runs on `haiku`, as it only supplies three lines) to write the 15 lines with the facts from git and gh.
+
+Not done: denying `export PATH=…` (the 24 of Nov 17 are the only ones after Nov 9, and a worktree outside the repository does not get the path of `session-node.sh`).
 
 ## What is left to the user
 
