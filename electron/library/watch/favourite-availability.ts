@@ -1,6 +1,6 @@
 import type { Database } from 'sqlite3';
 import type { FavouriteKey } from '@shared/types/favourites';
-import type { RadioBrowser } from '../../services/radio-browser';
+import type { RadioBrowser } from '../../services/radio/radio-browser';
 import { findTrackFormat, findTrackPath, getAlbumTracks } from '../../repositories/library-repository';
 import { isRecord } from '@shared/utils/is-record';
 

@@ -13,7 +13,7 @@ const enqueue = vi.fn();
 vi.mock('electron', () => ({
   ipcMain: { on: (channel: string, listener: Listener) => listeners.set(channel, listener) },
 }));
-vi.mock('../services/artist-photos', () => ({ createArtistPhotoQueue: () => ({ enqueue }) }));
+vi.mock('../services/artwork/artist-photos', () => ({ createArtistPhotoQueue: () => ({ enqueue }) }));
 
 describe('registerArtistPhotoListeners', () => {
   const event = { sender: { send: vi.fn(), isDestroyed: () => false } } as unknown as IpcMainEvent;

@@ -8,13 +8,13 @@ electron-updater only works in the packaged app, and on Linux only in an AppImag
 - an AppImage that AM manages updates through AM (`am -u tunelle`);
 - an AppImage that cannot be replaced (a folder that is not writable) is not updated at all, and the settings say so.
 
-`TUNELLE_NO_UPDATE=1` turns it off, which the smoke tests of the packaged app set. `MOCK_UPDATE=1 npm run dev` shows a mocked update on the splash (nothing is installed). The reason an update is unavailable comes from `getUpdateUnavailableReason` in `electron/services/updater.ts`.
+`TUNELLE_NO_UPDATE=1` turns it off, which the smoke tests of the packaged app set. `MOCK_UPDATE=1 npm run dev` shows a mocked update on the splash (nothing is installed). The reason an update is unavailable comes from `getUpdateUnavailableReason` in `electron/services/updates/updater.ts`.
 
 The published release is what installed apps update from, see [releases.md](../release/releases.md).
 
 ## Metered connections
 
-The version check is small and always runs; the download asks first when the system says the connection is metered, as it uses data the user may pay for. `isMeteredConnection` in `electron/services/metered-connection.ts` asks the system, with a timeout of 3 seconds, and any error, a timeout or an answer it does not know counts as not metered, so the detection never blocks the app:
+The version check is small and always runs; the download asks first when the system says the connection is metered, as it uses data the user may pay for. `isMeteredConnection` in `electron/services/updates/metered-connection.ts` asks the system, with a timeout of 3 seconds, and any error, a timeout or an answer it does not know counts as not metered, so the detection never blocks the app:
 
 - **Windows**: `NetworkCostType` of the connection profile through a short `powershell.exe` call; `Fixed` and `Variable` are metered, `Unrestricted`, `Unknown` and `Default` are not.
 - **Linux**: the `Metered` property of NetworkManager through `busctl`; 1 (yes) and 3 (guess yes) are metered, 0, 2 and 4 are not. No `busctl` or no NetworkManager is not metered.
@@ -22,7 +22,7 @@ The version check is small and always runs; the download asks first when the sys
 - `navigator.connection` is not used, it does not read the setting of the system on a desktop.
 - `TUNELLE_METERED=1` makes every platform metered, for a hotspot the system does not know and for testing.
 
-**On the splash** (`confirmDownload` of `runUpdate`) the splash shows "Download" and "Not now" (`askOnSplash` in `electron/services/splash-confirm.ts`). "Download" goes on as without the question; "Not now" starts the installed version for this start only (closing the window quits the app, as the splash is part of the player window, see [startup](startup.md)). The next start asks again.
+**On the splash** (`confirmDownload` of `runUpdate`) the splash shows "Download" and "Not now" (`askOnSplash` in `electron/services/updates/splash-confirm.ts`). "Download" goes on as without the question; "Not now" starts the installed version for this start only (closing the window quits the app, as the splash is part of the player window, see [startup](startup.md)). The next start asks again.
 
 **In the settings** the manager sets the status `metered` before it checks, and the page asks to continue (`CONFIRM_METERED_UPDATE`) or not (`CANCEL_METERED_UPDATE`, back to idle). A check later asks again.
 
@@ -30,7 +30,7 @@ The setting "Download on a metered connection" (`allowMetered` in `update-prefer
 
 ## macOS
 
-electron-updater installs an update through Squirrel.Mac, which refuses an app without a Developer ID, and the macOS build is signed ad hoc (`identity: "-"`; there is no Apple Developer membership, see [#314](https://github.com/Koeroesi86/tunelle/issues/314)). So the app updates itself with `electron/services/mac-update-source.ts`, which implements the same `UpdateSource` as electron-updater, and the splash and the settings use it the same way.
+electron-updater installs an update through Squirrel.Mac, which refuses an app without a Developer ID, and the macOS build is signed ad hoc (`identity: "-"`; there is no Apple Developer membership, see [#314](https://github.com/Koeroesi86/tunelle/issues/314)). So the app updates itself with `electron/services/updates/mac-update-source.ts`, which implements the same `UpdateSource` as electron-updater, and the splash and the settings use it the same way.
 
 1. **Check**: `latest-mac.yml` and `latest-mac.yml.sig` come from the latest release (`TUNELLE_UPDATE_URL` replaces the address). The signature has to be an ed25519 signature of the whole file by a key of `shared/constants/update-keys.ts`; the file names the version and the sha512 of each zip, so one signature covers them. The version has to be greater than the installed one, and the zip is the one of the running architecture (`arm64` in its name, or not).
 2. **Download**: the zip goes to the temporary folder with `pipeline` and must match the sha512. It is unpacked with `ditto` next to the installed app (`.Tunelle-update`, the same volume), and `codesign --verify`, the version of its `Info.plist` and the architecture of its executable are checked before anything is installed.

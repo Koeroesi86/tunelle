@@ -6,7 +6,7 @@ import { getCoverAccent } from '../library/art/album-art-accents';
 import { libraryRoutes } from './library-routes';
 import { serveRadio } from './radio-protocol';
 import type { RadioStreamDeps } from './radio-proxy';
-import type { RadioArtImage } from '../services/radio-art';
+import type { RadioArtImage } from '../services/radio/radio-art';
 import { notFound, serveFile } from './serve-file';
 import { serveTrack } from './serve-track';
 import { serveRemoteAudio, serveRemoteCover } from '../remote/remote-media';

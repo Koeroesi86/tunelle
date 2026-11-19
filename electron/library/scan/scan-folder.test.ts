@@ -4,7 +4,7 @@ import type { WebContents } from 'electron';
 import { getTracksInside } from '../../repositories/library-repository';
 import { recordLibraryChange } from '../changes/library-changes';
 import { queueAlbumArtAccents } from '../art/album-art-accents';
-import { syncPlaylistFiles } from '../playlists/sync-playlist-files';
+import { syncPlaylistFiles } from '../playlists/files/sync-playlist-files';
 import { createTrackReader, ReadTimeoutError } from '../reading/track-reader';
 import { fakeDatabase } from '../../test-fake-database';
 import { addTracks } from './add-tracks';
@@ -32,7 +32,7 @@ vi.mock('fs', () => {
 vi.mock('../../repositories/library-repository', () => ({ getTracksInside: vi.fn() }));
 vi.mock('../changes/library-changes', () => ({ recordLibraryChange: vi.fn() }));
 vi.mock('../art/album-art-accents', () => ({ queueAlbumArtAccents: vi.fn() }));
-vi.mock('../playlists/sync-playlist-files', () => ({ syncPlaylistFiles: vi.fn() }));
+vi.mock('../playlists/files/sync-playlist-files', () => ({ syncPlaylistFiles: vi.fn() }));
 vi.mock('./add-tracks', () => ({ addTracks: vi.fn(), readBatchSize: () => 2 }));
 vi.mock('../reading/track-reader', () => ({
   createTrackReader: vi.fn(),

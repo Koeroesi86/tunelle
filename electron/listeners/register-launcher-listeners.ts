@@ -9,8 +9,8 @@ import {
   markLauncherOffered,
   syncLauncher,
   wasLauncherOffered,
-} from '../services/app-image-launcher';
-import type { LauncherOptions } from '../services/app-image-launcher';
+} from '../services/platform/app-image-launcher';
+import type { LauncherOptions } from '../services/platform/app-image-launcher';
 import { enabledRequestSchema } from '@shared/schemas/requests';
 import { parsePayload } from '../utils/parse-payload';
 import { logError } from '../utils/log-error';

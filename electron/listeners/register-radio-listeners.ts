@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import { errorMessage } from '@shared/utils/error-message';
 import type { ListenerContext } from './listener-context';
-import { toRadioQuery } from '../services/radio-browser';
+import { toRadioQuery } from '../services/radio/radio-browser';
 
 /** A fetch that fails says only 'fetch failed', the reason (a reset connection, a name that does not resolve) is its cause */
 const reasonOf = (error: unknown) =>

@@ -2,9 +2,9 @@ import { app, ipcMain } from 'electron';
 import type { IpcMainEvent } from 'electron';
 import { getMainWindow } from '../windows/get-main-window';
 import { sendIfAlive } from '../utils/send-if-alive';
-import { coverFolder, createCoverFiles } from '../services/mpris-cover';
-import { idleState, startMpris } from '../services/mpris';
-import type { MprisCommand, MprisService, MprisState } from '../services/mpris';
+import { coverFolder, createCoverFiles } from '../services/mpris/mpris-cover';
+import { idleState, startMpris } from '../services/mpris/mpris';
+import type { MprisCommand, MprisService, MprisState } from '../services/mpris/mpris';
 import type { ListenerContext } from './listener-context';
 
 interface CoverPayload {
