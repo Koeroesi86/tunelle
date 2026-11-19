@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WebContents } from 'electron';
-import type { Database } from 'sqlite3';
 import addFoldersToLibrary from '../library/scan/add-folders-to-library';
 import pickFolders from './pick-folders';
+import { fakeDatabase } from '../test-fake-database';
 
 vi.mock('../library/scan/add-folders-to-library', () => ({ default: vi.fn() }));
 
 describe('pickFolders', () => {
-  const database = {} as Database;
+  const database = fakeDatabase();
   const sender = {} as WebContents;
 
   beforeEach(() => vi.mocked(addFoldersToLibrary).mockReset().mockResolvedValue(undefined));

@@ -25,8 +25,9 @@ const createMemoryFs = () => {
   const sync = {
     existsSync: (path: string) => files.has(clean(path)) || folders.has(clean(path)),
     mkdirSync: (path: string) => void parents(clean(path)).forEach((folder) => folders.add(folder)),
-    writeFileSync: (path: string, data: string | Uint8Array) => {
+    writeFileSync: (path: string, data: string | Uint8Array, options?: { flag?: string }) => {
       folderOf(dirname(clean(path)));
+      if (options?.flag === 'wx' && files.has(clean(path))) throw Object.assign(new Error(`EEXIST: file already exists, open '${path}'`), { code: 'EEXIST' });
       files.set(clean(path), content(data));
     },
     readFileSync: (path: string, encoding?: BufferEncoding | { encoding?: BufferEncoding | null }) => {
@@ -55,7 +56,7 @@ const createMemoryFs = () => {
 
   const promises = {
     mkdir: async (path: string) => sync.mkdirSync(path),
-    writeFile: async (path: string, data: string | Uint8Array) => sync.writeFileSync(path, data),
+    writeFile: async (path: string, data: string | Uint8Array, options?: { flag?: string }) => sync.writeFileSync(path, data, options),
     readFile: async (path: string, encoding?: BufferEncoding) => sync.readFileSync(path, encoding),
     rm: async (path: string, options?: { force?: boolean; recursive?: boolean }) => sync.rmSync(path, options),
     readdir: async (path: string) => sync.readdirSync(path),

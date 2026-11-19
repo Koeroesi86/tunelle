@@ -1,8 +1,8 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { memoryFs } from '../test-memory-fs';
 import { createRadioBrowser, toRadioQuery, toSearchParameters } from './radio-browser';
+
+vi.mock('node:fs/promises', () => ({ ...memoryFs.promises, default: memoryFs.promises }));
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
@@ -15,6 +15,8 @@ describe('radio-browser client', () => {
   const fetchMock = vi.fn<typeof fetch>();
 
   beforeEach(() => {
+    memoryFs.reset();
+    memoryFs.sync.mkdirSync('/radio');
     vi.stubGlobal('fetch', fetchMock);
   });
 
@@ -151,7 +153,7 @@ describe('radio-browser client', () => {
     });
 
     it('remembers the mirrors of the DNS for the next start', async () => {
-      const cachePath = join(await mkdtemp(join(tmpdir(), 'radio-')), 'mirrors.json');
+      const cachePath = '/radio/mirrors.json';
       const findMirrors = vi.fn().mockResolvedValueOnce(['https://nl1.api.radio-browser.info']).mockRejectedValue(new Error('no DNS'));
       fetchMock.mockResolvedValue(json({}, 503));
       await createRadioBrowser('Tunelle', undefined, { cachePath, findMirrors })
@@ -317,7 +319,7 @@ describe('radio-browser client', () => {
     });
 
     it('plays the stream it resolved last when the directory can not be asked', async () => {
-      const streamsPath = join(await mkdtemp(join(tmpdir(), 'radio-')), 'streams.json');
+      const streamsPath = '/radio/streams.json';
       const options = { streamsPath, findMirrors: () => Promise.resolve([]) };
       fetchMock.mockResolvedValueOnce(json(servers)).mockResolvedValueOnce(json({ ok: true, url: 'http://stream.example.com/live' }));
       await createRadioBrowser('Tunelle', undefined, options).resolveStream('abc');
@@ -331,8 +333,8 @@ describe('radio-browser client', () => {
     });
 
     it('prefers the answer of the directory to the stored stream', async () => {
-      const streamsPath = join(await mkdtemp(join(tmpdir(), 'radio-')), 'streams.json');
-      await writeFile(streamsPath, JSON.stringify({ abc: 'http://old.example.com/live' }));
+      const streamsPath = '/radio/streams.json';
+      await memoryFs.promises.writeFile(streamsPath, JSON.stringify({ abc: 'http://old.example.com/live' }));
       fetchMock.mockResolvedValueOnce(json(servers)).mockResolvedValueOnce(json({ url: 'http://new.example.com/live' }));
 
       expect(await createRadioBrowser('Tunelle', undefined, { streamsPath }).resolveStream('abc')).toBe('http://new.example.com/live');

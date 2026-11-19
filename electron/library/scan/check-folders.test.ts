@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WebContents } from 'electron';
-import type { Database } from 'sqlite3';
 import checkFolders from './check-folders';
 import { reportOfflineFolders } from '../watch/folder-availability';
 import { checkLibraryWatching, refreshLibraryWatching } from '../watch/library-watching';
 import rescanLibrary from './rescan-library';
+import { fakeDatabase } from '../../test-fake-database';
 
 vi.mock('../watch/folder-availability', () => ({ reportOfflineFolders: vi.fn() }));
 vi.mock('./rescan-library', () => ({ default: vi.fn() }));
 vi.mock('../watch/library-watching', () => ({ refreshLibraryWatching: vi.fn(), checkLibraryWatching: vi.fn() }));
 
 describe('checkFolders', () => {
-  const database = {} as Database;
+  const database = fakeDatabase();
   const sender = {} as WebContents;
 
   beforeEach(() => vi.mocked(rescanLibrary).mockReset());
