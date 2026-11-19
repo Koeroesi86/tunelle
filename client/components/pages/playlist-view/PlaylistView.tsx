@@ -17,7 +17,7 @@ interface PlaylistViewProps {
   playlist?: Playlist;
   playTracks: (tracks: Track[]) => void;
   rename: (id: number, name: string) => void;
-  remove: (id: number) => void;
+  remove: (id: number, deleteFile?: boolean) => void;
   exportPlaylist: (id: number) => void;
   setSync: (id: number, sync: boolean) => void;
   setEncoding: (id: number, encoding?: string) => void;
@@ -181,6 +181,11 @@ const PlaylistView = ({
         confirm={() => {
           setAsking(false);
           remove(playlist.id);
+        }}
+        alternateLabel={t('playlists.deleteWithFile')}
+        alternate={() => {
+          setAsking(false);
+          remove(playlist.id, true);
         }}
         cancel={() => setAsking(false)}
       />

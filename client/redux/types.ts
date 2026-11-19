@@ -163,7 +163,7 @@ export type AppAction =
   | PayloadAction<'OPEN_PLAYLIST', { id: number }>
   | PayloadAction<'CREATE_PLAYLIST', { name: string; tracks?: Track[] }>
   | PayloadAction<'RENAME_PLAYLIST', { id: number; name: string }>
-  | PayloadAction<'DELETE_PLAYLIST', { id: number }>
+  | PayloadAction<'DELETE_PLAYLIST', { id: number; deleteFile?: boolean }>
   | PayloadAction<'EXPORT_PLAYLIST', { id: number }>
   | PayloadAction<'SYNC_PLAYLIST_FILE', { id: number; sync: boolean }>
   | PayloadAction<'SET_PLAYLIST_ENCODING', { id: number; encoding?: string }>

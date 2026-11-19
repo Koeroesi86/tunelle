@@ -9,11 +9,14 @@ interface ConfirmProps {
   /** A message that only has to be read has the one button, the cancel one */
   hideConfirm?: boolean;
   cancelLabel?: string;
+  /** A third button for a second way to go on, between the confirm and the cancel one */
+  alternateLabel?: string;
+  alternate?: MouseEventHandler<HTMLButtonElement>;
   confirm?: MouseEventHandler<HTMLButtonElement>;
   cancel: MouseEventHandler<HTMLButtonElement>;
 }
 
-function Confirm({ message, confirm = () => {}, cancel, confirmLabel, cancelLabel, hideConfirm = false }: ConfirmProps) {
+function Confirm({ message, confirm = () => {}, cancel, confirmLabel, cancelLabel, alternate, alternateLabel, hideConfirm = false }: ConfirmProps) {
   const { t } = useTranslation();
 
   return (
@@ -28,6 +31,11 @@ function Confirm({ message, confirm = () => {}, cancel, confirmLabel, cancelLabe
           {!hideConfirm && (
             <button onClick={confirm} className={style.button}>
               {confirmLabel ?? t('confirm.yes')}
+            </button>
+          )}
+          {alternate && (
+            <button onClick={alternate} className={style.button}>
+              {alternateLabel}
             </button>
           )}
           <button onClick={cancel} className={style.button}>

@@ -234,6 +234,16 @@ describe('PlaylistView', () => {
     expect(screen.queryByText(/comes back/)).toBeNull();
   });
 
+  it('deletes the file too when the dialog is answered with that', () => {
+    const { remove } = renderView({ ...playlist, file: { path: '/music/lists/mix.m3u', sync: true, canUndo: false } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete playlist' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete playlist and file' }));
+
+    expect(remove).toHaveBeenCalledWith(7, true);
+    expect(screen.queryByText(/comes back/)).toBeNull();
+  });
+
   it('keeps a playlist that has a file when the dialog is answered with no', () => {
     const { remove } = renderView({ ...playlist, file: { path: '/music/lists/mix.m3u', sync: true, canUndo: false } });
 

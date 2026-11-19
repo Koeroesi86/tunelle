@@ -5,6 +5,7 @@ import {
   addEntries,
   createPlaylist,
   deletePlaylist,
+  getImportedPlaylists,
   getPlaylists,
   moveEntry,
   movePlaylist,
@@ -16,6 +17,7 @@ import {
 } from '../repositories/playlist-repository';
 import { sendPlaylists } from '../library/playlists/send-playlists';
 import { exportPlaylist, writeBackPlaylist } from '../library/playlists/export-playlist';
+import { retirePlaylistFile } from '../library/playlists/write-playlist-file';
 import { handleWriteFailure } from '../library/playlists/handle-write-failure';
 import { importPlaylistFiles, reimportPlaylistFile } from '../library/playlists/import-playlist-files';
 import { playlistExportFilters, playlistExtensions } from '../library/playlists/playlist-files';
@@ -23,6 +25,7 @@ import { getMainTranslator } from '../language';
 import {
   playlistAddSchema,
   playlistCreateSchema,
+  playlistDeleteSchema,
   playlistEncodingSchema,
   playlistEntrySchema,
   playlistIdSchema,
@@ -52,6 +55,14 @@ const registerPlaylistListeners = (context: ListenerContext) => {
       sender,
       work.then(() => writeBack(sender, id))
     );
+
+  /** The file that the playlist was read from goes (kept as `<file>.bak`); a file that cannot be removed leaves the playlist as it is. See docs/app/playlist-import.md */
+  const removeFile = (id: number, deleteFile: boolean) =>
+    deleteFile
+      ? getImportedPlaylists(database).then((playlists) =>
+          Promise.all(playlists.filter((playlist) => playlist.id === id).map(({ sourcePath }) => retirePlaylistFile(sourcePath)))
+        )
+      : Promise.resolve([]);
 
   ipcMain.on('PLAYLISTS_LOAD', (event) => {
     reply(event.sender, Promise.resolve());
@@ -142,10 +153,13 @@ const registerPlaylistListeners = (context: ListenerContext) => {
   });
 
   ipcMain.on('PLAYLIST_DELETE', (event, payload: unknown) => {
-    const parsed = parsePayload(playlistIdSchema, payload);
+    const parsed = parsePayload(playlistDeleteSchema, payload);
     if (!parsed) return;
 
-    reply(event.sender, deletePlaylist(database, parsed.id));
+    reply(
+      event.sender,
+      removeFile(parsed.id, parsed.deleteFile).then(() => deletePlaylist(database, parsed.id))
+    );
   });
 
   ipcMain.on('PLAYLIST_MOVE', (event, payload: unknown) => {

@@ -54,6 +54,17 @@ describe('Confirm', () => {
     expect(cancel).toHaveBeenCalledOnce();
   });
 
+  it('shows a third button only when it has a handler, and calls it', () => {
+    const alternate = vi.fn();
+    const { rerender } = render(<Confirm message="Sure?" alternateLabel="Both" cancel={() => {}} />);
+    expect(screen.queryByText('Both')).toBeNull();
+
+    rerender(<Confirm message="Sure?" alternateLabel="Both" alternate={alternate} cancel={() => {}} />);
+    fireEvent.click(screen.getByText('Both'));
+
+    expect(alternate).toHaveBeenCalledOnce();
+  });
+
   it('does not throw when confirm is omitted', () => {
     render(<Confirm message="Sure?" cancel={() => {}} />);
 

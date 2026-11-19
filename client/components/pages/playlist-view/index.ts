@@ -12,7 +12,7 @@ const mapState = ({ playlists, uiState }: RootState) => ({
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   playTracks: (tracks: Track[]) => dispatch({ type: 'PLAY_TRACKS', payload: { tracks } }),
   rename: (id: number, name: string) => dispatch({ type: 'RENAME_PLAYLIST', payload: { id, name } }),
-  remove: (id: number) => dispatch({ type: 'DELETE_PLAYLIST', payload: { id } }),
+  remove: (id: number, deleteFile?: boolean) => dispatch({ type: 'DELETE_PLAYLIST', payload: { id, deleteFile } }),
   exportPlaylist: (id: number) => dispatch({ type: 'EXPORT_PLAYLIST', payload: { id } }),
   setSync: (id: number, sync: boolean) => dispatch({ type: 'SYNC_PLAYLIST_FILE', payload: { id, sync } }),
   setEncoding: (id: number, encoding?: string) => dispatch({ type: 'SET_PLAYLIST_ENCODING', payload: { id, encoding } }),

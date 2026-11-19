@@ -25,6 +25,8 @@ const tracks = z
 export const playlistCreateSchema = z.object({ name, tracks });
 export const playlistRenameSchema = z.object({ id, name });
 export const playlistIdSchema = z.object({ id });
+/** The file of a playlist that has one goes with it only when the user asked for that */
+export const playlistDeleteSchema = z.object({ id, deleteFile: z.boolean().default(false) });
 export const playlistMoveSchema = z.object({ id, toIndex: id });
 export const playlistAddSchema = z.object({ id, tracks });
 export const playlistSyncSchema = z.object({ id, sync: z.boolean() });
