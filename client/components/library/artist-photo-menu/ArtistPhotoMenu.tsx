@@ -98,6 +98,7 @@ const ArtistPhotoMenu = ({ failure, candidates, name, searchAllowed, change, sea
               value={query}
               aria-label={t('artistPhoto.searchLabel')}
               onChange={(event) => setQuery(event.target.value)}
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- the person asked for the search, so the field takes the focus
               autoFocus
             />
             <button type="submit" className={style.searchButton}>

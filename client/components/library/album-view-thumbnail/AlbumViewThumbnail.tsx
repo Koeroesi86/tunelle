@@ -37,6 +37,7 @@ const AlbumViewThumbnail = ({ album, offlineFolders, selectAlbum, playAlbum, til
   const tabIndex = tile?.tabIndex;
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the tile holds buttons of its own, so it is a group and not a button. See docs/development/accessibility.md
     <div
       {...tile}
       role="group"

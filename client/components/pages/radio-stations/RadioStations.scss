@@ -230,12 +230,17 @@
 
       .playButton {
         display: inline-flex;
+        padding: 0;
+        border: 0;
+        background: none;
+        cursor: pointer;
         color: var(--text-muted);
         @include hover-hidden;
       }
 
       &:hover .playButton,
-      &.current .playButton {
+      &.current .playButton,
+      .playButton:focus-visible {
         opacity: 1;
       }
 

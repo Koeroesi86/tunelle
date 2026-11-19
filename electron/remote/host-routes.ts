@@ -16,17 +16,25 @@ const send = (response: ServerResponse, status: number, body: unknown = {}, head
   response.end(JSON.stringify(body));
 };
 
-/** The body as JSON, or undefined when it is too long, cut or not JSON: nothing here throws */
-const readJson = async (request: IncomingMessage): Promise<unknown> => {
+const assertShortBody = (length: number) => {
+  if (length > MAX_BODY_BYTES) throw new RangeError('body too long');
+};
+
+const readBody = async (request: IncomingMessage) => {
   const chunks: Buffer[] = [];
   let length = 0;
   for await (const chunk of request) {
     length += chunk.length;
-    if (length > MAX_BODY_BYTES) return undefined;
+    assertShortBody(length);
     chunks.push(chunk);
   }
+  return Buffer.concat(chunks).toString('utf8');
+};
+
+/** The body as JSON, or undefined when it is too long, cut or not JSON: nothing here throws */
+const readJson = async (request: IncomingMessage): Promise<unknown> => {
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    return JSON.parse(await readBody(request));
   } catch {
     return undefined;
   }

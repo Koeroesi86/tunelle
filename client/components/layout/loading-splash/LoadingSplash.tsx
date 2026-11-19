@@ -83,14 +83,16 @@ function LoadingSplash() {
   return (
     <div id="splash" style={style.container}>
       <div style={style.wrapper}>
-        <img src={loading} style={style.logo} />
+        <img src={loading} style={style.logo} alt="" />
         <Wordmark style={style.name} />
         <div id="splash-status" style={style.text} />
         <div id="splash-progress-track" style={style.track} hidden>
           <div id="splash-progress-bar" style={style.bar} />
         </div>
         <div id="splash-actions" style={style.actions}>
+          {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- the preload script sets the text and shows the box; it is hidden until then. See docs/app/startup.md */}
           <button style={style.button} />
+          {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- as the button above */}
           <button style={style.button} />
         </div>
       </div>

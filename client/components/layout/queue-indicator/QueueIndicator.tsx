@@ -29,6 +29,7 @@ function QueueIndicator({ tasks = [] }: QueueIndicatorProps) {
 
   return (
     <div className={style.queueIndicator}>
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- the pill takes the focus so that the keyboard shows the tooltip it describes */}
       <span className={style.pill} tabIndex={0} aria-describedby="background-tasks">
         <span className={style.spinner} aria-hidden="true" />
         {tasks.length === 1 ? label(tasks[0]) : t('backgroundTasks.summary', { count: tasks.length })}

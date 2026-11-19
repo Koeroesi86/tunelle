@@ -110,6 +110,20 @@ export const createHostController = (
     code = undefined;
   };
 
+  const start = async (current: HostSettings) => {
+    access = new ObservedAccess(await store.readDevices(), publish);
+    server = await listen(current);
+    if (nowPlaying) server.setNowPlaying(nowPlaying, trackPath, coverKey);
+    settings = { ...current, port: server.port };
+    await store.saveSettings(settings);
+    // a host on loopback is not reachable from the network, so it is not announced; a failed announcement leaves the host working at its address
+    if (!current.loopbackOnly && code) {
+      advertisement = await advertise({ id: advertisementId(code), name: current.name, port: server.port, version }).catch(
+        (failure: unknown) => (logError(failure), undefined)
+      );
+    }
+  };
+
   const apply = async () => {
     const current = settings ?? (await store.readSettings());
     settings = current;
@@ -118,17 +132,7 @@ export const createHostController = (
     if (!current.enabled) return publish();
 
     try {
-      access = new ObservedAccess(await store.readDevices(), publish);
-      server = await listen(current);
-      if (nowPlaying) server.setNowPlaying(nowPlaying, trackPath, coverKey);
-      settings = { ...current, port: server.port };
-      await store.saveSettings(settings);
-      // a host on loopback is not reachable from the network, so it is not announced; a failed announcement leaves the host working at its address
-      if (!current.loopbackOnly && code) {
-        advertisement = await advertise({ id: advertisementId(code), name: current.name, port: server.port, version }).catch(
-          (failure: unknown) => (logError(failure), undefined)
-        );
-      }
+      await start(current);
     } catch (failure) {
       error = failure instanceof Error ? failure.message : 'The host did not start';
       await stop();

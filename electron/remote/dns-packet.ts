@@ -62,15 +62,17 @@ export const encodeResponse = (records: DnsRecord[], ttl: number) =>
 export const encodeQuery = (name: string, type: number) =>
   Buffer.concat([Buffer.from([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]), encodeName(name), u16(type), u16(1)]);
 
+// a pointer: the name goes on at another place, and a loop of pointers must end
+const readPointer = (message: Buffer, start: number, length: number, jumps: number): { name: string; next: number } => {
+  if (jumps >= MAX_POINTER_JUMPS) throw new RangeError('too many name pointers');
+  return { name: readName(message, ((length & 0x3f) << 8) | message.readUInt8(start + 1), jumps + 1).name, next: start + 2 };
+};
+
 const readName = (message: Buffer, start: number, jumps = 0): { name: string; next: number } => {
   const length = message.readUInt8(start);
 
   if (length === 0) return { name: '', next: start + 1 };
-  if (length >= 0xc0) {
-    // a pointer: the name goes on at another place, and a loop of pointers must end
-    if (jumps >= MAX_POINTER_JUMPS) throw new RangeError('too many name pointers');
-    return { name: readName(message, ((length & 0x3f) << 8) | message.readUInt8(start + 1), jumps + 1).name, next: start + 2 };
-  }
+  if (length >= 0xc0) return readPointer(message, start, length, jumps);
   if (length > 63) throw new RangeError('label too long');
 
   const rest = readName(message, start + length + 1, jumps);
@@ -79,17 +81,19 @@ const readName = (message: Buffer, start: number, jumps = 0): { name: string; ne
   return { name: rest.name ? `${label}.${rest.name}` : label, next: rest.next };
 };
 
+// the first entry of a key counts (RFC 6763)
+const addEntry = (entries: Record<string, string>, text: string) => {
+  const split = text.indexOf('=');
+  const key = split < 0 ? text : text.slice(0, split);
+
+  if (key && !(key in entries)) entries[key] = split < 0 ? '' : text.slice(split + 1);
+};
+
 const readTxt = (message: Buffer, start: number, end: number) => {
   const entries: Record<string, string> = {};
 
-  for (let at = start; at < end; at += message.readUInt8(at) + 1) {
-    const text = message.toString('utf8', at + 1, Math.min(at + 1 + message.readUInt8(at), end));
-    const split = text.indexOf('=');
-    const key = split < 0 ? text : text.slice(0, split);
-
-    // the first entry of a key counts (RFC 6763)
-    if (key && !(key in entries)) entries[key] = split < 0 ? '' : text.slice(split + 1);
-  }
+  for (let at = start; at < end; at += message.readUInt8(at) + 1)
+    addEntry(entries, message.toString('utf8', at + 1, Math.min(at + 1 + message.readUInt8(at), end)));
   return entries;
 };
 
@@ -110,26 +114,30 @@ const readRecord = (message: Buffer, position: number): { record?: DecodedRecord
   return { next: end };
 };
 
+const parseMessage = (message: Buffer): DecodedMessage => {
+  const questionCount = message.readUInt16BE(4);
+  const recordCount = message.readUInt16BE(6) + message.readUInt16BE(8) + message.readUInt16BE(10);
+  const questions: DecodedMessage['questions'] = [];
+  const records: DecodedRecord[] = [];
+  let position = 12;
+
+  for (let index = 0; index < questionCount; index += 1) {
+    const { name, next } = readName(message, position);
+    questions.push({ name, type: message.readUInt16BE(next) });
+    position = next + 4;
+  }
+  for (let index = 0; index < recordCount; index += 1) {
+    const { record, next } = readRecord(message, position);
+    records.push(...(record ? [record] : []));
+    position = next;
+  }
+  return { questions, records };
+};
+
 /** Reads a packet from the network. A packet that is cut or made up is no message: it returns `undefined` and never throws */
 export const decodeMessage = (message: Buffer): DecodedMessage | undefined => {
   try {
-    const questionCount = message.readUInt16BE(4);
-    const recordCount = message.readUInt16BE(6) + message.readUInt16BE(8) + message.readUInt16BE(10);
-    const questions: DecodedMessage['questions'] = [];
-    const records: DecodedRecord[] = [];
-    let position = 12;
-
-    for (let index = 0; index < questionCount; index += 1) {
-      const { name, next } = readName(message, position);
-      questions.push({ name, type: message.readUInt16BE(next) });
-      position = next + 4;
-    }
-    for (let index = 0; index < recordCount; index += 1) {
-      const { record, next } = readRecord(message, position);
-      if (record) records.push(record);
-      position = next;
-    }
-    return { questions, records };
+    return parseMessage(message);
   } catch {
     return undefined;
   }

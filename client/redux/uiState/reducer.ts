@@ -337,8 +337,7 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, tab: action.payload.tab, selectedAlbum: null };
     case 'SET_NAVIGATION_GROUP': {
       const { group, open } = action.payload;
-      if (group === 'library') return { ...state, libraryOpen: open };
-      return group === 'online' ? { ...state, onlineOpen: open } : { ...state, playlistsOpen: open };
+      return group === 'library' ? { ...state, libraryOpen: open } : group === 'online' ? { ...state, onlineOpen: open } : { ...state, playlistsOpen: open };
     }
     case 'PLAYLIST_IMPORT_REPORTED':
       return { ...state, playlistImport: action.payload.reports };

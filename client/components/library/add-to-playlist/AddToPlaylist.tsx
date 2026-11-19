@@ -112,6 +112,7 @@ const AddToPlaylist = ({ source, playlists, add, create, className, tabIndex }: 
           <div
             ref={menu}
             role="menu"
+            tabIndex={-1}
             className={style.menu}
             style={{ ...position, width: menuWidth }}
             onClick={(event) => event.stopPropagation()}
