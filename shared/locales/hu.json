@@ -423,6 +423,8 @@
   "about.releases": "A kiadások oldalának megnyitása",
   "about.ffmpeg": "A Tunelle az FFmpeggel játssza le azokat a formátumokat, amelyeket a böngészőmotor nem tud; az FFmpeg különálló program, LGPL 2.1 vagy újabb licenc alatt.",
   "about.ffmpeg.notice": "FFmpeg közlemény és forráskód",
+  "about.support": "A Tunelle ingyenes, szabadidőben készül. A támogatásod a build szerverekre és a fenntartásra fordított időre megy el.",
+  "about.support.link": "Tunelle támogatása",
   "backgroundTasks.title": "Háttérfeladatok",
   "backgroundTasks.scan": "A könyvtár átvizsgálása",
   "backgroundTasks.watch": "A könyvtármappák figyelése",

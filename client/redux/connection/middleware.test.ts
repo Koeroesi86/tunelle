@@ -223,10 +223,12 @@ describe('connection middleware', () => {
     store.dispatch({ type: 'CHECK_FOR_UPDATES' });
     store.dispatch({ type: 'OPEN_RELEASES' });
     store.dispatch({ type: 'OPEN_FFMPEG_NOTICE' });
+    store.dispatch({ type: 'OPEN_SPONSOR_PAGE' });
 
     expect(send).toHaveBeenCalledWith('CHECK_FOR_UPDATES');
     expect(send).toHaveBeenCalledWith('OPEN_RELEASES');
     expect(send).toHaveBeenCalledWith('OPEN_FFMPEG_NOTICE');
+    expect(send).toHaveBeenCalledWith('OPEN_SPONSOR_PAGE');
   });
 
   it('sends the choice to update at start to the main process', async () => {

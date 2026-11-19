@@ -428,6 +428,8 @@
   "about.releases": "Open the releases page",
   "about.ffmpeg": "Tunelle plays the formats that the browser engine cannot with FFmpeg, a separate program under the LGPL 2.1 or later.",
   "about.ffmpeg.notice": "FFmpeg notice and source",
+  "about.support": "Tunelle is free and made in spare time. Your support pays for the build servers and the time to keep it going.",
+  "about.support.link": "Support Tunelle",
   "backgroundTasks.title": "Background tasks",
   "backgroundTasks.scan": "Scanning the library",
   "backgroundTasks.watch": "Watching the library folders",

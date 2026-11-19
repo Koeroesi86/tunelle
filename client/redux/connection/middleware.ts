@@ -345,6 +345,7 @@ const handleActions = actionMiddleware((store) => [
   onAction('CHECK_FOR_UPDATES', () => send('CHECK_FOR_UPDATES')),
   onAction('OPEN_RELEASES', () => send('OPEN_RELEASES')),
   onAction('OPEN_FFMPEG_NOTICE', () => send('OPEN_FFMPEG_NOTICE')),
+  onAction('OPEN_SPONSOR_PAGE', () => send('OPEN_SPONSOR_PAGE')),
   onAction('CONFIRM_METERED_UPDATE', () => send('CONFIRM_METERED_UPDATE')),
   onAction('CANCEL_METERED_UPDATE', () => send('CANCEL_METERED_UPDATE')),
   onAction('SET_ALLOW_METERED_UPDATES', ({ payload }) => send('SET_ALLOW_METERED_UPDATES', payload)),

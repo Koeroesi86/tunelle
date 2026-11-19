@@ -104,6 +104,12 @@ describe('registerUpdateListeners', () => {
     expect(openExternal).toHaveBeenCalledExactlyOnceWith('https://github.com/Koeroesi86/tunelle/releases');
   });
 
+  it('opens the sponsor page, a fixed address', () => {
+    emit('OPEN_SPONSOR_PAGE');
+
+    expect(openExternal).toHaveBeenCalledExactlyOnceWith('https://github.com/sponsors/Koeroesi86');
+  });
+
   it('opens the notice of the ffmpeg in the resources of the app, a fixed file', () => {
     Object.defineProperty(process, 'resourcesPath', { value: join('app', 'resources'), configurable: true });
     emit('OPEN_FFMPEG_NOTICE');

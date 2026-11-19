@@ -19,6 +19,7 @@ interface AboutProps {
   setAutomatic: (enabled: boolean) => void;
   openReleases: () => void;
   openFfmpegNotice: () => void;
+  openSponsorPage: () => void;
 }
 
 /** The installed version, and where the app updates itself the check for a new one; elsewhere the reason it does not */
@@ -33,6 +34,7 @@ const About = ({
   setAutomatic,
   openReleases,
   openFfmpegNotice,
+  openSponsorPage,
 }: AboutProps) => {
   const { t, language } = useTranslation();
   const [confirming, setConfirming] = useState(false);
@@ -95,6 +97,10 @@ const About = ({
           {action(t('about.ffmpeg.notice'), openFfmpegNotice)}
         </div>
       )}
+      <div className={style.automatic}>
+        <div className={style.status}>{t('about.support')}</div>
+        {action(t('about.support.link'), openSponsorPage)}
+      </div>
       {confirming && (
         <Confirm
           message={t('about.restartPlaying')}

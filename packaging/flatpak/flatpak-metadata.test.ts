@@ -46,6 +46,10 @@ describe('the metainfo of the Flatpak', () => {
     expect(metainfo).toContain(`<url type="vcs-browser">${homepage}</url>`);
   });
 
+  it('offers a donation link for the Donate button of the software centres', () => {
+    expect(metainfo).toContain('<url type="donation">https://github.com/sponsors/Koeroesi86</url>');
+  });
+
   it('shows screenshots that the website publishes', () => {
     const images = [...metainfo.matchAll(/<image [^>]*>([^<]+)<\/image>/g)].map(([, url]) => url);
 

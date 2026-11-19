@@ -23,14 +23,16 @@ const setup = (overrides: Partial<UpdateState> = {}, isPlaying = false) => {
     setAutomatic: vi.fn(),
     openReleases: vi.fn(),
     openFfmpegNotice: vi.fn(),
+    openSponsorPage: vi.fn(),
   };
   render(<About update={{ ...base, ...overrides }} isPlaying={isPlaying} {...handlers} />);
 
   return handlers;
 };
 
-// the notice of the ffmpeg is the one button next to the update ones
+// the notice of the ffmpeg and the support link are the buttons next to the update ones
 const noticeLabel = 'FFmpeg notice and source';
+const supportLabel = 'Support Tunelle';
 const buttonLabels = () => screen.queryAllByRole('button').map((button) => button.textContent);
 
 const withStatus = (status: UpdateStatus) => ({ status });
@@ -49,6 +51,7 @@ describe('About', () => {
         setAutomatic={vi.fn()}
         openReleases={vi.fn()}
         openFfmpegNotice={vi.fn()}
+        openSponsorPage={vi.fn()}
       />
     );
 
@@ -81,6 +84,7 @@ describe('About', () => {
         setAutomatic={vi.fn()}
         openReleases={vi.fn()}
         openFfmpegNotice={vi.fn()}
+        openSponsorPage={vi.fn()}
       />
     );
 
@@ -99,7 +103,7 @@ describe('About', () => {
     setup(withStatus({ kind: 'checking' }));
 
     expect(screen.getByText('Checking for updates...')).toBeTruthy();
-    expect(buttonLabels()).toEqual([noticeLabel]);
+    expect(buttonLabels()).toEqual([noticeLabel, supportLabel]);
   });
 
   it('shows that it is up to date with the time of the check, and offers the check again', () => {
@@ -114,7 +118,7 @@ describe('About', () => {
     setup(withStatus({ kind: 'downloading', version: '26.10.6', percent: 40 }));
 
     expect(screen.getByText('Downloading update 26.10.6... 40%')).toBeTruthy();
-    expect(buttonLabels()).toEqual([noticeLabel]);
+    expect(buttonLabels()).toEqual([noticeLabel, supportLabel]);
   });
 
   it('restarts to install a downloaded update when nothing is playing', () => {
@@ -174,7 +178,7 @@ describe('About', () => {
     setup({ unavailable: 'development' });
 
     expect(screen.getByText('Updates are off in a development run')).toBeTruthy();
-    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryAllByRole('button').map((button) => button.textContent)).toEqual([supportLabel]);
   });
 
   it('turns the update at start off, and the check stays', () => {
@@ -241,6 +245,14 @@ describe('About', () => {
     setup({ unavailable });
 
     expect(screen.queryByRole('switch')).toBeNull();
+  });
+
+  it.each(['development', 'flatpak', undefined] as const)('opens the sponsor page without blocking anything where updates are %s', (unavailable) => {
+    const { openSponsorPage } = setup({ unavailable });
+
+    fireEvent.click(screen.getByText('Support Tunelle'));
+
+    expect(openSponsorPage).toHaveBeenCalledOnce();
   });
 
   it('names the ffmpeg with its license and opens the notice', () => {
