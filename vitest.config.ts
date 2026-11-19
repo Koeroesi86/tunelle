@@ -28,7 +28,7 @@ export default defineConfig({
         'electron/test-memory-fs.ts',
       ],
       // just below the current coverage, so it can not drop; raise them as tests are added
-      thresholds: { statements: 77, branches: 81, functions: 75, lines: 79 },
+      thresholds: { statements: 85, branches: 84, functions: 82, lines: 86 },
       reporter: ['text-summary', 'json-summary', 'lcov'],
     },
     projects: [
