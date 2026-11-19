@@ -32,7 +32,7 @@
     "test:frontend": "vitest run --project frontend",
     "test:integration": "vitest run --project integration",
     "test:timing": "vitest run --project timing",
-    "test:coverage": "vitest run --coverage --project backend --project frontend",
+    "test:coverage": "vitest run --coverage --project backend --project frontend --project integration",
     "lint": "eslint --cache --cache-strategy content --cache-location .cache/eslint/ .",
     "lint:fix": "eslint --fix .",
     "fallow": "fallow",

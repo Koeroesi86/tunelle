@@ -55,6 +55,7 @@ export default defineConfig({
         test: {
           name: 'integration',
           environment: 'node',
+          setupFiles: ['electron/test-utility-process.ts'],
           include: ['electron/**/*.integration.test.ts', 'scripts/**/*.integration.test.ts', '.claude/hooks/*.integration.test.ts'],
           testTimeout: 60_000,
         },

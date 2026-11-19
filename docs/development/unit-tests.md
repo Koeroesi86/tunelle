@@ -12,7 +12,7 @@ What needs the real thing is not a unit test: SQL against SQLite, a scan of real
 
 ## The guard
 
-`scripts/checks/unit-test-isolation.test.ts` fails on a unit test that uses `createTestDatabase`/`sqlite3`, `mkdtemp`/`os.tmpdir()`, `createServer`, `execSync`, `execFileSync` or `spawnSync`, unless `scripts/checks/unit-test-isolation-baseline.json` lists the file. It matches the text, so `import type { Database } from 'sqlite3'` is found too: take the type from the function under test (`Parameters<typeof fn>[0]`) or mock the module. The baseline is the work that is left: a test that is mocked or moved to the integration tier must be removed from it (the guard fails on a stale line too), and a new test is never added to it.
+`scripts/checks/unit-test-isolation.test.ts` fails on a unit test that uses `createTestDatabase`/`sqlite3`, `mkdtemp`/`os.tmpdir()`, `createServer`, `execSync`, `execFileSync` or `spawnSync`, unless `scripts/checks/unit-test-isolation-baseline.json` lists the file. It matches the text, so `import type { Database } from 'sqlite3'` is found too: take the type from the function under test (`Parameters<typeof fn>[0]`) or mock the module. The baseline `scripts/checks/unit-test-isolation-baseline.json` is empty: a new test is never added to it, and a test that breaks the rule is mocked or named `name.integration.test.ts` ([#388](https://github.com/Koeroesi86/tunelle/issues/388)).
 
 ## Why a unit test was slow
 
