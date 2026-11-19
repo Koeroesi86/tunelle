@@ -39,6 +39,7 @@ export default defineConfig({
           environment: 'node',
           setupFiles: ['electron/test-utility-process.ts'],
           include: [
+            'index.test.ts',
             'electron/**/*.test.ts',
             'shared/**/*.test.ts',
             'scripts/**/*.test.ts',
