@@ -2,7 +2,7 @@ import { isFlagSet } from '../schemas/environment';
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { ListenerContext } from './listener-context';
-import { createArtistPhotoQueue } from '../services/artist-photos';
+import { createArtistPhotoQueue } from '../services/artwork/artist-photos';
 import { artistNamesSchema } from '@shared/schemas/requests';
 import { sendIfAlive } from '../utils/send-if-alive';
 import { logError } from '../utils/log-error';

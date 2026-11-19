@@ -2,8 +2,8 @@ import type { Database } from 'sqlite3';
 import type { WebContents } from 'electron';
 import { folderTargetSchema } from '@shared/schemas/requests';
 import { cancelScansInside } from './scan-cancellation';
-import { settlePlaylistsOfRemovedFolder } from '../playlists/imported-playlists';
-import { sendPlaylists } from '../playlists/send-playlists';
+import { settlePlaylistsOfRemovedFolder } from '../playlists/import-export/imported-playlists';
+import { sendPlaylists } from '../playlists/import-export/send-playlists';
 import { refreshLibraryWatching } from '../watch/library-watching';
 import { deleteFolders, deleteTracksInside, getFolders, getFoldersInside } from '../../repositories/library-repository';
 

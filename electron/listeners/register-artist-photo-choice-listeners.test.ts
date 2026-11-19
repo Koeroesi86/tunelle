@@ -20,14 +20,14 @@ vi.mock('electron', () => ({
   BrowserWindow: { fromWebContents: () => undefined },
 }));
 vi.mock('../language', () => ({ getMainTranslator: () => ({ t: (key: string) => key }) }));
-vi.mock('../services/artist-photo-choice', () => ({
+vi.mock('../services/artwork/artist-photo-choice', () => ({
   chooseArtistPhoto: (...args: unknown[]) => choose(...args),
   removeArtistPhoto: (...args: unknown[]) => remove(...args),
   resetArtistPhoto: (...args: unknown[]) => reset(...args),
   readPhotoFile: (...args: unknown[]) => read(...args),
 }));
 
-vi.mock('../services/artist-photos', () => ({
+vi.mock('../services/artwork/artist-photos', () => ({
   getImage: (...args: unknown[]) => getImage(...args),
   searchArtistPhotos: (...args: unknown[]) => searchPhotos(...args),
 }));

@@ -45,15 +45,15 @@ vi.mock('windows-shortcuts-appid', () => ({ default: mocks.shortcuts }));
 vi.mock('fs', () => ({ ...memoryFs.sync, default: memoryFs.sync }));
 vi.mock('./electron/schemas/environment', () => ({ directoryUrlSchema: { parse: (value: string | undefined) => value } }));
 vi.mock('./electron/utils/app-data-path', () => ({ default: vi.fn(() => '/data/tunelle') }));
-vi.mock('./electron/services/update-preference', () => ({
+vi.mock('./electron/services/updates/update-preference', () => ({
   readUpdatePreference: vi.fn(() => ({ automatic: true, allowMetered: false })),
   saveUpdatePreference: vi.fn(),
 }));
-vi.mock('./electron/services/metered-connection', () => ({ isMeteredConnection: vi.fn() }));
-vi.mock('./electron/services/splash-confirm', () => ({ askOnSplash: vi.fn() }));
+vi.mock('./electron/services/updates/metered-connection', () => ({ isMeteredConnection: vi.fn() }));
+vi.mock('./electron/services/updates/splash-confirm', () => ({ askOnSplash: vi.fn() }));
 vi.mock('./electron/utils/user-data', () => ({ copyOldLibrary: vi.fn(), copyOldUserData: vi.fn(() => false), getAppName: vi.fn(() => 'Tunelle') }));
 vi.mock('./electron/windows/create-window', () => ({ default: vi.fn(() => mocks.main) }));
-vi.mock('./electron/services/startup-signal', () => ({ createStartupSignal: vi.fn(() => mocks.startup) }));
+vi.mock('./electron/services/platform/startup-signal', () => ({ createStartupSignal: vi.fn(() => mocks.startup) }));
 vi.mock('./electron/windows/load-page', () => ({ default: vi.fn(async () => undefined) }));
 vi.mock('./electron/database/create-database', () => ({ default: vi.fn(async () => mocks.database) }));
 vi.mock('./electron/utils/library-error-message', () => ({ libraryErrorMessage: vi.fn(() => 'the library can not be opened') }));
@@ -63,12 +63,12 @@ vi.mock('./electron/protocols/tunelle-protocol', () => ({
   registerTunelleScheme: vi.fn(),
   handleTunelleProtocol: vi.fn((deps: Record<string, unknown>) => void mocks.protocolDeps.push(deps)),
 }));
-vi.mock('./electron/services/radio-browser', () => ({ createRadioBrowser: vi.fn(() => ({ resolveStream: vi.fn(), getLogoUrl: vi.fn() })) }));
-vi.mock('./electron/services/radio-art', () => ({ createRadioArt: vi.fn(() => ({ get: vi.fn(), lookup: vi.fn(async () => 'art.png') })) }));
-vi.mock('./electron/services/radio-logos', () => ({ createRadioLogos: vi.fn(() => ({ get: vi.fn() })) }));
+vi.mock('./electron/services/radio/radio-browser', () => ({ createRadioBrowser: vi.fn(() => ({ resolveStream: vi.fn(), getLogoUrl: vi.fn() })) }));
+vi.mock('./electron/services/radio/radio-art', () => ({ createRadioArt: vi.fn(() => ({ get: vi.fn(), lookup: vi.fn(async () => 'art.png') })) }));
+vi.mock('./electron/services/radio/radio-logos', () => ({ createRadioLogos: vi.fn(() => ({ get: vi.fn() })) }));
 vi.mock('./electron/app-user-model-id', () => ({ getAppUserModelId: vi.fn(() => 'io.github.tunelle'), setsAppUserModelId: vi.fn(() => true) }));
 vi.mock('./electron/windows/single-instance', () => ({ holdSingleInstance: vi.fn() }));
-vi.mock('./electron/services/dev-desktop-entry', () => ({ registerDevDesktopEntry: vi.fn(), removeDevDesktopEntry: vi.fn() }));
+vi.mock('./electron/services/platform/dev-desktop-entry', () => ({ registerDevDesktopEntry: vi.fn(), removeDevDesktopEntry: vi.fn() }));
 vi.mock('./electron/database/close-database', () => ({ default: vi.fn(async () => undefined) }));
 vi.mock('./electron/utils/send-if-alive', () => ({ sendIfAlive: vi.fn() }));
 vi.mock('./electron/library/scan/scan-cancellation', () => ({ cancelScans: vi.fn() }));
@@ -78,19 +78,19 @@ vi.mock('./electron/language', () => ({ getMainTranslator: vi.fn(() => ({ t: (ke
 vi.mock('./electron/theme', () => ({ applyThemeMode: vi.fn() }));
 vi.mock('./electron/power/power-state', () => ({ applyPowerSetting: vi.fn(), startPowerState: vi.fn() }));
 vi.mock('./electron/repositories/settings-repository', () => ({ getSettings: vi.fn(async () => ({ language: 'hu' })) }));
-vi.mock('./electron/services/updater', () => ({
+vi.mock('./electron/services/updates/updater', () => ({
   createMockUpdateSource: vi.fn(() => ({ name: 'mock' })),
   getUpdateUnavailableReason: vi.fn(() => undefined),
   inspectAppImage: vi.fn(() => ({ managedByAm: false, writable: true })),
   inspectMacInstall: vi.fn(() => ({ translocated: false, writable: true })),
   runUpdate: vi.fn(async () => undefined),
 }));
-vi.mock('./electron/services/mac-update-source', () => ({
+vi.mock('./electron/services/updates/mac-update-source', () => ({
   bundleOf: vi.fn(() => '/Applications/Tunelle.app'),
   confirmStart: vi.fn(async () => undefined),
   createMacUpdateSource: vi.fn(() => ({ name: 'mac' })),
 }));
-vi.mock('./electron/services/update-manager', () => ({
+vi.mock('./electron/services/updates/update-manager', () => ({
   createUpdateManager: vi.fn((options: Record<string, unknown>) => {
     mocks.manager.push(options);
 
@@ -117,16 +117,16 @@ describe('the start of the app', () => {
       closeDatabase: (await import('./electron/database/close-database')).default,
       setupListeners: (await import('./electron/listeners/setup-listeners')).default,
       userData: await import('./electron/utils/user-data'),
-      updater: await import('./electron/services/updater'),
-      macSource: await import('./electron/services/mac-update-source'),
-      devEntry: await import('./electron/services/dev-desktop-entry'),
+      updater: await import('./electron/services/updates/updater'),
+      macSource: await import('./electron/services/updates/mac-update-source'),
+      devEntry: await import('./electron/services/platform/dev-desktop-entry'),
       singleInstance: await import('./electron/windows/single-instance'),
       loadPage: (await import('./electron/windows/load-page')).default,
       sendIfAlive: (await import('./electron/utils/send-if-alive')).sendIfAlive,
-      metered: await import('./electron/services/metered-connection'),
-      splash: await import('./electron/services/splash-confirm'),
+      metered: await import('./electron/services/updates/metered-connection'),
+      splash: await import('./electron/services/updates/splash-confirm'),
       cancelScans: (await import('./electron/library/scan/scan-cancellation')).cancelScans,
-      radioArt: await import('./electron/services/radio-art'),
+      radioArt: await import('./electron/services/radio/radio-art'),
       appId: await import('./electron/app-user-model-id'),
     };
 
@@ -169,7 +169,7 @@ describe('the start of the app', () => {
       import('./electron/database/create-database'),
       import('./electron/windows/load-page'),
       import('./electron/utils/user-data'),
-      import('./electron/services/mac-update-source'),
+      import('./electron/services/updates/mac-update-source'),
       import('./electron/app-user-model-id'),
     ]);
     vi.mocked(createDatabase).mockResolvedValue(mocks.database as never);
@@ -179,7 +179,7 @@ describe('the start of the app', () => {
     vi.mocked(setsAppUserModelId).mockReturnValue(true);
     mocks.app.commandLine.hasSwitch.mockReturnValue(false);
     // a development run has no update, a packaged one has
-    const { getUpdateUnavailableReason } = await import('./electron/services/updater');
+    const { getUpdateUnavailableReason } = await import('./electron/services/updates/updater');
     vi.mocked(getUpdateUnavailableReason).mockImplementation((isPackaged) => (isPackaged ? undefined : 'development'));
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -424,7 +424,7 @@ describe('the start of the app', () => {
     });
 
     it('saves the choices of the user, and tells the window about the state', async () => {
-      const { saveUpdatePreference } = await import('./electron/services/update-preference');
+      const { saveUpdatePreference } = await import('./electron/services/updates/update-preference');
       await start();
       await started();
       const options = mocks.manager[0] as {
@@ -532,7 +532,7 @@ describe('the start of the app', () => {
 
     it('records the start for the swap script of an update on macOS, and logs it when that fails', async () => {
       platform('darwin');
-      const { confirmStart } = await import('./electron/services/mac-update-source');
+      const { confirmStart } = await import('./electron/services/updates/mac-update-source');
       vi.mocked(confirmStart).mockRejectedValue(new Error('disk full'));
       const modules = await start();
       await started();

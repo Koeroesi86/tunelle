@@ -19,10 +19,10 @@ import {
   undoImport,
 } from '../repositories/playlist-repository';
 import { findTrackFormat } from '../repositories/library-repository';
-import { exportPlaylist, writeBackPlaylist } from '../library/playlists/export-playlist';
-import { importPlaylistFiles, reimportPlaylistFile } from '../library/playlists/import-playlist-files';
-import { retirePlaylistFile } from '../library/playlists/write-playlist-file';
-import { handleWriteFailure } from '../library/playlists/handle-write-failure';
+import { exportPlaylist, writeBackPlaylist } from '../library/playlists/import-export/export-playlist';
+import { importPlaylistFiles, reimportPlaylistFile } from '../library/playlists/import-export/import-playlist-files';
+import { retirePlaylistFile } from '../library/playlists/files/write-playlist-file';
+import { handleWriteFailure } from '../library/playlists/files/handle-write-failure';
 import { fakeDatabase } from '../test-fake-database';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
@@ -36,7 +36,7 @@ vi.mock('electron', () => ({
   app: { getLocale: () => 'en-US' },
   dialog: { showOpenDialog: vi.fn(), showSaveDialog: vi.fn(), showMessageBox: vi.fn() },
 }));
-vi.mock('../library/playlists/import-playlist-files', () => ({ importPlaylistFiles: vi.fn(), reimportPlaylistFile: vi.fn() }));
+vi.mock('../library/playlists/import-export/import-playlist-files', () => ({ importPlaylistFiles: vi.fn(), reimportPlaylistFile: vi.fn() }));
 vi.mock('../repositories/playlist-repository', () => ({
   addEntries: vi.fn(),
   createPlaylist: vi.fn(),
@@ -51,9 +51,9 @@ vi.mock('../repositories/playlist-repository', () => ({
   removeEntry: vi.fn(),
   renamePlaylist: vi.fn(),
 }));
-vi.mock('../library/playlists/handle-write-failure', () => ({ handleWriteFailure: vi.fn().mockResolvedValue(undefined) }));
-vi.mock('../library/playlists/write-playlist-file', () => ({ retirePlaylistFile: vi.fn() }));
-vi.mock('../library/playlists/export-playlist', () => ({ exportPlaylist: vi.fn(), writeBackPlaylist: vi.fn() }));
+vi.mock('../library/playlists/files/handle-write-failure', () => ({ handleWriteFailure: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../library/playlists/files/write-playlist-file', () => ({ retirePlaylistFile: vi.fn() }));
+vi.mock('../library/playlists/import-export/export-playlist', () => ({ exportPlaylist: vi.fn(), writeBackPlaylist: vi.fn() }));
 vi.mock('../repositories/library-repository', () => ({ findTrackFormat: vi.fn(), getTrackListByPaths: vi.fn().mockResolvedValue([]) }));
 
 const track = { path: '/music/a.flac', title: 'A' };

@@ -1,6 +1,6 @@
 # Artist photos
 
-The photo of an artist or album artist is found once on Deezer (`electron/services/artist-photos.ts`) and can be changed by the user (`electron/services/artist-photo-choice.ts`). Both are kept in `artist_photos` (migrations 010 and 016), by the name as the library compares it, and the file is in the `albumart/` folder next to the covers (`artist-<hash of the name>…`).
+The photo of an artist or album artist is found once on Deezer (`electron/services/artwork/artist-photos.ts`) and can be changed by the user (`electron/services/artwork/artist-photo-choice.ts`). Both are kept in `artist_photos` (migrations 010 and 016), by the name as the library compares it, and the file is in the `albumart/` folder next to the covers (`artist-<hash of the name>…`).
 
 ## What the user can do
 

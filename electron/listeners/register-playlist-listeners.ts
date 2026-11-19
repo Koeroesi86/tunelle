@@ -15,12 +15,12 @@ import {
   setPlaylistSync,
   undoImport,
 } from '../repositories/playlist-repository';
-import { sendPlaylists } from '../library/playlists/send-playlists';
-import { exportPlaylist, writeBackPlaylist } from '../library/playlists/export-playlist';
-import { retirePlaylistFile } from '../library/playlists/write-playlist-file';
-import { handleWriteFailure } from '../library/playlists/handle-write-failure';
-import { importPlaylistFiles, reimportPlaylistFile } from '../library/playlists/import-playlist-files';
-import { playlistExportFilters, playlistExtensions } from '../library/playlists/playlist-files';
+import { sendPlaylists } from '../library/playlists/import-export/send-playlists';
+import { exportPlaylist, writeBackPlaylist } from '../library/playlists/import-export/export-playlist';
+import { retirePlaylistFile } from '../library/playlists/files/write-playlist-file';
+import { handleWriteFailure } from '../library/playlists/files/handle-write-failure';
+import { importPlaylistFiles, reimportPlaylistFile } from '../library/playlists/import-export/import-playlist-files';
+import { playlistExportFilters, playlistExtensions } from '../library/playlists/files/playlist-files';
 import { getMainTranslator } from '../language';
 import {
   playlistAddSchema,

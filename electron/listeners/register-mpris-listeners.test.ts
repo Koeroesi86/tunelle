@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IpcMainEvent } from 'electron';
-import type { MprisCommand, MprisState } from '../services/mpris';
+import type { MprisCommand, MprisState } from '../services/mpris/mpris';
 import type { ListenerContext } from './listener-context';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => void;
@@ -23,8 +23,11 @@ vi.mock('electron', () => ({
   },
   ipcMain: { on: (channel: string, listener: (...args: unknown[]) => void) => mocks.listeners.set(channel, listener) },
 }));
-vi.mock('../services/mpris', async (importOriginal) => ({ ...(await importOriginal<typeof import('../services/mpris')>()), startMpris: mocks.startMpris }));
-vi.mock('../services/mpris-cover', () => ({ coverFolder: mocks.coverFolder, createCoverFiles: () => ({ write: mocks.write, clear: mocks.clear }) }));
+vi.mock('../services/mpris/mpris', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../services/mpris/mpris')>()),
+  startMpris: mocks.startMpris,
+}));
+vi.mock('../services/mpris/mpris-cover', () => ({ coverFolder: mocks.coverFolder, createCoverFiles: () => ({ write: mocks.write, clear: mocks.clear }) }));
 
 const event = {} as IpcMainEvent;
 const track = { title: 'Song', artist: 'Artist', album: 'Album', duration: 200, coverUrl: undefined };

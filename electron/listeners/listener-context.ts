@@ -1,8 +1,8 @@
 import type { Database } from 'sqlite3';
 import type { AppWindows } from '@shared/types/global';
-import type { RadioArt } from '../services/radio-art';
-import type { RadioBrowser } from '../services/radio-browser';
-import type { UpdateManager } from '../services/update-manager';
+import type { RadioArt } from '../services/radio/radio-art';
+import type { RadioBrowser } from '../services/radio/radio-browser';
+import type { UpdateManager } from '../services/updates/update-manager';
 import type { registerLoudness } from '../library/loudness/loudness-source';
 
 export interface ListenerContext {

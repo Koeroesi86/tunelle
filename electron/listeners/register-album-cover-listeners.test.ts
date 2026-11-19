@@ -21,13 +21,13 @@ vi.mock('electron', () => ({
   BrowserWindow: { fromWebContents: () => undefined },
 }));
 vi.mock('../language', () => ({ getMainTranslator: () => ({ t: (key: string) => key }) }));
-vi.mock('../services/album-cover-choice', () => ({
+vi.mock('../services/artwork/album-cover-choice', () => ({
   chooseAlbumCover: (...args: unknown[]) => choose(...args),
   removeAlbumCover: (...args: unknown[]) => remove(...args),
   resetAlbumCover: (...args: unknown[]) => reset(...args),
 }));
-vi.mock('../services/artist-photos', () => ({ getImage: (...args: unknown[]) => getImage(...args) }));
-vi.mock('../services/artist-photo-choice', () => ({ readPhotoFile: (...args: unknown[]) => read(...args) }));
+vi.mock('../services/artwork/artist-photos', () => ({ getImage: (...args: unknown[]) => getImage(...args) }));
+vi.mock('../services/artwork/artist-photo-choice', () => ({ readPhotoFile: (...args: unknown[]) => read(...args) }));
 vi.mock('../library/art/album-art-accents', () => ({ queueAlbumArtAccents: (...args: unknown[]) => queueAccents(...args) }));
 vi.mock('../utils/log-error', () => ({ logError: vi.fn() }));
 

@@ -1,6 +1,6 @@
 # Importing playlist files
 
-Playlist files (`.m3u`, `.m3u8`, `.pls`, `.xspf`) become playlists of the app, in two ways that share one code path (`electron/library/playlists/import-playlist-files.ts`): the scan of a library folder finds them, and the arrow button next to the plus of the playlists in the sidebar (`PLAYLIST_IMPORT`) opens a file dialog for files anywhere. The decisions are in issue 129.
+Playlist files (`.m3u`, `.m3u8`, `.pls`, `.xspf`) become playlists of the app, in two ways that share one code path (`electron/library/playlists/import-export/import-playlist-files.ts`): the scan of a library folder finds them, and the arrow button next to the plus of the playlists in the sidebar (`PLAYLIST_IMPORT`) opens a file dialog for files anywhere. The decisions are in issue 129.
 
 ## What is read
 
