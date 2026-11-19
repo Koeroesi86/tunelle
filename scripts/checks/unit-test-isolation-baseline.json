@@ -1,11 +1,4 @@
 [
-  "electron/database/backfill-sort-keys.test.ts",
-  "electron/database/backup-library.test.ts",
-  "electron/database/create-database.test.ts",
-  "electron/database/execute-queries.test.ts",
-  "electron/database/execute-query.test.ts",
-  "electron/database/migrate.test.ts",
-  "electron/database/migrations.test.ts",
   "electron/library/art/album-art-accents.test.ts",
   "electron/library/loudness/album-gains.test.ts",
   "electron/library/loudness/loudness-source.test.ts",
