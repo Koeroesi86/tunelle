@@ -27,6 +27,10 @@ const createWindow = () => {
     webPreferences: {
       backgroundThrottling: false,
       preload: resolve(__dirname, '../preload.js'),
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+      disableBlinkFeatures: 'Auxclick',
       additionalArguments: getBackdropArguments(backdrop),
     },
   });

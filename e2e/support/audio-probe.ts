@@ -20,7 +20,7 @@ export interface Probe {
 declare global {
   interface Window {
     audioProbe?: Probe;
-    /** Makes the probe listen or not: a worklet that is pulled wakes the page about fifty times a second, which a measurement of the idle processor must not include */
+    /** Makes the probe listen or not: a processor that is pulled wakes the page about fifty times a second, which a measurement of the idle processor must not include */
     listenWithProbe?: (listening: boolean) => void;
   }
 }
@@ -29,46 +29,12 @@ export const installAudioProbe = () => {
   const probe: Probe = { sampleRate: 0, windows: [] };
   window.audioProbe = probe;
   let listening = true;
-  const connected = new Set<{ node: AudioWorkletNode; context: AudioContext }>();
+  const connected = new Set<{ node: ScriptProcessorNode; context: BaseAudioContext }>();
   window.listenWithProbe = (on) => {
     listening = on;
-    // the worklet is only pulled when it leads to the destination
+    // the processor is only pulled when it leads to the destination
     connected.forEach(({ node, context }) => Reflect.apply(on ? originalConnect : originalDisconnect, node, [context.destination]));
   };
-
-  const processorSource = `
-    registerProcessor('probe', class extends AudioWorkletProcessor {
-      constructor() {
-        super();
-        this.length = 1024;
-        this.reset(currentFrame);
-        this.last = 0;
-      }
-      reset(frame) {
-        this.frame = frame;
-        this.frames = 0;
-        this.sumOfSquares = 0;
-        this.peak = 0;
-        this.crossings = 0;
-      }
-      process(inputs) {
-        const channel = inputs[0][0];
-        for (let index = 0; index < 128; index += 1) {
-          const sample = channel ? channel[index] : 0;
-          this.sumOfSquares += sample * sample;
-          this.peak = Math.max(this.peak, Math.abs(sample));
-          if (this.last < 0 && sample >= 0) this.crossings += 1;
-          this.last = sample;
-        }
-        this.frames += 128;
-        if (this.frames >= this.length) {
-          this.port.postMessage({ frame: this.frame, frames: this.frames, rms: Math.sqrt(this.sumOfSquares / this.frames), peak: this.peak, crossings: this.crossings });
-          this.reset(currentFrame + 128);
-        }
-        return true;
-      }
-    });
-  `;
 
   const originalConnect = AudioNode.prototype.connect;
   const originalDisconnect = AudioNode.prototype.disconnect;
@@ -82,17 +48,25 @@ export const installAudioProbe = () => {
     const bus = context.createGain();
     buses.set(context, bus);
     probe.sampleRate = context.sampleRate;
-    const module = URL.createObjectURL(new Blob([processorSource], { type: 'text/javascript' }));
-    if (context instanceof AudioContext) {
-      context.audioWorklet.addModule(module).then(() => {
-        const node = new AudioWorkletNode(context, 'probe', { numberOfOutputs: 1, outputChannelCount: [1] });
-        node.port.onmessage = ({ data }) => probe.windows.push(data);
-        // the worklet is only pulled when it leads to the destination; it makes no sound itself
-        Reflect.apply(originalConnect, bus, [node]);
-        connected.add({ node, context });
-        if (listening) Reflect.apply(originalConnect, node, [context.destination]);
+    if (!(context instanceof AudioContext)) return bus;
+
+    const windowLength = 1024;
+    // a script processor needs no module, which the policy of the page (script-src 'self') would refuse a worklet to load from a blob
+    const node = context.createScriptProcessor(windowLength, 2, 1);
+    node.onaudioprocess = ({ inputBuffer, playbackTime }) => {
+      const channel = inputBuffer.getChannelData(0);
+      const samples = Array.from(channel);
+      probe.windows.push({
+        frame: Math.round(playbackTime * context.sampleRate),
+        frames: samples.length,
+        rms: Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length),
+        peak: samples.reduce((peak, sample) => Math.max(peak, Math.abs(sample)), 0),
+        crossings: samples.filter((sample, index) => sample >= 0 && (samples[index - 1] ?? 0) < 0).length,
       });
-    }
+    };
+    Reflect.apply(originalConnect, bus, [node]);
+    connected.add({ node, context });
+    if (listening) Reflect.apply(originalConnect, node, [context.destination]);
     return bus;
   };
 

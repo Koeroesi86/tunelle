@@ -1,5 +1,5 @@
 import path from 'path';
-import { protocol } from 'electron';
+import { protocol, session } from 'electron';
 import type { Database } from 'sqlite3';
 import { resolveAlbumArt } from '../library/art/album-art';
 import { getCoverAccent } from '../library/art/album-art-accents';
@@ -88,4 +88,20 @@ export const handleTunelleRequest = (deps: TunelleDeps) => async (request: Reque
   return allowDevOrigin(request, response, deps.devOrigin);
 };
 
-export const handleTunelleProtocol = (deps: TunelleDeps) => protocol.handle(scheme, handleTunelleRequest(deps));
+/** The policy is set on the response of the page where Electron lets every response be changed, which is also where Electronegativity looks for one */
+const watchPageHeaders = () =>
+  session.defaultSession.webRequest.onHeadersReceived({ urls: [`${tunelleOrigin}/`, `${tunelleOrigin}/index.html`] }, (details, callback) =>
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
+        ],
+      },
+    })
+  );
+
+export const handleTunelleProtocol = (deps: TunelleDeps) => {
+  watchPageHeaders();
+  protocol.handle(scheme, handleTunelleRequest(deps));
+};
