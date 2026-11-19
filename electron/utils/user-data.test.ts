@@ -67,6 +67,11 @@ describe.each([
 });
 
 describe('copyOldLibrary into the folder that Electron data created', () => {
+  beforeEach(() => {
+    cpSync.mockReset();
+    exist();
+  });
+
   it('copies when only the library is missing, which is the same folder on macOS and Windows', () => {
     exist('/data/electron-music-player', '/data/tunelle');
 

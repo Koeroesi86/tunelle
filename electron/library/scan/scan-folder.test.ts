@@ -48,6 +48,7 @@ const file = (name: string, extra: Partial<Entry> = {}): Entry => ({ name, kind:
 const meta = (name: string, codec = 'flac') => ({ path: name, codec, title: name });
 const posix = (value: string) => value.replaceAll('\\', '/');
 const stored = () => vi.mocked(addTracks).mock.calls.flatMap(([, tracks]) => tracks.map((track) => posix(track.path)));
+/** The library stores a path with forward slashes, a file found on disk has the separator of the system */
 const inMusic = (...names: string[]) => path.join('/music', ...names);
 
 describe('scanFolder', () => {
@@ -111,7 +112,7 @@ describe('scanFolder', () => {
   });
 
   it('does not read a file again when its time and size are the ones stored', async () => {
-    vi.mocked(getTracksInside).mockResolvedValue([{ path: inMusic('a.flac'), fileModified: 1000, fileSize: 10 }] as never);
+    vi.mocked(getTracksInside).mockResolvedValue([{ path: '/music/a.flac', fileModified: 1000, fileSize: 10 }] as never);
 
     await scanFolder('/music', sender);
 
@@ -128,7 +129,7 @@ describe('scanFolder', () => {
   });
 
   it('tells the window about the files, the folders and the tracks stored, and counts added and updated tracks', async () => {
-    vi.mocked(getTracksInside).mockResolvedValue([{ path: inMusic('a.flac'), fileModified: 1, fileSize: 1 }] as never);
+    vi.mocked(getTracksInside).mockResolvedValue([{ path: '/music/a.flac', fileModified: 1, fileSize: 1 }] as never);
 
     await scanFolder('/music', sender);
 

@@ -1,8 +1,23 @@
-import { describe, expect, it } from 'vitest';
-import { cancelScans, cancelScansInside, quitSignal, trackScan } from './scan-cancellation';
-import { backgroundQueue, scanKind } from '../tasks/background-queue';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+type Cancellation = typeof import('./scan-cancellation');
+type Queue = typeof import('../tasks/background-queue');
 
 describe('scanCancellation', () => {
+  let cancelScans: Cancellation['cancelScans'];
+  let cancelScansInside: Cancellation['cancelScansInside'];
+  let quitSignal: Cancellation['quitSignal'];
+  let trackScan: Cancellation['trackScan'];
+  let backgroundQueue: Queue['backgroundQueue'];
+  let scanKind: Queue['scanKind'];
+
+  // the quit signal and the running scans are state of the module, so each test gets a new one
+  beforeEach(async () => {
+    vi.resetModules();
+    ({ cancelScans, cancelScansInside, quitSignal, trackScan } = await import('./scan-cancellation'));
+    ({ backgroundQueue, scanKind } = await import('../tasks/background-queue'));
+  });
+
   it('stops the scans of a folder that is removed, and of the folders around it, not of another', () => {
     const inside = trackScan('/music/jazz/live');
     const same = trackScan('/music/jazz');
