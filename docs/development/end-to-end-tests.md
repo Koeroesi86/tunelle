@@ -36,3 +36,11 @@ The window opens as soon as the app is ready, before the library is open, so `la
 - Check that `build/` exists: the page is served from it, and without it the window shows an empty document (`#root` and `#splash` both missing, one 404 in the console). `npm run build` brings it back.
 - A launch from a script needs `ELECTRON_RUN_AS_NODE` left out of the environment (`electron.launch` fails with "bad option: --remote-debugging-port=0").
 - To see what the main process receives, append to a file from the handler (`fs.appendFileSync`): the output of the app is not forwarded by `electron.launch`. Take it out again.
+
+## A count of what happened first, read after the fact
+
+- **Symptom:** `loudness.spec.ts` "measures a track that is queued before the ones that come first in the library" failed on macOS with `Expected: <= 3, Received: 4`, and passed on Linux and Windows.
+- **Cause:** the test counted the other tracks that had a gain when the poll saw the queued one. The default poll waits up to a second between reads and a measurement with its cool-down takes about as long, so a slow poll saw the count of a later moment. The count also took in tracks that were measured before the message was sent.
+- **Fix:** count only what was measured since the message, poll every 50 ms and read the queued track before the others, so the count is the one of the moment it was measured. Without the queue the count is the number of the other tracks (6 of 7 in a check by hand), with it 2 at most.
+- **Check:** `npm run build`, then `npx playwright test --project=e2e e2e/functional/loudness.spec.ts -g "queued before" --repeat-each 3`; sending `paths: []` instead of the track must fail it.
+- **Rule:** when a test asserts on an order or a count of things that happen over time, read the state at the moment the first one is seen, not at the time of a slow poll.
