@@ -25,7 +25,8 @@ const listFiles = (folder: string): string[] =>
     return entry.isDirectory() ? (entry.name === 'node_modules' ? [] : listFiles(path)) : [path];
   });
 
-export const usesRealWorld = (text: string) => realWorld.some(({ pattern, modules }) => pattern.test(text) && !modules.some((module) => isReplaced(text, module)));
+export const usesRealWorld = (text: string) =>
+  realWorld.some(({ pattern, modules }) => pattern.test(text) && !modules.some((module) => isReplaced(text, module)));
 
 /** The unit tests that use a real database, folder, server or process, as paths from the root */
 export const findRealWorldTests = (): string[] =>
