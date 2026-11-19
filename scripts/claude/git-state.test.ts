@@ -25,7 +25,16 @@ describe('trimIssue', () => {
     const trimmed = trimIssue(body, 5, 100).split('\n');
 
     expect(trimmed).toEqual(['## Problem', 'line', 'line', 'line', 'line', '## How to check', 'run it']);
+    expect(trimIssue(body, 5, 100)).not.toContain('template');
     expect(trimIssue(body, 5, 3).split('\n')).toHaveLength(3);
+  });
+});
+
+describe('trimIssue comments', () => {
+  it('drops a comment over several lines and one that is not closed on its line', () => {
+    const body = '## Problem\n<!-- hint\nmore hint\n-->\nreal\n<<!-- x -->!-- y -->\nlast';
+
+    expect(trimIssue(body)).toBe('## Problem\nreal\nlast');
   });
 });
 

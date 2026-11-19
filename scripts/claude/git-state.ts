@@ -35,9 +35,21 @@ const summariseChecks = (checks: Check[]) => {
   return [`${passed} passed`, `${failed.length} failed${failed.length ? ` (${failed.join(', ')})` : ''}`, `${pending} pending`].join(', ');
 };
 
+// drops the lines of an HTML comment (of a line holding one, to the line that closes it), as the issue forms leave their hints in
+const withoutComments = (text: string) =>
+  text
+    .split('\n')
+    .reduce<{ open: boolean; kept: string[] }>(
+      (state, line) => ({
+        open: (state.open || line.includes('<!--')) && !line.includes('-->'),
+        kept: state.open || line.includes('<!--') ? state.kept : [...state.kept, line],
+      }),
+      { open: false, kept: [] }
+    )
+    .kept.join('\n');
+
 const trimIssue = (body: string, perSection = 12, total = 60) =>
-  body
-    .replace(/<!--[\s\S]*?-->/g, '')
+  withoutComments(body)
     .split(/^(?=#{1,4} )/m)
     .map((section) => section.trim().split('\n').filter(Boolean).slice(0, perSection).join('\n'))
     .filter(Boolean)
