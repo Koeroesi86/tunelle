@@ -60,6 +60,22 @@ const createMemoryFs = () => {
     readFile: async (path: string, encoding?: BufferEncoding) => sync.readFileSync(path, encoding),
     rm: async (path: string, options?: { force?: boolean; recursive?: boolean }) => sync.rmSync(path, options),
     readdir: async (path: string) => sync.readdirSync(path),
+    access: async (path: string) =>
+      void (
+        sync.existsSync(path) ||
+        (() => {
+          throw missing(path);
+        })()
+      ),
+    rename: async (from: string, to: string) => {
+      const data = sync.readFileSync(from);
+      sync.writeFileSync(to, data);
+      sync.rmSync(from);
+    },
+    open: async (path: string) => {
+      const data = sync.readFileSync(path);
+      return { stat: async () => ({ size: data.length }), readFile: async () => data, close: async () => undefined };
+    },
   };
 
   const reset = () => {
