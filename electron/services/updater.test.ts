@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events';
-import { chmod, mkdir, mkdtemp, rm, writeFile } from 'fs/promises';
-import { tmpdir } from 'os';
 import { join } from 'path';
+import { memoryFs } from '../test-memory-fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   checkForUpdate,
@@ -14,6 +13,16 @@ import {
   runUpdate,
 } from './updater';
 import type { UpdateSource } from './updater';
+
+const readOnly = vi.hoisted(() => new Set<string>());
+
+vi.mock('fs', () => ({
+  ...memoryFs.sync,
+  constants: { W_OK: 2 },
+  accessSync: (path: string) => {
+    if (readOnly.has(path) || !memoryFs.sync.existsSync(path)) throw new Error('EACCES');
+  },
+}));
 
 const createSource = (check: UpdateSource['checkForUpdates'], download: UpdateSource['downloadUpdate'] = () => Promise.resolve()) => {
   const source: UpdateSource = Object.assign(new EventEmitter(), {
@@ -325,40 +334,38 @@ describe('getUpdateUnavailableReason', () => {
 });
 
 describe('inspectAppImage', () => {
-  let folder: string;
+  const folder = '/apps';
 
-  beforeEach(async () => {
-    folder = await mkdtemp(join(tmpdir(), 'tunelle-appimage-'));
-    await writeFile(join(folder, 'tunelle'), '');
-  });
-
-  afterEach(async () => {
-    await chmod(folder, 0o755);
-    await rm(folder, { recursive: true, force: true });
+  beforeEach(() => {
+    memoryFs.reset();
+    memoryFs.sync.mkdirSync(folder);
+    memoryFs.sync.writeFileSync(join(folder, 'tunelle'), '');
+    readOnly.clear();
   });
 
   it('finds an AppImage that nothing manages, in a folder that can be written to', () => {
     expect(inspectAppImage(join(folder, 'tunelle'))).toEqual({ managedByAm: false, writable: true });
   });
 
-  it('finds the updater AM keeps next to the AppImage it installed', async () => {
-    await writeFile(join(folder, 'AM-updater'), '');
+  it('finds the updater AM keeps next to the AppImage it installed', () => {
+    memoryFs.sync.writeFileSync(join(folder, 'AM-updater'), '');
 
     expect(inspectAppImage(join(folder, 'tunelle')).managedByAm).toBe(true);
   });
 
-  // a folder owned by root is not writable for the user, which a test running as root can not show
-  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)('finds a folder that can not be written to', async () => {
-    await mkdir(join(folder, 'sub'));
-    await writeFile(join(folder, 'sub/tunelle'), '');
-    await chmod(join(folder, 'sub'), 0o555);
+  it('finds a folder that can not be written to', () => {
+    readOnly.add(folder);
 
-    expect(inspectAppImage(join(folder, 'sub/tunelle')).writable).toBe(false);
-    await chmod(join(folder, 'sub'), 0o755);
+    expect(inspectAppImage(join(folder, 'tunelle')).writable).toBe(false);
   });
 });
 
 describe('inspectMacInstall', () => {
+  beforeEach(() => {
+    memoryFs.reset();
+    readOnly.clear();
+  });
+
   it.each([
     ['/Applications/Tunelle.app', false],
     ['/Users/me/Applications/Tunelle.app', false],
@@ -368,14 +375,13 @@ describe('inspectMacInstall', () => {
     expect(inspectMacInstall(bundle).translocated).toBe(translocated);
   });
 
-  it('finds a folder that can be written to', async () => {
-    const folder = await mkdtemp(join(tmpdir(), 'tunelle-mac-install-'));
+  it('finds a folder that can be written to', () => {
+    memoryFs.sync.mkdirSync('/Applications');
 
-    expect(inspectMacInstall(join(folder, 'Tunelle.app')).writable).toBe(true);
-    await rm(folder, { recursive: true, force: true });
+    expect(inspectMacInstall('/Applications/Tunelle.app').writable).toBe(true);
   });
 
   it('finds a folder that does not exist as not writable', () => {
-    expect(inspectMacInstall(join(tmpdir(), 'tunelle-missing-folder', 'Tunelle.app')).writable).toBe(false);
+    expect(inspectMacInstall('/missing-folder/Tunelle.app').writable).toBe(false);
   });
 });
