@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
+import fs from 'fs';
 import { join } from 'path';
-import { afterEach, describe, expect, it } from 'vitest';
-import { mergeArtifacts, mergeUpdateFiles, splitEntries } from './merge-update-files';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { memoryFs, spyOnFs } from '../../electron/test-memory-fs';
+import { mergeUpdateFiles, splitEntries } from './merge-update-files';
 
 const metadata = (version: string, installer: string, size: number) => `version: ${version}
 files:
@@ -62,12 +62,17 @@ releaseDate: '2026-10-26T06:00:00.000Z'
 });
 
 describe('mergeArtifacts', () => {
-  const folders: string[] = [];
-  afterEach(() => folders.splice(0).forEach((folder) => rmSync(folder, { recursive: true, force: true })));
+  let mergeArtifacts: (typeof import('./merge-update-files'))['mergeArtifacts'];
+
+  beforeEach(async () => {
+    memoryFs.reset();
+    spyOnFs(fs);
+    vi.resetModules();
+    ({ mergeArtifacts } = await import('./merge-update-files'));
+  });
 
   it('copies the installers and merges the update files of the same name', () => {
-    const root = mkdtempSync(join(tmpdir(), 'tunelle-merge-'));
-    folders.push(root);
+    const root = '/merge';
     const artifacts = join(root, 'artifacts');
     const release = join(root, 'release');
     const files = {
@@ -76,16 +81,16 @@ describe('mergeArtifacts', () => {
       'dist-linux-arm64': { 'latest-linux-arm64.yml': metadata('26.10.1', 'a-arm64.AppImage', 7) },
     };
     Object.entries(files).forEach(([folder, content]) => {
-      mkdirSync(join(artifacts, folder), { recursive: true });
-      Object.entries(content).forEach(([name, text]) => writeFileSync(join(artifacts, folder, name), text));
+      memoryFs.sync.mkdirSync(join(artifacts, folder));
+      Object.entries(content).forEach(([name, text]) => memoryFs.sync.writeFileSync(join(artifacts, folder, name), text));
     });
 
     const names = mergeArtifacts(artifacts, release);
 
     expect(names.sort()).toEqual(['latest-linux-arm64.yml', 'latest.yml']);
-    expect(readFileSync(join(release, 'latest.yml'), 'utf8')).toMatch(/url: a-x64\.exe[\s\S]*url: a-arm64\.exe[\s\S]*path: a-x64\.exe/);
-    expect(existsSync(join(release, 'a-x64.exe'))).toBe(true);
-    expect(existsSync(join(release, 'a-arm64.exe'))).toBe(true);
-    expect(readFileSync(join(release, 'latest-linux-arm64.yml'), 'utf8')).toBe(metadata('26.10.1', 'a-arm64.AppImage', 7));
+    expect(memoryFs.sync.readFileSync(join(release, 'latest.yml'), 'utf8')).toMatch(/url: a-x64\.exe[\s\S]*url: a-arm64\.exe[\s\S]*path: a-x64\.exe/);
+    expect(memoryFs.sync.existsSync(join(release, 'a-x64.exe'))).toBe(true);
+    expect(memoryFs.sync.existsSync(join(release, 'a-arm64.exe'))).toBe(true);
+    expect(memoryFs.sync.readFileSync(join(release, 'latest-linux-arm64.yml'), 'utf8')).toBe(metadata('26.10.1', 'a-arm64.AppImage', 7));
   });
 });

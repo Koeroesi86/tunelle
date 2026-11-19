@@ -1,4 +1,4 @@
-import { dirname, resolve, sep } from 'path';
+import { dirname, join, resolve, sep } from 'path';
 import { vi } from 'vitest';
 
 const missing = (path: string) => Object.assign(new Error(`ENOENT: no such file or directory, '${path}'`), { code: 'ENOENT' });
@@ -59,16 +59,21 @@ const createMemoryFs = () => {
 
       return { size: data?.length ?? 0, mtimeMs: modified.get(target) ?? 0, isFile: () => data !== undefined, isDirectory: () => data === undefined };
     },
-    readdirSync: (path: string) => {
+    readdirSync: (path: string, options?: { withFileTypes?: boolean }) => {
       const folder = folderOf(path);
       const prefix = folder.endsWith(sep) ? folder : `${folder}${sep}`;
 
-      return [...files.keys(), ...links.keys(), ...folders]
+      const names = [...files.keys(), ...links.keys(), ...folders]
         .filter((entry) => inside(entry, folder) && entry !== folder)
         .map((entry) => entry.slice(prefix.length).split(sep)[0])
         .filter((name, index, all) => all.indexOf(name) === index)
         .sort();
+
+      return options?.withFileTypes
+        ? names.map((name) => ({ name, isFile: () => files.has(join(folder, name)), isDirectory: () => folders.has(join(folder, name)) }))
+        : names;
     },
+    copyFileSync: (from: string, to: string) => sync.writeFileSync(to, sync.readFileSync(from)),
   };
 
   const promises = {
