@@ -1,5 +1,5 @@
 import { spawnSync } from 'child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -223,6 +223,25 @@ describe.skipIf(!hasTools)('claude hooks', () => {
       expect(JSON.parse(stdout).hookSpecificOutput.additionalContext).toContain(
         'Branch work, ? commits ahead of origin/master, 1 uncommitted files, pull request: #7 OPEN'
       );
+    });
+
+    it('works without the timeout command, which macOS does not have', () => {
+      const repo = join(project, 'repo');
+      const bare = join(project, 'bare');
+      mkdirSync(bare, { recursive: true });
+      ['git', 'jq', 'wc', 'tr'].forEach((tool) => {
+        const path = spawnSync('sh', ['-c', `command -v ${tool}`], { encoding: 'utf8' }).stdout.trim();
+        symlinkSync(path, join(bare, tool));
+      });
+      writeFileSync(join(bare, 'gh'), '#!/bin/sh\necho "#7 OPEN"\n', { mode: 0o755 });
+
+      const { stdout } = spawnSync(spawnSync('sh', ['-c', 'command -v bash'], { encoding: 'utf8' }).stdout.trim(), [join(hooks, 'session-state.sh')], {
+        cwd: repo,
+        encoding: 'utf8',
+        env: { ...process.env, PATH: bare },
+      });
+
+      expect(JSON.parse(stdout).hookSpecificOutput.additionalContext).toContain('pull request: #7 OPEN');
     });
 
     it('says nothing outside a repository', () => {

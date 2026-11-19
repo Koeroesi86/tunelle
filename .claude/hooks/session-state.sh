@@ -10,8 +10,10 @@ BRANCH="$(git branch --show-current 2>/dev/null || true)"
 DIRTY="$(git status --short 2>/dev/null | wc -l | tr -d ' ')"
 AHEAD="$(git rev-list --count origin/master..HEAD 2>/dev/null || echo '?')"
 PR="none"
+LIMIT=()
+command -v timeout >/dev/null 2>&1 && LIMIT=(timeout 5)
 if command -v gh >/dev/null 2>&1; then
-  PR="$(timeout 5 gh pr view --json number,state -q '"#\(.number) \(.state)"' 2>/dev/null || echo none)"
+  PR="$(${LIMIT[@]+"${LIMIT[@]}"} gh pr view --json number,state -q '"#\(.number) \(.state)"' 2>/dev/null || echo none)"
 fi
 
 jq -n --arg text "Branch $BRANCH, $AHEAD commits ahead of origin/master, $DIRTY uncommitted files, pull request: $PR. 'npx tsx scripts/claude/context.ts [issue]' gives the issue, the checks and the changed files in one call. A search over many files goes to the Explore subagent (it runs on haiku), not to a series of greps here." \
