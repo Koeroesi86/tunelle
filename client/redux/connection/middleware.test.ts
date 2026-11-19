@@ -771,7 +771,7 @@ describe('connection middleware', () => {
     store.dispatch({ type: 'ADD_TO_PLAYLIST', payload: { id: 1, tracks: [] } });
     store.dispatch({ type: 'MOVE_PLAYLIST_ENTRY', payload: { id: 1, entryId: 2, toIndex: 0 } });
     store.dispatch({ type: 'REMOVE_FROM_PLAYLIST', payload: { id: 1, entryId: 2 } });
-    store.dispatch({ type: 'DELETE_PLAYLIST', payload: { id: 1 } });
+    store.dispatch({ type: 'DELETE_PLAYLIST', payload: { id: 1, deleteFile: true } });
 
     expect(send.mock.calls.map(([channel]) => channel).filter((channel) => channel.startsWith('PLAYLIST'))).toEqual([
       'PLAYLISTS_LOAD',

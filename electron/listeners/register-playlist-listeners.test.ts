@@ -8,6 +8,7 @@ import {
   addEntries,
   createPlaylist,
   deletePlaylist,
+  getImportedPlaylists,
   getPlaylists,
   moveEntry,
   movePlaylist,
@@ -20,6 +21,7 @@ import {
 import { findTrackFormat } from '../repositories/library-repository';
 import { exportPlaylist, writeBackPlaylist } from '../library/playlists/export-playlist';
 import { importPlaylistFiles, reimportPlaylistFile } from '../library/playlists/import-playlist-files';
+import { retirePlaylistFile } from '../library/playlists/write-playlist-file';
 import { handleWriteFailure } from '../library/playlists/handle-write-failure';
 import { fakeDatabase } from '../test-fake-database';
 
@@ -50,6 +52,7 @@ vi.mock('../repositories/playlist-repository', () => ({
   renamePlaylist: vi.fn(),
 }));
 vi.mock('../library/playlists/handle-write-failure', () => ({ handleWriteFailure: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../library/playlists/write-playlist-file', () => ({ retirePlaylistFile: vi.fn() }));
 vi.mock('../library/playlists/export-playlist', () => ({ exportPlaylist: vi.fn(), writeBackPlaylist: vi.fn() }));
 vi.mock('../repositories/library-repository', () => ({ findTrackFormat: vi.fn(), getTrackListByPaths: vi.fn().mockResolvedValue([]) }));
 
@@ -97,6 +100,7 @@ describe('registerPlaylistListeners', () => {
     vi.mocked(addEntries).mockReset().mockResolvedValue(undefined);
     vi.mocked(renamePlaylist).mockReset().mockResolvedValue([]);
     vi.mocked(deletePlaylist).mockReset().mockResolvedValue([]);
+    vi.mocked(retirePlaylistFile).mockReset().mockResolvedValue(undefined);
     vi.mocked(movePlaylist).mockReset().mockResolvedValue([]);
     vi.mocked(removeEntry).mockReset().mockResolvedValue([]);
     vi.mocked(moveEntry).mockReset().mockResolvedValue([]);
@@ -209,6 +213,7 @@ describe('registerPlaylistListeners', () => {
     ['PLAYLIST_RENAME', { id: '1', name: 'A' }],
     ['PLAYLIST_RENAME', { id: 1, name: '' }],
     ['PLAYLIST_DELETE', { id: 1.5 }],
+    ['PLAYLIST_DELETE', { id: 1, deleteFile: 'yes' }],
     ['PLAYLIST_MOVE', { id: 1 }],
     ['PLAYLIST_ADD', { tracks: [track] }],
     ['PLAYLIST_REMOVE_ENTRY', { id: 1 }],
@@ -363,6 +368,75 @@ describe('registerPlaylistListeners', () => {
 
     expect(error).toHaveBeenCalledWith(expect.objectContaining({ message: 'disk full' }));
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it('keeps the file of the playlist when the message does not ask for it to go', async () => {
+    await call('PLAYLIST_DELETE', { id: 7 });
+
+    expect(retirePlaylistFile).not.toHaveBeenCalled();
+    expect(deletePlaylist).toHaveBeenCalledWith(database, 7);
+  });
+
+  it('retires the file that the playlist was read from, taken from the record and not from the message, and then deletes the playlist', async () => {
+    vi.mocked(getImportedPlaylists).mockResolvedValueOnce([
+      {
+        id: 6,
+        name: 'Other',
+        sourcePath: '/lists/other.m3u',
+        checksum: 'a',
+        modified: 1,
+        encoding: null,
+        encodingOverride: null,
+        sync: true,
+        canUndo: false,
+      },
+      {
+        id: 7,
+        name: 'Road',
+        sourcePath: '/lists/road.m3u',
+        checksum: 'b',
+        modified: 1,
+        encoding: null,
+        encodingOverride: null,
+        sync: true,
+        canUndo: false,
+      },
+    ]);
+
+    await call('PLAYLIST_DELETE', { id: 7, deleteFile: true, path: '/etc/passwd' });
+
+    expect(retirePlaylistFile).toHaveBeenCalledExactlyOnceWith('/lists/road.m3u');
+    expect(deletePlaylist).toHaveBeenCalledWith(database, 7);
+  });
+
+  it('deletes a playlist without a file as usual when the file is asked for', async () => {
+    await call('PLAYLIST_DELETE', { id: 7, deleteFile: true });
+
+    expect(retirePlaylistFile).not.toHaveBeenCalled();
+    expect(deletePlaylist).toHaveBeenCalledWith(database, 7);
+  });
+
+  it('leaves the playlist as it is when its file cannot be removed', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.mocked(getImportedPlaylists).mockResolvedValueOnce([
+      {
+        id: 7,
+        name: 'Road',
+        sourcePath: '/lists/road.m3u',
+        checksum: 'b',
+        modified: 1,
+        encoding: null,
+        encodingOverride: null,
+        sync: true,
+        canUndo: false,
+      },
+    ]);
+    vi.mocked(retirePlaylistFile).mockRejectedValue(new Error('EACCES'));
+
+    await call('PLAYLIST_DELETE', { id: 7, deleteFile: true });
+
+    expect(error).toHaveBeenCalledWith(expect.objectContaining({ message: 'EACCES' }));
+    expect(deletePlaylist).not.toHaveBeenCalled();
   });
 
   it('does not send to a window that was closed meanwhile', async () => {
