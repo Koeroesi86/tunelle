@@ -1,7 +1,7 @@
-import { mkdir, mkdtemp, readdir, readFile, readlink, rm, stat, utimes, writeFile } from 'fs/promises';
-import { tmpdir } from 'os';
+import { memoryFs } from '../test-memory-fs';
+import { mkdir, readdir, readFile, readlink, rm, stat, utimes, writeFile } from 'fs/promises';
 import { normalize, posix } from 'path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildDesktopEntry,
   disableLauncher,
@@ -16,9 +16,17 @@ import {
 } from './app-image-launcher';
 import type { LauncherOptions } from './app-image-launcher';
 
-// the entry only takes paths without a backslash, the temporary folder of Windows is full of them
+vi.mock('fs/promises', () => ({ ...memoryFs.promises }));
+
 const { join } = posix;
-const createFolder = (prefix: string) => mkdtemp(join(tmpdir(), prefix)).then((folder) => folder.replaceAll('\\', '/'));
+let counter = 0;
+const createFolder = async (prefix: string) => {
+  memoryFs.reset();
+  counter += 1;
+  const folder = `/sandbox/${prefix}${counter}`;
+  await mkdir(folder, { recursive: true });
+  return folder;
+};
 
 const sizes = [16, 24, 32, 48, 64, 128, 256, 512];
 
@@ -62,14 +70,12 @@ describe('launcher on disk', () => {
     );
 
   beforeEach(async () => {
-    folder = await createFolder('tunelle-launcher-');
+    folder = await createFolder('launcher-');
     await mkdir(join(folder, 'icons'));
     await Promise.all(sizes.map((size) => writeFile(join(folder, 'icons', `${size}x${size}.png`), `icon ${size}`)));
     refresh = vi.fn(() => Promise.resolve());
     options = { dataHome: join(folder, 'data'), iconsPath: join(folder, 'icons'), refresh };
   });
-
-  afterEach(() => rm(folder, { recursive: true, force: true }));
 
   it('is not enabled before it was added', async () => {
     await expect(isLauncherEnabled(options.dataHome)).resolves.toBe(false);
@@ -95,7 +101,7 @@ describe('launcher on disk', () => {
 
     await enableLauncher(appImage(), options);
 
-    expect((await stat(theme)).mtime.getTime()).toBeGreaterThan(past.getTime());
+    expect((await stat(theme)).mtimeMs).toBeGreaterThan(past.getTime());
   });
 
   it('keeps the entry as it is when the AppImage changes, as the desktop shell keeps the entry it read first', async () => {
@@ -309,7 +315,7 @@ describe('launcher on disk', () => {
 
 describe('launcher offer', () => {
   it('was not made until it is marked, and stays marked', async () => {
-    const folder = await createFolder('tunelle-offer-');
+    const folder = await createFolder('offer-');
     const userData = join(folder, 'userData');
 
     await expect(wasLauncherOffered(userData)).resolves.toBe(false);
@@ -317,7 +323,6 @@ describe('launcher offer', () => {
     await markLauncherOffered(userData);
 
     await expect(wasLauncherOffered(userData)).resolves.toBe(true);
-    await rm(folder, { recursive: true, force: true });
   });
 });
 
@@ -331,10 +336,8 @@ describe('hasOtherLauncher', () => {
     mkdir(join(dataHome, 'applications'), { recursive: true }).then(() => writeFile(join(dataHome, 'applications', name), content));
 
   beforeEach(async () => {
-    dataHome = await createFolder('tunelle-other-launcher-');
+    dataHome = await createFolder('other-launcher-');
   });
-
-  afterEach(() => rm(dataHome, { recursive: true, force: true }));
 
   it('finds no entry in a menu without an applications folder', async () => {
     expect(await hasOtherLauncher(appImage, options())).toBe(false);
