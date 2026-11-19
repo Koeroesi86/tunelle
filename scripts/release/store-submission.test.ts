@@ -1,7 +1,6 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import fs from 'fs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { memoryFs, spyOnFs } from '../../electron/test-memory-fs';
 import {
   assertPublished,
   assertSubmittable,
@@ -9,7 +8,6 @@ import {
   readStatus,
   readStoreVersion,
   releaseVersion,
-  run,
   submissionStarted,
   withReleaseNotes,
 } from './store-submission';
@@ -229,15 +227,19 @@ describe('decide', () => {
 });
 
 describe('run', () => {
-  const folders: string[] = [];
+  const folder = '/store';
   const write = (name: string, text: string) => {
-    const folder = folders.at(-1) ?? folders[folders.push(mkdtempSync(join(tmpdir(), 'store-submission-'))) - 1];
-    writeFileSync(join(folder, name), text);
-    return join(folder, name);
+    memoryFs.sync.writeFileSync(`${folder}/${name}`, text);
+    return `${folder}/${name}`;
   };
+  let run: (typeof import('./store-submission'))['run'];
 
-  afterEach(() => {
-    folders.splice(0).forEach((folder) => rmSync(folder, { recursive: true, force: true }));
+  beforeEach(async () => {
+    memoryFs.reset();
+    memoryFs.sync.mkdirSync(folder);
+    spyOnFs(fs);
+    vi.resetModules();
+    ({ run } = await import('./store-submission'));
   });
 
   it('says whether the submission has started', () => {
@@ -247,16 +249,15 @@ describe('run', () => {
     run(['started', write('started.txt', 'Submission Status = Certification')], {});
 
     expect(log.mock.calls).toEqual([['starting'], ['started']]);
-    log.mockRestore();
   });
 
   it('writes the submission with the notes, by language', () => {
     const file = write('draft.json', `Pending\n${JSON.stringify({ Listings: { 'en-us': { BaseListing: {} }, 'hu-hu': { BaseListing: {} } } })}`);
-    const result = join(folders[0], 'metadata.json');
+    const result = `${folder}/metadata.json`;
 
     run(['notes', file, result, 'Fixes.', 'hu=Javítások.'], {});
 
-    const { Listings } = JSON.parse(readFileSync(result, 'utf8'));
+    const { Listings } = JSON.parse(memoryFs.sync.readFileSync(result, 'utf8') as string);
     expect([Listings['en-us'].BaseListing.ReleaseNotes, Listings['hu-hu'].BaseListing.ReleaseNotes]).toEqual(['Fixes.', 'Javítások.']);
   });
 
@@ -268,7 +269,7 @@ describe('run', () => {
 
     run(['decide', status, submission, 'v26.11.19', 'True'], { GITHUB_OUTPUT: output });
 
-    expect(readFileSync(output, 'utf8')).toMatch(/^submit=false\nreason=The last submission is Certification/);
+    expect(memoryFs.sync.readFileSync(output, 'utf8')).toMatch(/^submit=false\nreason=The last submission is Certification/);
     expect(log).toHaveBeenCalledWith(expect.stringContaining('Certification'));
   });
 

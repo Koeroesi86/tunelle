@@ -1,4 +1,5 @@
 import { dirname, resolve, sep } from 'path';
+import { vi } from 'vitest';
 
 const missing = (path: string) => Object.assign(new Error(`ENOENT: no such file or directory, '${path}'`), { code: 'ENOENT' });
 
@@ -42,6 +43,8 @@ const createMemoryFs = () => {
 
       return decode(data, encoding);
     },
+    appendFileSync: (path: string, data: string | Uint8Array) =>
+      sync.writeFileSync(path, Buffer.concat([files.get(clean(path)) ?? Buffer.alloc(0), content(data)])),
     rmSync: (path: string, options?: { force?: boolean; recursive?: boolean }) => {
       const target = clean(path);
       if (!options?.force && !sync.existsSync(target) && !links.has(target)) throw missing(path);
@@ -131,3 +134,12 @@ const createMemoryFs = () => {
 
 /** One per test file; `vi.mock('fs', ...)` and the test import the same one */
 export const memoryFs = createMemoryFs();
+
+/**
+ * A CommonJS script (`scripts/**` with `require('fs')`) takes the functions of `fs` when it loads and `vi.mock('fs')` does not reach it:
+ * spy on `fs`, then `vi.resetModules()` and import the script again (docs/development/unit-tests.md)
+ */
+export const spyOnFs = (fs: Record<string, unknown>) =>
+  Object.entries(memoryFs.sync)
+    .filter(([name]) => name in fs)
+    .forEach(([name, implementation]) => vi.spyOn(fs as Record<string, (...args: unknown[]) => unknown>, name).mockImplementation(implementation as never));
