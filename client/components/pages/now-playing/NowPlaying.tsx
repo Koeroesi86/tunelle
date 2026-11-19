@@ -150,12 +150,14 @@ const NowPlaying = ({
               const isCurrent = !!currentSong && track.path === currentSong.path;
 
               return (
+                // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- a row of the queue with buttons of its own, moved by drag and by Alt and the arrow keys. See docs/development/accessibility.md
                 <div
                   key={`now-playing-track-${slugify(track.path, { remove: /[*+~./()'",!:@\\]/g, lower: true })}`}
                   ref={isCurrent ? current : undefined}
                   className={classNames(style.track, { [style.current]: isCurrent, [style.dropTarget]: overIndex === index })}
                   onDoubleClick={() => playTrack(track)}
                   title={`#${index + 1} ${track.title}`}
+                  // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- the row is a stop of the keyboard, for the keys that move it
                   tabIndex={0}
                   aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
                   onKeyDown={(event) => moveWithKeys(event, index)}

@@ -173,14 +173,7 @@ const planLibrary = (profile: PlanProfile, tracks: number, seed = 1) => {
   const accentedChance = tags.nonAscii / 3;
   const named = (count: number) => phrase(next, count, accentedChance);
 
-  while (total < tracks) {
-    const artist = unique(used, named(1 + Math.floor(next() * 2)));
-    const albumCount =
-      pick(
-        profile.albumFoldersPerArtist.filter((count) => count > 0),
-        next
-      ) ?? 1;
-
+  const planAlbums = (artist: string, albumCount: number) => {
     for (let albumIndex = 0; albumIndex < albumCount && total < tracks; albumIndex += 1) {
       const trackCount = Math.min(pick(profile.tracksPerAlbumFolder, next) ?? 10, tracks - total);
       const isCompilation = next() < compilation;
@@ -229,6 +222,17 @@ const planLibrary = (profile: PlanProfile, tracks: number, seed = 1) => {
       });
       total += trackCount;
     }
+  };
+
+  while (total < tracks) {
+    const artist = unique(used, named(1 + Math.floor(next() * 2)));
+    const albumCount =
+      pick(
+        profile.albumFoldersPerArtist.filter((count) => count > 0),
+        next
+      ) ?? 1;
+
+    planAlbums(artist, albumCount);
   }
   return albums;
 };

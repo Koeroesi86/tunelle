@@ -23,7 +23,7 @@ module.exports = [
     plugins: { '@typescript-eslint': tsPlugin, prettier: prettierPlugin },
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
-      'max-depth': ['warn', 1],
+      'max-depth': ['error', 1],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'all', caughtErrorsIgnorePattern: '^_', ignoreRestSiblings: true }],
       'prettier/prettier': [
         'error',
@@ -38,12 +38,18 @@ module.exports = [
     },
   },
   {
-    // accessibility rules for the renderer, as warnings until #317 is done. See docs/development/accessibility.md
+    // accessibility rules for the renderer. See docs/development/accessibility.md
     files: ['client/**/*.tsx'],
     ignores: ['**/*.test.tsx'],
     plugins: { 'jsx-a11y': jsxA11y },
     languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
-    rules: Object.fromEntries(Object.entries(jsxA11y.flatConfigs.recommended.rules).map(([rule, setting]) => [rule, ['warn', ...[setting].flat().slice(1)]])),
+    rules: {
+      ...Object.fromEntries(Object.entries(jsxA11y.flatConfigs.recommended.rules).map(([rule, setting]) => [rule, ['error', ...[setting].flat().slice(1)]])),
+      // label-has-associated-control (recommended) accepts a label that wraps its control; label-has-for wants a wrapped control and an id, and is deprecated for it
+      'jsx-a11y/label-has-for': 'off',
+      // a field of our own that takes the focus when it opens, after a person asked for it (a new name, a rename); the DOM elements stay checked
+      'jsx-a11y/no-autofocus': ['error', { ignoreNonDOM: true }],
+    },
   },
   {
     // tests may cast to build partial fixtures; production code may not

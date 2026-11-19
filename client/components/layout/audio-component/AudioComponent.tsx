@@ -219,6 +219,7 @@ const AudioComponent = ({
   return (
     <>
       {elementIndexes.map((index) => (
+        // eslint-disable-next-line jsx-a11y/media-has-caption -- the player plays music and radio, which have no captions
         <audio
           key={`${generation}-${index}`}
           style={{ display: 'none' }}

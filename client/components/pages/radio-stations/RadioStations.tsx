@@ -233,9 +233,9 @@ const RadioStations = ({ radio, currentStation, search, loadTags, loadOptions, p
             className={classNames(style.station, { [style.current]: station.uuid === currentStation })}
             onDoubleClick={() => play(station)}
           >
-            <span className={style.playButton} onClick={() => play(station)}>
+            <button type="button" className={style.playButton} aria-label={t('player.play')} onClick={() => play(station)}>
               <PlayIcon size={'14px'} />
-            </span>
+            </button>
             <span className={style.name}>
               <StationLogo uuid={station.uuid} hasLogo={station.hasLogo} className={style.logo} />
               <span className={style.nameText}>{station.name}</span>

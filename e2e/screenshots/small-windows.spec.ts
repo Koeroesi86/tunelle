@@ -37,11 +37,11 @@ const go = async (page: Page, label: (typeof pages)[number]) => {
   await openNavigation(page);
   // the drawer slides in: what is in it is counted when it is there
   await expect(item(page, 'Settings')).toBeVisible();
-  if (label === 'Albums' || label === 'Songs') {
-    // the group of the library opens on a click and closes on the next
-    if (!(await item(page, label).count())) await item(page, 'Library').click();
-    await expect(item(page, label)).toBeVisible();
-  }
+  const inLibrary = label === 'Albums' || label === 'Songs';
+  // the group of the library opens on a click and closes on the next
+  const closed = inLibrary && !(await item(page, label).count());
+  if (closed) await item(page, 'Library').click();
+  if (inLibrary) await expect(item(page, label)).toBeVisible();
   await item(page, label).click();
 };
 
@@ -55,6 +55,7 @@ const outside = (page: Page) =>
       const box = element.getBoundingClientRect();
       return (overflowX !== 'visible' || overflowY !== 'visible') && box.width < width - 1 && box.height < height - 1;
     };
+    const clippedBy = (element: Element | null): boolean => element !== null && (clips(element) || clippedBy(element.parentElement));
     return Array.from(document.body.querySelectorAll('*'))
       .filter((element) => element.checkVisibility({ visibilityProperty: true, opacityProperty: false, contentVisibilityAuto: true }))
       .filter((element) => {
@@ -62,8 +63,7 @@ const outside = (page: Page) =>
         return box.width > 0 && box.height > 0 && (box.right > width + 1 || box.left < -1);
       })
       .filter((element) => {
-        for (let parent = element.parentElement; parent; parent = parent.parentElement) if (clips(parent)) return false;
-        return getComputedStyle(element).position !== 'fixed' || element.getBoundingClientRect().left < width;
+        return !clippedBy(element.parentElement) && (getComputedStyle(element).position !== 'fixed' || element.getBoundingClientRect().left < width);
       })
       .map((element) => `${element.tagName.toLowerCase()}.${String(element.className).split(' ')[0]}`)
       .slice(0, 5);
