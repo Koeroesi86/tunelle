@@ -2,13 +2,13 @@ import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
-import { electronAPI } from '../../../services/electron-api';
+import { getBackend } from '../../../backend/backend';
 import PlayerHome from './PlayerHome';
 
 const mapState = (state: RootState) => ({
   loaded: state.library.loaded,
   maximized: state.uiState.maximized,
-  blurred: electronAPI.blurred || state.uiState.desktopBlur,
+  blurred: getBackend().capabilities.blur || state.uiState.desktopBlur,
   folders: state.folders,
 });
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({

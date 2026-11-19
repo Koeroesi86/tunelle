@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { getBackend } from '../backend/backend';
 
 interface MediaSessionInfo {
   title: string;
@@ -10,7 +11,7 @@ interface MediaSessionInfo {
 /** Tells the OS media controls what plays */
 export const useMediaSession = (info: MediaSessionInfo | undefined) => {
   useEffect(() => {
-    if (window.electronAPI?.mpris || !('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
+    if (getBackend().capabilities.mpris || !('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
 
     if (!info) {
       navigator.mediaSession.metadata = null;
@@ -56,7 +57,7 @@ interface MediaSessionActions {
 /** Lets the media keys and the OS media controls drive the player, as without a handler they have nothing to call */
 export const useMediaSessionActions = ({ play, pause, previousSong, nextSong }: MediaSessionActions) => {
   useEffect(() => {
-    if (window.electronAPI?.mpris || !('mediaSession' in navigator)) return;
+    if (getBackend().capabilities.mpris || !('mediaSession' in navigator)) return;
 
     const handlers: [MediaSessionAction, () => void][] = [
       ['play', play],

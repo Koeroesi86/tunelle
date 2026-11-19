@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { setBackend } from '../backend/backend';
 import { useMpris, useMprisCommands } from './use-mpris';
 
 const send = vi.fn();
@@ -8,7 +9,7 @@ const info = { title: 'Song', artist: 'Artist', album: 'Album', cover: 'tunelle:
 const track = { title: 'Song', artist: 'Artist', album: 'Album', duration: 200, coverUrl: undefined };
 
 const enable = (mpris: boolean) => {
-  window.electronAPI = { send, on, getPathForFile: () => '', blurred: false, mpris };
+  setBackend({ send, on, resolveUrl: (route: string) => `tunelle://app${route}`, pathForFile: () => '', capabilities: { blur: false, mpris: mpris } });
 };
 
 describe('useMpris', () => {

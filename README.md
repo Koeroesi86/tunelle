@@ -26,6 +26,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [The updater](docs/app/updater.md)
 - [The app data folder](docs/app/user-data.md)
 - [The `tunelle://app` protocol](docs/app/tunelle-protocol.md)
+- [The client backend (what the page asks of its host)](docs/app/client-backend.md)
 - [The decoder proxy](docs/app/decoder-proxy.md)
 - [Remote access: discovery and certificate](docs/app/remote-access-discovery.md)
 - [Database migrations](docs/app/migrations.md)

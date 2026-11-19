@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
+import { setBackend } from '../backend/backend';
 import { useRemoteHost } from './use-remote-host';
 
 const send = vi.fn();
@@ -29,7 +30,7 @@ describe('useRemoteHost', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(1_000);
-    window.electronAPI = { send, on, getPathForFile: () => '', blurred: false, mpris: false };
+    setBackend({ send, on, resolveUrl: (route: string) => `tunelle://app${route}`, pathForFile: () => '', capabilities: { blur: false, mpris: false } });
   });
 
   it('sends the track with its path and where it is', () => {
