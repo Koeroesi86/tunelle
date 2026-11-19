@@ -1,8 +1,8 @@
 import { createHash } from 'crypto';
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
 import { join } from 'path';
-import { describe, expect, it } from 'vitest';
+import { parseBuffer } from 'music-metadata';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { memoryFs } from '../../electron/test-memory-fs';
 import { planLibrary, random, writeMp3, writePlan } from './perf-library';
 
 const profile = {
@@ -21,6 +21,16 @@ const profile = {
     nonAscii: 0,
   },
 };
+
+vi.mock('fs', () => ({ ...memoryFs.sync, default: memoryFs.sync }));
+
+const folder = '/library';
+const readdirSync = memoryFs.sync.readdirSync;
+
+beforeEach(() => {
+  memoryFs.reset();
+  memoryFs.sync.mkdirSync(folder);
+});
 
 type Plan = ReturnType<typeof planLibrary>;
 
@@ -94,18 +104,15 @@ describe('planLibrary with a profile that has nothing to draw from', () => {
   });
 
   it('writes the picture and the other file of such an album', () => {
-    const folder = mkdtempSync(join(tmpdir(), 'perf-library-'));
     const plan = planLibrary({ ...profile, otherFiles: { png: 1 }, tags: { ...profile.tags, pictureKilobytes: [] } }, 6, 1);
     writePlan(folder, plan, { coverSize: 32 });
 
     expect(readdirSync(join(folder, ...plan[0].folder)).includes('album.png')).toBe(true);
-    rmSync(folder, { recursive: true, force: true });
   });
 });
 
 describe('writeMp3', () => {
   it('is a file that the app reads: the tags, the picture and the length of its frames', async () => {
-    const { parseBuffer } = await import('music-metadata');
     const cover = Buffer.from('89504e470d0a1a0a', 'hex');
 
     const { common, format } = await parseBuffer(
@@ -121,8 +128,6 @@ describe('writeMp3', () => {
 
 describe('writePlan', () => {
   it('writes files with the length, the tags and a picture of their own for every album, and the other files beside the music', async () => {
-    const { parseFile } = await import('music-metadata');
-    const folder = mkdtempSync(join(tmpdir(), 'perf-library-'));
     const plan = planLibrary(profile, 30, 5);
     writePlan(folder, plan, { seed: 5, coverSize: 32 });
 
@@ -130,10 +135,10 @@ describe('writePlan', () => {
       album.tracks.map((track) => join(folder, ...album.folder, ...(track.disc ? [`CD${track.disc}`] : []), `${track.file}.${track.format}`))
     );
     const flac = files.find((file) => file.endsWith('.flac'));
-    const { common, format } = await parseFile(flac ?? '');
+    const { common, format } = await parseBuffer(Buffer.from(memoryFs.sync.readFileSync(flac ?? '')));
     const pictures = await Promise.all(
       files.map((file) =>
-        parseFile(file).then(({ common: tags }) =>
+        parseBuffer(Buffer.from(memoryFs.sync.readFileSync(file))).then(({ common: tags }) =>
           createHash('md5')
             .update(tags.picture?.[0].data ?? '')
             .digest('hex')
@@ -146,7 +151,6 @@ describe('writePlan', () => {
     // an album has the picture of every one of its tracks, no two albums have the same
     expect(new Set(pictures).size).toBe(plan.length);
     expect(readdirSync(join(folder, ...plan[0].folder)).some((file) => file === 'folder.jpg')).toBe(true);
-    expect(readFileSync(files[0]).length).toBeGreaterThan(20_000);
-    rmSync(folder, { recursive: true, force: true });
+    expect(memoryFs.sync.readFileSync(files[0]).length).toBeGreaterThan(20_000);
   });
 });
