@@ -58,7 +58,9 @@ describe('the smoke test', () => {
         ['tunelle://app/track?path', answers.track],
         ['radio/smoke-station', answers.radio],
       ].find(([text]) => expression.includes(text))?.[1];
-      queueMicrotask(() => this.onmessage?.({ data: JSON.stringify(value instanceof Error ? { error: { message: value.message } } : { result: { result: { value } } }) }));
+      queueMicrotask(() =>
+        this.onmessage?.({ data: JSON.stringify(value instanceof Error ? { error: { message: value.message } } : { result: { result: { value } } }) })
+      );
     }
   }
 
@@ -114,7 +116,7 @@ describe('the smoke test', () => {
     }) as never);
     load.cache[electronPath] = { id: electronPath, filename: electronPath, loaded: true, exports: '/fake/electron' } as unknown as NodeJS.Module;
     vi.spyOn(os, 'tmpdir').mockReturnValue('/tmp');
-    vi.spyOn(fs, 'existsSync').mockImplementation(memoryFs.sync.existsSync);
+    vi.spyOn(fs, 'existsSync').mockImplementation((path) => memoryFs.sync.existsSync(String(path)));
     vi.spyOn(fs, 'mkdirSync').mockImplementation(memoryFs.sync.mkdirSync as never);
     vi.spyOn(fs, 'mkdtempSync').mockReturnValue(home);
     vi.spyOn(fs, 'readFileSync').mockImplementation(memoryFs.sync.readFileSync as never);
@@ -166,7 +168,13 @@ describe('the smoke test', () => {
       `--log-file=${home}/chromium.log`,
       `--user-data-dir=${home}/user-data`,
     ]);
-    expect(options.env).toMatchObject({ HOME: home, XDG_CONFIG_HOME: home, NODE_ENV: 'production', TUNELLE_NO_UPDATE: '1', TUNELLE_RADIO_DIRECTORY: 'http://127.0.0.1:9333' });
+    expect(options.env).toMatchObject({
+      HOME: home,
+      XDG_CONFIG_HOME: home,
+      NODE_ENV: 'production',
+      TUNELLE_NO_UPDATE: '1',
+      TUNELLE_RADIO_DIRECTORY: 'http://127.0.0.1:9333',
+    });
     expect(options.env.ELECTRON_RUN_AS_NODE).toBeUndefined();
     expect(child.kill).toHaveBeenCalled();
     expect(stationClosed).toHaveBeenCalled();
@@ -327,7 +335,12 @@ describe('the smoke test', () => {
     const request = (url: string, headers: Record<string, string> = {}) => ({ url, headers });
     const answer = () => {
       const calls: unknown[][] = [];
-      const response = { writeHead: vi.fn(() => response), end: vi.fn(() => response), write: vi.fn(), on: vi.fn((_event: string, listener: () => void) => void calls.push([listener])) };
+      const response = {
+        writeHead: vi.fn(() => response),
+        end: vi.fn(() => response),
+        write: vi.fn(),
+        on: vi.fn((_event: string, listener: () => void) => void calls.push([listener])),
+      };
       return { response, close: () => (calls[0][0] as () => void)() };
     };
 

@@ -30,7 +30,16 @@ const put = (file: string, content: string | Buffer = '') => {
   memoryFs.sync.writeFileSync(file, content);
 };
 
-const healthy = ['/package.json', '/out/index.js', '/out/electron/preload.js', '/out/electron/loudness-preload.js', '/build/index.html', '/build/loudness.html', '/build/loudness.js', '/migrations/001-init.sql'];
+const healthy = [
+  '/package.json',
+  '/out/index.js',
+  '/out/electron/preload.js',
+  '/out/electron/loudness-preload.js',
+  '/build/index.html',
+  '/build/loudness.html',
+  '/build/loudness.js',
+  '/migrations/001-init.sql',
+];
 const decoders = ` A..... = Audio\n ------\n${source.decoders.map((name) => ` A....D ${name}   some decoder`).join('\n')}`;
 const appImage = Buffer.from('appimage');
 const appImageName = 'Tunelle-26.11.1-x86_64.AppImage';
@@ -88,9 +97,10 @@ describe('check-dist', () => {
     exit = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
       throw new Exit(code);
     }) as never);
-    vi.spyOn(fs, 'existsSync').mockImplementation(memoryFs.sync.existsSync);
+    vi.spyOn(fs, 'existsSync').mockImplementation((path) => memoryFs.sync.existsSync(String(path)));
     vi.spyOn(fs, 'readFileSync').mockImplementation(memoryFs.sync.readFileSync as never);
-    vi.spyOn(fs, 'readdirSync').mockImplementation(((path: string, options?: { recursive?: boolean }) => (options?.recursive ? unpacked : memoryFs.sync.readdirSync(path))) as never);
+    vi.spyOn(fs, 'readdirSync').mockImplementation(((path: string, options?: { recursive?: boolean }) =>
+      options?.recursive ? unpacked : memoryFs.sync.readdirSync(path)) as never);
     asar.listPackage.mockImplementation(() => packaged);
     asar.extractFile.mockImplementation(() => woff);
     load.cache[asarPath] = { id: asarPath, filename: asarPath, loaded: true, exports: asar } as unknown as NodeJS.Module;

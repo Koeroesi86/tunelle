@@ -48,7 +48,7 @@ module.exports = [
   {
     // tests may cast to build partial fixtures; production code may not
     files: ['**/*.ts', '**/*.tsx'],
-    ignores: ['**/*.test.ts', '**/*.test.tsx'],
+    ignores: ['**/*.test.ts', '**/*.test.tsx', 'electron/test-*.ts'],
     plugins: { '@typescript-eslint': tsPlugin },
     rules: { '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }] },
   },

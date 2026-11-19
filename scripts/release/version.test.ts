@@ -111,7 +111,10 @@ describe('stampMetainfo', () => {
   });
 
   it('replaces an entry that already has a description the same way', () => {
-    memoryFs.sync.writeFileSync(path, '<releases>\n    <release version="1.0.0" date="2026-01-01"><description><p>old</p></description></release>\n  </releases>\n');
+    memoryFs.sync.writeFileSync(
+      path,
+      '<releases>\n    <release version="1.0.0" date="2026-01-01"><description><p>old</p></description></release>\n  </releases>\n'
+    );
 
     stampMetainfo(path, '26.11.19', new Date('2026-11-04T06:00:00Z'), 'Koeroesi86/tunelle', notes);
     const stamped = memoryFs.sync.readFileSync(path, 'utf8') as string;

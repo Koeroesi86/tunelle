@@ -40,7 +40,9 @@ describe('the tunelle protocol', () => {
       .mockReset()
       .mockImplementation(async () => ok('library'));
     vi.mocked(resolveAlbumArt).mockReset().mockResolvedValue('/art/a.jpg');
-    vi.mocked(getCoverAccent).mockReset().mockResolvedValue(undefined as never);
+    vi.mocked(getCoverAccent)
+      .mockReset()
+      .mockResolvedValue(undefined as never);
     getArt.mockReset();
     getLogo.mockReset();
   });

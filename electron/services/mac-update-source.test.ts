@@ -19,8 +19,14 @@ vi.mock('fs', () => ({
     const chunks: Buffer[] = [];
 
     return new Writable({
-      write: (chunk: Buffer, _encoding, done) => done(void chunks.push(chunk)),
-      final: (done) => done(memoryFs.sync.writeFileSync(file, Buffer.concat(chunks))),
+      write: (chunk: Buffer, _encoding, done) => {
+        chunks.push(chunk);
+        done();
+      },
+      final: (done) => {
+        memoryFs.sync.writeFileSync(file, Buffer.concat(chunks));
+        done();
+      },
     });
   },
 }));

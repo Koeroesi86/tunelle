@@ -25,9 +25,9 @@ vi.mock('http', () => ({
 const answer = () => {
   const listeners: Record<string, () => void> = {};
   const response = {
-    writeHead: vi.fn(() => response),
-    end: vi.fn(() => response),
-    write: vi.fn(),
+    writeHead: vi.fn((_status: number, _headers?: object) => response),
+    end: vi.fn((_body?: Buffer | string) => response),
+    write: vi.fn((_chunk: Buffer) => true),
     on: vi.fn((event: string, listener: () => void) => void (listeners[event] = listener)),
   };
 
@@ -43,7 +43,9 @@ describe('writeLibrary', () => {
   it('writes the tracks of every album, tagged, with the cover of the album', async () => {
     writeLibrary('/library');
 
-    const files = memoryFs.sync.readdirSync('/library').flatMap((album) => memoryFs.sync.readdirSync(join('/library', album)).map((file) => join('/library', album, file)));
+    const files = memoryFs.sync
+      .readdirSync('/library')
+      .flatMap((album) => memoryFs.sync.readdirSync(join('/library', album)).map((file) => join('/library', album, file)));
     const tracks = await Promise.all(files.map((file) => parseBuffer(Buffer.from(memoryFs.sync.readFileSync(file)))));
 
     expect(tracks).toHaveLength(albums.flatMap((album) => album.tracks).length);
@@ -93,7 +95,10 @@ describe('startDirectory', () => {
   it('has no servers, resolves every station to the first and lists the options of the filters', () => {
     expect(body(ask('/json/servers'))).toEqual([]);
     expect(body(ask('/json/url/abc'))).toEqual({ url: 'http://127.0.0.1:9444/station' });
-    expect(body(ask('/json/countries')).find(({ iso_3166_1 }: { iso_3166_1: string }) => iso_3166_1 === 'DE')).toMatchObject({ name: 'Germany', stationcount: 2 });
+    expect(body(ask('/json/countries')).find(({ iso_3166_1 }: { iso_3166_1: string }) => iso_3166_1 === 'DE')).toMatchObject({
+      name: 'Germany',
+      stationcount: 2,
+    });
     expect(body(ask('/json/languages'))).toEqual([{ name: 'english', stationcount: stations.length }]);
     expect(body(ask('/json/codecs')).map(({ name }: { name: string }) => name)).toEqual(expect.arrayContaining(['MP3', 'AAC', 'FLAC']));
     expect(body(ask('/json/tags')).map(({ name }: { name: string }) => name)).toContain('jazz');
@@ -103,8 +108,8 @@ describe('startDirectory', () => {
     const [logo, cover, missing] = [ask('/logo/3.png'), ask('/cover.png'), ask('/other')];
 
     expect(logo.writeHead).toHaveBeenCalledWith(200, { 'content-type': 'image/png' });
-    expect(logo.end.mock.calls[0][0].subarray(1, 4).toString()).toBe('PNG');
-    expect(cover.end.mock.calls[0][0].subarray(1, 4).toString()).toBe('PNG');
+    expect(String(logo.end.mock.calls[0][0]).slice(1, 4)).toBe('PNG');
+    expect(String(cover.end.mock.calls[0][0]).slice(1, 4)).toBe('PNG');
     expect(missing.writeHead).toHaveBeenCalledWith(404);
   });
 
@@ -119,7 +124,12 @@ describe('startDirectory', () => {
     intervals[1].run();
 
     expect(response.writeHead).toHaveBeenCalledWith(200, { 'content-type': 'audio/mpeg', 'icy-metaint': '16000' });
-    expect(String(response.write.mock.calls[0][0].subarray(16000))).toContain("StreamTitle='Marble Coast - Sea Wall';StreamUrl='http://127.0.0.1:9444/cover.png';".replace('Marble Coast - Sea Wall', `${albums[4].artist} - ${albums[4].tracks[0]}`));
+    expect(String(response.write.mock.calls[0][0].subarray(16000))).toContain(
+      "StreamTitle='Marble Coast - Sea Wall';StreamUrl='http://127.0.0.1:9444/cover.png';".replace(
+        'Marble Coast - Sea Wall',
+        `${albums[4].artist} - ${albums[4].tracks[0]}`
+      )
+    );
     expect(response.write).toHaveBeenCalledTimes(1);
     close();
     expect(intervals.every(({ cleared }) => cleared)).toBe(true);

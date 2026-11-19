@@ -1,4 +1,3 @@
-import { EventEmitter } from 'events';
 import { resolve } from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { memoryFs } from './electron/test-memory-fs';
@@ -46,7 +45,10 @@ vi.mock('windows-shortcuts-appid', () => ({ default: mocks.shortcuts }));
 vi.mock('fs', () => ({ ...memoryFs.sync, default: memoryFs.sync }));
 vi.mock('./electron/schemas/environment', () => ({ directoryUrlSchema: { parse: (value: string | undefined) => value } }));
 vi.mock('./electron/utils/app-data-path', () => ({ default: vi.fn(() => '/data/tunelle') }));
-vi.mock('./electron/services/update-preference', () => ({ readUpdatePreference: vi.fn(() => ({ automatic: true, allowMetered: false })), saveUpdatePreference: vi.fn() }));
+vi.mock('./electron/services/update-preference', () => ({
+  readUpdatePreference: vi.fn(() => ({ automatic: true, allowMetered: false })),
+  saveUpdatePreference: vi.fn(),
+}));
 vi.mock('./electron/services/metered-connection', () => ({ isMeteredConnection: vi.fn() }));
 vi.mock('./electron/services/splash-confirm', () => ({ askOnSplash: vi.fn() }));
 vi.mock('./electron/utils/user-data', () => ({ copyOldLibrary: vi.fn(), copyOldUserData: vi.fn(() => false), getAppName: vi.fn(() => 'Tunelle') }));
@@ -133,7 +135,10 @@ describe('the start of the app', () => {
 
   const started = () => vi.waitFor(() => expect(mocks.startup.start).toHaveBeenCalled());
   /** The listeners that the app registered for an event of `app`, called together as Electron does */
-  const event = (name: string) => (...args: unknown[]) => mocks.appEvents.get(name)?.forEach((listener) => listener(...args));
+  const event =
+    (name: string) =>
+    (...args: unknown[]) =>
+      mocks.appEvents.get(name)?.forEach((listener) => listener(...args));
 
   beforeEach(async () => {
     memoryFs.reset();
@@ -144,7 +149,9 @@ describe('the start of the app', () => {
     mocks.manager.length = 0;
     mocks.app.isPackaged = false;
     mocks.app.getPath.mockImplementation((name: string) => `/paths/${name}`);
-    mocks.app.on.mockImplementation((name: string, listener: (...args: unknown[]) => unknown) => void mocks.appEvents.set(name, [...(mocks.appEvents.get(name) ?? []), listener]));
+    mocks.app.on.mockImplementation(
+      (name: string, listener: (...args: unknown[]) => unknown) => void mocks.appEvents.set(name, [...(mocks.appEvents.get(name) ?? []), listener])
+    );
     ready = Promise.resolve();
     mocks.app.whenReady.mockImplementation(() => ready);
     mocks.updates.getState.mockReturnValue({ automatic: true, allowMetered: false });
@@ -191,7 +198,14 @@ describe('the start of the app', () => {
     expect(modules.loadPage).toHaveBeenCalledWith(mocks.main, 'tunelle://app/index.html');
     expect(modules.sendIfAlive).toHaveBeenCalledWith(mocks.main.webContents, 'SPLASH_PROGRESS', { text: 'splash.loading' });
     expect(modules.createDatabase).toHaveBeenCalledWith(resolve('/data/tunelle', './library.sqlite'));
-    expect(modules.setupListeners).toHaveBeenCalledWith(mocks.database, { main: mocks.main }, expect.anything(), expect.anything(), mocks.updates, mocks.loudness);
+    expect(modules.setupListeners).toHaveBeenCalledWith(
+      mocks.database,
+      { main: mocks.main },
+      expect.anything(),
+      expect.anything(),
+      mocks.updates,
+      mocks.loudness
+    );
     expect(mocks.queue.start).toHaveBeenCalled();
     expect(mocks.app.setName).toHaveBeenCalledWith('Tunelle');
     expect(memoryFs.sync.existsSync('/data/tunelle')).toBe(true);
@@ -413,7 +427,11 @@ describe('the start of the app', () => {
       const { saveUpdatePreference } = await import('./electron/services/update-preference');
       await start();
       await started();
-      const options = mocks.manager[0] as { saveAutomatic: (value: boolean) => void; saveAllowMetered: (value: boolean) => void; publish: (state: unknown) => void };
+      const options = mocks.manager[0] as {
+        saveAutomatic: (value: boolean) => void;
+        saveAllowMetered: (value: boolean) => void;
+        publish: (state: unknown) => void;
+      };
 
       options.saveAutomatic(false);
       options.saveAllowMetered(true);
@@ -451,7 +469,11 @@ describe('the start of the app', () => {
         vi.mocked(modules.splash.askOnSplash).mockResolvedValue(answer);
 
         expect(await ask()).toBe(answer);
-        expect(modules.splash.askOnSplash).toHaveBeenCalledWith(mocks.main, { text: 'update.metered', download: 'update.metered.download', notNow: 'update.metered.notNow' });
+        expect(modules.splash.askOnSplash).toHaveBeenCalledWith(mocks.main, {
+          text: 'update.metered',
+          download: 'update.metered.download',
+          notNow: 'update.metered.notNow',
+        });
         expect(modules.sendIfAlive).toHaveBeenCalledWith(mocks.main.webContents, 'SPLASH_PROGRESS', { text: 'splash.loading' });
       });
     });

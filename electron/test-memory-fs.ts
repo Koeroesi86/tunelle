@@ -27,8 +27,26 @@ const createMemoryFs = () => {
     return clean(path);
   };
 
+  type Entry = { name: string; isFile: () => boolean; isDirectory: () => boolean };
+  function list(path: string): string[];
+  function list(path: string, options: { withFileTypes: true }): Entry[];
+  function list(path: string, options?: { withFileTypes?: boolean }): string[] | Entry[] {
+    const folder = folderOf(path);
+    const prefix = folder.endsWith(sep) ? folder : `${folder}${sep}`;
+    const names = [...files.keys(), ...links.keys(), ...folders]
+      .filter((entry) => inside(entry, folder) && entry !== folder)
+      .map((entry) => entry.slice(prefix.length).split(sep)[0])
+      .filter((name, index, all) => all.indexOf(name) === index)
+      .sort();
+
+    return options?.withFileTypes
+      ? names.map((name) => ({ name, isFile: () => files.has(join(folder, name)), isDirectory: () => folders.has(join(folder, name)) }))
+      : names;
+  }
+
   const sync = {
-    existsSync: (path: string) => links.has(clean(path)) ? sync.existsSync(links.get(clean(path)) ?? '') : files.has(clean(path)) || folders.has(clean(path)),
+    existsSync: (path: string): boolean =>
+      links.has(clean(path)) ? sync.existsSync(links.get(clean(path)) ?? '') : files.has(clean(path)) || folders.has(clean(path)),
     mkdirSync: (path: string) => void parents(clean(path)).forEach((folder) => folders.add(folder)),
     writeFileSync: (path: string, data: string | Uint8Array, options?: { flag?: string }) => {
       folderOf(dirname(clean(path)));
@@ -59,20 +77,7 @@ const createMemoryFs = () => {
 
       return { size: data?.length ?? 0, mtimeMs: modified.get(target) ?? 0, isFile: () => data !== undefined, isDirectory: () => data === undefined };
     },
-    readdirSync: (path: string, options?: { withFileTypes?: boolean }) => {
-      const folder = folderOf(path);
-      const prefix = folder.endsWith(sep) ? folder : `${folder}${sep}`;
-
-      const names = [...files.keys(), ...links.keys(), ...folders]
-        .filter((entry) => inside(entry, folder) && entry !== folder)
-        .map((entry) => entry.slice(prefix.length).split(sep)[0])
-        .filter((name, index, all) => all.indexOf(name) === index)
-        .sort();
-
-      return options?.withFileTypes
-        ? names.map((name) => ({ name, isFile: () => files.has(join(folder, name)), isDirectory: () => folders.has(join(folder, name)) }))
-        : names;
-    },
+    readdirSync: list,
     copyFileSync: (from: string, to: string) => sync.writeFileSync(to, sync.readFileSync(from)),
   };
 
