@@ -4,7 +4,7 @@ import http from 'http';
 import { createRequire } from 'module';
 import net from 'net';
 import os from 'os';
-import { resolve } from 'path';
+import { join, resolve } from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import childProcess from 'child_process';
 import { memoryFs } from '../../electron/test-memory-fs';
@@ -165,8 +165,8 @@ describe('the smoke test', () => {
       '--no-sandbox',
       '--remote-debugging-port=9222',
       '--enable-logging',
-      `--log-file=${home}/chromium.log`,
-      `--user-data-dir=${home}/user-data`,
+      `--log-file=${join(home, 'chromium.log')}`,
+      `--user-data-dir=${join(home, 'user-data')}`,
     ]);
     expect(options.env).toMatchObject({
       HOME: home,

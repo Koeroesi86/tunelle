@@ -10,8 +10,8 @@ const createMemoryFs = () => {
   const links = new Map<string, string>();
   const folders = new Set<string>();
   const clean = (path: string) => resolve(path);
-  /** A link is followed once, to the file or folder it names */
-  const followed = (path: string) => links.get(clean(path)) ?? clean(path);
+  /** A link keeps the text of its target, as on disk, and is followed once, to the file or folder it names */
+  const followed = (path: string) => clean(links.get(clean(path)) ?? path);
   const isRoot = (path: string) => dirname(path) === path;
   const parents = (path: string): string[] => (isRoot(path) ? [path] : [path, ...parents(dirname(path))]);
   const inside = (entry: string, folder: string) => entry.startsWith(folder.endsWith(sep) ? folder : `${folder}${sep}`);
@@ -108,7 +108,7 @@ const createMemoryFs = () => {
     symlink: async (target: string, path: string) => {
       folderOf(dirname(clean(path)));
       if (sync.existsSync(path) || links.has(clean(path))) throw Object.assign(new Error(`EEXIST: file already exists, symlink '${path}'`), { code: 'EEXIST' });
-      links.set(clean(path), clean(target));
+      links.set(clean(path), target);
     },
     readlink: async (path: string) => {
       const target = links.get(clean(path));

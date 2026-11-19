@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { dirname, resolve } from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { memoryFs, spyOnFs } from '../../electron/test-memory-fs';
 
@@ -51,8 +52,8 @@ describe('update signature', () => {
 
   it('reads the keys that the app trusts from the constants file', () => {
     const keys = ['MCowBQYDK2VwAyEAabcdefghijklmnopqrstuvwxyz0123456789ABCD', 'MCowBQYDK2VwAyEA0123456789abcdefghijklmnopqrstuvwxyzABCD'];
-    const constants = new URL('../../shared/constants/update-keys.ts', `file://${__dirname}/`).pathname;
-    memoryFs.sync.mkdirSync(constants.slice(0, constants.lastIndexOf('/')));
+    const constants = resolve(__dirname, '../../shared/constants/update-keys.ts');
+    memoryFs.sync.mkdirSync(dirname(constants));
     memoryFs.sync.writeFileSync(constants, `export const updatePublicKeys = [\n  '${keys[0]}',\n  '${keys[1]}',\n  'short',\n];\n`);
 
     expect(script.readPublicKeys()).toEqual(keys);

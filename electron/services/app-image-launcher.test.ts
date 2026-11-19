@@ -54,7 +54,8 @@ describe('buildDesktopEntry', () => {
   );
 });
 
-describe('launcher on disk', () => {
+// The launcher exists on Linux only, and the paths of the test are POSIX ones
+describe.skipIf(process.platform === 'win32')('launcher on disk', () => {
   let folder: string;
   let options: LauncherOptions;
   let refresh: ReturnType<typeof vi.fn<(applicationsPath: string) => Promise<void>>>;

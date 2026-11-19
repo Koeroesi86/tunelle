@@ -19,7 +19,7 @@ vi.mock('child_process', () => ({ spawn: vi.fn() }));
 vi.mock('electron', () => ({ app: { getPath: () => '/temp', getAppPath: () => '/app/dist', isPackaged: false } }));
 vi.mock('../utils/log-error', () => ({ logError: vi.fn() }));
 
-const cache = path.resolve('/temp', 'tunelle-decoded');
+const cache = path.join('/temp', 'tunelle-decoded');
 
 type Behaviour = { code: number; error?: Error; hold?: boolean };
 

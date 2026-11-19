@@ -23,7 +23,7 @@ describe('reading the times of the folders', () => {
       '/m/b': { time: 3, directories: [] },
       '/m/a/c': { time: 4, directories: [] },
     };
-    list.mockImplementation(async (_mount: string, directory: string) => tree[directory]);
+    list.mockImplementation(async (_mount: string, directory: string) => tree[directory.replace(/^[A-Za-z]:/, '').replaceAll('\\', '/')]);
 
     const times = await readDirectoryTimes('/m');
 

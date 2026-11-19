@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import path from 'path';
 import type { WebContents } from 'electron';
 import { getTracksInside } from '../../repositories/library-repository';
 import { recordLibraryChange } from '../changes/library-changes';
@@ -14,14 +15,15 @@ type Entry = { name: string; kind: 'file' | 'folder' | 'link'; mtimeMs?: number;
 const tree = vi.hoisted(() => new Map<string, { name: string; kind: 'file' | 'folder' | 'link'; mtimeMs?: number; size?: number }[]>());
 
 vi.mock('fs', () => {
+  const posix = (value: string) => value.replace(/^[A-Za-z]:/, '').replaceAll('\\', '/');
   const promises = {
     readdir: async (directory: string) => {
-      const entries = tree.get(directory);
+      const entries = tree.get(posix(directory));
       if (!entries) throw new Error(`ENOENT ${directory}`);
       return entries.map(({ name, kind }) => ({ name, isDirectory: () => kind === 'folder', isFile: () => kind === 'file' }));
     },
     stat: async (file: string) => {
-      const entry = [...tree.values()].flat().find(({ name }) => file.endsWith(`/${name}`));
+      const entry = [...tree.values()].flat().find(({ name }) => posix(file).endsWith(`/${name}`));
       return { mtimeMs: entry?.mtimeMs ?? 1000.7, size: entry?.size ?? 10 };
     },
   };
@@ -43,8 +45,10 @@ const database = fakeDatabase();
 const read = vi.fn();
 const close = vi.fn();
 const file = (name: string, extra: Partial<Entry> = {}): Entry => ({ name, kind: 'file', ...extra });
-const meta = (path: string, codec = 'flac') => ({ path, codec, title: path });
-const stored = () => vi.mocked(addTracks).mock.calls.flatMap(([, tracks]) => tracks.map(({ path }) => path));
+const meta = (name: string, codec = 'flac') => ({ path: name, codec, title: name });
+const posix = (value: string) => value.replaceAll('\\', '/');
+const stored = () => vi.mocked(addTracks).mock.calls.flatMap(([, tracks]) => tracks.map((track) => posix(track.path)));
+const inMusic = (...names: string[]) => path.join('/music', ...names);
 
 describe('scanFolder', () => {
   beforeEach(() => {
@@ -91,7 +95,7 @@ describe('scanFolder', () => {
     expect(read).toHaveBeenCalledTimes(3);
     expect(close).toHaveBeenCalled();
     expect(queueAlbumArtAccents).toHaveBeenCalledWith(database);
-    expect(syncPlaylistFiles).toHaveBeenCalledWith(database, sender, '/music', true, ['/music/list.m3u']);
+    expect(syncPlaylistFiles).toHaveBeenCalledWith(database, sender, '/music', true, [inMusic('list.m3u')]);
   });
 
   it('stores the time and size of the file with the track, the time in whole milliseconds', async () => {
@@ -107,12 +111,12 @@ describe('scanFolder', () => {
   });
 
   it('does not read a file again when its time and size are the ones stored', async () => {
-    vi.mocked(getTracksInside).mockResolvedValue([{ path: '/music/a.flac', fileModified: 1000, fileSize: 10 }] as never);
+    vi.mocked(getTracksInside).mockResolvedValue([{ path: inMusic('a.flac'), fileModified: 1000, fileSize: 10 }] as never);
 
     await scanFolder('/music', sender);
 
     expect(read).toHaveBeenCalledTimes(2);
-    expect(read.mock.calls.map(([name]) => name)).not.toContain('/music/a.flac');
+    expect(read.mock.calls.map(([name]) => posix(name))).not.toContain('/music/a.flac');
   });
 
   it('keeps a file with a codec that does not play out of the library', async () => {
@@ -124,7 +128,7 @@ describe('scanFolder', () => {
   });
 
   it('tells the window about the files, the folders and the tracks stored, and counts added and updated tracks', async () => {
-    vi.mocked(getTracksInside).mockResolvedValue([{ path: '/music/a.flac', fileModified: 1, fileSize: 1 }] as never);
+    vi.mocked(getTracksInside).mockResolvedValue([{ path: inMusic('a.flac'), fileModified: 1, fileSize: 1 }] as never);
 
     await scanFolder('/music', sender);
 
@@ -156,7 +160,7 @@ describe('scanFolder', () => {
     expect(await scanFolder('/music', sender)).toBe(0);
 
     expect(stored()).toHaveLength(2);
-    expect(console.error).toHaveBeenCalledWith('/music/a.flac', expect.any(Error));
+    expect(console.error).toHaveBeenCalledWith(inMusic('a.flac'), expect.any(Error));
   });
 
   it('asks again for a file that did not answer in time, and says how many stay unread when it does not answer again', async () => {

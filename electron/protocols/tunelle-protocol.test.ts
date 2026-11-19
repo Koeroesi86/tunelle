@@ -1,3 +1,4 @@
+import path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { protocol } from 'electron';
 import { resolveAlbumArt } from '../library/art/album-art';
@@ -24,7 +25,7 @@ const ok = (body: string) => new Response(body);
 const getArt = vi.fn();
 const getLogo = vi.fn();
 const radio = { resolveStream: vi.fn(), onTitle: vi.fn(), onSampleRate: vi.fn(), getArt, getLogo };
-const handle = handleTunelleRequest({ getDatabase: () => database, radio, appRoot: '/app/out', devOrigin: 'http://localhost:3000' });
+const handle = handleTunelleRequest({ getDatabase: () => database, radio, appRoot: path.resolve('/app/out'), devOrigin: 'http://localhost:3000' });
 const ask = (path: string, init?: RequestInit & { host?: string }) => handle(new Request(`tunelle://${init?.host ?? 'app'}${path}`, init));
 const key = 'abcdef0123456789';
 
@@ -118,7 +119,10 @@ describe('the tunelle protocol', () => {
   it('serves the page from the app folder, never a file outside it, and answers 500 for an error', async () => {
     await ask('/');
     await ask('/assets/app.js');
-    expect(vi.mocked(serveFile).mock.calls.map(([file]) => file.replaceAll('\\', '/'))).toEqual(['/app/out/index.html', '/app/out/assets/app.js']);
+    expect(vi.mocked(serveFile).mock.calls.map(([file]) => file.replace(/^[A-Za-z]:/, '').replaceAll('\\', '/'))).toEqual([
+      '/app/out/index.html',
+      '/app/out/assets/app.js',
+    ]);
 
     vi.mocked(serveFile).mockClear();
     expect((await ask('/..%2fsecret')).status).toBe(404);

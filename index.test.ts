@@ -1,4 +1,4 @@
-import { resolve } from 'path';
+import { join, resolve } from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { memoryFs } from './electron/test-memory-fs';
 
@@ -247,9 +247,9 @@ describe('the start of the app', () => {
     it('copies the data of the old names once, before the folder of the new one is made', async () => {
       const modules = await start();
 
-      expect(modules.userData.copyOldUserData).toHaveBeenCalledWith(resolve('/paths/appData/eMusic'), resolve('/paths/appData/Tunelle'));
-      expect(modules.userData.copyOldUserData).toHaveBeenCalledWith(resolve('/paths/appData/electron-music-player'), resolve('/paths/appData/Tunelle'));
-      expect(modules.userData.copyOldLibrary).toHaveBeenCalledWith(resolve('/paths/appData/electron-music-player'), resolve('/paths/appData/tunelle'));
+      expect(modules.userData.copyOldUserData).toHaveBeenCalledWith(join('/paths/appData', 'eMusic'), join('/paths/appData', 'Tunelle'));
+      expect(modules.userData.copyOldUserData).toHaveBeenCalledWith(join('/paths/appData', 'electron-music-player'), join('/paths/appData', 'Tunelle'));
+      expect(modules.userData.copyOldLibrary).toHaveBeenCalledWith(join('/paths/appData', 'electron-music-player'), join('/paths/appData', 'tunelle'));
     });
 
     it('stops at the first old folder that was copied', async () => {
@@ -292,7 +292,7 @@ describe('the start of the app', () => {
 
       const modules = await start();
 
-      expect(modules.devEntry.registerDevDesktopEntry).toHaveBeenCalledWith('/paths/home/.local/share', expect.any(String));
+      expect(modules.devEntry.registerDevDesktopEntry).toHaveBeenCalledWith(join('/paths/home', '.local/share'), expect.any(String));
     });
 
     it.each([

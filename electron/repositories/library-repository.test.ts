@@ -77,7 +77,7 @@ describe('the library repository', () => {
       await hasTracksInside(database, '/music');
 
       expect(calls()[0].variables).toEqual(['C:/Music/%', `C:\\Music${path.sep}%`].filter((value, index, all) => all.indexOf(value) === index));
-      expect(calls()[1].variables).toEqual(['/music/%']);
+      expect(calls()[1].variables).toEqual(['/music/%', `/music${path.sep}%`].filter((value, index, all) => all.indexOf(value) === index));
     });
 
     it('tells whether there is a track below a folder', async () => {

@@ -20,7 +20,7 @@ vi.mock('fs', () => ({
   ...memoryFs.sync,
   constants: { W_OK: 2 },
   accessSync: (path: string) => {
-    if (readOnly.has(path) || !memoryFs.sync.existsSync(path)) throw new Error('EACCES');
+    if (readOnly.has(path.replaceAll('\\', '/')) || !memoryFs.sync.existsSync(path)) throw new Error('EACCES');
   },
 }));
 
