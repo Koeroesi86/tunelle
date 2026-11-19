@@ -14,10 +14,10 @@ CONTEXT="$(tail -n 40 "$TRANSCRIPT" | jq -rs '[.[] | select(.type == "assistant"
 STATE="${TMPDIR:-/tmp}/tunelle-claude-context"
 mkdir -p "$STATE"
 
-for LEVEL in 250000 150000; do
+for LEVEL in 200000 120000; do
   [ "$CONTEXT" -ge "$LEVEL" ] || continue
   [ ! -e "$STATE/$SESSION-$LEVEL" ] || exit 0
-  touch "$STATE/$SESSION-$LEVEL" "$STATE/$SESSION-150000"
+  touch "$STATE/$SESSION-$LEVEL" "$STATE/$SESSION-120000"
   jq -n --arg text "The context of this session is $((CONTEXT / 1000))K tokens and every call re-reads it. Finish the current step, then tell the user to run /handoff and /clear before the next task." \
     '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $text}}'
   exit 0

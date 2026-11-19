@@ -113,14 +113,22 @@ describe.skipIf(!hasTools)('claude hooks', () => {
       writeFileSync(join(project, 'small.txt'), 'x\n');
     };
 
-    it.each(['cat a.ts b.ts', 'cd x && cat a.ts b.ts | head', 'cat src/*.ts', 'cat big.txt', 'gh run view 1 --log', 'gh pr diff 3', 'npm ci'])(
-      'blocks %s',
-      (command) => {
-        big();
+    it.each([
+      'cat a.ts b.ts',
+      'cd x && cat a.ts b.ts | head',
+      'cat src/*.ts',
+      'cat big.txt',
+      'gh run view 1 --log',
+      'gh pr diff 3',
+      'npm ci',
+      'git show abc',
+      'git diff origin/master...HEAD -- a.ts',
+      'gh issue view 3',
+    ])('blocks %s', (command) => {
+      big();
 
-        expect(run('guard-output.sh', { command }).status).toBe(2);
-      }
-    );
+      expect(run('guard-output.sh', { command }).status).toBe(2);
+    });
 
     it.each([
       'cat small.txt',
@@ -133,10 +141,92 @@ describe.skipIf(!hasTools)('claude hooks', () => {
       'gh run view 1',
       'npm ci 2>&1 | tail -5',
       'grep -n x a.ts b.ts',
+      'git show abc --stat',
+      'git diff --name-only',
+      'git diff | head -n 100',
+      'git show abc > out.txt',
+      'gh issue view 3 --json title -q .title',
     ])('allows %s', (command) => {
       big();
 
       expect(run('guard-output.sh', { command }).status).toBe(0);
+    });
+  });
+
+  describe('guard-read', () => {
+    const read = (toolInput: object) => run('guard-read.sh', toolInput);
+
+    it('blocks a whole file of over 300 lines', () => {
+      writeFileSync(join(project, 'long.txt'), 'x\n'.repeat(400));
+
+      expect(read({ file_path: join(project, 'long.txt') }).status).toBe(2);
+    });
+
+    it('allows a range, a short file, a missing file and a binary one', () => {
+      writeFileSync(join(project, 'long.txt'), 'x\n'.repeat(400));
+      writeFileSync(join(project, 'short.txt'), 'x\n');
+      writeFileSync(join(project, 'bin.dat'), Buffer.alloc(5000, 0));
+
+      expect(read({ file_path: join(project, 'long.txt'), limit: 80 }).status).toBe(0);
+      expect(read({ file_path: join(project, 'long.txt'), offset: 100 }).status).toBe(0);
+      expect(read({ file_path: join(project, 'short.txt') }).status).toBe(0);
+      expect(read({ file_path: join(project, 'missing.txt') }).status).toBe(0);
+      expect(read({ file_path: join(project, 'bin.dat') }).status).toBe(0);
+    });
+  });
+
+  describe('edit-nudge', () => {
+    const nudge = (command: string, session: string) =>
+      spawnSync('bash', [join(hooks, 'edit-nudge.sh')], {
+        input: JSON.stringify({ tool_input: { command }, session_id: session }),
+        encoding: 'utf8',
+        env: { ...process.env, TMPDIR: project },
+      });
+
+    it.each(["sed -i 's/a/b/' x.ts", "cd y && sed -E -i 's/a/b/' x.ts", "python3 - <<'EOF'\nprint(1)\nEOF", "python3 -I - <<'EOF'\nEOF"])(
+      'says it for %s',
+      (command) => {
+        expect(nudge(command, `edit-${command.length}`).stdout).toContain('Edit tool');
+      }
+    );
+
+    it.each(['sed -n 1,5p x.ts', 'python3 script.py', 'git status', "echo 'sed -i'"])('stays quiet for %s', (command) => {
+      expect(nudge(command, 'quiet-edit').stdout).toBe('');
+    });
+
+    it('says it once per session', () => {
+      expect(nudge("sed -i 's/a/b/' x.ts", 'once').stdout).toContain('Edit tool');
+      expect(nudge("sed -i 's/a/b/' x.ts", 'once').stdout).toBe('');
+    });
+  });
+
+  describe('session-state', () => {
+    const state = (path: string) =>
+      spawnSync('bash', [join(hooks, 'session-state.sh')], {
+        cwd: path,
+        encoding: 'utf8',
+        env: { ...process.env, PATH: `${join(project, 'bin')}:${process.env.PATH}` },
+      });
+
+    it('says the branch, the uncommitted files and the pull request', () => {
+      const repo = join(project, 'repo');
+      mkdirSync(join(project, 'bin'), { recursive: true });
+      mkdirSync(repo);
+      writeFileSync(join(project, 'bin', 'gh'), '#!/bin/sh\necho "#7 OPEN"\n', { mode: 0o755 });
+      ['init -q -b work', '-c user.name=t -c user.email=t@t commit -q --allow-empty -m first'].forEach((args) =>
+        spawnSync('git', args.split(' '), { cwd: repo })
+      );
+      writeFileSync(join(repo, 'new.txt'), 'x');
+
+      const { stdout } = state(repo);
+
+      expect(JSON.parse(stdout).hookSpecificOutput.additionalContext).toContain(
+        'Branch work, ? commits ahead of origin/master, 1 uncommitted files, pull request: #7 OPEN'
+      );
+    });
+
+    it('says nothing outside a repository', () => {
+      expect(state(tmpdir()).stdout).toBe('');
     });
   });
 
@@ -155,15 +245,15 @@ describe.skipIf(!hasTools)('claude hooks', () => {
       return { status, stdout };
     };
 
-    it('stays quiet below 150K', () => {
+    it('stays quiet below 120K', () => {
       expect(nudge(100000, 'quiet').stdout).toBe('');
     });
 
     it('says it once per level', () => {
-      expect(nudge(160000, 'levels').stdout).toContain('/handoff');
-      expect(nudge(170000, 'levels').stdout).toBe('');
-      expect(nudge(260000, 'levels').stdout).toContain('261K');
-      expect(nudge(270000, 'levels').stdout).toBe('');
+      expect(nudge(130000, 'levels').stdout).toContain('/handoff');
+      expect(nudge(140000, 'levels').stdout).toBe('');
+      expect(nudge(210000, 'levels').stdout).toContain('211K');
+      expect(nudge(220000, 'levels').stdout).toBe('');
     });
   });
 
