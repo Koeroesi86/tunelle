@@ -25,5 +25,3 @@ export const findRealWorldTests = (): string[] =>
     .filter((file) => unitTest.test(file) && !otherTier.test(file))
     .filter((file) => usesRealWorld(readFileSync(join(root, file), 'utf8')))
     .sort();
-
-export const readBaseline = (): string[] => JSON.parse(readFileSync(join(__dirname, 'unit-test-isolation-baseline.json'), 'utf8'));
