@@ -14,6 +14,8 @@ const { waitForPage } = require('./wait-for-page')
 // the updater is turned off (TUNELLE_NO_UPDATE), so a newer release can not be downloaded and installed in the middle of the run
 const root = resolve(__dirname, '../..')
 const timeout = 60000
+// an event of an audio element in the page; a slow runner without an audio device took over 15 s, see docs/development/ci.md
+const audioTimeout = 30000
 
 // what comes from the app or its files is printed on one line per entry, so it cannot forge a line of the log of the run
 const printable = text => String(text).replace(/[\r\n]+/g, ' ')
@@ -146,8 +148,8 @@ const evaluateIn = (socketUrl, expression) =>
     // a page that waits for an event that never comes would hold the run until the limit of the job
     const timer = setTimeout(() => {
       socket.close()
-      fail(new Error(`The window did not answer in ${timeout} ms`))
-    }, timeout)
+      fail(new Error(`The window did not answer in ${timeout + 3 * audioTimeout} ms`))
+    }, timeout + 3 * audioTimeout)
     socket.onerror = () => fail(new Error('The debugging socket failed'))
     socket.onopen = () => socket.send(JSON.stringify({ id: 1, method: 'Runtime.evaluate', params: { expression, awaitPromise: true, returnByValue: true } }))
     socket.onmessage = ({ data }) => {
@@ -164,7 +166,7 @@ const audioHelpers = `
   const describe = audio => 'readyState ' + audio.readyState + ', networkState ' + audio.networkState + ', error ' + audio.error?.code + ', currentTime ' + audio.currentTime
   const waitFor = (audio, event, source) =>
     new Promise((done, fail) => {
-      const timer = setTimeout(() => fail(new Error('no ' + event + ' of ' + source + ' (' + describe(audio) + ')')), 15000)
+      const timer = setTimeout(() => fail(new Error('no ' + event + ' of ' + source + ' (' + describe(audio) + ')')), ${audioTimeout})
       audio.addEventListener(event, () => { clearTimeout(timer); done() }, { once: true })
       audio.addEventListener('error', () => { clearTimeout(timer); fail(new Error('audio error of ' + source + ' (' + describe(audio) + ')')) }, { once: true })
     })
@@ -252,7 +254,7 @@ const checkRadio = async (socketUrl, station) => {
       const played = await new Promise(done => {
         const check = () => (audio.currentTime > 0.5 ? done('playing') : setTimeout(check, 100))
         check()
-        setTimeout(() => done('not playing: ' + describe(audio)), 20000)
+        setTimeout(() => done('not playing: ' + describe(audio)), ${audioTimeout})
       })
       audio.pause()
       audio.removeAttribute('src')
