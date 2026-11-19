@@ -148,6 +148,7 @@ export type AppAction =
   | EmptyAction<'INSTALL_UPDATE'>
   | EmptyAction<'OPEN_RELEASES'>
   | EmptyAction<'OPEN_FFMPEG_NOTICE'>
+  | EmptyAction<'OPEN_SPONSOR_PAGE'>
   | PayloadAction<'SET_AUTOMATIC_UPDATES', { enabled: boolean }>
   | PayloadAction<'UPDATE_STATE', UpdateState>
   | PayloadAction<'SEARCH_RADIO', { query: RadioQuery }>

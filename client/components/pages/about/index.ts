@@ -15,6 +15,7 @@ const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   setAutomatic: (enabled: boolean) => dispatch({ type: 'SET_AUTOMATIC_UPDATES', payload: { enabled } }),
   openReleases: () => dispatch({ type: 'OPEN_RELEASES' }),
   openFfmpegNotice: () => dispatch({ type: 'OPEN_FFMPEG_NOTICE' }),
+  openSponsorPage: () => dispatch({ type: 'OPEN_SPONSOR_PAGE' }),
 });
 
 export default connect(mapState, mapDispatch)(About);

@@ -7,6 +7,7 @@ import { parsePayload } from '../utils/parse-payload';
 import { logError } from '../utils/log-error';
 
 const releasesUrl = 'https://github.com/Koeroesi86/tunelle/releases';
+const sponsorUrl = 'https://github.com/sponsors/Koeroesi86';
 
 /** The settings ask for the version and the update state, start a check and ask for the restart; the update source itself stays in this process */
 const registerUpdateListeners = ({ updates }: ListenerContext) => {
@@ -37,6 +38,10 @@ const registerUpdateListeners = ({ updates }: ListenerContext) => {
   // a fixed address, the renderer does not choose what is opened
   ipcMain.on('OPEN_RELEASES', () => {
     shell.openExternal(releasesUrl).catch(logError);
+  });
+  // a fixed address, the renderer does not choose what is opened
+  ipcMain.on('OPEN_SPONSOR_PAGE', () => {
+    shell.openExternal(sponsorUrl).catch(logError);
   });
   // the notice and the license text of the ffmpeg that the package carries (docs/development/ffmpeg-build.md), a fixed file
   ipcMain.on('OPEN_FFMPEG_NOTICE', () => {
