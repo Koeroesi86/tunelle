@@ -5,6 +5,7 @@ const missing = (path: string) => Object.assign(new Error(`ENOENT: no such file 
 /** An in-memory stand-in for `fs` and `fs/promises`, so a unit test touches no real folder (docs/development/unit-tests.md) */
 const createMemoryFs = () => {
   const files = new Map<string, Buffer>();
+  const modified = new Map<string, number>();
   const folders = new Set<string>();
   const clean = (path: string) => resolve(path);
   const isRoot = (path: string) => dirname(path) === path;
@@ -29,6 +30,7 @@ const createMemoryFs = () => {
       folderOf(dirname(clean(path)));
       if (options?.flag === 'wx' && files.has(clean(path))) throw Object.assign(new Error(`EEXIST: file already exists, open '${path}'`), { code: 'EEXIST' });
       files.set(clean(path), content(data));
+      modified.set(clean(path), Date.now());
     },
     readFileSync: (path: string, encoding?: BufferEncoding | { encoding?: BufferEncoding | null }) => {
       const data = files.get(clean(path));
@@ -72,6 +74,17 @@ const createMemoryFs = () => {
       sync.writeFileSync(to, data);
       sync.rmSync(from);
     },
+    stat: async (path: string) => {
+      const target = clean(path);
+      const data = files.get(target);
+      if (!data && !folders.has(target)) throw missing(path);
+
+      return { size: data?.length ?? 0, mtimeMs: modified.get(target) ?? 0, isFile: () => data !== undefined, isDirectory: () => data === undefined };
+    },
+    utimes: async (path: string, _atime: Date, mtime: Date) => {
+      if (!sync.existsSync(path)) throw missing(path);
+      modified.set(clean(path), mtime.getTime());
+    },
     open: async (path: string) => {
       const data = sync.readFileSync(path);
       return { stat: async () => ({ size: data.length }), readFile: async () => data, close: async () => undefined };
@@ -80,6 +93,7 @@ const createMemoryFs = () => {
 
   const reset = () => {
     files.clear();
+    modified.clear();
     folders.clear();
   };
 
