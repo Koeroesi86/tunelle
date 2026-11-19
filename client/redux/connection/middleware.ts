@@ -4,7 +4,7 @@ import type { Track } from '@shared/types/library';
 import type { GroupSummary } from '@shared/types/library';
 import type { GroupKind } from '@shared/types/library-query';
 
-import { electronAPI } from '../../services/electron-api';
+import { getBackend, type Backend } from '../../backend/backend';
 import { z } from 'zod';
 import { maxPrioritisedTracks } from '@shared/constants/loudness';
 import { powerSavingFactor } from '@shared/constants/power';
@@ -27,6 +27,8 @@ import { actionMiddleware, onAction } from '../on-action';
 
 import type { Store } from '../on-action';
 import type { PageKind, PersistedSettings, PlaylistItem, UiState } from '../types';
+
+const send = (...args: Parameters<Backend['send']>) => getBackend().send(...args);
 
 function addListeners(store: Store) {
   onMessage('STORE_FOLDERS', messageSchemas.STORE_FOLDERS, (payload) => store.dispatch({ type: 'STORE_FOLDERS', payload }));
@@ -84,7 +86,7 @@ function addListeners(store: Store) {
 }
 
 function rescanLibrary(forced = false) {
-  electronAPI.send('RESCAN_LIBRARY', { forced });
+  send('RESCAN_LIBRARY', { forced });
 }
 
 const appLoaded = debounce(() => {
@@ -145,7 +147,7 @@ const photoKinds: GroupKind[] = ['artist', 'albumArtist'];
 
 const requestPhotos = (groups: GroupSummary[]) => {
   const artists = groups.filter(({ name }) => name).map(({ key, name }) => ({ key, name }));
-  if (artists.length > 0) electronAPI.send('ARTIST_PHOTOS_WANTED', { artists });
+  if (artists.length > 0) send('ARTIST_PHOTOS_WANTED', { artists });
 };
 
 /** Runs the task now and then, with the wait that fits the state of the power when it is scheduled, so no timer of the page wakes the computer at the pace of the charger on battery */
@@ -197,7 +199,7 @@ const persistedKeys = [
   'radioQuery',
 ] satisfies (keyof PersistedSettings)[];
 
-const saveSettings = (uiState: UiState) => electronAPI.send('SAVE_SETTINGS', Object.fromEntries(persistedKeys.map((key) => [key, uiState[key]])));
+const saveSettings = (uiState: UiState) => send('SAVE_SETTINGS', Object.fromEntries(persistedKeys.map((key) => [key, uiState[key]])));
 
 /** The state is saved a moment after the last change, as the handlers run before the reducer */
 const saveLater = debounce((store: Store) => saveSettings(store.getState().uiState), 500);
@@ -230,38 +232,38 @@ const notifyPlaying = (track: Track, onClick: () => void) => {
 
 const start = (store: Store) => {
   addListeners(store);
-  electronAPI.send('APP_READY', 'Ready to receive');
-  electronAPI.send('GET_APP_VERSION');
-  electronAPI.send('FAVOURITES_LOAD');
-  electronAPI.send('HISTORY_LOAD');
-  electronAPI.send('PLAYLISTS_LOAD');
-  electronAPI.send('BACKGROUND_TASKS_LOAD');
-  electronAPI.send('GET_REMOTE_HOST');
-  electronAPI.send('GET_REMOTE_LISTENER');
+  send('APP_READY', 'Ready to receive');
+  send('GET_APP_VERSION');
+  send('FAVOURITES_LOAD');
+  send('HISTORY_LOAD');
+  send('PLAYLISTS_LOAD');
+  send('BACKGROUND_TASKS_LOAD');
+  send('GET_REMOTE_HOST');
+  send('GET_REMOTE_LISTENER');
 
   repeat(store, rescanInterval, () => store.getState().uiState.totalCount === 0 && rescanLibrary(false));
 
-  electronAPI.send('CHECK_FOLDERS');
-  window.addEventListener('focus', () => electronAPI.send('CHECK_FOLDERS'));
-  repeat(store, offlineRecheckInterval, () => store.getState().offlineFolders.length > 0 && electronAPI.send('CHECK_FOLDERS'));
+  send('CHECK_FOLDERS');
+  window.addEventListener('focus', () => send('CHECK_FOLDERS'));
+  repeat(store, offlineRecheckInterval, () => store.getState().offlineFolders.length > 0 && send('CHECK_FOLDERS'));
 
   loadPage(store, 'tracks', 0).then(appLoaded);
 };
 
 /** The tracks that are queued or start are measured before the rest of the library, the first ones only; the main process leaves out the ones that are measured or not in the library */
 const prioritiseLoudness = (tracks: Pick<Track, 'path'>[], nowPlaying = false) =>
-  electronAPI.send('LOUDNESS_PRIORITISE', { paths: tracks.slice(0, maxPrioritisedTracks).map((track) => track.path), nowPlaying });
+  send('LOUDNESS_PRIORITISE', { paths: tracks.slice(0, maxPrioritisedTracks).map((track) => track.path), nowPlaying });
 
 const notifyTrack = (store: Store, track: Track) =>
   notifyPlaying(track, () => {
     store.dispatch({ type: 'CLICK_NOTIFICATION', payload: {} });
-    electronAPI.send('NOTIFICATION_CLICKED', { track });
+    send('NOTIFICATION_CLICKED', { track });
   });
 
 const handleActions = actionMiddleware((store) => [
-  onAction('FILES_ADDED', ({ payload }) => electronAPI.send('ADD_FOLDERS_TO_LIBRARY', toAddedFiles(Array.from(payload.fileList), electronAPI.getPathForFile))),
-  onAction('PICK_FOLDERS', () => electronAPI.send('PICK_FOLDERS')),
-  onAction('REMOVE_FOLDER', ({ payload }) => electronAPI.send('REMOVE_FOLDER_FROM_LIBRARY', payload.path)),
+  onAction('FILES_ADDED', ({ payload }) => send('ADD_FOLDERS_TO_LIBRARY', toAddedFiles(Array.from(payload.fileList), getBackend().pathForFile))),
+  onAction('PICK_FOLDERS', () => send('PICK_FOLDERS')),
+  onAction('REMOVE_FOLDER', ({ payload }) => send('REMOVE_FOLDER_FROM_LIBRARY', payload.path)),
   onAction('RESCAN_LIBRARY', () => rescanLibrary(true)),
   // a page of names that arrives asks for their photos, unless that is turned off
   onAction('STORE_GROUP_PAGE', ({ payload }) => {
@@ -275,17 +277,17 @@ const handleActions = actionMiddleware((store) => [
 
     photoKinds.forEach((kind) => Object.values(library.groups[kind].pages).forEach(requestPhotos));
   }),
-  onAction('CHANGE_ARTIST_PHOTO', ({ payload }) => electronAPI.send('ARTIST_PHOTO_CHANGE', payload)),
-  onAction('CHANGE_ALBUM_COVER', ({ payload }) => electronAPI.send('ALBUM_COVER_CHANGE', payload)),
-  onAction('SEARCH_ALBUM_COVERS', ({ payload }) => electronAPI.send('ALBUM_COVER_SEARCH', payload)),
-  onAction('SEARCH_ARTIST_PHOTOS', ({ payload }) => electronAPI.send('ARTIST_PHOTO_SEARCH', payload)),
+  onAction('CHANGE_ARTIST_PHOTO', ({ payload }) => send('ARTIST_PHOTO_CHANGE', payload)),
+  onAction('CHANGE_ALBUM_COVER', ({ payload }) => send('ALBUM_COVER_CHANGE', payload)),
+  onAction('SEARCH_ALBUM_COVERS', ({ payload }) => send('ALBUM_COVER_SEARCH', payload)),
+  onAction('SEARCH_ARTIST_PHOTOS', ({ payload }) => send('ARTIST_PHOTO_SEARCH', payload)),
   onAction('SET_WATCH_FOLDERS', ({ payload }) => saveSettings({ ...store.getState().uiState, watchFolders: payload.enabled })),
   onAction('SET_POWER_SAVING', ({ payload }) => saveSettings({ ...store.getState().uiState, powerSaving: payload.mode })),
   onAction('SET_MEASURE_LOUDNESS', ({ payload }) => saveSettings({ ...store.getState().uiState, measureLoudness: payload.enabled })),
   onAction('SET_NOTIFY_LIBRARY_CHANGES', ({ payload }) => saveSettings({ ...store.getState().uiState, notifyLibraryChanges: payload.enabled })),
-  onAction('LOAD_LOUDNESS_STATUS', () => electronAPI.send('LOUDNESS_STATUS_LOAD')),
-  onAction('LOAD_LOUDNESS_FAILED', () => electronAPI.send('LOUDNESS_FAILED_LOAD')),
-  onAction('CLEAR_MEASURED_LOUDNESS', () => electronAPI.send('LOUDNESS_CLEAR')),
+  onAction('LOAD_LOUDNESS_STATUS', () => send('LOUDNESS_STATUS_LOAD')),
+  onAction('LOAD_LOUDNESS_FAILED', () => send('LOUDNESS_FAILED_LOAD')),
+  onAction('CLEAR_MEASURED_LOUDNESS', () => send('LOUDNESS_CLEAR')),
   onAction('LOAD_LIBRARY_PAGE', ({ payload }) => void loadPage(store, payload.kind, payload.page)),
   // tracks stored while a scan runs: the list on the screen shows them, the favourites and the rest wait for the end of the scan
   onAction('LIBRARY_UPDATED', () => {
@@ -305,9 +307,9 @@ const handleActions = actionMiddleware((store) => [
   ),
   onAction('CLOSE_APP', () => {
     store.dispatch({ type: 'SAVE_SETTINGS', payload: {} });
-    electronAPI.send('CLOSE_APP', {});
+    send('CLOSE_APP', {});
   }),
-  ...(['MINIMIZE_APP', 'MAXIMIZE_APP'] as const).map((type) => onAction(type, () => electronAPI.send(type, {}))),
+  ...(['MINIMIZE_APP', 'MAXIMIZE_APP'] as const).map((type) => onAction(type, () => send(type, {}))),
   onAction('CLICKED_URL', ({ payload }) => store.dispatch({ type: 'PLAY_TRACKS', payload: { tracks: payload.playlist.map(toPlaylistTrack) } })),
   ...(['PLAY_TRACKS', 'ADD_TO_QUEUE', 'PLAY_NEXT'] as const).map((type) => onAction(type, ({ payload }) => prioritiseLoudness(payload.tracks))),
   onAction('PLAY_TRACK', ({ payload }) => {
@@ -316,53 +318,53 @@ const handleActions = actionMiddleware((store) => [
     prioritiseLoudness([payload.track], true);
     notifyTrack(store, payload.track);
     // a station is recorded with all that is known of it when it is picked, the track of the radio knows its name only
-    if (!radioUuidOf(payload.track.path) && !isRemoteTrack(payload.track.path)) electronAPI.send('HISTORY_RECORD', trackFavourite(payload.track));
+    if (!radioUuidOf(payload.track.path) && !isRemoteTrack(payload.track.path)) send('HISTORY_RECORD', trackFavourite(payload.track));
   }),
-  onAction('PLAY_RADIO_STATION', ({ payload }) => electronAPI.send('HISTORY_RECORD', stationFavourite(payload.station))),
-  onAction('LOAD_FAVOURITES', () => electronAPI.send('FAVOURITES_LOAD')),
-  onAction('LOAD_HISTORY', () => electronAPI.send('HISTORY_LOAD')),
-  onAction('LOAD_PLAYLISTS', () => electronAPI.send('PLAYLISTS_LOAD')),
-  onAction('IMPORT_PLAYLISTS', () => electronAPI.send('PLAYLIST_IMPORT')),
-  onAction('CREATE_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_CREATE', payload)),
-  onAction('RENAME_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_RENAME', payload)),
-  onAction('DELETE_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_DELETE', payload)),
-  onAction('EXPORT_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_EXPORT', payload)),
-  onAction('SYNC_PLAYLIST_FILE', ({ payload }) => electronAPI.send('PLAYLIST_SYNC', payload)),
-  onAction('SET_PLAYLIST_ENCODING', ({ payload }) => electronAPI.send('PLAYLIST_ENCODING', payload)),
-  onAction('UNDO_PLAYLIST_IMPORT', ({ payload }) => electronAPI.send('PLAYLIST_UNDO_IMPORT', payload)),
-  onAction('MOVE_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_MOVE', payload)),
-  onAction('ADD_TO_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_ADD', payload)),
-  onAction('REMOVE_FROM_PLAYLIST', ({ payload }) => electronAPI.send('PLAYLIST_REMOVE_ENTRY', payload)),
-  onAction('MOVE_PLAYLIST_ENTRY', ({ payload }) => electronAPI.send('PLAYLIST_MOVE_ENTRY', payload)),
-  onAction('CLEAR_HISTORY', () => electronAPI.send('HISTORY_CLEAR')),
-  onAction('ADD_FAVOURITE', ({ payload }) => electronAPI.send('FAVOURITE_ADD', payload.favourite)),
-  onAction('REMOVE_FAVOURITE', ({ payload }) => electronAPI.send('FAVOURITE_REMOVE', payload.key)),
-  onAction('SEARCH_RADIO', ({ payload }) => electronAPI.send('RADIO_SEARCH', payload.query)),
-  onAction('LOAD_RADIO_TAGS', () => electronAPI.send('RADIO_TAGS')),
-  onAction('LOAD_RADIO_OPTIONS', () => electronAPI.send('RADIO_OPTIONS')),
-  onAction('CHECK_FOR_UPDATES', () => electronAPI.send('CHECK_FOR_UPDATES')),
-  onAction('OPEN_RELEASES', () => electronAPI.send('OPEN_RELEASES')),
-  onAction('OPEN_FFMPEG_NOTICE', () => electronAPI.send('OPEN_FFMPEG_NOTICE')),
-  onAction('CONFIRM_METERED_UPDATE', () => electronAPI.send('CONFIRM_METERED_UPDATE')),
-  onAction('CANCEL_METERED_UPDATE', () => electronAPI.send('CANCEL_METERED_UPDATE')),
-  onAction('SET_ALLOW_METERED_UPDATES', ({ payload }) => electronAPI.send('SET_ALLOW_METERED_UPDATES', payload)),
-  onAction('SET_AUTOMATIC_UPDATES', ({ payload }) => electronAPI.send('SET_AUTOMATIC_UPDATES', payload)),
+  onAction('PLAY_RADIO_STATION', ({ payload }) => send('HISTORY_RECORD', stationFavourite(payload.station))),
+  onAction('LOAD_FAVOURITES', () => send('FAVOURITES_LOAD')),
+  onAction('LOAD_HISTORY', () => send('HISTORY_LOAD')),
+  onAction('LOAD_PLAYLISTS', () => send('PLAYLISTS_LOAD')),
+  onAction('IMPORT_PLAYLISTS', () => send('PLAYLIST_IMPORT')),
+  onAction('CREATE_PLAYLIST', ({ payload }) => send('PLAYLIST_CREATE', payload)),
+  onAction('RENAME_PLAYLIST', ({ payload }) => send('PLAYLIST_RENAME', payload)),
+  onAction('DELETE_PLAYLIST', ({ payload }) => send('PLAYLIST_DELETE', payload)),
+  onAction('EXPORT_PLAYLIST', ({ payload }) => send('PLAYLIST_EXPORT', payload)),
+  onAction('SYNC_PLAYLIST_FILE', ({ payload }) => send('PLAYLIST_SYNC', payload)),
+  onAction('SET_PLAYLIST_ENCODING', ({ payload }) => send('PLAYLIST_ENCODING', payload)),
+  onAction('UNDO_PLAYLIST_IMPORT', ({ payload }) => send('PLAYLIST_UNDO_IMPORT', payload)),
+  onAction('MOVE_PLAYLIST', ({ payload }) => send('PLAYLIST_MOVE', payload)),
+  onAction('ADD_TO_PLAYLIST', ({ payload }) => send('PLAYLIST_ADD', payload)),
+  onAction('REMOVE_FROM_PLAYLIST', ({ payload }) => send('PLAYLIST_REMOVE_ENTRY', payload)),
+  onAction('MOVE_PLAYLIST_ENTRY', ({ payload }) => send('PLAYLIST_MOVE_ENTRY', payload)),
+  onAction('CLEAR_HISTORY', () => send('HISTORY_CLEAR')),
+  onAction('ADD_FAVOURITE', ({ payload }) => send('FAVOURITE_ADD', payload.favourite)),
+  onAction('REMOVE_FAVOURITE', ({ payload }) => send('FAVOURITE_REMOVE', payload.key)),
+  onAction('SEARCH_RADIO', ({ payload }) => send('RADIO_SEARCH', payload.query)),
+  onAction('LOAD_RADIO_TAGS', () => send('RADIO_TAGS')),
+  onAction('LOAD_RADIO_OPTIONS', () => send('RADIO_OPTIONS')),
+  onAction('CHECK_FOR_UPDATES', () => send('CHECK_FOR_UPDATES')),
+  onAction('OPEN_RELEASES', () => send('OPEN_RELEASES')),
+  onAction('OPEN_FFMPEG_NOTICE', () => send('OPEN_FFMPEG_NOTICE')),
+  onAction('CONFIRM_METERED_UPDATE', () => send('CONFIRM_METERED_UPDATE')),
+  onAction('CANCEL_METERED_UPDATE', () => send('CANCEL_METERED_UPDATE')),
+  onAction('SET_ALLOW_METERED_UPDATES', ({ payload }) => send('SET_ALLOW_METERED_UPDATES', payload)),
+  onAction('SET_AUTOMATIC_UPDATES', ({ payload }) => send('SET_AUTOMATIC_UPDATES', payload)),
   // the restart quits the app, so the queue and the position are saved first (the main process closes the database after what it has queued)
   onAction('INSTALL_UPDATE', () => {
     saveSettings(store.getState().uiState);
-    electronAPI.send('INSTALL_UPDATE');
+    send('INSTALL_UPDATE');
   }),
   onAction('SET_NORMALIZATION', ({ payload }) => saveSettings({ ...store.getState().uiState, normalization: payload.mode })),
   onAction('SET_OUTPUT_DEVICE', ({ payload }) => saveSettings({ ...store.getState().uiState, outputDevice: payload.device })),
-  onAction('SET_LAUNCHER', ({ payload }) => electronAPI.send('SET_LAUNCHER', payload)),
-  onAction('SET_REMOTE_HOST', ({ payload }) => electronAPI.send('SET_REMOTE_HOST', payload)),
-  onAction('DECIDE_REMOTE_DEVICE', ({ payload }) => electronAPI.send('DECIDE_REMOTE_DEVICE', payload)),
-  onAction('SET_REMOTE_DEVICE_CONTROLS', ({ payload }) => electronAPI.send('SET_REMOTE_DEVICE_CONTROLS', payload)),
-  onAction('CONNECT_REMOTE_HOST', ({ payload }) => electronAPI.send('CONNECT_REMOTE_HOST', payload)),
-  onAction('CONFIRM_REMOTE_HOST', ({ payload }) => electronAPI.send('CONFIRM_REMOTE_HOST', payload)),
-  onAction('SEND_REMOTE_CONTROL', ({ payload }) => electronAPI.send('SEND_REMOTE_CONTROL', payload)),
-  onAction('LEAVE_REMOTE_HOST', () => electronAPI.send('LEAVE_REMOTE_HOST')),
-  onAction('BROWSE_REMOTE_NEARBY', ({ payload }) => electronAPI.send('BROWSE_REMOTE_NEARBY', payload)),
+  onAction('SET_LAUNCHER', ({ payload }) => send('SET_LAUNCHER', payload)),
+  onAction('SET_REMOTE_HOST', ({ payload }) => send('SET_REMOTE_HOST', payload)),
+  onAction('DECIDE_REMOTE_DEVICE', ({ payload }) => send('DECIDE_REMOTE_DEVICE', payload)),
+  onAction('SET_REMOTE_DEVICE_CONTROLS', ({ payload }) => send('SET_REMOTE_DEVICE_CONTROLS', payload)),
+  onAction('CONNECT_REMOTE_HOST', ({ payload }) => send('CONNECT_REMOTE_HOST', payload)),
+  onAction('CONFIRM_REMOTE_HOST', ({ payload }) => send('CONFIRM_REMOTE_HOST', payload)),
+  onAction('SEND_REMOTE_CONTROL', ({ payload }) => send('SEND_REMOTE_CONTROL', payload)),
+  onAction('LEAVE_REMOTE_HOST', () => send('LEAVE_REMOTE_HOST')),
+  onAction('BROWSE_REMOTE_NEARBY', ({ payload }) => send('BROWSE_REMOTE_NEARBY', payload)),
   // the main process has text of its own and follows the language from the saved settings
   // the handlers run before the reducer, so the saved settings get the new language here
   onAction('SET_LANGUAGE', ({ payload }) => saveSettings({ ...store.getState().uiState, language: payload.language })),

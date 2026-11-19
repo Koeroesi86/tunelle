@@ -4,6 +4,8 @@ import PlayerHome from './components/layout/player-home';
 import ThemeProvider from './components/layout/theme-provider';
 import LanguageProvider from './components/layout/language-provider';
 import { createAppStore } from './redux/store';
+import { setBackend } from './backend/backend';
+import { createElectronBackend } from './backend/electron-backend';
 import { onAppStarted } from './startup';
 
 const mount = () => {
@@ -25,4 +27,8 @@ const mount = () => {
 };
 
 // the splash in the page covers the window until the main process has the library open and answers
-if (typeof document !== 'undefined') onAppStarted(window.electronAPI, mount);
+if (typeof document !== 'undefined') {
+  const backend = createElectronBackend(window.electronAPI);
+  setBackend(backend);
+  onAppStarted(backend, mount);
+}

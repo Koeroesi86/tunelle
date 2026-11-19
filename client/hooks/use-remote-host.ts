@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { getBackend } from '../backend/backend';
 import { controlCommandSchema, type ControlCommand } from '@shared/schemas/remote-control';
 
 interface RemoteHostInfo {
@@ -58,7 +59,7 @@ export const useRemoteHost = (info: RemoteHostInfo | undefined, { isPlaying, cur
 
   const send = () => {
     latest.current = { currentTime, at: Date.now(), isPlaying };
-    window.electronAPI?.send(
+    getBackend().send(
       'REMOTE_STATE',
       info
         ? {
@@ -106,7 +107,7 @@ export const useRemoteHost = (info: RemoteHostInfo | undefined, { isPlaying, cur
 
     // the page has no way to take a listener off, so there is one for its life and it calls what the player has now
     listening.current = true;
-    window.electronAPI?.on<unknown>('REMOTE_CONTROL', (payload) => {
+    getBackend().on<unknown>('REMOTE_CONTROL', (payload) => {
       const command = controlCommandSchema.safeParse(payload).data;
       if (command) run(command, current.current);
     });

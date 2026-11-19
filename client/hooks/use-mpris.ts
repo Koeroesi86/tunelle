@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { getBackend } from '../backend/backend';
 
 interface MprisInfo {
   title: string;
@@ -18,7 +19,7 @@ interface MprisPlayback {
 const seekThreshold = 1.5;
 
 // the media controls of the desktop on Linux are the MPRIS service of the main process (electron/services/mpris.ts), not navigator.mediaSession
-const mprisEnabled = () => window.electronAPI?.mpris === true;
+const mprisEnabled = () => getBackend().capabilities.mpris;
 
 /** Sends what plays to the media controls of the desktop: the track, the cover, whether it plays and where it is */
 export const useMpris = (info: MprisInfo | undefined, { isPlaying, currentTime }: MprisPlayback) => {
@@ -26,7 +27,7 @@ export const useMpris = (info: MprisInfo | undefined, { isPlaying, currentTime }
 
   const send = (seeked: boolean) => {
     latest.current = { currentTime, at: Date.now(), isPlaying };
-    window.electronAPI.send('MPRIS_STATE', {
+    getBackend().send('MPRIS_STATE', {
       track: info && { title: info.title, artist: info.artist, album: info.album, duration: info.duration, coverUrl: undefined },
       playing: isPlaying,
       position: currentTime,
@@ -49,7 +50,7 @@ export const useMpris = (info: MprisInfo | undefined, { isPlaying, currentTime }
   useEffect(() => {
     if (!mprisEnabled()) return;
 
-    window.electronAPI.send('MPRIS_COVER', undefined);
+    getBackend().send('MPRIS_COVER', undefined);
     if (!info?.cover) return;
 
     const controller = new AbortController();
@@ -60,7 +61,7 @@ export const useMpris = (info: MprisInfo | undefined, { isPlaying, currentTime }
         return response.blob();
       })
       .then(async (blob) => {
-        if (!controller.signal.aborted) window.electronAPI.send('MPRIS_COVER', { bytes: new Uint8Array(await blob.arrayBuffer()), type: blob.type });
+        if (!controller.signal.aborted) getBackend().send('MPRIS_COVER', { bytes: new Uint8Array(await blob.arrayBuffer()), type: blob.type });
       })
       .catch(() => undefined); // the controls show the track without a cover
 
@@ -90,7 +91,7 @@ export const useMprisCommands = (commands: MprisCommands) => {
 
     // the page has no way to take a listener off, so there is one for its life and it calls what the player has now
     listening.current = true;
-    window.electronAPI.on<MprisCommand>('MPRIS_COMMAND', (command) => {
+    getBackend().on<MprisCommand>('MPRIS_COMMAND', (command) => {
       const { play, pause, isPlaying, previousSong, nextSong, setCurrentTime } = current.current;
       const actions = {
         play,
