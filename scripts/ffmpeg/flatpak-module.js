@@ -18,6 +18,7 @@ const flatpakModule = ({ url, sha256, configure, flatpakExcluded }) => ({
     `./configure --prefix=\${FLATPAK_DEST} ${configure.map(flag => withoutExcluded(flag, flatpakExcluded ?? [])).join(' ')}`,
     'make -j${FLATPAK_BUILDER_N_JOBS}',
     'install -Dm755 ffmpeg ${FLATPAK_DEST}/ffmpeg/ffmpeg',
+    'install -Dm755 ffprobe ${FLATPAK_DEST}/ffmpeg/ffprobe',
     `install -Dm644 COPYING.LGPLv2.1 ${licenseFolder}/COPYING.LGPLv2.1`,
     `install -Dm644 LICENSE.md ${licenseFolder}/LICENSE.md`
   ],

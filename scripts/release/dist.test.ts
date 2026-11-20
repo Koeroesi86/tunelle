@@ -40,7 +40,7 @@ describe('AppImage', () => {
 describe('ffmpeg', () => {
   it('copies the build, its notice and the license into the ffmpeg folder of the resources', () => {
     expect(build.extraResources).toEqual([
-      { from: '.cache/ffmpeg/install/bin', to: 'ffmpeg', filter: ['ffmpeg', 'ffmpeg.exe'] },
+      { from: '.cache/ffmpeg/install/bin', to: 'ffmpeg', filter: ['ffmpeg', 'ffmpeg.exe', 'ffprobe', 'ffprobe.exe'] },
       { from: 'packaging/ffmpeg', to: 'ffmpeg' },
     ]);
   });

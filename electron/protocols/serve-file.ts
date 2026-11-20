@@ -5,7 +5,7 @@ import { net } from 'electron';
 import mimeType from 'mime-types';
 
 /** Resolve a single `bytes=start-end` or `bytes=-suffix` range, undefined when it cannot be satisfied */
-const parseRange = (range: string, fileSize: number) => {
+export const parseRange = (range: string, fileSize: number) => {
   const parts = range.match(/^bytes=(\d*)-(\d*)$/);
   if (!parts || (parts[1] === '' && parts[2] === '')) return undefined;
   const start = parts[1] === '' ? Math.max(fileSize - parseInt(parts[2], 10), 0) : parseInt(parts[1], 10);

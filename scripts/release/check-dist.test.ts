@@ -67,6 +67,7 @@ describe('check-dist', () => {
   const complete = () => {
     put(archive());
     put(join(ffmpegFolder(), 'ffmpeg'));
+    put(join(ffmpegFolder(), 'ffprobe'));
     put(join(ffmpegFolder(), 'NOTICE.txt'));
     put(join(ffmpegFolder(), 'COPYING.LGPLv2.1'));
     put(at('dist', 'latest-linux.yml'), `version: 26.11.1\nfiles:\n  - url: ${appImageName}\n    sha512: ${hash}\n`);
@@ -156,7 +157,7 @@ describe('check-dist', () => {
     expect(errors).toHaveLength(1);
   });
 
-  it.each(['ffmpeg', 'NOTICE.txt', 'COPYING.LGPLv2.1'])('fails when the packaged %s is not there', async (name) => {
+  it.each(['ffmpeg', 'ffprobe', 'NOTICE.txt', 'COPYING.LGPLv2.1'])('fails when the packaged %s is not there', async (name) => {
     complete();
     memoryFs.sync.rmSync(join(ffmpegFolder(), name));
 
@@ -309,6 +310,7 @@ describe('check-dist', () => {
       const resources = at('dist', 'mac-arm64', 'Tunelle.app', 'Contents', 'Resources');
       put(join(resources, 'app.asar'));
       put(join(resources, 'ffmpeg', 'ffmpeg'));
+      put(join(resources, 'ffmpeg', 'ffprobe'));
       put(join(resources, 'ffmpeg', 'NOTICE.txt'));
       put(join(resources, 'ffmpeg', 'COPYING.LGPLv2.1'));
       put(at('dist', 'latest-mac.yml'), 'files:\n  - url: Tunelle-26.11.1-arm64-mac.zip\n');
@@ -324,6 +326,7 @@ describe('check-dist', () => {
       put(join(resources, 'app.asar'));
       put(join(resources, 'app-update.yml'));
       put(join(resources, 'ffmpeg', 'ffmpeg.exe'));
+      put(join(resources, 'ffmpeg', 'ffprobe.exe'));
       put(join(resources, 'ffmpeg', 'NOTICE.txt'));
       put(join(resources, 'ffmpeg', 'COPYING.LGPLv2.1'));
       put(at('dist', 'latest.yml'), 'files:\n  - url: Tunelle-Setup-26.11.1.exe\n  - url: Tunelle-26.11.1-x64.appx\n');

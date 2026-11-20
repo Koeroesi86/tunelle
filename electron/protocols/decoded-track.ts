@@ -5,6 +5,7 @@ import { join } from 'path';
 import { app } from 'electron';
 import { isDecodedCodec } from '../utils/is-supported';
 import { logError } from '../utils/log-error';
+import { ffmpegProgram } from './ffmpeg-program';
 
 // See docs/app/decoder-proxy.md for the cache, the sharing of a decode and what is spared by the eviction
 const cacheLimit = 2 * 1024 ** 3;
@@ -15,30 +16,26 @@ interface Job {
   done: Promise<string | undefined>;
   waiters: number;
   cancelled: boolean;
+  /** A decode that is served while it is written is not stopped by a request that goes, as the others read from the same file. See docs/app/decoder-proxy.md */
+  growing: boolean;
   child?: ChildProcess;
 }
 
-interface Format {
+export interface Format {
   codec: string | null;
   bitDepth: number | null;
 }
 
-interface PlayableTrack extends Format {
+export interface PlayableTrack extends Format {
   path: string;
 }
 
-const jobs = new Map<string, Job>();
+export const jobs = new Map<string, Job>();
 const queue: (() => void)[] = [];
 let running = 0;
 let recent: string[] = [];
 
 const cacheFolder = () => join(app.getPath('temp'), 'tunelle-decoded');
-
-const ffmpegProgram = () =>
-  join(
-    app.isPackaged ? join(process.resourcesPath, 'ffmpeg') : join(app.getAppPath(), '..', '.cache', 'ffmpeg', 'install', 'bin'),
-    process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
-  );
 
 /** The WAV keeps the depth of the file, 16 bit when it is not known; DSD, which has 1 bit, is 88.2 kHz and 24 bit whatever its rate. See docs/app/decoder-proxy.md */
 const toEncoder = ({ codec, bitDepth }: Format) => {
@@ -46,13 +43,13 @@ const toEncoder = ({ codec, bitDepth }: Format) => {
   return ['-c:a', (bitDepth ?? 16) > 24 ? 'pcm_s32le' : (bitDepth ?? 16) > 16 ? 'pcm_s24le' : 'pcm_s16le'];
 };
 
-const takeSlot = () => {
+export const takeSlot = () => {
   if (running >= maxDecodes) return new Promise<void>((resolve) => queue.push(resolve));
   running += 1;
   return Promise.resolve();
 };
 
-const freeSlot = () => {
+export const freeSlot = () => {
   const next = queue.shift();
   if (next) next();
   else running -= 1;
@@ -79,7 +76,7 @@ const runDecoder = (job: Job, source: string, encoder: string[], output: string)
   });
 
 /** Removes the oldest files of the cache until it fits, but not the files being written and the ones that were served last */
-const evict = async () => {
+export const evict = async () => {
   const folder = cacheFolder();
   const files = (
     await Promise.all(
@@ -122,7 +119,7 @@ const produce = async (job: Job, source: string, encoder: string[], target: stri
 };
 
 const startJob = (key: string, source: string, encoder: string[], target: string) => {
-  const job: Job = { done: Promise.resolve(undefined), waiters: 0, cancelled: false };
+  const job: Job = { done: Promise.resolve(undefined), waiters: 0, cancelled: false, growing: false };
   job.done = produce(job, source, encoder, target)
     .catch((error) => {
       logError(error);
@@ -138,34 +135,44 @@ const startJob = (key: string, source: string, encoder: string[], target: string
 /** The decode stops when no request waits for it any more */
 const leave = (key: string, job: Job) => {
   job.waiters -= 1;
-  if (job.waiters > 0) return;
+  if (job.waiters > 0 || job.growing) return;
   job.cancelled = true;
   job.child?.kill();
   if (jobs.get(key) === job) jobs.delete(key);
 };
 
-/** Decodes a track to a WAV file in the cache, once for all the requests that ask for it meanwhile, undefined when it fails or the request is gone */
-export const decodeTrack = async (source: string, format: Format, signal: AbortSignal) => {
+/** What names the decoded copy of a source in the cache, and marks the track as one of the last served */
+export const prepareDecode = async (source: string, format: Format) => {
   const stats = await stat(source).catch(() => undefined);
-  if (!stats?.isFile() || signal.aborted) return undefined;
+  if (!stats?.isFile()) return undefined;
 
   const encoder = toEncoder(format);
   const key = createHash('sha256')
     .update(`${source}\0${stats.size}\0${stats.mtimeMs}\0${encoder.join(' ')}`)
     .digest('hex')
     .slice(0, 32);
-  const target = join(cacheFolder(), `${key}.wav`);
   recent = [key, ...recent.filter((kept) => kept !== key)].slice(0, keptRecent);
+  return { key, encoder, target: join(cacheFolder(), `${key}.wav`) };
+};
 
-  if (
-    await stat(target).then(
-      () => true,
-      () => false
-    )
-  ) {
-    await utimes(target, new Date(), new Date()).catch(() => undefined);
-    return target;
-  }
+/** The decoded copy of the cache, with its time set to now so the eviction keeps it, undefined when there is none */
+export const cachedCopy = async (target: string) => {
+  const found = await stat(target).then(
+    () => true,
+    () => false
+  );
+  if (found) await utimes(target, new Date(), new Date()).catch(() => undefined);
+  return found ? target : undefined;
+};
+
+/** Decodes a track to a WAV file in the cache, once for all the requests that ask for it meanwhile, undefined when it fails or the request is gone */
+export const decodeTrack = async (source: string, format: Format, signal: AbortSignal) => {
+  const prepared = signal.aborted ? undefined : await prepareDecode(source, format);
+  if (!prepared) return undefined;
+
+  const { key, encoder, target } = prepared;
+  const cached = await cachedCopy(target);
+  if (cached) return cached;
 
   const existing = jobs.get(key);
   const job = existing && !existing.cancelled ? existing : startJob(key, source, encoder, target);
