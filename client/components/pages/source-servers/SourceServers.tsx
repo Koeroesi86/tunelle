@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import { MdPlayArrow as PlayIcon } from 'react-icons/md';
 import type { Track } from '@shared/types/library';
 import { sourceBrowseSchema, toSourcePath } from '@shared/schemas/sources';
-import type { SourceAlbum, SourceArtist, SourceBrowse, SourceBrowseResult, SourceKind, SourceSearchResult, SourceServerInfo } from '@shared/schemas/sources';
+import type { SourceAlbum, SourceArtist, SourceBrowse, SourceKind, SourcePage, SourceSearchResult, SourceServerInfo } from '@shared/schemas/sources';
 import type { SourcesState } from '../../../redux/sources/reducer';
 import { browseKey } from '../../../redux/sources/reducer';
 import { useTranslation } from '../../../i18n';
@@ -40,11 +40,12 @@ const plexUser = 'plex';
 /** The wrong user or password, which the page words in its language */
 const wrongLogin = 40;
 
-const isArtists = (result: SourceBrowseResult | undefined): result is SourceArtist[] => Array.isArray(result) && result.every((item) => 'name' in item);
-const isAlbums = (result: SourceBrowseResult | undefined): result is SourceAlbum[] =>
-  Array.isArray(result) && result.every((item) => 'id' in item && 'title' in item);
-const isTracks = (result: SourceBrowseResult | undefined): result is Track[] => Array.isArray(result) && result.every((item) => 'path' in item);
-const isSearch = (result: SourceBrowseResult | undefined): result is SourceSearchResult => result !== undefined && !Array.isArray(result);
+const isArtists = (result: unknown): result is SourceArtist[] => Array.isArray(result) && result.every((item) => 'name' in item);
+const isAlbums = (result: unknown): result is SourceAlbum[] => Array.isArray(result) && result.every((item) => 'id' in item && 'title' in item);
+const isTracks = (result: unknown): result is Track[] => Array.isArray(result) && result.every((item) => 'path' in item);
+const isObject = (result: unknown): result is object => typeof result === 'object' && result !== null && !Array.isArray(result);
+const isSearch = (result: unknown): result is SourceSearchResult => isObject(result) && 'artists' in result;
+const isPage = (result: unknown): result is SourcePage => isObject(result) && 'total' in result;
 
 const PlexAccount = ({
   state,
@@ -231,25 +232,49 @@ const requestOf = (serverId: string, { artist, album, query }: Position): Source
           : { what: 'artists', serverId }
   );
 
-const Cover = ({ kind, serverId, coverArt }: { kind: SourceKind; serverId: string; coverArt: string | undefined }) =>
+interface LibraryView {
+  kind: 'albums' | 'artists' | 'tracks';
+  sort: 'title' | 'recent';
+  pages: number;
+}
+
+const pageSize = 60;
+const libraryTabs = [
+  { kind: 'albums', label: 'sources.tabAlbums' },
+  { kind: 'artists', label: 'sources.artists' },
+  { kind: 'tracks', label: 'sources.tabSongs' },
+] as const;
+
+const libraryRequest = (serverId: string, { kind, sort }: LibraryView, page: number): SourceBrowse =>
+  sourceBrowseSchema.parse({ what: 'library', serverId, kind, sort, start: page * pageSize, size: pageSize });
+
+const Cover = ({ kind, serverId, coverArt, large }: { kind: SourceKind; serverId: string; coverArt: string | undefined; large?: boolean }) =>
   coverArt ? (
     <img
-      className={style.cover}
+      className={large ? style.cardCover : style.cover}
       alt=""
       loading="lazy"
       src={localUrl(`/source/cover?path=${encodeURIComponent(toSourcePath({ source: kind, serverId, id: coverArt }))}`)}
     />
   ) : (
-    <span className={style.cover} />
+    <span className={large ? style.cardCover : style.cover} />
   );
 
 const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } & Pick<SourceServersProps, 'state' | 'browse' | 'play'>) => {
   const { t } = useTranslation();
   const [position, setPosition] = useState<Position>({});
   const [text, setText] = useState('');
-  const request = requestOf(server.id, position);
+  const [view, setView] = useState<LibraryView>({ kind: 'albums', sort: 'recent', pages: 1 });
+  // a Plex server lists its whole library in pages at the top; the others start at their artists
+  const inLibrary = server.kind === 'plex' && !position.artist && !position.album && !position.query;
+  const request = inLibrary ? libraryRequest(server.id, view, view.pages - 1) : requestOf(server.id, position);
   const key = browseKey(request);
-  const answer = state.browsed[key];
+  const answers = Array.from(
+    { length: inLibrary ? view.pages : 1 },
+    (_, page) => state.browsed[inLibrary ? browseKey(libraryRequest(server.id, view, page)) : key]
+  );
+  const answer = answers.at(-1);
+  const loaded = answers.map((entry) => entry?.result).filter(isPage);
 
   useEffect(() => {
     browse(request);
@@ -290,7 +315,27 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
       </div>
     ));
 
-  const result = answer?.result;
+  const albumCards = (albums: SourceAlbum[]) =>
+    albums.map((album) => (
+      <button key={album.id} type="button" className={classNames(style.link, style.card)} onClick={() => setPosition({ album })}>
+        <Cover kind={server.kind} serverId={server.id} coverArt={album.coverArt} large />
+        <span className={style.cardText}>{album.title}</span>
+        <span className={style.meta}>{[album.artist, album.year].filter(Boolean).join(' · ')}</span>
+      </button>
+    ));
+
+  const artistCards = (artists: SourceArtist[]) =>
+    artists.map((artist) => (
+      <button key={artist.id} type="button" className={classNames(style.link, style.card)} onClick={() => setPosition({ artist })}>
+        <Cover kind={server.kind} serverId={server.id} coverArt={artist.coverArt} large />
+        <span className={style.cardText}>{artist.name}</span>
+      </button>
+    ));
+
+  const items = loaded.flatMap<unknown>((page) => page.items);
+  const total = loaded.at(0)?.total ?? 0;
+  const result: unknown = inLibrary ? (loaded.length ? items : undefined) : answer?.result;
+  const hasMore = inLibrary && loaded.length === view.pages && items.length < total;
 
   return (
     <div className={style.tile}>
@@ -309,7 +354,7 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
       </form>
       <nav className={style.crumbs} aria-label={t('sources.location')}>
         <button type="button" className={style.action} onClick={() => setPosition({})}>
-          {t('sources.artists')}
+          {t(server.kind === 'plex' ? 'sources.library' : 'sources.artists')}
         </button>
         {position.artist && (
           <button type="button" className={style.action} onClick={() => setPosition({ artist: position.artist })}>
@@ -319,6 +364,24 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
         {position.album && <span className={style.meta}>{position.album.title}</span>}
         {position.query && <span className={style.meta}>{t('sources.resultsFor', { query: position.query })}</span>}
       </nav>
+      {inLibrary && (
+        <div className={style.libraryBar}>
+          <div className={style.crumbs} role="group" aria-label={t('sources.library')}>
+            {libraryTabs.map(({ kind, label }) => (
+              <button key={kind} type="button" className={style.action} aria-pressed={view.kind === kind} onClick={() => setView({ ...view, kind, pages: 1 })}>
+                {t(label)}
+              </button>
+            ))}
+          </div>
+          <label className={style.sort}>
+            <span className={style.meta}>{t('sources.sort')}</span>
+            <select value={view.sort} onChange={(event) => setView({ ...view, sort: event.target.value === 'title' ? 'title' : 'recent', pages: 1 })}>
+              <option value="recent">{t('sources.sortRecent')}</option>
+              <option value="title">{t('sources.sortTitle')}</option>
+            </select>
+          </label>
+        </div>
+      )}
       {!answer && (
         <div className={style.hint} role="status">
           {t('sources.loading')}
@@ -329,8 +392,10 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
           {t('sources.failed', { error: answer.error })}
         </div>
       )}
-      {isArtists(result) && artistRows(result)}
-      {isAlbums(result) && albumRows(result)}
+      {inLibrary && isAlbums(result) && result.length > 0 && <div className={style.grid}>{albumCards(result)}</div>}
+      {inLibrary && isArtists(result) && view.kind === 'artists' && result.length > 0 && <div className={style.grid}>{artistCards(result)}</div>}
+      {!inLibrary && isArtists(result) && artistRows(result)}
+      {!inLibrary && isAlbums(result) && albumRows(result)}
       {isTracks(result) && trackRows(result)}
       {isSearch(result) && (
         <>
@@ -339,7 +404,15 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
           {trackRows(result.tracks)}
         </>
       )}
-      {result && Array.isArray(result) && result.length === 0 && <div className={style.hint}>{t('sources.empty')}</div>}
+      {hasMore && (
+        <div className={style.buttons}>
+          <button type="button" className={style.action} onClick={() => setView({ ...view, pages: view.pages + 1 })}>
+            {t('sources.showMore')}
+          </button>
+          <span className={style.meta}>{t('sources.shown', { shown: items.length, total })}</span>
+        </div>
+      )}
+      {Array.isArray(result) && result.length === 0 && <div className={style.hint}>{t('sources.empty')}</div>}
     </div>
   );
 };

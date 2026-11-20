@@ -11,6 +11,9 @@ const musicType = 'artist';
 const losslessCodecs = ['flac', 'alac', 'wav', 'aiff', 'ape', 'wv', 'dsd', 'dsf', 'dff'];
 // the numbers of `type` in the library calls of the Plex API: 8 artist, 9 album
 const artistType = '8';
+const libraryTypes = { artists: artistType, albums: '9', tracks: '10' };
+// the order of a list as the Plex API names it
+const libraryOrders = { title: 'titleSort', recent: 'addedAt:desc' };
 
 const count = z.number().optional().catch(undefined);
 const text = z.string().optional().catch(undefined);
@@ -41,7 +44,7 @@ const itemSchema = z.object({
 type Item = z.infer<typeof itemSchema>;
 
 const containerOf = <Schema extends z.ZodType>(entries: Schema) => z.object({ MediaContainer: entries });
-const metadataSchema = containerOf(z.object({ Metadata: z.array(itemSchema).optional().catch(undefined) }));
+const metadataSchema = containerOf(z.object({ totalSize: count, Metadata: z.array(itemSchema).optional().catch(undefined) }));
 const sectionsSchema = containerOf(
   z.object({
     Directory: z
@@ -54,7 +57,12 @@ const hubsSchema = containerOf(
   z.object({ Hub: z.array(z.object({ type: z.string(), Metadata: z.array(itemSchema).optional().catch(undefined) })).optional() })
 );
 
-const toArtist = ({ ratingKey, title, childCount }: Item): SourceArtist => ({ id: ratingKey, name: title, albumCount: childCount });
+const toArtist = ({ ratingKey, title, childCount, thumb }: Item): SourceArtist => ({
+  id: ratingKey,
+  name: title,
+  albumCount: childCount,
+  coverArt: thumb ? ratingKey : undefined,
+});
 
 const toAlbum = ({ ratingKey, title, parentTitle, year, leafCount, thumb }: Item): SourceAlbum => ({
   id: ratingKey,
@@ -84,6 +92,8 @@ const toTrack = (serverId: string, item: Item): Track => {
     lossless: Number(losslessCodecs.includes(media?.audioCodec?.toLowerCase() ?? '')),
   };
 };
+
+export type PlexClient = ReturnType<typeof createPlexClient>;
 
 /** The calls of one Plex Media Server. The token is the secret of the server entry and signs each call in a header, never in an address. See docs/app/plex.md */
 export const createPlexClient = (server: SourceServer, token: string, userAgent: string) => {
@@ -143,6 +153,23 @@ export const createPlexClient = (server: SourceServer, token: string, userAgent:
       musicSections()
         .then((sections) => Promise.all(sections.map(({ key }) => metadata(`/library/sections/${key}/all`, { type: artistType }))))
         .then((lists) => lists.flat().map(toArtist)),
+    /** A page of the albums, the artists or the songs of the first music library, which the server sorts and counts */
+    library: async (kind: keyof typeof libraryTypes, sort: keyof typeof libraryOrders, start: number, size: number) => {
+      const section = (await musicSections()).at(0);
+      if (!section) return { total: 0, items: [] };
+
+      const { MediaContainer } = await call(`/library/sections/${section.key}/all`, metadataSchema, {
+        type: libraryTypes[kind],
+        sort: libraryOrders[sort],
+        'X-Plex-Container-Start': String(start),
+        'X-Plex-Container-Size': String(size),
+      });
+      const entries = MediaContainer.Metadata ?? [];
+      const total = MediaContainer.totalSize ?? entries.length;
+      if (kind === 'artists') return { total, items: entries.map(toArtist) };
+
+      return kind === 'albums' ? { total, items: entries.map(toAlbum) } : { total, items: entries.map((song) => toTrack(server.id, song)) };
+    },
     albumsOf: (artistId: string) => metadata(`/library/metadata/${encodeURIComponent(artistId)}/children`).then((albums) => albums.map(toAlbum)),
     tracksOf: (albumId: string) =>
       metadata(`/library/metadata/${encodeURIComponent(albumId)}/children`).then((songs) => songs.map((song) => toTrack(server.id, song))),

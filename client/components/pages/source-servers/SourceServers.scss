@@ -208,6 +208,52 @@
     white-space: nowrap;
   }
 
+  .libraryBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sort {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
+  button.card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: stretch;
+    height: auto;
+    padding: 6px;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .cardCover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    background: var(--overlay);
+    border-radius: 6px;
+  }
+
+  .cardText {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .cover {
     flex: none;
     width: 36px;

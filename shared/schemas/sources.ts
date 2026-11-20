@@ -48,10 +48,25 @@ export const sourceBrowseSchema = z.discriminatedUnion('what', [
   z.object({ what: z.literal('albums'), serverId: serverIdSchema, id: z.string().min(1).max(512) }),
   z.object({ what: z.literal('tracks'), serverId: serverIdSchema, id: z.string().min(1).max(512) }),
   z.object({ what: z.literal('search'), serverId: serverIdSchema, query: z.string().trim().min(1).max(200) }),
+  /** A page of everything a server has of a kind, in an order: the albums, the artists or the songs of a library */
+  z.object({
+    what: z.literal('library'),
+    serverId: serverIdSchema,
+    kind: z.enum(['albums', 'artists', 'tracks']),
+    sort: z.enum(['title', 'recent']),
+    start: z.number().int().min(0).max(1_000_000),
+    size: z.number().int().min(1).max(200),
+  }),
 ]);
 export type SourceBrowse = z.infer<typeof sourceBrowseSchema>;
 
-const sourceArtistSchema = z.object({ id: z.string(), name: z.string(), albumCount: z.number().optional() });
+const sourceArtistSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  albumCount: z.number().optional(),
+  /** The id of the photo, which the server names */
+  coverArt: z.string().optional(),
+});
 export type SourceArtist = z.infer<typeof sourceArtistSchema>;
 
 const sourceAlbumSchema = z.object({
@@ -76,7 +91,16 @@ export type SourceSearchResult = z.infer<typeof sourceSearchResultSchema>;
 export const sourceServerInfoSchema = sourceServerSchema.extend({ protected: z.boolean() });
 
 /** What the main process answers to a browse: the list of the request, which the request tells the kind of */
-const sourceBrowseResultSchema = z.union([z.array(sourceArtistSchema), z.array(sourceAlbumSchema), z.array(trackSchema), sourceSearchResultSchema]);
+const sourcePageSchema = z.object({ total: z.number().int(), items: z.union([z.array(sourceArtistSchema), z.array(sourceAlbumSchema), z.array(trackSchema)]) });
+export type SourcePage = z.infer<typeof sourcePageSchema>;
+
+const sourceBrowseResultSchema = z.union([
+  z.array(sourceArtistSchema),
+  z.array(sourceAlbumSchema),
+  z.array(trackSchema),
+  sourceSearchResultSchema,
+  sourcePageSchema,
+]);
 export type SourceBrowseResult = z.infer<typeof sourceBrowseResultSchema>;
 
 export const sourceBrowsedSchema = z.object({ request: sourceBrowseSchema, result: sourceBrowseResultSchema.optional(), error: z.string().optional() });
