@@ -12,7 +12,7 @@ export interface ListenerContext {
   radio: RadioBrowser;
   /** The lookups of the music (MusicBrainz and the Cover Art Archive), which the covers of the radio and the search of the covers of albums share */
   radioArt: RadioArt;
-  /** The servers of the user (Subsonic), which the page browses and plays from */
+  /** The servers of the user , which the page browses and plays from */
   sources: Sources;
   updates: UpdateManager;
   /** The measurement of the loudness of the library, which the settings ask how far it is and to start over */

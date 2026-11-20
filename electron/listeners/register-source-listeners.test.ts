@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IpcMainEvent } from 'electron';
 import type { ListenerContext } from './listener-context';
 import { approvalCode } from '../remote/certificate';
-import { readCertificate } from '../services/sources/source-request';
-import { SubsonicError } from '../services/sources/subsonic-client';
+import { readCertificate, SourceError } from '../services/sources/source-request';
 import registerSourceListeners from './register-source-listeners';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => unknown;
@@ -12,7 +11,10 @@ const listeners = new Map<string, Listener>();
 
 vi.mock('electron', () => ({ ipcMain: { on: (channel: string, listener: Listener) => listeners.set(channel, listener) } }));
 vi.mock('../remote/certificate', () => ({ approvalCode: vi.fn() }));
-vi.mock('../services/sources/source-request', () => ({ readCertificate: vi.fn() }));
+vi.mock('../services/sources/source-request', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../services/sources/source-request')>()),
+  readCertificate: vi.fn(),
+}));
 
 const serverId = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';
 const input = { id: serverId, kind: 'subsonic', name: 'Home', url: 'https://music.example.com/', username: 'me', password: 'sesame' };
@@ -54,7 +56,7 @@ describe('registerSourceListeners', () => {
   });
 
   it('keeps nothing and says why when the server does not accept the user, with the code of the server', async () => {
-    sources.check.mockRejectedValue(new SubsonicError(40, 'Wrong username or password'));
+    sources.check.mockRejectedValue(new SourceError(40, 'Wrong username or password'));
 
     await fire('SOURCE_SERVER_SAVE', input);
 

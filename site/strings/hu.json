@@ -41,7 +41,7 @@
   "features.radio.title": "Beépített internetes rádió",
   "features.radio.text": "Több ezer állomás a nyílt radio-browser.info címtárból, logóval, szűrőkkel és az éppen szóló számmal. <a href='#radio'>Bővebben a rádióról</a>",
   "features.servers.title": "A saját szervered is",
-  "features.servers.text": "Adj hozzá Subsonic kompatibilis szervert, például Navidrome-ot, böngészd az előadóit és albumait, keress benne, és játszd le úgy, mint a könyvtárad. A jelszót a rendszer kulcstartója őrzi, az önaláírt tanúsítványt pedig csak a kódjának összehasonlítása után fogadja el.",
+  "features.servers.text": "Adj hozzá Subsonic kompatibilis szervert, például Navidrome-ot, vagy Jellyfin szervert, böngészd az előadóit és albumait, keress benne, és játszd le úgy, mint a könyvtárad. A jelszót a rendszer kulcstartója őrzi, az önaláírt tanúsítványt pedig csak a kódjának összehasonlítása után fogadja el.",
   "features.playlistfiles.title": "Lejátszási listafájlok, mindkét irányban",
   "features.playlistfiles.text": "A mappáidban lévő M3U, M3U8, PLS és XSPF fájlokból lejátszási lista lesz, és bármelyik lista exportálható fájlba. Egy importált lista szinkronban tarthatja a fájlját (amit az alkalmazás nem ír, az a fájlban marad), megválaszthatod a fájl olvasásának kódolását, és visszavonhatod az újraolvasást, továbbá rákérdez, mielőtt egy olyan karakter elveszne, amelyet a fájl kódolása nem tud tárolni.",
   "features.folders.title": "Mappák, amelyek a tieid maradnak",

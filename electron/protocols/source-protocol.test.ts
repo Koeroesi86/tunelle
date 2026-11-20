@@ -38,7 +38,7 @@ describe('serveSource', () => {
     expect(await response.text()).toBe('cover');
   });
 
-  it.each([null, '', '/music/a.flac', 'radio:abc', 'subsonic:not-a-server:1', `jellyfin:${serverId}:1`])(
+  it.each([null, '', '/music/a.flac', 'radio:abc', 'subsonic:not-a-server:1', `plex:${serverId}:1`])(
     'is not found for the path %j, and no server is asked',
     async (bad) => {
       expect((await serveSource('audio', bad, ask(), sources)).status).toBe(404);

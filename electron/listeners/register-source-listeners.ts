@@ -4,13 +4,13 @@ import { errorMessage } from '@shared/utils/error-message';
 import { sourceBrowseSchema, sourceServerInputSchema, type SourceBrowse } from '@shared/schemas/sources';
 import type { ListenerContext } from './listener-context';
 import { approvalCode } from '../remote/certificate';
-import { readCertificate } from '../services/sources/source-request';
-import { SubsonicError, type SubsonicClient } from '../services/sources/subsonic-client';
+import { readCertificate, SourceError } from '../services/sources/source-request';
+import type { SourceClient } from '../services/sources/sources';
 
 const certificateRequestSchema = z.object({ url: z.url() });
 const removeSchema = z.object({ id: z.uuid() });
 
-const browse = (client: SubsonicClient, request: SourceBrowse) => {
+const browse = (client: SourceClient, request: SourceBrowse) => {
   switch (request.what) {
     case 'artists':
       return client.artists();
@@ -42,7 +42,7 @@ const registerSourceListeners = ({ sources }: ListenerContext) => {
       .then(() => sendServers(event))
       // a code of the server (40 is a wrong user or password) lets the page word it in its language
       .catch((error) =>
-        event.sender.send('SOURCE_SERVER_FAILED', { id: server.id, error: errorMessage(error), code: error instanceof SubsonicError ? error.code : undefined })
+        event.sender.send('SOURCE_SERVER_FAILED', { id: server.id, error: errorMessage(error), code: error instanceof SourceError ? error.code : undefined })
       );
   });
 

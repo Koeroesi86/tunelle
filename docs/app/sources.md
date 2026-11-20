@@ -1,10 +1,10 @@
-# Servers of the user (Subsonic)
+# Servers of the user (Subsonic and Jellyfin)
 
-Part of [#66](https://github.com/Koeroesi86/tunelle/issues/66): the music of a server that the user runs (Navidrome, Subsonic) is browsed and played like the library. Jellyfin follows with its own API on the same pieces. The main process holds everything that is secret or has an address, the page names a track and a server by id.
+Part of [#66](https://github.com/Koeroesi86/tunelle/issues/66): the music of a server that the user runs (Navidrome, Subsonic) is browsed and played like the library. Jellyfin has its own client on the same pieces ([jellyfin.md](jellyfin.md)). The main process holds everything that is secret or has an address, the page names a track and a server by id.
 
 ## The path of a track
 
-`<source>:<serverId>:<id>`, for example `subsonic:5f6a1c1e-…:song-42` (`shared/schemas/sources.ts`). The server id is a UUID made when the server is added, the id is whatever the server calls the song and may hold a colon. `radio:<uuid>` stays as it is: a station has no server.
+`<source>:<serverId>:<id>` with the source `subsonic` or `jellyfin`, for example `subsonic:5f6a1c1e-…:song-42` (`shared/schemas/sources.ts`). The server id is a UUID made when the server is added, the id is whatever the server calls the song and may hold a colon. `radio:<uuid>` stays as it is: a station has no server.
 
 ## The routes
 
@@ -39,7 +39,6 @@ Online, "Subsonic servers" (`client/components/pages/source-servers/`, state in 
 
 ## Not done yet
 
-- Jellyfin, on its own API (the next pull request).
 - Changing a server: remove it and add it again.
 - OpenSubsonic extensions. `apiKeyAuthentication` would avoid keeping a password (`apiKey=` and no `u`; a server answers 43 for both), and `getOpenSubsonicExtensions` tells which a server has.
 - Playlists, starred items, scrobbling, favourites of a track of a server.

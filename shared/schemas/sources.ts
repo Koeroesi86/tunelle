@@ -3,7 +3,8 @@ import { trackSchema } from './library';
 
 // the online sources that have servers of the user (docs/app/sources.md)
 
-const sourceKindSchema = z.enum(['subsonic']);
+const sourceKindSchema = z.enum(['subsonic', 'jellyfin']);
+export type SourceKind = z.infer<typeof sourceKindSchema>;
 
 const serverIdSchema = z.uuid();
 

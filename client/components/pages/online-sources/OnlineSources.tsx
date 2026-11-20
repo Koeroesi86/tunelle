@@ -15,7 +15,8 @@ const OnlineSources = ({ view, setView }: OnlineSourcesProps) => {
   const { t } = useTranslation();
   const views: ViewItem<OnlineView>[] = [
     { view: 'radio', label: t('online.radio'), panel: <RadioStations /> },
-    { view: 'servers', label: t('online.servers'), panel: <SourceServers /> },
+    { view: 'servers', label: t('online.servers'), panel: <SourceServers kind="subsonic" /> },
+    { view: 'jellyfin', label: t('online.jellyfin'), panel: <SourceServers kind="jellyfin" /> },
     // only the shown one looks for hosts: it browses the network while it is mounted
     { view: 'nearby', label: t('online.nearby'), panel: view === 'nearby' && <RemoteListener /> },
   ];
