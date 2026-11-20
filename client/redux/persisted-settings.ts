@@ -14,7 +14,7 @@ const albumSchema = z.custom<Album>(
 
 const libraryViewSchema = z.enum(['albums', 'artists', 'albumArtists', 'genres', 'tracks', 'folders']);
 
-const onlineViewSchema = z.enum(['radio', 'servers', 'nearby']);
+const onlineViewSchema = z.enum(['radio', 'servers', 'jellyfin', 'nearby']);
 
 /** The part of the UI state that is persisted between sessions, by key (the keys are saved by client/redux/connection/middleware.ts) */
 const persistedShape = {

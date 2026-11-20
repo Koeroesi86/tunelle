@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import { MdPlayArrow as PlayIcon } from 'react-icons/md';
 import type { Track } from '@shared/types/library';
 import { sourceBrowseSchema, toSourcePath } from '@shared/schemas/sources';
-import type { SourceAlbum, SourceArtist, SourceBrowse, SourceBrowseResult, SourceSearchResult, SourceServerInfo } from '@shared/schemas/sources';
+import type { SourceAlbum, SourceArtist, SourceBrowse, SourceBrowseResult, SourceKind, SourceSearchResult, SourceServerInfo } from '@shared/schemas/sources';
 import type { SourcesState } from '../../../redux/sources/reducer';
 import { browseKey } from '../../../redux/sources/reducer';
 import { useTranslation } from '../../../i18n';
@@ -12,6 +12,8 @@ import { localUrl } from '../../../services/local-url';
 import style from './SourceServers.scss';
 
 interface SourceServersProps {
+  /** The kind of server this page is for: each has its own page, as its own API */
+  kind: SourceKind;
   state: SourcesState;
   load: () => void;
   save: (server: Record<string, unknown>) => void;
@@ -22,6 +24,11 @@ interface SourceServersProps {
   play: (tracks: Track[], track: Track) => void;
 }
 
+const words = {
+  subsonic: { title: 'sources.title', hint: 'sources.addHint' },
+  jellyfin: { title: 'sources.jellyfinTitle', hint: 'sources.jellyfinAddHint' },
+} as const;
+
 /** The wrong user or password, which the page words in its language */
 const wrongLogin = 40;
 
@@ -31,12 +38,13 @@ const isTracks = (result: SourceBrowseResult | undefined): result is Track[] => 
 const isSearch = (result: SourceBrowseResult | undefined): result is SourceSearchResult => result !== undefined && !Array.isArray(result);
 
 const AddServer = ({
+  kind,
   state,
   save,
   readCertificate,
   clearCertificate,
   onClose,
-}: Pick<SourceServersProps, 'state' | 'save' | 'readCertificate' | 'clearCertificate'> & { onClose?: () => void }) => {
+}: Pick<SourceServersProps, 'kind' | 'state' | 'save' | 'readCertificate' | 'clearCertificate'> & { onClose?: () => void }) => {
   const { t } = useTranslation();
   const { saving, failure, certificate } = state;
   const [form, setForm] = useState({ name: '', url: '', username: '', password: '' });
@@ -49,13 +57,13 @@ const AddServer = ({
 
   const submit = (event: FormEvent, approved?: string) => {
     event.preventDefault();
-    if (valid && !saving) save({ id: crypto.randomUUID(), kind: 'subsonic', ...form, certificate: approved });
+    if (valid && !saving) save({ id: crypto.randomUUID(), kind, ...form, certificate: approved });
   };
 
   return (
     <div className={style.tile}>
       <div className={style.sectionTitle}>{t('sources.add')}</div>
-      <div className={style.hint}>{t('sources.addHint')}</div>
+      <div className={style.hint}>{t(words[kind].hint)}</div>
       <form className={style.form} onSubmit={(event) => submit(event, certificate?.certificate)}>
         <label className={style.field}>
           <span>{t('sources.name')}</span>
@@ -244,12 +252,12 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
   );
 };
 
-const SourceServers = ({ state, load, save, remove, readCertificate, clearCertificate, browse, play }: SourceServersProps) => {
+const SourceServers = ({ kind, state, load, save, remove, readCertificate, clearCertificate, browse, play }: SourceServersProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState<string | undefined>(undefined);
   const [adding, setAdding] = useState(false);
-  const opened = state.servers.find(({ id }) => id === open);
-  const { servers } = state;
+  const servers = state.servers.filter((server) => server.kind === kind);
+  const opened = servers.find(({ id }) => id === open);
 
   useEffect(() => load(), []);
 
@@ -261,7 +269,7 @@ const SourceServers = ({ state, load, save, remove, readCertificate, clearCertif
       <div className={style.content}>
         <div className={style.tile}>
           <div className={style.header}>
-            <div className={style.sectionTitle}>{t('sources.title')}</div>
+            <div className={style.sectionTitle}>{t(words[kind].title)}</div>
             {servers.length > 0 && !adding && (
               <button type="button" className={style.action} onClick={() => setAdding(true)}>
                 {t('sources.add')}
@@ -295,6 +303,7 @@ const SourceServers = ({ state, load, save, remove, readCertificate, clearCertif
         </div>
         {(adding || servers.length === 0) && (
           <AddServer
+            kind={kind}
             state={state}
             save={save}
             readCertificate={readCertificate}

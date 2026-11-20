@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import type { Track } from '@shared/types/library';
 import { toSourcePath, type SourceAlbum, type SourceArtist, type SourceServer } from '@shared/schemas/sources';
-import { openSource, readJson, toResponse } from './source-request';
+import { openSource, readJson, SourceError, toResponse } from './source-request';
 
 const apiVersion = '1.16.1';
 const clientName = 'tunelle';
@@ -11,14 +11,7 @@ const coverSize = '600';
 const losslessSuffixes = ['flac', 'alac', 'wav', 'aiff', 'ape', 'wv', 'dsf', 'dff'];
 
 /** The server answered, and what it answered is an error (Subsonic does that with the status 200). The codes are in the API: 40 is a wrong user or password */
-export class SubsonicError extends Error {
-  constructor(
-    readonly code: number,
-    message: string
-  ) {
-    super(message);
-  }
-}
+export class SubsonicError extends SourceError {}
 
 // some servers write an id as a number
 const id = z.union([z.string(), z.number()]).transform(String);
@@ -141,4 +134,3 @@ export const createSubsonicClient = (server: SourceServer, password: string, use
     cover: (coverId: string, signal: AbortSignal) => media('getCoverArt', { id: coverId, size: coverSize }, signal),
   };
 };
-export type SubsonicClient = ReturnType<typeof createSubsonicClient>;

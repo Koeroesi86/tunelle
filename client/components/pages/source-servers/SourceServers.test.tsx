@@ -6,8 +6,9 @@ import SourceServers from './SourceServers';
 const id = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';
 const server = { id, kind: 'subsonic' as const, name: 'Home', url: 'https://music.example.com', username: 'me', protected: true };
 
-const setup = (state: Partial<SourcesState> = {}) => {
+const setup = (state: Partial<SourcesState> = {}, kind: 'subsonic' | 'jellyfin' = 'subsonic') => {
   const props = {
+    kind,
     state: { servers: [], saving: false, browsed: {}, ...state },
     load: vi.fn(),
     save: vi.fn(),
@@ -101,5 +102,25 @@ describe('SourceServers', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Browse Home' }));
     expect(props.browse).toHaveBeenCalledWith({ what: 'artists', serverId: id });
     expect(screen.getByText('Artist')).toBeTruthy();
+  });
+});
+
+describe('SourceServers for Jellyfin', () => {
+  it('lists only the servers of its kind', () => {
+    setup({ servers: [server, { ...server, id: '6f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b12', kind: 'jellyfin', name: 'Film room' }] }, 'jellyfin');
+
+    expect(screen.getByText('Film room')).toBeTruthy();
+    expect(screen.queryByText('Home')).toBeNull();
+  });
+
+  it('sends a server of its kind', () => {
+    const { save } = setup({}, 'jellyfin');
+    type('Name', 'Film room');
+    type('Address', 'https://jf.example.com');
+    type('User name', 'me');
+    type('Password', 'secret');
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({ kind: 'jellyfin', name: 'Film room' }));
   });
 });

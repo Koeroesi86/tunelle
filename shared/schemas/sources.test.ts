@@ -15,7 +15,11 @@ describe('the path of a track of a server', () => {
     expect(sourcePathSchema.parse(`subsonic:${serverId}:a:b:c`).id).toBe('a:b:c');
   });
 
-  it.each(['radio:5f6a1c1e', `jellyfin:${serverId}:1`, `subsonic:not-a-uuid:1`, `subsonic:${serverId}:`, '/music/a.flac', ''])('is not the path %j', (path) => {
+  it('is the path of a track of a Jellyfin server', () => {
+    expect(sourcePathSchema.parse(`jellyfin:${serverId}:abc`)).toEqual({ source: 'jellyfin', serverId, id: 'abc' });
+  });
+
+  it.each(['radio:5f6a1c1e', `plex:${serverId}:1`, `subsonic:not-a-uuid:1`, `subsonic:${serverId}:`, '/music/a.flac', ''])('is not the path %j', (path) => {
     expect(sourcePathSchema.safeParse(path).success).toBe(false);
   });
 });

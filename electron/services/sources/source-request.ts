@@ -7,7 +7,23 @@ import { pinnedOptions, unpinnedOptions } from '../../remote/certificate';
 const requestTimeout = 10000;
 const maxJsonBytes = 16 * 1024 * 1024;
 
+/** The code of a wrong user or password, as Subsonic numbers it; the other sources use it for their own refusal of a login */
+export const wrongLoginCode = 40;
+
+/** A server that answered, and what it answered is an error with a code the page can word in its language */
+export class SourceError extends Error {
+  constructor(
+    readonly code: number,
+    message: string
+  ) {
+    super(message);
+  }
+}
+
 interface OpenOptions {
+  method?: 'GET' | 'POST';
+  /** A JSON body, sent with `POST` */
+  body?: string;
   /** The certificate the user approved: the only one that is accepted. Without it the certificate must be valid */
   certificate?: string;
   headers?: Record<string, string>;
@@ -16,15 +32,15 @@ interface OpenOptions {
   unpinned?: boolean;
 }
 
-/** One GET; the answer is there as soon as its headers are, and only the wait for them has a limit, as a player may read the body slowly */
-export const openSource = (url: URL, { certificate, headers, signal, unpinned }: OpenOptions = {}) =>
+/** One request (a GET unless told); the answer is there as soon as its headers are, and only the wait for them has a limit, as a player may read the body slowly */
+export const openSource = (url: URL, { certificate, headers, signal, unpinned, method = 'GET', body }: OpenOptions = {}) =>
   new Promise<IncomingMessage>((resolve, reject) => {
     const secure = url.protocol === 'https:';
     const tls = { ...(unpinned ? unpinnedOptions : {}), ...(certificate && !unpinned ? pinnedOptions(certificate) : {}) };
     // no pooled socket: an idle one that the server closes raises EPIPE with no request left to take the error
     const outgoing = (secure ? httpsRequest : httpRequest)(
       url,
-      { agent: false, method: 'GET', headers, signal, timeout: requestTimeout, ...tls },
+      { agent: false, method, headers: body ? { 'Content-Type': 'application/json', ...headers } : headers, signal, timeout: requestTimeout, ...tls },
       (response) => {
         outgoing.setTimeout(0);
         resolve(response);
@@ -32,7 +48,7 @@ export const openSource = (url: URL, { certificate, headers, signal, unpinned }:
     );
     outgoing.on('timeout', () => outgoing.destroy(new Error(`${url.host} did not answer`)));
     outgoing.on('error', reject);
-    outgoing.end();
+    outgoing.end(body);
   });
 
 const pem = (der: Buffer) => `-----BEGIN CERTIFICATE-----\n${der.toString('base64').replace(/(.{64})/g, '$1\n')}\n-----END CERTIFICATE-----\n`;
