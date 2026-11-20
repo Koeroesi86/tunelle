@@ -35,6 +35,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [Artist photos](docs/app/artist-photos.md)
 - [Album covers](docs/app/album-covers.md)
 - [Supported formats](docs/app/supported-formats.md)
+- [Opening audio files with the app](docs/app/open-files.md)
 - [Importing playlist files](docs/app/playlist-import.md)
 - [Exporting playlists](docs/app/playlist-export.md)
 - [The background task queue](docs/app/task-queue.md)

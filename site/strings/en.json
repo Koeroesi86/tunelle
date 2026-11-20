@@ -33,7 +33,7 @@
   "features.lossless.title": "Lossless, and you can see it",
   "features.lossless.text": "Every track and station wears its format: FLAC 16/44.1, FLAC 24/96, MP3 320. No guessing what you are listening to.",
   "features.formats.title": "Plays what you have",
-  "features.formats.text": "FLAC, ALAC, APE, WavPack, AIFF, DSD, WMA, MP3, AAC, M4A, Ogg, Opus and WAV, with the tags and the cover read from the files.",
+  "features.formats.text": "FLAC, ALAC, APE, WavPack, AIFF, DSD, WMA, MP3, AAC, M4A, Ogg, Opus and WAV, with the tags and the cover read from the files. Open any of them from your file manager and it plays.",
   "features.loudness.title": "The same volume, every track",
   "features.loudness.text": "ReplayGain tags are used, and the rest of your library is measured in the background, per track or per album, so a quiet album no longer follows a loud one. The Now playing page draws how the loudness of the song is spread.",
   "features.output.title": "Your output, and what reaches it",

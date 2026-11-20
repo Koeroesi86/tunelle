@@ -59,6 +59,34 @@
     "appId": "io.github.koeroesi86.Tunelle",
     "productName": "Tunelle",
     "compression": "normal",
+    "fileAssociations": [
+      {
+        "ext": [
+          "flac",
+          "m4a",
+          "m4b",
+          "m4r",
+          "aac",
+          "mp3",
+          "oga",
+          "ogg",
+          "opus",
+          "wav",
+          "ape",
+          "wv",
+          "aif",
+          "aiff",
+          "aifc",
+          "dsf",
+          "dff",
+          "wma",
+          "asf"
+        ],
+        "name": "Audio file",
+        "description": "Audio file",
+        "role": "Viewer"
+      }
+    ],
     "directories": {
       "buildResources": "icons"
     },

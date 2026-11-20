@@ -1,7 +1,7 @@
 import path from 'path';
 
 /** The formats the player plays: the ones Chromium decodes, which the library scan keeps. See docs/app/supported-formats.md */
-const supportedFormats = [
+export const supportedFormats = [
   'flac',
   'm4a',
   'm4b',
@@ -23,7 +23,7 @@ const supportedFormats = [
   'asf',
 ];
 
-const isSupported = (filePath: string) => supportedFormats.includes(path.extname(filePath).replace('.', ''));
+const isSupported = (filePath: string) => supportedFormats.includes(path.extname(filePath).replace('.', '').toLowerCase());
 
 /** Codecs that sit in a container that plays, which Chromium does not decode. See docs/app/supported-formats.md */
 const unsupportedCodecs = ['AC-3', 'SPEEX', 'THEORA', 'DSD-WAVPACK', 'DST', 'WMA-VOICE'];

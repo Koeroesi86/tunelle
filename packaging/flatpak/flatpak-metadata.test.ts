@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { describe, expect, it } from 'vitest';
+import { mimeTypeEntry } from '../../electron/constants/audio-mime-types';
+import { supportedFormats } from '../../electron/utils/is-supported';
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const { build, license, homepage } = JSON.parse(read('package.json'));
@@ -17,8 +19,14 @@ const pagesUrl = `https://${homepage.split('/')[3].toLowerCase()}.github.io/${ho
 // Flathub takes the app from these files (see packaging/flatpak/), so they have to stay in step with the app they describe
 describe('the desktop entry of the Flatpak', () => {
   it('starts the executable of the package under the window class the app opens with', () => {
-    expect(desktopValue('Exec')).toBe(build.linux.executableName);
+    expect(desktopValue('Exec')).toContain(build.linux.executableName);
     expect(desktopValue('StartupWMClass')).toBe(build.productName);
+  });
+
+  it('opens the audio files it is offered for, and is offered for the types of the app', () => {
+    expect(desktopValue('Exec')).toBe(`${build.linux.executableName} %U`);
+    expect(desktopValue('MimeType')).toBe(mimeTypeEntry);
+    expect(read(`packaging/appimage/${build.appId}.desktop`)).toContain(`\nMimeType=${mimeTypeEntry}\n`);
   });
 
   it('names the icon after the app id, which the icons of the package are installed under', () => {
@@ -82,5 +90,11 @@ describe('the metainfo of the Flatpak', () => {
 
   it('has a release', () => {
     expect(metainfo).toMatch(/<release version="\d+\.\d+\.\d+" date="\d{4}-\d{2}-\d{2}"/);
+  });
+});
+
+describe('the file types of the installers', () => {
+  it('are the formats the player plays', () => {
+    expect(build.fileAssociations.flatMap(({ ext }: { ext: string[] }) => ext)).toEqual(supportedFormats);
   });
 });

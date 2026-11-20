@@ -23,8 +23,9 @@ import { createRadioArt } from './electron/services/radio/radio-art';
 import { createSources } from './electron/services/sources/sources';
 import { createRadioLogos } from './electron/services/radio/radio-logos';
 import { getAppUserModelId, setsAppUserModelId } from './electron/app-user-model-id';
-import { holdSingleInstance } from './electron/windows/single-instance';
+import { focusWindow, holdSingleInstance } from './electron/windows/single-instance';
 import { registerDevDesktopEntry, removeDevDesktopEntry } from './electron/services/platform/dev-desktop-entry';
+import { openFiles } from './electron/library/opened/opened-files';
 import closeDatabase from './electron/database/close-database';
 import { sendIfAlive } from './electron/utils/send-if-alive';
 import { cancelScans } from './electron/library/scan/scan-cancellation';
@@ -56,8 +57,17 @@ const isDev = process.env.NODE_ENV === 'development';
 holdSingleInstance(
   app,
   () => windows.main,
-  (code) => process.exit(code)
+  (code) => process.exit(code),
+  (args, workingDirectory) => openFiles(args, workingDirectory).catch(console.error)
 );
+
+// the files that the system opens with the app: the arguments of the first start here, the later starts in `holdSingleInstance`, and the `open-file` of macOS, which also comes before the app is ready. See docs/app/open-files.md
+openFiles(process.argv.slice(1), process.cwd()).catch(console.error);
+app.on('open-file', (event, file) => {
+  event.preventDefault();
+  focusWindow(windows.main);
+  openFiles([file], process.cwd()).catch(console.error);
+});
 
 // the development window gets its icon on linux from this desktop entry, which only exists while it runs
 if (isDev && process.platform === 'linux') {

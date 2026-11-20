@@ -31,12 +31,22 @@ describe('focusWindow', () => {
 });
 
 describe('holdSingleInstance', () => {
+  it('hands the arguments of a later start to the files to open', () => {
+    const app = createApp(true);
+    const onStart = vi.fn();
+
+    holdSingleInstance(app, () => null, vi.fn(), onStart);
+    app.on.mock.calls[0][1]({}, ['Tunelle', '/music/a.flac'], '/home');
+
+    expect(onStart).toHaveBeenCalledWith(['Tunelle', '/music/a.flac'], '/home');
+  });
+
   it('carries on and answers a later start with the window of the running one', () => {
     const app = createApp(true);
     const window = createWindow(false);
     const exit = vi.fn();
 
-    holdSingleInstance(app, () => window, exit);
+    holdSingleInstance(app, () => window, exit, vi.fn());
 
     expect(exit).not.toHaveBeenCalled();
     expect(app.on).toHaveBeenCalledWith('second-instance', expect.any(Function));
@@ -50,7 +60,7 @@ describe('holdSingleInstance', () => {
     const app = createApp(true);
     const getWindow = vi.fn(() => createWindow(false));
 
-    holdSingleInstance(app, getWindow, vi.fn());
+    holdSingleInstance(app, getWindow, vi.fn(), vi.fn());
     expect(getWindow).not.toHaveBeenCalled();
 
     app.on.mock.calls[0][1]();
@@ -61,7 +71,7 @@ describe('holdSingleInstance', () => {
     const app = createApp(false);
     const exit = vi.fn();
 
-    holdSingleInstance(app, () => null, exit);
+    holdSingleInstance(app, () => null, exit, vi.fn());
 
     expect(exit).toHaveBeenCalledWith(0);
     expect(app.on).not.toHaveBeenCalled();
