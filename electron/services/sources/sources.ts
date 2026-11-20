@@ -1,10 +1,10 @@
 import type { SourceServer } from '@shared/schemas/sources';
-import { createServerStore } from './server-store';
+import { createSourceStore } from './server-store';
 import { createSubsonicClient, type SubsonicClient } from './subsonic-client';
 
 /** The servers of the user and a client for each, which the protocol and the listeners share. See docs/app/sources.md */
 export const createSources = (appData: string, userAgent: string) => {
-  const store = createServerStore(appData);
+  const store = createSourceStore(appData);
   const clients = new Map<string, SubsonicClient>();
 
   const clientOf = async (id: string) => {

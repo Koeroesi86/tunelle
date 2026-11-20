@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createServerStore } from './server-store';
+import { createSourceStore } from './server-store';
 import { createSubsonicClient } from './subsonic-client';
 import { createSources } from './sources';
 
-vi.mock('./server-store', () => ({ createServerStore: vi.fn() }));
+vi.mock('./server-store', () => ({ createSourceStore: vi.fn() }));
 vi.mock('./subsonic-client', () => ({ createSubsonicClient: vi.fn() }));
 
 const server = { id: '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11', kind: 'subsonic', name: 'Home', url: 'https://music.example.com', username: 'me' } as const;
@@ -13,7 +13,7 @@ describe('the sources', () => {
   beforeEach(() => {
     Object.values(store).forEach((fn) => fn.mockReset());
     store.get.mockResolvedValue({ server, password: 'sesame' });
-    vi.mocked(createServerStore)
+    vi.mocked(createSourceStore)
       .mockReset()
       .mockReturnValue(store as never);
     vi.mocked(createSubsonicClient)
@@ -24,7 +24,7 @@ describe('the sources', () => {
   it('keeps its servers in the app data folder', () => {
     createSources('/user-data', 'Tunelle/1.0');
 
-    expect(createServerStore).toHaveBeenCalledWith('/user-data');
+    expect(createSourceStore).toHaveBeenCalledWith('/user-data');
   });
 
   it('makes the client of a server with its password and the user agent, once', async () => {

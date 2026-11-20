@@ -30,7 +30,7 @@ const toServer = (stored: Stored): SourceServer => sourceServerSchema.parse(stor
 const toInfo = (stored: Stored): SourceServerInfo => ({ ...toServer(stored), protected: stored.encrypted });
 
 /** The servers of the user and their passwords. The file is only for the user, and the page never gets a password. See docs/app/sources.md */
-export const createServerStore = (appData: string) => {
+export const createSourceStore = (appData: string) => {
   const folder = join(appData, 'sources');
   const file = join(folder, 'servers.json');
 

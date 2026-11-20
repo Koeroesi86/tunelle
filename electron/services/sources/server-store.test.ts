@@ -2,7 +2,7 @@ import { join } from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { safeStorage } from 'electron';
 import { memoryFs } from '../../test-memory-fs';
-import { createServerStore } from './server-store';
+import { createSourceStore } from './server-store';
 
 vi.mock('fs', () => ({ ...memoryFs.sync, default: memoryFs.sync }));
 vi.mock('fs/promises', () => ({ ...memoryFs.promises, default: memoryFs.promises }));
@@ -28,11 +28,11 @@ describe('the store of the servers', () => {
   });
 
   it('has no servers at first', async () => {
-    expect(await createServerStore(appData).list()).toEqual([]);
+    expect(await createSourceStore(appData).list()).toEqual([]);
   });
 
   it('keeps the password encrypted, and gives it back only to the main process', async () => {
-    const store = createServerStore(appData);
+    const store = createSourceStore(appData);
     const info = await store.save(server, 'secret');
 
     expect(info).toEqual({ ...server, protected: true });
@@ -43,7 +43,7 @@ describe('the store of the servers', () => {
 
   it('keeps the password in plain text and says so when the system has no keyring', async () => {
     vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(false);
-    const store = createServerStore(appData);
+    const store = createSourceStore(appData);
 
     expect(await store.save(server, 'secret')).toMatchObject({ protected: false });
     expect(await store.get(server.id)).toEqual({ server, password: 'secret' });
@@ -53,12 +53,12 @@ describe('the store of the servers', () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('linux');
     vi.mocked(safeStorage.getSelectedStorageBackend).mockReturnValue('basic_text');
 
-    expect(await createServerStore(appData).save(server, 'secret')).toMatchObject({ protected: false });
+    expect(await createSourceStore(appData).save(server, 'secret')).toMatchObject({ protected: false });
     expect(safeStorage.encryptString).not.toHaveBeenCalled();
   });
 
   it('replaces the server with the same id and removes one', async () => {
-    const store = createServerStore(appData);
+    const store = createSourceStore(appData);
     await store.save(server, 'one');
     await store.save({ ...server, name: 'Renamed' }, 'two');
     await store.save({ ...server, id: '9d1e0a2b-1c3d-4e5f-8a9b-0c1d2e3f4a5b' }, 'three');
@@ -75,9 +75,9 @@ describe('the store of the servers', () => {
     memoryFs.sync.mkdirSync(join(appData, 'sources'));
     memoryFs.sync.writeFileSync(file, JSON.stringify({ servers: [{ id: 'x' }, { ...server, password: 'p', encrypted: false }] }));
 
-    expect((await createServerStore(appData).list()).map(({ id }) => id)).toEqual([server.id]);
+    expect((await createSourceStore(appData).list()).map(({ id }) => id)).toEqual([server.id]);
 
     memoryFs.sync.writeFileSync(file, 'not json');
-    expect(await createServerStore(appData).list()).toEqual([]);
+    expect(await createSourceStore(appData).list()).toEqual([]);
   });
 });
