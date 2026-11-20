@@ -19,6 +19,7 @@ import { isFavourite, stationFavourite, trackFavourite } from '../../domain/favo
 import { isHistoryItem } from '../../domain/history';
 import { toPlaylist } from '../../domain/playlists';
 import { radioUuidOf } from '../../domain/radio-track';
+import { isSourcePath } from '../../domain/source-track';
 import { isRemoteTrack } from '../../domain/remote-track';
 import { fetchAlbumPage, fetchGroupPage, fetchTrackPage } from '../../services/library-api';
 import { selectAlbumQuery, selectGroupAlbumQuery, selectGroupQuery, selectTrackQuery } from '../../domain/library-query';
@@ -64,6 +65,10 @@ function addListeners(store: Store) {
     if (radioQuery) store.dispatch({ type: 'SEARCH_RADIO', payload: { query: radioQuery } });
   });
   onMessage('SCANNING_FILE', messageSchemas.SCANNING_FILE, (payload) => store.dispatch({ type: 'SCANNING_FILE', payload }));
+  onMessage('SOURCE_SERVERS_LOADED', messageSchemas.SOURCE_SERVERS_LOADED, (payload) => store.dispatch({ type: 'SOURCE_SERVERS_LOADED', payload }));
+  onMessage('SOURCE_SERVER_FAILED', messageSchemas.SOURCE_SERVER_FAILED, (payload) => store.dispatch({ type: 'SOURCE_SERVER_FAILED', payload }));
+  onMessage('SOURCE_CERTIFICATE_READ', messageSchemas.SOURCE_CERTIFICATE_READ, (payload) => store.dispatch({ type: 'SOURCE_CERTIFICATE_READ', payload }));
+  onMessage('SOURCE_BROWSED', messageSchemas.SOURCE_BROWSED, (payload) => store.dispatch({ type: 'SOURCE_BROWSED', payload }));
   onMessage('RADIO_STATIONS', messageSchemas.RADIO_STATIONS, (payload) => store.dispatch({ type: 'RADIO_STATIONS', payload }));
   onMessage('RADIO_TAGS_LOADED', messageSchemas.RADIO_TAGS_LOADED, (payload) => store.dispatch({ type: 'RADIO_TAGS_LOADED', payload }));
   onMessage('RADIO_OPTIONS_LOADED', messageSchemas.RADIO_OPTIONS_LOADED, (payload) => store.dispatch({ type: 'RADIO_OPTIONS_LOADED', payload }));
@@ -319,7 +324,8 @@ const handleActions = actionMiddleware((store) => [
     prioritiseLoudness([payload.track], true);
     notifyTrack(store, payload.track);
     // a station is recorded with all that is known of it when it is picked, the track of the radio knows its name only
-    if (!radioUuidOf(payload.track.path) && !isRemoteTrack(payload.track.path)) send('HISTORY_RECORD', trackFavourite(payload.track));
+    if (!radioUuidOf(payload.track.path) && !isRemoteTrack(payload.track.path) && !isSourcePath(payload.track.path))
+      send('HISTORY_RECORD', trackFavourite(payload.track));
   }),
   onAction('PLAY_RADIO_STATION', ({ payload }) => send('HISTORY_RECORD', stationFavourite(payload.station))),
   onAction('LOAD_FAVOURITES', () => send('FAVOURITES_LOAD')),
@@ -340,6 +346,11 @@ const handleActions = actionMiddleware((store) => [
   onAction('CLEAR_HISTORY', () => send('HISTORY_CLEAR')),
   onAction('ADD_FAVOURITE', ({ payload }) => send('FAVOURITE_ADD', payload.favourite)),
   onAction('REMOVE_FAVOURITE', ({ payload }) => send('FAVOURITE_REMOVE', payload.key)),
+  onAction('LOAD_SOURCE_SERVERS', () => send('SOURCE_SERVERS')),
+  onAction('SAVE_SOURCE_SERVER', ({ payload }) => send('SOURCE_SERVER_SAVE', payload.server)),
+  onAction('REMOVE_SOURCE_SERVER', ({ payload }) => send('SOURCE_SERVER_REMOVE', payload)),
+  onAction('READ_SOURCE_CERTIFICATE', ({ payload }) => send('SOURCE_CERTIFICATE', payload)),
+  onAction('BROWSE_SOURCE', ({ payload }) => send('SOURCE_BROWSE', payload.request)),
   onAction('SEARCH_RADIO', ({ payload }) => send('RADIO_SEARCH', payload.query)),
   onAction('LOAD_RADIO_TAGS', () => send('RADIO_TAGS')),
   onAction('LOAD_RADIO_OPTIONS', () => send('RADIO_OPTIONS')),

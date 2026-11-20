@@ -336,5 +336,11 @@ describe('NowPlaying', () => {
 
       expect(screen.getByTestId('loudness').hasAttribute('data-rate')).toBe(false);
     });
+
+    it('is given no file for a track of a server of the user', () => {
+      renderPage({ currentSong: { ...flac, path: 'subsonic:5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11:s1' } });
+
+      expect(screen.getByTestId('loudness').textContent).toBe('');
+    });
   });
 });

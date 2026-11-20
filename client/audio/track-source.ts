@@ -1,5 +1,6 @@
 import type { Track } from '@shared/types/library';
 import { localUrl } from '../services/local-url';
+import { isSourcePath } from '../domain/source-track';
 import { radioUuidOf } from '../domain/radio-track';
 import { remoteKeyOf } from '../domain/remote-track';
 
@@ -8,6 +9,8 @@ export const sourceOf = (track: Track) => {
   const station = radioUuidOf(track.path);
   if (station) return localUrl(`/radio/${encodeURIComponent(station)}`);
 
+  if (isSourcePath(track.path)) return localUrl(`/source/audio?path=${encodeURIComponent(track.path)}`);
+
   const remote = remoteKeyOf(track.path);
   if (remote !== undefined) return localUrl(`/remote/audio?t=${remote}`);
 
@@ -15,4 +18,4 @@ export const sourceOf = (track: Track) => {
 };
 
 export const isFileTrack = (track: Track | null): track is Track =>
-  track !== null && radioUuidOf(track.path) === undefined && remoteKeyOf(track.path) === undefined;
+  track !== null && radioUuidOf(track.path) === undefined && !isSourcePath(track.path) && remoteKeyOf(track.path) === undefined;

@@ -6,6 +6,7 @@ import history from './history/reducer';
 import playlists from './playlists/reducer';
 import folders from './folders/reducer';
 import radio from './radio/reducer';
+import sources from './sources/reducer';
 import update from './update/reducer';
 import uiState from './uiState/reducer';
 
@@ -17,6 +18,7 @@ const reducers = combineReducers({
   library,
   offlineFolders,
   radio,
+  sources,
   uiState,
   update,
 });

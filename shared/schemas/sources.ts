@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { trackSchema } from './library';
 
 // the online sources that have servers of the user (docs/app/sources.md)
 
@@ -36,9 +37,6 @@ export type SourceServer = z.infer<typeof sourceServerSchema>;
 /** What the page sends to add or change a server: the password is sent once and never comes back */
 export const sourceServerInputSchema = sourceServerSchema.extend({ password: z.string().min(1).max(500) });
 
-/** A server as the page shows it: `protected` is false when the password is kept in plain text, as the system has no keyring to encrypt it with */
-export type SourceServerInfo = SourceServer & { protected: boolean };
-
 /** What the page asks of a server to show: the artists, the albums of an artist, the tracks of an album, or a search */
 export const sourceBrowseSchema = z.discriminatedUnion('what', [
   z.object({ what: z.literal('artists'), serverId: serverIdSchema }),
@@ -48,18 +46,36 @@ export const sourceBrowseSchema = z.discriminatedUnion('what', [
 ]);
 export type SourceBrowse = z.infer<typeof sourceBrowseSchema>;
 
-export interface SourceArtist {
-  id: string;
-  name: string;
-  albumCount: number;
-}
+const sourceArtistSchema = z.object({ id: z.string(), name: z.string(), albumCount: z.number() });
+export type SourceArtist = z.infer<typeof sourceArtistSchema>;
 
-export interface SourceAlbum {
-  id: string;
-  title: string;
-  artist: string;
-  year: string;
-  songCount: number;
+const sourceAlbumSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  artist: z.string(),
+  year: z.string(),
+  songCount: z.number(),
   /** The id of the cover, which the server names; it is asked for through the protocol and never as an address of the server */
-  coverArt: string | undefined;
-}
+  coverArt: z.string().optional(),
+});
+export type SourceAlbum = z.infer<typeof sourceAlbumSchema>;
+
+const sourceSearchResultSchema = z.object({
+  artists: z.array(sourceArtistSchema),
+  albums: z.array(sourceAlbumSchema),
+  tracks: z.array(trackSchema),
+});
+export type SourceSearchResult = z.infer<typeof sourceSearchResultSchema>;
+
+export const sourceServerInfoSchema = sourceServerSchema.extend({ protected: z.boolean() });
+
+/** What the main process answers to a browse: the list of the request, which the request tells the kind of */
+const sourceBrowseResultSchema = z.union([z.array(sourceArtistSchema), z.array(sourceAlbumSchema), z.array(trackSchema), sourceSearchResultSchema]);
+export type SourceBrowseResult = z.infer<typeof sourceBrowseResultSchema>;
+
+export const sourceBrowsedSchema = z.object({ request: sourceBrowseSchema, result: sourceBrowseResultSchema.optional(), error: z.string().optional() });
+export const sourceServerFailedSchema = z.object({ id: z.string().optional(), error: z.string(), code: z.number().optional() });
+export const sourceCertificateReadSchema = z.object({ url: z.string(), certificate: z.string(), code: z.string() });
+
+/** A server as the page shows it: `protected` is false when the password is kept in plain text, as the system has no keyring to encrypt it with */
+export type SourceServerInfo = z.infer<typeof sourceServerInfoSchema>;

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Loudness, Track } from '@shared/types/library';
+import { isSourcePath } from '../domain/source-track';
 import { radioUuidOf } from '../domain/radio-track';
 import { fetchTrackFormat } from '../services/library-api';
 
@@ -14,7 +15,7 @@ const isSame = (known: Loudness | undefined, next: Loudness) =>
  */
 export const useTrackLoudness = (tracks: (Track | null)[], refresh?: unknown) => {
   const [loudness, setLoudness] = useState<Record<string, Loudness>>({});
-  const paths = tracks.flatMap((track) => (track && radioUuidOf(track.path) === undefined ? [track.path] : []));
+  const paths = tracks.flatMap((track) => (track && radioUuidOf(track.path) === undefined && !isSourcePath(track.path) ? [track.path] : []));
   const key = paths.join('\n');
 
   useEffect(() => {

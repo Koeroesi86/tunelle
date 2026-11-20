@@ -19,6 +19,7 @@ import {
   MdPerson as ArtistsIcon,
   MdPlaylistPlay as PlaylistIcon,
   MdRadio as RadioIcon,
+  MdDns as ServersIcon,
   MdWifiTethering as NearbyIcon,
   MdPublic as OnlineIcon,
   MdSettings as SettingsIcon,
@@ -66,6 +67,7 @@ const libraryViews = [
 
 const onlineViews = [
   { view: 'radio', label: 'nav.radio', Icon: RadioIcon },
+  { view: 'servers', label: 'nav.servers', Icon: ServersIcon },
   { view: 'nearby', label: 'nav.nearby', Icon: NearbyIcon },
 ] as const;
 

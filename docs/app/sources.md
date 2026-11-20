@@ -27,11 +27,22 @@ A server with a valid certificate needs nothing. A server with a self-signed one
 
 `electron/services/sources/server-store.ts` keeps the servers in `sources/servers.json` of the [app data folder](user-data.md), readable by the user only (mode 0600). The password is encrypted with `safeStorage` and the page never gets it back: it sends it once and sees `protected`. Where the system has no keyring (`isEncryptionAvailable()` is false, or the Linux backend is `basic_text`, which encrypts with a fixed password) the password is kept in plain text and `protected` is false, for the page to warn about. A server is checked with `ping` before it is kept.
 
+## The page
+
+Online, "Subsonic servers" (`client/components/pages/source-servers/`, state in `client/redux/sources/`). The page lists the servers, adds one (name, address, user, password), removes one and browses one: the artists, the albums of an artist, the tracks of an album, or a search. A track plays through `/source/audio` (`client/audio/track-source.ts`); `isSourcePath` keeps such a track out of the history, the loudness measurement and the gapless preload, which are for files.
+
+- A wrong login (code 40) is worded in the language of the page, any other failure shows what the server said.
+- An address with `http` shows a warning: the token of a call travels with it.
+- After a failed add of an `https` address the page offers to read the certificate. It shows the code (`approvalCode`) to compare with the one the server shows, and "Approve and add" sends the server with that certificate, which every later call is pinned to.
+- A server with `protected: false` shows that its password is kept in plain text.
+- The page keeps the answers of a browse by their request (`browseKey`), a request without an answer is loading.
+
 ## Not done yet
 
-- The page: adding a server, the warning, browsing, playing (the next pull request). The IPC is there: `SOURCE_SERVERS`, `SOURCE_SERVER_SAVE`, `SOURCE_SERVER_REMOVE`, `SOURCE_CERTIFICATE`, `SOURCE_BROWSE`.
+- Jellyfin, on its own API (the next pull request).
+- Changing a server: remove it and add it again.
 - OpenSubsonic extensions. `apiKeyAuthentication` would avoid keeping a password (`apiKey=` and no `u`; a server answers 43 for both), and `getOpenSubsonicExtensions` tells which a server has.
-- Playlists, starred items, scrobbling, several servers at once.
+- Playlists, starred items, scrobbling, favourites of a track of a server.
 
 ## Not verified
 
@@ -40,3 +51,4 @@ What the documentation of [Subsonic](https://www.subsonic.org/pages/api.jsp) and
 - `Range` is not mentioned by either documentation, so seeking is checked on a Navidrome before the page ships.
 - The documentation does not say whether the suffix `.view` is optional. All its examples use it, so the client does.
 - Whether a server that ignores `format=raw` sends a transcoded file (and a `Content-Type` that tells).
+- The page was tested with component tests only, not in the running app against a server: the layout at the three sizes, the approval of a certificate and playing a track are not seen.

@@ -40,6 +40,8 @@
   "features.output.text": "Pick the device the sound goes to, such as a DAC, and the player follows its sample rate. When a track has to be resampled, it says so, and from what to what.",
   "features.radio.title": "Internet radio built in",
   "features.radio.text": "Thousands of stations from the open radio-browser.info directory, with their logos, filters and the song that is on right now. <a href='#radio'>More about radio</a>",
+  "features.servers.title": "Your own server, too",
+  "features.servers.text": "Add a Subsonic compatible server such as Navidrome, browse its artists and albums, search it and play it like your library. The password is kept in your system keyring, and a self-signed certificate is trusted only after you compare its code.",
   "features.playlistfiles.title": "Playlist files, both ways",
   "features.playlistfiles.text": "M3U, M3U8, PLS and XSPF files in your folders become playlists, and any playlist can be exported to one. An imported playlist can keep its file in sync (what the app does not write stays in the file), you can choose the encoding to read a file with and go back from a re-read, and you are asked before a character that the encoding of the file cannot hold would be lost.",
   "features.folders.title": "Folders that stay yours",
