@@ -55,7 +55,7 @@ const AddServer = ({ state, save, readCertificate, clearCertificate }: Pick<Sour
         <input aria-label={t('sources.url')} placeholder="https://music.example.com" autoComplete="off" spellCheck={false} {...field('url')} />
         <input aria-label={t('sources.username')} placeholder={t('sources.username')} autoComplete="off" {...field('username')} />
         <input type="password" aria-label={t('sources.password')} placeholder={t('sources.password')} autoComplete="off" {...field('password')} />
-        <button type="submit" className={style.action} disabled={!valid || saving}>
+        <button type="submit" className={classNames(style.action, style.submit)} disabled={!valid || saving}>
           {t(saving ? 'sources.checking' : 'sources.save')}
         </button>
       </form>
@@ -139,7 +139,7 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
 
   const artistRows = (artists: SourceArtist[]) =>
     artists.map((artist) => (
-      <button key={artist.id} type="button" className={classNames(style.action, style.row)} onClick={() => setPosition({ artist })}>
+      <button key={artist.id} type="button" className={classNames(style.link, style.row)} onClick={() => setPosition({ artist })}>
         <span className={style.rowText}>{artist.name}</span>
         <span className={style.meta}>{t('sources.albums', { count: artist.albumCount })}</span>
       </button>
@@ -147,7 +147,7 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
 
   const albumRows = (albums: SourceAlbum[]) =>
     albums.map((album) => (
-      <button key={album.id} type="button" className={classNames(style.action, style.row)} onClick={() => setPosition({ artist: position.artist, album })}>
+      <button key={album.id} type="button" className={classNames(style.link, style.row)} onClick={() => setPosition({ artist: position.artist, album })}>
         <Cover serverId={server.id} coverArt={album.coverArt} />
         <span className={style.rowText}>{[album.title, album.artist].filter(Boolean).join(' · ')}</span>
         <span className={style.meta}>{[album.year, t('sources.songs', { count: album.songCount })].filter(Boolean).join(' · ')}</span>
@@ -170,7 +170,7 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
   return (
     <div className={style.tile}>
       <div className={style.sectionTitle}>{server.name}</div>
-      <form className={style.form} role="search" onSubmit={search}>
+      <form className={classNames(style.form, style.inline)} role="search" onSubmit={search}>
         <input
           type="search"
           aria-label={t('sources.search')}
@@ -178,7 +178,7 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
           value={text}
           onChange={(event) => setText(event.target.value)}
         />
-        <button type="submit" className={style.action}>
+        <button type="submit" className={classNames(style.action, style.submit)}>
           {t('sources.search')}
         </button>
       </form>
@@ -234,7 +234,7 @@ const SourceServers = ({ state, load, save, remove, readCertificate, clearCertif
           {state.servers.length === 0 && <div className={style.hint}>{t('sources.none')}</div>}
           {state.servers.map((server) => (
             <div key={server.id} className={classNames(style.row, { [style.current]: server.id === open })}>
-              <button type="button" className={classNames(style.action, style.rowText)} aria-pressed={server.id === open} onClick={() => setOpen(server.id)}>
+              <button type="button" className={classNames(style.link, style.rowText)} aria-pressed={server.id === open} onClick={() => setOpen(server.id)}>
                 {server.name}
               </button>
               <span className={style.meta}>{server.url}</span>
