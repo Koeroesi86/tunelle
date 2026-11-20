@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import path from 'path';
+import { pathToFileURL } from 'url';
 import type { WebContents } from 'electron';
 
 const reader = vi.hoisted(() => ({ read: vi.fn(), close: vi.fn() }));
@@ -22,19 +24,27 @@ const track = (path: string, codec = 'FLAC') => ({
   codec,
 });
 
+// a path as the system under test resolves it: a drive letter is added on Windows
+const abs = (file: string) => path.resolve(file);
+
 const createSender = () => ({ isDestroyed: () => false, send: vi.fn() });
 
 describe('findOpenableFiles', () => {
   it('takes paths and file addresses of audio files, once each', () => {
-    expect(findOpenableFiles(['/usr/bin/Tunelle', '--flag', 'a.flac', '/music/b%20c.MP3', 'file:///music/b%20c.MP3', 'notes.txt'], '/home/me')).toEqual([
-      '/home/me/a.flac',
-      '/music/b%20c.MP3',
-      '/music/b c.MP3',
+    const music = abs('/music/b c.MP3');
+
+    expect(findOpenableFiles(['/usr/bin/Tunelle', '--flag', 'a.flac', music, pathToFileURL(music).href, 'notes.txt'], abs('/home/me'))).toEqual([
+      abs('/home/me/a.flac'),
+      music,
     ]);
   });
 
   it('leaves out an address that is not a file', () => {
-    expect(findOpenableFiles(['file://host/a.flac', 'file:'], '/')).toEqual([]);
+    expect(findOpenableFiles(['file:'], '/')).toEqual([]);
+  });
+
+  it.skipIf(process.platform === 'win32')('leaves out an address with a host', () => {
+    expect(findOpenableFiles(['file://host/a.flac'], '/')).toEqual([]);
   });
 });
 
@@ -56,23 +66,23 @@ describe('openFiles', () => {
   it('sends the tracks to the page that is ready, and serves them', async () => {
     const sender = createSender();
     attach(sender);
-    reader.read.mockResolvedValue(track('/music/a.flac'));
+    reader.read.mockResolvedValue(track(abs('/music/a.flac')));
 
-    await openFiles(['/music/a.flac'], '/');
+    await openFiles([abs('/music/a.flac')], '/');
 
-    expect(sender.send).toHaveBeenCalledWith('OPENED_FILES', { tracks: [track('/music/a.flac')] });
-    expect(findOpenedTrack('/music/a.flac')).toEqual(track('/music/a.flac'));
+    expect(sender.send).toHaveBeenCalledWith('OPENED_FILES', { tracks: [track(abs('/music/a.flac'))] });
+    expect(findOpenedTrack(abs('/music/a.flac'))).toEqual(track(abs('/music/a.flac')));
     expect(reader.close).toHaveBeenCalled();
   });
 
   it('keeps the tracks until the page is ready', async () => {
-    reader.read.mockResolvedValue(track('/music/early.flac'));
-    await openFiles(['/music/early.flac'], '/');
+    reader.read.mockResolvedValue(track(abs('/music/early.flac')));
+    await openFiles([abs('/music/early.flac')], '/');
     const sender = createSender();
 
     attach(sender);
 
-    expect(sender.send).toHaveBeenCalledWith('OPENED_FILES', { tracks: [track('/music/early.flac')] });
+    expect(sender.send).toHaveBeenCalledWith('OPENED_FILES', { tracks: [track(abs('/music/early.flac'))] });
   });
 
   it('leaves out a file that does not read and a codec that does not play', async () => {
@@ -80,14 +90,14 @@ describe('openFiles', () => {
     attach(sender);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     reader.read.mockImplementation(async (file: string) => {
-      if (file === '/music/bad.flac') throw new Error('unreadable');
-      return track(file, file === '/music/ac3.wav' ? 'AC-3' : 'FLAC');
+      if (file === abs('/music/bad.flac')) throw new Error('unreadable');
+      return track(file, file === abs('/music/ac3.wav') ? 'AC-3' : 'FLAC');
     });
 
-    await openFiles(['/music/bad.flac', '/music/ac3.wav', '/music/ok.flac'], '/');
+    await openFiles([abs('/music/bad.flac'), abs('/music/ac3.wav'), abs('/music/ok.flac')], '/');
 
-    expect(sender.send).toHaveBeenCalledWith('OPENED_FILES', { tracks: [track('/music/ok.flac')] });
-    expect(findOpenedTrack('/music/ac3.wav')).toBeUndefined();
+    expect(sender.send).toHaveBeenCalledWith('OPENED_FILES', { tracks: [track(abs('/music/ok.flac'))] });
+    expect(findOpenedTrack(abs('/music/ac3.wav'))).toBeUndefined();
   });
 
   it('reads nothing when no argument is an audio file', async () => {

@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Database } from 'sqlite3';
 
 const mocks = vi.hoisted(() => ({
   findPlayableTrack: vi.fn(),
@@ -17,7 +16,7 @@ vi.mock('./serve-file', () => ({ serveFile: mocks.serveFile, notFound: () => new
 
 const { serveTrack } = await import('./serve-track');
 
-const database = {} as Database;
+const database: Parameters<typeof serveTrack>[0] = Object.create(null);
 const request = new Request('tunelle://app/track');
 
 describe('serveTrack', () => {
