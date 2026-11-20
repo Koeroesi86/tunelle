@@ -10,15 +10,27 @@ permissions:
   contents: read
 
 jobs:
+  # the scenarios play the generated FLAC albums, which the ffmpeg of the app decodes (docs/app/decoder-proxy.md); its build is cached
+  ffmpeg:
+    uses: ./.github/workflows/ffmpeg.yml
+    permissions:
+      # the planning job of ffmpeg.yml lists the caches
+      actions: read
+      contents: read
+
   perf:
     name: Perf (${{ matrix.os }})
+    needs: ffmpeg
     runs-on: ${{ matrix.os }}
     # the base branch is built and measured too, three times each: Windows scans slowly
     timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-15, windows-2025]
+        include:
+          - { os: ubuntu-latest, platform: linux, arch: x64 }
+          - { os: macos-15, platform: macos, arch: arm64 }
+          - { os: windows-2025, platform: windows, arch: x64 }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -28,6 +40,10 @@ jobs:
           node-version: 24
           cache: npm
       - uses: ./.github/actions/install-dependencies
+      - uses: ./.github/actions/restore-ffmpeg
+        with:
+          platform: ${{ matrix.platform }}
+          arch: ${{ matrix.arch }}
       - run: npm run build
       # the base branch is built in a folder of its own and measured first, by the scenarios of this checkout (PERF_APP_OUT points the app of the tests at its build), so the two numbers come from the same runner and the same scenarios
       - name: Check out the base branch
@@ -43,6 +59,13 @@ jobs:
         run: |
           npm ci
           npm run build
+      # the app of the base branch looks for the ffmpeg next to its own build (a base that decodes FLAC needs it)
+      - name: Give the base branch the ffmpeg
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          mkdir -p base/.cache
+          cp -R .cache/ffmpeg base/.cache/
       # the same library on every system, so the numbers compare
       - name: Measure the base branch
         if: github.event_name == 'pull_request'

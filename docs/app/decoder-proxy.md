@@ -1,6 +1,6 @@
 # The decoder proxy
 
-Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302). Chromium plays the audio of the app, so a format it cannot decode is decoded by the bundled ffmpeg ([ffmpeg-build.md](../development/ffmpeg-build.md)) to a WAV file first, and the `/track` route serves that file. The address the renderer asks for does not change, so the `<audio>` elements, the Web Audio graph, gapless playback and the rest stay as they are. Only the codecs in `decodedCodecs` of `electron/utils/is-supported.ts` take this way: ALAC (in an `.m4a`), Monkey's Audio (`.ape`), WavPack (`.wv`) AIFF (`.aiff`, `.aif`) with AIFC (`.aifc`) DSD (`.dsf`, `.dff`) and WMA (`.wma`, `.asf`), told apart by the `codec` the scan read.
+Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302). Chromium plays the audio of the app, so a format it cannot decode is decoded by the bundled ffmpeg ([ffmpeg-build.md](../development/ffmpeg-build.md)) to a WAV file first, and the `/track` route serves that file. The address the renderer asks for does not change, so the `<audio>` elements, the Web Audio graph, gapless playback and the rest stay as they are. Only the codecs in `decodedCodecs` of `electron/utils/is-supported.ts` take this way: FLAC (`.flac`, and Ogg FLAC in an `.ogg` or `.oga`), ALAC (in an `.m4a`), Monkey's Audio (`.ape`), WavPack (`.wv`) AIFF (`.aiff`, `.aif`) with AIFC (`.aifc`) DSD (`.dsf`, `.dff`) and WMA (`.wma`, `.asf`), told apart by the `codec` the scan read.
 
 ## The route
 
@@ -27,6 +27,14 @@ After each decode the oldest files are removed until the folder is under 2 GiB (
 `decoded-track.test.ts` runs the cache, the sharing, the abort, the limit and the eviction with a fake child process; `tunelle-protocol.test.ts` the route; `e2e/functional/alac.spec.ts` plays the ALAC fixture (`e2e/fixtures/alac/`) with the real ffmpeg and measures the tone that leaves the app, which shows that Chromium plays what the decoder proxy serves; `e2e/functional/dsd.spec.ts` does the same for DSD and also measures the loudness, as it is the one that is 24 bit at 88.2 kHz. The other formats (Monkey's Audio, WavPack, AIFF, WMA) go through the same route and are not played in `e2e/`. `electron/protocols/decoded-track.integration.test.ts` and `decoded-loudness.integration.test.ts` scan the fixtures of all six formats and check the decoded WAV of each: the tone and the length, and the loudness that the code of `client/loudness/` gives it against an ideal sine (docs/development/integration-tests.md).
 
 Decode time of Monkey's Audio, measured on a laptop: a 10 minute 24 bit, 96 kHz stereo file at the insane level took 13.6 s (about 44 times faster than playing). The file was a pure tone, which compresses far better than music, so real albums take longer.
+
+## FLAC
+
+FLAC takes the same way since [#466](https://github.com/Koeroesi86/tunelle/issues/466), so what is heard no longer depends on the Chromium build of the system. The build has the `flac` and `ogg` demuxers, the `flac` decoder and parser (`ffmpeg-source.json`), so Ogg FLAC in an `.ogg` or `.oga` is decoded too. The depth of the file is kept (`toEncoder`): 16 bit FLAC gives `pcm_s16le`, 24 bit `pcm_s24le`. An embedded cover is a video stream and `-map 0:a:0` leaves it out of the WAV.
+
+- Timing: a 10 minute stereo file of pink noise plus a tone, 44.1 kHz 16 bit (62 MB, the WAV is 106 MB), decoded in 0.14 s on a laptop, and one at 96 kHz 24 bit (136 MB, the WAV is 346 MB) in 0.19 s, so about 3000 to 4000 times faster than playing (warm file cache; a cold disk adds the time to read the file). The first play can wait for the whole decode, and progressive decoding is not needed for FLAC.
+- Size: the WAV of a 24/96 file is about 2.5 times the FLAC (2 times for 16 bit CD material), so the 2 GiB cache holds some hours of 24/96 music, and the three tracks that were served last are never removed.
+- Gapless: FLAC has no encoder delay or padding, so the decoded WAV has exactly the samples of the file (6 s fixtures give 6 s in `decoded-track.integration.test.ts`) and nothing is trimmed. The two tracks join without a gap as ALAC does.
 
 ## DSD
 

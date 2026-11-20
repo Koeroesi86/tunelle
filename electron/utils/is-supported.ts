@@ -29,7 +29,7 @@ const isSupported = (filePath: string) => supportedFormats.includes(path.extname
 const unsupportedCodecs = ['AC-3', 'SPEEX', 'THEORA', 'DSD-WAVPACK', 'DST', 'WMA-VOICE'];
 
 /** Codecs that Chromium does not decode and that ffmpeg decodes before the track is served. See docs/app/decoder-proxy.md */
-const decodedCodecs = ['ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'DSD', 'WMA'];
+const decodedCodecs = ['FLAC', 'ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'DSD', 'WMA'];
 
 export const isDecodedCodec = (codec: string | null | undefined) => decodedCodecs.includes(codec ?? '');
 

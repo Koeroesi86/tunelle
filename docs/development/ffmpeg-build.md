@@ -1,6 +1,6 @@
 # The ffmpeg build
 
-Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302): a decoder proxy plays the formats that Chromium cannot (ALAC, APE, WavPack, AIFF, DSD and others) by decoding them to PCM with ffmpeg. This page is about the build of that ffmpeg and how it is packaged. ALAC, APE, WavPack, AIFF, DSD and WMA play through it ([decoder-proxy.md](../app/decoder-proxy.md)); the other formats follow.
+Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302): a decoder proxy plays the formats that Chromium cannot (FLAC, ALAC, APE, WavPack, AIFF, DSD and others) by decoding them to PCM with ffmpeg. This page is about the build of that ffmpeg and how it is packaged. FLAC, ALAC, APE, WavPack, AIFF, DSD and WMA play through it ([decoder-proxy.md](../app/decoder-proxy.md)); the other formats follow.
 
 ## What is built
 
@@ -14,7 +14,7 @@ A decode-only ffmpeg and ffprobe, built by us from the source tarball of ffmpeg.
 
 ## CI
 
-`.github/workflows/ffmpeg.yml` builds on Linux (x64, arm64), macOS (arm64, x64) and Windows (x64 with gcc, arm64 with clang, both in MSYS2). `dist.yml` and `test.yml` call it before their system jobs, and those jobs get the binary with the action `.github/actions/restore-ffmpeg`, which restores the cache and copies it to `.cache/ffmpeg/install/bin`. There is no artifact.
+`.github/workflows/ffmpeg.yml` builds on Linux (x64, arm64), macOS (arm64, x64) and Windows (x64 with gcc, arm64 with clang, both in MSYS2). `dist.yml`, `test.yml` and `perf.yml` call it before their system jobs, and those jobs get the binary with the action `.github/actions/restore-ffmpeg`, which restores the cache and copies it to `.cache/ffmpeg/install/bin`. There is no artifact. A job that plays the generated FLAC albums without it hears silence (the perf job failed with `a tone of 440 Hz` at 0 Hz for that reason); `perf.yml` also copies it next to the build of the base branch.
 
 - The build is kept in a cache keyed on the platform, the architecture, `ffmpeg-source.json` and `ffmpeg-build.js` (not on the runner image, so the Flatpak job on `ubuntu-latest` uses the build that the AppImage system, Ubuntu 22.04, made).
 - The job `plan` runs first on one Ubuntu runner and lists with `gh cache list` the systems that have no cache for the current key, on the ref of the run or on the default branch (the two a run can read). `build` runs for those systems only, so a run with every build cached starts no macOS or Windows runner, which wait for a long time for a machine. A failed lookup counts as a missing cache, and the build runs.

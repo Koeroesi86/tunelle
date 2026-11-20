@@ -26,10 +26,12 @@ vi.mock('electron', async () => {
 
 const { playableFile } = await import('./decoded-track');
 
-const trackSchema = z.object({ path: z.string(), title: z.string(), codec: z.string() });
+const trackSchema = z.object({ path: z.string(), title: z.string(), codec: z.string(), bitDepth: z.number().nullable() });
 
 // the fixtures of the end to end tests: the first track is a sine of 440 Hz, the second one of 880 Hz
 const formats = [
+  { folder: 'flac', codec: 'FLAC', bytes: 2, seconds: 6 },
+  { folder: 'flac-hires', codec: 'FLAC', bytes: 3, seconds: 6 },
   { folder: 'alac', codec: 'ALAC', bytes: 2, seconds: 6 },
   { folder: 'ape', codec: "MONKEY'S", bytes: 2, seconds: 6 },
   { folder: 'wavpack', codec: 'WAVPACK', bytes: 2, seconds: 6 },
@@ -58,14 +60,14 @@ describe('scanning and decoding the formats that Chromium does not play', () => 
   it.each(formats)('reads the tags of $folder and decodes both tracks to the tone they hold', async ({ folder, codec, bytes, seconds }) => {
     const tracks = await executeQuery(
       database,
-      { query: 'SELECT path, title, codec FROM library WHERE path LIKE ? ORDER BY path', variables: [`%/fixtures/${folder}/%`] },
+      { query: 'SELECT path, title, codec, bitDepth FROM library WHERE path LIKE ? ORDER BY path', variables: [`%/fixtures/${folder}/%`] },
       trackSchema
     );
 
     expect(tracks.map(({ title }) => title)).toEqual(['Concert A', 'Octave Up']);
     expect(tracks.map((track) => track.codec.toUpperCase().replace('AIFF-C', 'AIFF'))).toEqual([codec, codec]);
 
-    const wavs = await Promise.all(tracks.map((track) => playableFile({ ...track, bitDepth: null }, new AbortController().signal)));
+    const wavs = await Promise.all(tracks.map((track) => playableFile(track, new AbortController().signal)));
     const decoded = wavs.map((file) => readWav(file ?? 'missing'));
 
     expect(decoded.map(({ bytes: width }) => width)).toEqual([bytes, bytes]);

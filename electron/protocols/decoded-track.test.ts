@@ -81,6 +81,8 @@ describe('decodeTrack', () => {
     [{ codec: 'ALAC', bitDepth: 16 }, ['-c:a', 'pcm_s16le']],
     [{ codec: 'ALAC', bitDepth: 24 }, ['-c:a', 'pcm_s24le']],
     [{ codec: 'AIFF', bitDepth: 32 }, ['-c:a', 'pcm_s32le']],
+    [{ codec: 'FLAC', bitDepth: 16 }, ['-c:a', 'pcm_s16le']],
+    [{ codec: 'FLAC', bitDepth: 24 }, ['-c:a', 'pcm_s24le']],
   ])('keeps the depth of %j in the wav', async (given, encoder) => {
     decoder({ code: 0 });
 
@@ -211,7 +213,7 @@ describe('playableFile', () => {
   });
 
   it('gives the file itself for a codec that Chromium plays', async () => {
-    expect(await playableFile({ path: '/music/a.flac', codec: 'FLAC', bitDepth: 16 }, new AbortController().signal)).toBe('/music/a.flac');
+    expect(await playableFile({ path: '/music/a.mp3', codec: 'MP3', bitDepth: 16 }, new AbortController().signal)).toBe('/music/a.mp3');
     expect(spawn).not.toHaveBeenCalled();
   });
 

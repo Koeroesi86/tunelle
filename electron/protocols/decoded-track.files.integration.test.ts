@@ -229,7 +229,7 @@ describe('decoded track', () => {
 
   it('serves a file that Chromium plays as it is, and decodes ALAC', async () => {
     const file = source('k.m4a');
-    expect(await playableFile({ path: file, codec: 'FLAC', bitDepth: 16 }, never)).toBe(file);
+    expect(await playableFile({ path: file, codec: 'MP3', bitDepth: 16 }, never)).toBe(file);
     expect(spawn).not.toHaveBeenCalled();
 
     const result = playableFile({ path: file, codec: 'ALAC', bitDepth: 16 }, never);
