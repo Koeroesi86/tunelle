@@ -39,6 +39,7 @@ describe('tunelle protocol', () => {
   const handle = (devOrigin?: string) =>
     handleTunelleRequest({
       getDatabase: () => database,
+      sources: { clientOf: () => Promise.resolve(undefined) },
       appRoot,
       devOrigin,
       radio: {
@@ -187,6 +188,7 @@ describe('tunelle protocol', () => {
     it('does not serve before the database is connected', async () => {
       const response = await handleTunelleRequest({
         getDatabase: () => undefined,
+        sources: { clientOf: () => Promise.resolve(undefined) },
         appRoot,
         radio: { resolveStream: () => Promise.reject(new Error('no radio')), onTitle: () => {}, onSampleRate: () => {} },
       })(new Request(`tunelle://app/track?path=${encodeURIComponent(libraryFile())}`));
@@ -308,6 +310,7 @@ describe('tunelle protocol', () => {
     it('is not served before the database is connected', async () => {
       const response = await handleTunelleRequest({
         getDatabase: () => undefined,
+        sources: { clientOf: () => Promise.resolve(undefined) },
         appRoot,
         radio: { resolveStream: () => Promise.reject(new Error('no radio')), onTitle: () => {}, onSampleRate: () => {} },
       })(new Request('tunelle://app/library'));

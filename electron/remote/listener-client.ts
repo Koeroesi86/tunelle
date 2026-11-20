@@ -1,7 +1,7 @@
-import type { IncomingMessage } from 'node:http';
 import { request, type RequestOptions } from 'node:https';
 import { TLSSocket } from 'node:tls';
 import { z } from 'zod';
+import { toWebStream } from '../utils/to-web-stream';
 import { approvalCode, pinnedOptions, unpinnedOptions } from './certificate';
 import { CONTROLS, type Control } from '../../shared/constants/remote-controls';
 import { nowPlayingSchema, type NowPlaying } from '../../shared/schemas/now-playing';
@@ -156,21 +156,6 @@ export const sendControl = async (address: HostAddress, certificate: string, dev
     command
   );
   if (answer.status !== 200) throw new HostAnswerError(answer.status);
-};
-
-// a stream of the answer that reads on demand: a player that stops reading holds the socket, and a cancel closes it
-const toWebStream = (response: IncomingMessage) => {
-  const chunks = response[Symbol.asyncIterator]();
-  return new ReadableStream<Uint8Array>({
-    pull: async (controller) => {
-      const next = await chunks.next();
-      if (next.done) controller.close();
-      else controller.enqueue(next.value);
-    },
-    cancel: () => {
-      response.destroy();
-    },
-  });
 };
 
 const audioHeaders = ['content-type', 'content-length', 'content-range', 'accept-ranges'];

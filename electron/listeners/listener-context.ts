@@ -2,6 +2,7 @@ import type { Database } from 'sqlite3';
 import type { AppWindows } from '@shared/types/global';
 import type { RadioArt } from '../services/radio/radio-art';
 import type { RadioBrowser } from '../services/radio/radio-browser';
+import type { Sources } from '../services/sources/sources';
 import type { UpdateManager } from '../services/updates/update-manager';
 import type { registerLoudness } from '../library/loudness/loudness-source';
 
@@ -11,6 +12,8 @@ export interface ListenerContext {
   radio: RadioBrowser;
   /** The lookups of the music (MusicBrainz and the Cover Art Archive), which the covers of the radio and the search of the covers of albums share */
   radioArt: RadioArt;
+  /** The servers of the user (Subsonic), which the page browses and plays from */
+  sources: Sources;
   updates: UpdateManager;
   /** The measurement of the loudness of the library, which the settings ask how far it is and to start over */
   loudness: ReturnType<typeof registerLoudness>;

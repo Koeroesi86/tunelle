@@ -2,6 +2,7 @@ import type { Database } from 'sqlite3';
 import type { AppWindows } from '@shared/types/global';
 import type { RadioArt } from '../services/radio/radio-art';
 import type { RadioBrowser } from '../services/radio/radio-browser';
+import type { Sources } from '../services/sources/sources';
 import type { UpdateManager } from '../services/updates/update-manager';
 import type { ListenerContext } from './listener-context';
 import registerWindowListeners from './register-window-listeners';
@@ -21,6 +22,7 @@ import registerLoudnessListeners from './register-loudness-listeners';
 import registerBackgroundTaskListeners from './register-background-task-listeners';
 import registerMprisListeners from './register-mpris-listeners';
 import registerRemoteListeners from './register-remote-listeners';
+import registerSourceListeners from './register-source-listeners';
 import registerMediaPermission from '../windows/media-permission';
 
 const registrars: ((context: ListenerContext) => void)[] = [
@@ -41,6 +43,7 @@ const registrars: ((context: ListenerContext) => void)[] = [
   registerBackgroundTaskListeners,
   registerMprisListeners,
   registerRemoteListeners,
+  registerSourceListeners,
   registerMediaPermission,
 ];
 
@@ -49,10 +52,11 @@ function setupListeners(
   windows: AppWindows,
   radio: RadioBrowser,
   radioArt: RadioArt,
+  sources: Sources,
   updates: UpdateManager,
   loudness: ListenerContext['loudness']
 ) {
-  registrars.forEach((register) => register({ database, windows, radio, radioArt, updates, loudness }));
+  registrars.forEach((register) => register({ database, windows, radio, radioArt, sources, updates, loudness }));
 }
 
 export default setupListeners;

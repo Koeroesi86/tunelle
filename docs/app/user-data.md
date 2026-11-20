@@ -7,3 +7,7 @@ The app name (`getAppName` in `electron/utils/user-data.ts`) is `Tunelle`, `Tune
 The library folder (the library, its backups, the covers) of the folder the app used before it was renamed is copied once. It is done when the library is there, not when the folder is: on macOS and Windows `tunelle` and `Tunelle` are one folder, which Electron's data has created by then.
 
 The old folder stays where it is, and a copy that fails is ignored: the app starts as on a first run. What a running app holds open or can rebuild (the singleton locks, the caches) is not copied, as a copy of a lock would make the copy of the app look like a second instance.
+
+## The servers of the user
+
+`sources/servers.json` holds the servers that were added (address, user, a certificate that the user approved) and their passwords, encrypted where the system can. The file is readable by the user only. See [sources.md](sources.md).

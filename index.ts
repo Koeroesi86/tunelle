@@ -20,6 +20,7 @@ import setupListeners from './electron/listeners/setup-listeners';
 import { tunelleOrigin, handleTunelleProtocol, registerTunelleScheme } from './electron/protocols/tunelle-protocol';
 import { createRadioBrowser } from './electron/services/radio/radio-browser';
 import { createRadioArt } from './electron/services/radio/radio-art';
+import { createSources } from './electron/services/sources/sources';
 import { createRadioLogos } from './electron/services/radio/radio-logos';
 import { getAppUserModelId, setsAppUserModelId } from './electron/app-user-model-id';
 import { holdSingleInstance } from './electron/windows/single-instance';
@@ -172,6 +173,8 @@ const radio = createRadioBrowser(`Tunelle/${app.getVersion()}`, directoryUrlSche
 
 const radioArt = createRadioArt(`Tunelle/${app.getVersion()} ( https://github.com/Koeroesi86/tunelle )`);
 
+const sources = createSources(appDataPath, `Tunelle/${app.getVersion()} ( https://github.com/Koeroesi86/tunelle )`);
+
 const radioLogos = createRadioLogos(radio.getLogoUrl);
 
 const serveApp = () =>
@@ -179,6 +182,7 @@ const serveApp = () =>
     getDatabase: () => global._database,
     appRoot: resolve(rootPath, 'build'),
     devOrigin,
+    sources,
     radio: {
       resolveStream: radio.resolveStream,
       getArt: radioArt.get,
@@ -294,7 +298,7 @@ app
     // the hidden window of the measurement is a window too: the app does not quit while it is open
     const loudness = registerLoudness(d, loudnessLocation, (status) => windows.main && sendIfAlive(windows.main.webContents, 'LOUDNESS_STATUS', status));
     windows.main?.on('closed', loudness.stop);
-    setupListeners(d, windows, radio, radioArt, updates, loudness);
+    setupListeners(d, windows, radio, radioArt, sources, updates, loudness);
     backgroundQueue.start();
 
     // the native sqlite3 addon aborts the process when it is torn down with the database open, so it is closed before the app exits
