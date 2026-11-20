@@ -2,6 +2,7 @@ import { execFile } from 'child_process';
 import { copyFile, mkdir, readdir, readFile, readlink, rename, rm, rmdir, stat, symlink, utimes, writeFile } from 'fs/promises';
 import { join, posix } from 'path';
 import { catalog } from '@shared/locales';
+import { mimeTypeEntry } from '../../constants/audio-mime-types';
 
 const launcherName = 'tunelle';
 // the name of the entry that the app installed as eMusic: an update renames the app, so the entry of the old name is carried over to the new one
@@ -49,6 +50,7 @@ export const buildDesktopEntry = (appImage: string) => {
     `Icon=${launcherName}`,
     'Terminal=false',
     'Categories=AudioVideo;Audio;Music;Player;',
+    `MimeType=${mimeTypeEntry}`,
     'StartupWMClass=Tunelle',
     '',
   ].join('\n');

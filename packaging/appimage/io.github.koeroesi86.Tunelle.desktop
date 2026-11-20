@@ -7,5 +7,6 @@ Exec=AppRun %U
 Icon=Tunelle
 Terminal=false
 Categories=AudioVideo;Audio;Music;Player;
+MimeType=audio/flac;audio/x-flac;audio/mpeg;audio/mp3;audio/x-mp3;audio/mp4;audio/x-m4a;audio/aac;audio/ogg;audio/x-vorbis+ogg;audio/opus;audio/x-opus+ogg;audio/vnd.wave;audio/wav;audio/x-wav;audio/x-ape;audio/x-wavpack;audio/x-aiff;audio/aiff;audio/x-ms-wma;
 Keywords=music;audio;flac;lossless;radio;player;equalizer;
 StartupWMClass=Tunelle

@@ -40,6 +40,7 @@ describe('buildDesktopEntry', () => {
     expect(entry).toContain('Icon=tunelle');
     expect(entry).toContain('Categories=AudioVideo;Audio;Music;Player;');
     expect(entry).toContain('StartupWMClass=Tunelle');
+    expect(entry).toContain('MimeType=audio/flac;');
   });
 
   it('keeps a path with spaces in one piece', () => {

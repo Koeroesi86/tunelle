@@ -39,6 +39,16 @@ describe('connection middleware', () => {
     expect(store.getState().uiState.launcher).toEqual({ available: true, enabled: true, offered: true, external: false });
   });
 
+  it('plays the files that the system opened with the app', async () => {
+    const { store, listen } = await setup();
+    const track = { path: '/music/a.flac', artist: 'A', album: '', title: 'T', year: '', track: '', disk: '', genre: '', picture: null, duration: 1 };
+
+    listen('OPENED_FILES', { tracks: [track] });
+    listen('OPENED_FILES', { tracks: 'none' });
+
+    expect(store.getState().uiState.nowPlaying).toEqual([track]);
+  });
+
   const host = { enabled: true, name: 'Tunelle', loopbackOnly: false, maxListeners: 5, running: true, addresses: [], code: 'AB12', pending: [], devices: [] };
 
   it('asks for the state of the host when it starts, and stores what it reports', async () => {

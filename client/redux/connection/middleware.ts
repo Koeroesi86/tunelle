@@ -82,6 +82,7 @@ function addListeners(store: Store) {
     store.dispatch({ type: 'PLAYLISTS_LOADED', payload: { playlists: playlists.flatMap(toPlaylist) } })
   );
   onMessage('PLAYLIST_IMPORT_REPORT', messageSchemas.PLAYLIST_IMPORT_REPORT, (payload) => store.dispatch({ type: 'PLAYLIST_IMPORT_REPORTED', payload }));
+  onMessage('OPENED_FILES', messageSchemas.OPENED_FILES, ({ tracks }) => store.dispatch({ type: 'PLAY_TRACKS', payload: { tracks } }));
   onMessage('SCANNING_FOLDER', messageSchemas.SCANNING_FOLDER, (payload) => store.dispatch({ type: 'SCANNING_FOLDER', payload }));
 }
 

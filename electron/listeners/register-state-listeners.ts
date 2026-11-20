@@ -11,6 +11,7 @@ import { sendPowerSaving } from '../power/send-power-saving';
 import { savedSettingsSchema } from '@shared/schemas/requests';
 import { parsePayload } from '../utils/parse-payload';
 import { sendIfAlive } from '../utils/send-if-alive';
+import { attachOpenedFiles } from '../library/opened/opened-files';
 import { logError } from '../utils/log-error';
 
 const sendState = async ({ database }: ListenerContext, sender: WebContents) => {
@@ -24,6 +25,7 @@ const registerStateListeners = (context: ListenerContext) => {
   ipcMain.on('APP_READY', (event) => {
     sendState(context, event.sender).catch(logError);
     sendPowerSaving(event.sender);
+    attachOpenedFiles(event.sender);
     startLibraryWatching(context.database, event.sender).catch(logError);
   });
 

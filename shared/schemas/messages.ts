@@ -8,6 +8,7 @@ import { updateStateSchema } from './update';
 import { remoteHostStateSchema } from './remote-host';
 import { remoteNearbySchema } from './remote-nearby';
 import { remoteListenerStateSchema } from './remote-listener';
+import { trackSchema } from './library';
 import { radioSearchSchema } from '../types/radio-query';
 
 // what the main process sends to the page, by channel; a message of the wrong shape is dropped by the page (client/services/on-message.ts)
@@ -50,6 +51,8 @@ export const messageSchemas = {
   FAVOURITES: z.object({ favourites: z.array(z.unknown()) }),
   HISTORY: z.object({ history: z.array(z.unknown()) }),
   PLAYLISTS: z.object({ playlists: z.array(z.unknown()) }),
+  /** The files that the system opened with the app, which the page plays; they are read by the main process (docs/app/open-files.md) */
+  OPENED_FILES: z.object({ tracks: z.array(trackSchema) }),
   PLAYLIST_IMPORT_REPORT: z.object({ reports: z.array(playlistImportReportSchema) }),
 };
 

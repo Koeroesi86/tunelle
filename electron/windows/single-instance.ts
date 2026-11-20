@@ -13,11 +13,19 @@ export const focusWindow = (window: FocusableWindow | null | undefined) => {
 };
 
 /** Takes the lock of the profile: the first start keeps it and answers the later ones, a later start leaves at once */
-export const holdSingleInstance = (app: SingleInstanceApp, getWindow: () => FocusableWindow | null | undefined, exit: (code: number) => void) => {
+export const holdSingleInstance = (
+  app: SingleInstanceApp,
+  getWindow: () => FocusableWindow | null | undefined,
+  exit: (code: number) => void,
+  onStart: (args: string[], workingDirectory: string) => void
+) => {
   if (!app.requestSingleInstanceLock()) {
     exit(0);
     return;
   }
 
-  app.on('second-instance', () => focusWindow(getWindow()));
+  app.on('second-instance', (_event, args, workingDirectory) => {
+    focusWindow(getWindow());
+    onStart(args, workingDirectory);
+  });
 };
