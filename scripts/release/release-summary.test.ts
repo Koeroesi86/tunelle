@@ -57,6 +57,28 @@ describe('summarize', () => {
     expect(JSON.parse(init.body).contents[0].parts[0].text).toBe('Add gapless playback\nUpdate jsdom');
   });
 
+  it('proofreads the summary with a second request and uses the corrected text', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(answer('{"en":"Gapless playback.","hu":"Szünetmentes kezelüsük."}'))
+      .mockResolvedValueOnce(answer('{"en":"Gapless playback.","hu":"Szünetmentes kezelésük."}'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await summarize(subjects, 'token')).toEqual({ en: 'Gapless playback.', hu: 'Szünetmentes kezelésük.' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).contents[0].parts[0].text).toBe('{"en":"Gapless playback.","hu":"Szünetmentes kezelüsük."}');
+  });
+
+  it.each([
+    ['a refused request', { ok: false, status: 403, text: async () => '{"error":{"message":"denied"}}' }],
+    ['an answer that is not a summary', answer('not json')],
+  ])('keeps the first summary and warns when the proofreading gets %s', async (_, response) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(good).mockResolvedValueOnce(response));
+
+    expect(await summarize(subjects, 'token')).toEqual(summary);
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('The summary is not proofread'));
+  });
+
   it('sends at most 100 subjects', async () => {
     const fetchMock = vi.fn().mockResolvedValue(good);
     vi.stubGlobal('fetch', fetchMock);
@@ -81,11 +103,11 @@ describe('summarize', () => {
   });
 
   it('tries again with the lighter model after a pause when the API is busy', async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(busy).mockResolvedValueOnce(good);
+    const fetchMock = vi.fn().mockResolvedValueOnce(busy).mockResolvedValueOnce(good).mockResolvedValue(good);
     vi.stubGlobal('fetch', fetchMock);
 
     expect(await settle(summarize(subjects, 'token'))).toEqual(summary);
-    expect(fetchMock.mock.calls.map(([url]) => url.match(/models\/([\w-]+):/)[1])).toEqual(['gemini-flash-latest', 'gemini-flash-lite-latest']);
+    expect(fetchMock.mock.calls.slice(0, 2).map(([url]) => url.match(/models\/([\w-]+):/)[1])).toEqual(['gemini-flash-latest', 'gemini-flash-lite-latest']);
   });
 
   it('gives up after three tries and warns with the message of the API', async () => {
@@ -99,7 +121,7 @@ describe('summarize', () => {
 
   it('tries again after a request that took too long', async () => {
     const timeout = Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' });
-    const fetchMock = vi.fn().mockRejectedValueOnce(timeout).mockResolvedValueOnce(good);
+    const fetchMock = vi.fn().mockRejectedValueOnce(timeout).mockResolvedValue(good);
     vi.stubGlobal('fetch', fetchMock);
 
     expect(await settle(summarize(subjects, 'token'))).toEqual(summary);
