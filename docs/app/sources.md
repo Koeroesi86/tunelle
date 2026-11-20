@@ -29,7 +29,7 @@ A server with a valid certificate needs nothing. A server with a self-signed one
 
 ## The page
 
-Online, "Your servers" (`client/components/pages/source-servers/`, state in `client/redux/sources/`). The page lists the servers, adds one (name, address, user, password), removes one and browses one: the artists, the albums of an artist, the tracks of an album, or a search. A track plays through `/source/audio` (`client/audio/track-source.ts`); `isSourcePath` keeps such a track out of the history, the loudness measurement and the gapless preload, which are for files.
+Online, "Subsonic servers" (`client/components/pages/source-servers/`, state in `client/redux/sources/`). The page lists the servers, adds one (name, address, user, password), removes one and browses one: the artists, the albums of an artist, the tracks of an album, or a search. A track plays through `/source/audio` (`client/audio/track-source.ts`); `isSourcePath` keeps such a track out of the history, the loudness measurement and the gapless preload, which are for files.
 
 - A wrong login (code 40) is worded in the language of the page, any other failure shows what the server said.
 - An address with `http` shows a warning: the token of a call travels with it.
