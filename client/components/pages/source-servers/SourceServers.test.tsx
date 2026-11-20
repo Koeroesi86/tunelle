@@ -98,7 +98,7 @@ describe('SourceServers', () => {
       browsed: { [artists]: { result: [{ id: 'ar1', name: 'Artist', albumCount: 1 }] }, [request]: { result: [track] } },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Home' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Browse Home' }));
     expect(props.browse).toHaveBeenCalledWith({ what: 'artists', serverId: id });
     expect(screen.getByText('Artist')).toBeTruthy();
   });

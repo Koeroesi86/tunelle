@@ -30,7 +30,13 @@ const isAlbums = (result: SourceBrowseResult | undefined): result is SourceAlbum
 const isTracks = (result: SourceBrowseResult | undefined): result is Track[] => Array.isArray(result) && result.every((item) => 'path' in item);
 const isSearch = (result: SourceBrowseResult | undefined): result is SourceSearchResult => result !== undefined && !Array.isArray(result);
 
-const AddServer = ({ state, save, readCertificate, clearCertificate }: Pick<SourceServersProps, 'state' | 'save' | 'readCertificate' | 'clearCertificate'>) => {
+const AddServer = ({
+  state,
+  save,
+  readCertificate,
+  clearCertificate,
+  onClose,
+}: Pick<SourceServersProps, 'state' | 'save' | 'readCertificate' | 'clearCertificate'> & { onClose?: () => void }) => {
   const { t } = useTranslation();
   const { saving, failure, certificate } = state;
   const [form, setForm] = useState({ name: '', url: '', username: '', password: '' });
@@ -51,13 +57,32 @@ const AddServer = ({ state, save, readCertificate, clearCertificate }: Pick<Sour
       <div className={style.sectionTitle}>{t('sources.add')}</div>
       <div className={style.hint}>{t('sources.addHint')}</div>
       <form className={style.form} onSubmit={(event) => submit(event, certificate?.certificate)}>
-        <input aria-label={t('sources.name')} placeholder={t('sources.name')} autoComplete="off" {...field('name')} />
-        <input aria-label={t('sources.url')} placeholder="https://music.example.com" autoComplete="off" spellCheck={false} {...field('url')} />
-        <input aria-label={t('sources.username')} placeholder={t('sources.username')} autoComplete="off" {...field('username')} />
-        <input type="password" aria-label={t('sources.password')} placeholder={t('sources.password')} autoComplete="off" {...field('password')} />
-        <button type="submit" className={classNames(style.action, style.submit)} disabled={!valid || saving}>
-          {t(saving ? 'sources.checking' : 'sources.save')}
-        </button>
+        <label className={style.field}>
+          <span>{t('sources.name')}</span>
+          <input autoComplete="off" placeholder="Navidrome" {...field('name')} />
+        </label>
+        <label className={style.field}>
+          <span>{t('sources.url')}</span>
+          <input autoComplete="off" spellCheck={false} placeholder="https://music.example.com" {...field('url')} />
+        </label>
+        <label className={style.field}>
+          <span>{t('sources.username')}</span>
+          <input autoComplete="off" {...field('username')} />
+        </label>
+        <label className={style.field}>
+          <span>{t('sources.password')}</span>
+          <input type="password" autoComplete="off" {...field('password')} />
+        </label>
+        <div className={classNames(style.buttons, style.submit)}>
+          <button type="submit" className={classNames(style.action, style.primary)} disabled={!valid || saving}>
+            {t(saving ? 'sources.checking' : 'sources.save')}
+          </button>
+          {onClose && (
+            <button type="button" className={style.action} onClick={onClose}>
+              {t('sources.cancel')}
+            </button>
+          )}
+        </div>
       </form>
       {insecure && <div className={style.warning}>{t('sources.insecure')}</div>}
       {failure && !failure.id && (
@@ -168,7 +193,7 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
   const result = answer?.result;
 
   return (
-    <div className={classNames(style.tile, style.wide)}>
+    <div className={style.tile}>
       <div className={style.sectionTitle}>{server.name}</div>
       <form className={classNames(style.form, style.inline)} role="search" onSubmit={search}>
         <input
@@ -222,30 +247,61 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
 const SourceServers = ({ state, load, save, remove, readCertificate, clearCertificate, browse, play }: SourceServersProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState<string | undefined>(undefined);
+  const [adding, setAdding] = useState(false);
   const opened = state.servers.find(({ id }) => id === open);
+  const { servers } = state;
 
   useEffect(() => load(), []);
+
+  // a server that was kept closes the form
+  useEffect(() => setAdding(false), [servers.length]);
 
   return (
     <div className={style.sourceServers}>
       <div className={style.content}>
         <div className={style.tile}>
-          <div className={style.sectionTitle}>{t('sources.title')}</div>
-          {state.servers.length === 0 && <div className={style.hint}>{t('sources.none')}</div>}
-          {state.servers.map((server) => (
-            <div key={server.id} className={classNames(style.row, { [style.current]: server.id === open })}>
-              <button type="button" className={classNames(style.link, style.rowText)} aria-pressed={server.id === open} onClick={() => setOpen(server.id)}>
-                {server.name}
+          <div className={style.header}>
+            <div className={style.sectionTitle}>{t('sources.title')}</div>
+            {servers.length > 0 && !adding && (
+              <button type="button" className={style.action} onClick={() => setAdding(true)}>
+                {t('sources.add')}
               </button>
-              <span className={style.meta}>{server.url}</span>
-              <button type="button" className={style.action} aria-label={t('sources.remove', { name: server.name })} onClick={() => remove(server.id)}>
-                {t('sources.removeShort')}
-              </button>
+            )}
+          </div>
+          {servers.length === 0 && <div className={style.hint}>{t('sources.none')}</div>}
+          {servers.map((server) => (
+            <div key={server.id} className={classNames(style.server, { [style.current]: server.id === open })}>
+              <div className={style.serverName}>
+                <span className={style.name}>{server.name}</span>
+                <span className={style.meta}>{server.url}</span>
+              </div>
+              <div className={style.buttons}>
+                <button
+                  type="button"
+                  className={style.action}
+                  aria-label={t('sources.browse', { name: server.name })}
+                  aria-pressed={server.id === open}
+                  onClick={() => setOpen(server.id === open ? undefined : server.id)}
+                >
+                  {t('sources.browseShort')}
+                </button>
+                <button type="button" className={style.action} aria-label={t('sources.remove', { name: server.name })} onClick={() => remove(server.id)}>
+                  {t('sources.removeShort')}
+                </button>
+              </div>
               {!server.protected && <div className={style.warning}>{t('sources.unprotected')}</div>}
             </div>
           ))}
         </div>
-        <AddServer state={state} save={save} readCertificate={readCertificate} clearCertificate={clearCertificate} />
+        {(adding || servers.length === 0) && (
+          <AddServer
+            state={state}
+            save={save}
+            readCertificate={readCertificate}
+            clearCertificate={clearCertificate}
+            onClose={servers.length > 0 ? () => setAdding(false) : undefined}
+          />
+        )}
         {opened && <Browser key={opened.id} server={opened} state={state} browse={browse} play={play} />}
       </div>
     </div>
