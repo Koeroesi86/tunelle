@@ -7,6 +7,16 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2. No real music or artist.
 
+`flac/` has the same two tracks in FLAC (16 bit, mono, 44.1 kHz) in the album "Lossless FLAC", for `e2e/functional/flac.spec.ts`, made with ffmpeg. `flac-hires/` has them at 24 bit and 96 kHz in the album "Lossless FLAC Hi-Res", each with an embedded cover (a 64x64 PNG), for the integration tests of the decoder proxy (the cover stream is not in the decoded WAV):
+
+```sh
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a flac -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless FLAC" -metadata track=1 flac/1-concert-a.flac
+ffmpeg -f lavfi -i "color=c=0x336699:s=64x64:d=1" -frames:v 1 cover.png
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=96000" -i cover.png -map 0:a -map 1:v -ac 1 -c:a flac -sample_fmt s32 -bits_per_raw_sample 24 -c:v copy -disposition:v attached_pic -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless FLAC Hi-Res" -metadata track=1 flac-hires/1-concert-a.flac
+```
+
+The second tracks are the same with 880 Hz, "Octave Up" and track 2.
+
 `alac/` has the same two tracks in ALAC (16 bit, mono, 44.1 kHz) in the album "Lossless Apple", for `e2e/functional/alac.spec.ts`, which plays them through the decoder proxy:
 
 ```sh

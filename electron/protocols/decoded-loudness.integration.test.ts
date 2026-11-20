@@ -28,7 +28,7 @@ vi.mock('electron', async () => {
 
 const { playableFile } = await import('./decoded-track');
 
-const trackSchema = z.object({ path: z.string(), codec: z.string() });
+const trackSchema = z.object({ path: z.string(), codec: z.string(), bitDepth: z.number().nullable() });
 
 // The measurement as the hidden window of the app does it (client/loudness/measure-track.ts), with the samples resampled to the rate of the measurement where Chromium's
 // decodeAudioData does it. A sine of half the full scale in one channel is at -9.7 LUFS (BS.1770, e2e/functional/loudness.spec.ts); a quarter of that amplitude is 12 dB under.
@@ -44,6 +44,8 @@ const measureDecoded = (file: string) => {
 
 // the sines of e2e/fixtures: the ones that ffmpeg made are at its default amplitude of 0.125, the DSD ones at 0.5 (scripts/tooling/generate-dsd-fixtures.ts)
 const formats = [
+  { folder: 'flac', amplitude: 0.125 },
+  { folder: 'flac-hires', amplitude: 0.125 },
   { folder: 'alac', amplitude: 0.125 },
   { folder: 'ape', amplitude: 0.125 },
   { folder: 'wavpack', amplitude: 0.125 },
@@ -80,10 +82,10 @@ describe('the loudness of the decoded sound of the formats that Chromium does no
   it.each(formats)('measures the decoded sines of $folder like the ideal ones they were made as', async ({ folder, amplitude }) => {
     const tracks = await executeQuery(
       database,
-      { query: 'SELECT path, codec FROM library WHERE path LIKE ? ORDER BY path', variables: [`%/fixtures/${folder}/%`] },
+      { query: 'SELECT path, codec, bitDepth FROM library WHERE path LIKE ? ORDER BY path', variables: [`%/fixtures/${folder}/%`] },
       trackSchema
     );
-    const wavs = await Promise.all(tracks.map((track) => playableFile({ ...track, bitDepth: null }, new AbortController().signal)));
+    const wavs = await Promise.all(tracks.map((track) => playableFile(track, new AbortController().signal)));
     const analyses = wavs.map((file) => measureDecoded(file ?? 'missing'));
 
     expect(analyses).toHaveLength(2);
