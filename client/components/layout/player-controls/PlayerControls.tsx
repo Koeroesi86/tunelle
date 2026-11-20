@@ -16,6 +16,7 @@ import type { Track } from '@shared/types/library';
 import { toNowPlaying } from '../../../domain/now-playing';
 import { radioUuidOf } from '../../../domain/radio-track';
 import { optimizedCoverOf } from '../../../utils/cover-url';
+import { isSourcePath } from '../../../domain/source-track';
 import { isRemoteTrack } from '../../../domain/remote-track';
 import { useMediaSession, useMediaSessionActions } from '../../../hooks/use-media-session';
 import { useMpris, useMprisCommands } from '../../../hooks/use-mpris';
@@ -306,14 +307,15 @@ const PlayerControls = (props: PlayerControlsProps) => {
     },
     { isPlaying, currentTime }
   );
-  const hostedFile = shown !== undefined && !radioUuidOf(shown.track.path) && !isRemoteTrack(shown.track.path);
+  // a station, a track of another host and a track of a server of the user are not files of this library, so a listener is not given a path to ask for
+  const hostedFile = shown !== undefined && !radioUuidOf(shown.track.path) && !isRemoteTrack(shown.track.path) && !isSourcePath(shown.track.path);
   useRemoteHost(
     shown && {
       title: shown.track.title,
       artist: shown.track.artist,
       album: shown.track.album,
       duration: radioUuidOf(shown.track.path) ? 0 : (shown.track.duration ?? 0),
-      path: radioUuidOf(shown.track.path) || isRemoteTrack(shown.track.path) ? undefined : shown.track.path,
+      path: hostedFile ? shown.track.path : undefined,
       station: radioUuidOf(shown.track.path),
       coverKey: hostedFile && shown.track.picture ? optimizedCoverOf(shown.track.picture) : undefined,
       next: props.upNext ? { title: props.upNext.title, artist: props.upNext.artist || undefined } : undefined,

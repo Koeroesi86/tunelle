@@ -14,6 +14,7 @@ const scenes: { name: string; open: (page: Page) => Promise<void> }[] = [
   },
   { name: 'now playing', open: (page) => navigate(page, 'Now playing') },
   { name: 'radio', open: (page) => navigate(page, 'Radio stations') },
+  { name: 'subsonic servers', open: (page) => navigate(page, 'Subsonic servers') },
   { name: 'settings', open: (page) => navigate(page, 'Settings') },
   { name: 'equalizer', open: (page) => navigate(page, 'Equalizer') },
 ];

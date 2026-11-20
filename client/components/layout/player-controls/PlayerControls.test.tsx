@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { Track } from '@shared/types/library';
 import { toRadioTrack } from '../../../domain/radio-track';
+import { useRemoteHost } from '../../../hooks/use-remote-host';
 import PlayerControls from './PlayerControls';
 
 vi.mock('../../ui/live-shimmer', () => ({ default: () => null }));
+vi.mock('../../../hooks/use-remote-host', () => ({ useRemoteHost: vi.fn() }));
 
 const renderControls = (volume: number, currentSong: Track | null = null, currentTime = 0) => {
   const props = {
@@ -169,5 +171,16 @@ describe('PlayerControls', () => {
     renderControls(0.5, song);
 
     expect(screen.getByRole('status').textContent).toBe('Now playing: Teardrop by Massive Attack');
+  });
+
+  it.each([
+    ['a file of the library', '/music/a.flac', '/music/a.flac'],
+    ['a track of a server of the user', 'subsonic:5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11:s1', undefined],
+  ])('gives a listener the path of %s only when it is a file of the library', (_name, path, shared) => {
+    vi.mocked(useRemoteHost).mockClear();
+    const song: Track = { ...toRadioTrack({ uuid: 'u6', name: 'A', country: '', tags: [], codec: 'FLAC', bitrate: 0 }), path, duration: 100 };
+    renderControls(0.5, song);
+
+    expect(vi.mocked(useRemoteHost).mock.calls[0]?.[0]?.path).toBe(shared);
   });
 });
