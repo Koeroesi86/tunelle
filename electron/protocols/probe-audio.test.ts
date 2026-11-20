@@ -22,7 +22,7 @@ describe('probeAudio', () => {
   it('returns the channels, the rate and the frames of a stream whose time base is one frame', async () => {
     answer(null, stream());
     await expect(probeAudio('/music/a.m4a')).resolves.toEqual({ channels: 2, sampleRate: 44100, frames: 441000 });
-    expect(vi.mocked(execFile).mock.calls[0][0]).toMatch(/ffprobe$/);
+    expect(vi.mocked(execFile).mock.calls[0][0]).toMatch(/ffprobe(\.exe)?$/);
   });
 
   it.each([
