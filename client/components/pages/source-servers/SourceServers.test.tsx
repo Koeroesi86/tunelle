@@ -113,6 +113,12 @@ describe('SourceServers for Jellyfin', () => {
     expect(screen.queryByText('Home')).toBeNull();
   });
 
+  it('suggests a name of its own kind', () => {
+    setup({}, 'jellyfin');
+
+    expect(screen.getByLabelText('Name').getAttribute('placeholder')).toBe('Jellyfin');
+  });
+
   it('sends a server of its kind', () => {
     const { save } = setup({}, 'jellyfin');
     type('Name', 'Film room');

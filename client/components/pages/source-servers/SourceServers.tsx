@@ -25,8 +25,8 @@ interface SourceServersProps {
 }
 
 const words = {
-  subsonic: { title: 'sources.title', hint: 'sources.addHint' },
-  jellyfin: { title: 'sources.jellyfinTitle', hint: 'sources.jellyfinAddHint' },
+  subsonic: { title: 'sources.title', hint: 'sources.addHint', example: 'Navidrome' },
+  jellyfin: { title: 'sources.jellyfinTitle', hint: 'sources.jellyfinAddHint', example: 'Jellyfin' },
 } as const;
 
 /** The wrong user or password, which the page words in its language */
@@ -67,7 +67,7 @@ const AddServer = ({
       <form className={style.form} onSubmit={(event) => submit(event, certificate?.certificate)}>
         <label className={style.field}>
           <span>{t('sources.name')}</span>
-          <input autoComplete="off" placeholder="Navidrome" {...field('name')} />
+          <input autoComplete="off" placeholder={words[kind].example} {...field('name')} />
         </label>
         <label className={style.field}>
           <span>{t('sources.url')}</span>
