@@ -17,7 +17,7 @@ import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import type { Control } from '@shared/constants/remote-controls';
 import type { PowerSavingMode } from '@shared/schemas/settings';
-import type { SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
+import type { DiscoveredServer, SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
 import type { LibraryView, OnlineView, PersistedSettings } from './persisted-settings';
 
 export type { LibraryView, OnlineView, PersistedSettings };
@@ -160,6 +160,8 @@ export type AppAction =
   | PayloadAction<'READ_SOURCE_CERTIFICATE', { url: string }>
   | PayloadAction<'SOURCE_CERTIFICATE_READ', { url: string; certificate: string; code: string }>
   | EmptyAction<'CLEAR_SOURCE_CERTIFICATE'>
+  | EmptyAction<'DISCOVER_SOURCE_SERVERS'>
+  | PayloadAction<'SOURCE_SERVERS_DISCOVERED', { servers: DiscoveredServer[]; error?: string }>
   | PayloadAction<'BROWSE_SOURCE', { request: SourceBrowse }>
   | PayloadAction<'SOURCE_BROWSED', { request: SourceBrowse; result?: SourceBrowseResult; error?: string }>
   | PayloadAction<'SEARCH_RADIO', { query: RadioQuery }>

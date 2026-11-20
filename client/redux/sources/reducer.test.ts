@@ -26,4 +26,17 @@ describe('the sources reducer', () => {
     expect(answered.browsed[browseKey(request)]).toEqual({ result: [], error: undefined });
     expect(reducer(answered, { type: 'BROWSE_SOURCE', payload: { request } }).browsed[browseKey(request)]).toBeUndefined();
   });
+
+  it('is searching the network until the servers that answered arrive', () => {
+    const searching = reducer(start, { type: 'DISCOVER_SOURCE_SERVERS' });
+    expect(searching.discovery).toEqual({ searching: true, servers: [] });
+
+    const servers = [{ id: 'x', name: 'Film room', url: 'http://192.168.1.5:8096' }];
+    expect(reducer(searching, { type: 'SOURCE_SERVERS_DISCOVERED', payload: { servers } }).discovery).toEqual({ searching: false, servers });
+    expect(reducer(searching, { type: 'SOURCE_SERVERS_DISCOVERED', payload: { servers: [], error: 'no' } }).discovery).toEqual({
+      searching: false,
+      servers: [],
+      error: 'no',
+    });
+  });
 });

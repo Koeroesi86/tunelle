@@ -68,6 +68,7 @@ function addListeners(store: Store) {
   onMessage('SOURCE_SERVERS_LOADED', messageSchemas.SOURCE_SERVERS_LOADED, (payload) => store.dispatch({ type: 'SOURCE_SERVERS_LOADED', payload }));
   onMessage('SOURCE_SERVER_FAILED', messageSchemas.SOURCE_SERVER_FAILED, (payload) => store.dispatch({ type: 'SOURCE_SERVER_FAILED', payload }));
   onMessage('SOURCE_CERTIFICATE_READ', messageSchemas.SOURCE_CERTIFICATE_READ, (payload) => store.dispatch({ type: 'SOURCE_CERTIFICATE_READ', payload }));
+  onMessage('SOURCE_DISCOVERED', messageSchemas.SOURCE_DISCOVERED, (payload) => store.dispatch({ type: 'SOURCE_SERVERS_DISCOVERED', payload }));
   onMessage('SOURCE_BROWSED', messageSchemas.SOURCE_BROWSED, (payload) => store.dispatch({ type: 'SOURCE_BROWSED', payload }));
   onMessage('RADIO_STATIONS', messageSchemas.RADIO_STATIONS, (payload) => store.dispatch({ type: 'RADIO_STATIONS', payload }));
   onMessage('RADIO_TAGS_LOADED', messageSchemas.RADIO_TAGS_LOADED, (payload) => store.dispatch({ type: 'RADIO_TAGS_LOADED', payload }));
@@ -350,6 +351,7 @@ const handleActions = actionMiddleware((store) => [
   onAction('SAVE_SOURCE_SERVER', ({ payload }) => send('SOURCE_SERVER_SAVE', payload.server)),
   onAction('REMOVE_SOURCE_SERVER', ({ payload }) => send('SOURCE_SERVER_REMOVE', payload)),
   onAction('READ_SOURCE_CERTIFICATE', ({ payload }) => send('SOURCE_CERTIFICATE', payload)),
+  onAction('DISCOVER_SOURCE_SERVERS', () => send('SOURCE_DISCOVER')),
   onAction('BROWSE_SOURCE', ({ payload }) => send('SOURCE_BROWSE', payload.request)),
   onAction('SEARCH_RADIO', ({ payload }) => send('RADIO_SEARCH', payload.query)),
   onAction('LOAD_RADIO_TAGS', () => send('RADIO_TAGS')),
