@@ -6,11 +6,13 @@
   inset: 0;
   overflow-y: auto;
 
+  // the tiles side by side where there is room and under each other where there is not; browsing takes the whole row
   .content {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
     gap: 16px;
-    max-width: 720px;
+    align-items: start;
+    max-width: $content-max;
     padding: 24px 24px 32px;
   }
 
@@ -41,12 +43,8 @@
   // the fields of a form in two columns, one under the other in a narrow window
   .form {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
     gap: 8px;
-
-    @include compact {
-      grid-template-columns: 1fr;
-    }
 
     input {
       box-sizing: border-box;

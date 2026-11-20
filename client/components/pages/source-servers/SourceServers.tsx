@@ -168,7 +168,7 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
   const result = answer?.result;
 
   return (
-    <div className={style.tile}>
+    <div className={classNames(style.tile, style.wide)}>
       <div className={style.sectionTitle}>{server.name}</div>
       <form className={classNames(style.form, style.inline)} role="search" onSubmit={search}>
         <input
@@ -245,8 +245,8 @@ const SourceServers = ({ state, load, save, remove, readCertificate, clearCertif
             </div>
           ))}
         </div>
-        {opened && <Browser key={opened.id} server={opened} state={state} browse={browse} play={play} />}
         <AddServer state={state} save={save} readCertificate={readCertificate} clearCertificate={clearCertificate} />
+        {opened && <Browser key={opened.id} server={opened} state={state} browse={browse} play={play} />}
       </div>
     </div>
   );
