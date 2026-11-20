@@ -42,7 +42,7 @@ const problems = [
 // the decode-only LGPL ffmpeg ships next to its notice and license text, and is the build that scripts/ffmpeg/ffmpeg-source.json describes (docs/development/ffmpeg-build.md)
 const ffmpegFolder = resolve(__dirname, '../..', packagedFfmpegFolder(process.platform, process.arch))
 const ffmpegPath = resolve(ffmpegFolder, ffmpegProgram(process.platform))
-;[ffmpegPath, resolve(ffmpegFolder, 'NOTICE.txt'), resolve(ffmpegFolder, 'COPYING.LGPLv2.1')]
+;[ffmpegPath, resolve(ffmpegFolder, ffmpegProgram(process.platform).replace('ffmpeg', 'ffprobe')), resolve(ffmpegFolder, 'NOTICE.txt'), resolve(ffmpegFolder, 'COPYING.LGPLv2.1')]
   .filter(file => !existsSync(file))
   .forEach(file => problems.push(`missing: ${file}`))
 if (existsSync(ffmpegPath)) {

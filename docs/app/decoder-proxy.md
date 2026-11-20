@@ -8,6 +8,16 @@ Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302). Chromium plays
 
 The first play of a track waits for the whole decode, and the page gets the answer after that. Streaming with range restarts is not built: the slowest decode measured (below) is short enough.
 
+## The progressive decode
+
+A codec whose length in frames is exact before the decode (ALAC, APE, WavPack, AIFF; `progressiveCodecs` in `electron/utils/is-supported.ts`) is served while ffmpeg writes it (`growing-track.ts`, `serve-growing.ts`). `ffprobe` (`probe-audio.ts`) gives the channels, the rate and the frames, only when the time base of the stream is one frame (`1/<rate>`); the header of the WAV (`wav-header.ts`) is then written with the size that the file will have, and the answer to the page has that size and the ranges of the finished file. ffmpeg writes raw samples to a pipe (the `s16le`, `s24le` and `s32le` muxers of the build), the app appends them to the `.part` file after the header and a read waits for the bytes that are not written yet, so the track starts at once and a seek far ahead waits for the decode to get there.
+
+- A decode is not stopped when a request goes: several range reads share the file, so it runs to the end and stays in the cache.
+- A byte count that differs from the declared size drops the file, and that track uses the whole decode from then on (until the app restarts).
+- WMA and DSD have an inexact length and stay on the whole decode. FLAC joins the list once it is decoded here (#491).
+- The reader of a growing file opens it when the decode has its slot, so a read that comes first waits for the file.
+- Not tried yet: a seek in the app while the decode runs. `growing-track.integration.test.ts` covers the real ffmpeg without Electron.
+
 ## The decode
 
 `ffmpeg -nostdin -v error -fflags +bitexact -i <file> -map 0:a:0 -map_metadata -1 -c:a <pcm> -f wav -y <cache>/<key>.wav.part`. The sample rate and the channels stay as in the file (the audio context resamples), the depth too: 16 bit or less is `pcm_s16le`, up to 24 `pcm_s24le`, above `pcm_s32le`, and 16 when the library has none. The output is written as `.part` and renamed when ffmpeg ends well, so a file of the cache is whole. A failure removes the `.part` file and logs the error of ffmpeg.

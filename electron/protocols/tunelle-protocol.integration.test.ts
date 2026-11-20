@@ -26,6 +26,9 @@ vi.mock('./decoded-track', () => ({
   playableFile: vi.fn(async ({ path: trackPath, codec }: { path: string; codec: string | null }) => (codec === 'ALAC' ? decoded.file : trackPath)),
 }));
 
+// the growing decode has its own tests (growing-track.integration.test.ts); here the whole decode answers
+vi.mock('./growing-track', () => ({ growingTrack: vi.fn(async () => undefined) }));
+
 const { handleTunelleRequest } = await import('./tunelle-protocol');
 
 describe('tunelle protocol', () => {
