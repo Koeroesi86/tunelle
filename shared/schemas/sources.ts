@@ -3,7 +3,7 @@ import { trackSchema } from './library';
 
 // the online sources that have servers of the user (docs/app/sources.md)
 
-const sourceKindSchema = z.enum(['subsonic', 'jellyfin']);
+const sourceKindSchema = z.enum(['subsonic', 'jellyfin', 'plex']);
 export type SourceKind = z.infer<typeof sourceKindSchema>;
 
 const serverIdSchema = z.uuid();
@@ -51,7 +51,7 @@ export const sourceBrowseSchema = z.discriminatedUnion('what', [
 ]);
 export type SourceBrowse = z.infer<typeof sourceBrowseSchema>;
 
-const sourceArtistSchema = z.object({ id: z.string(), name: z.string(), albumCount: z.number() });
+const sourceArtistSchema = z.object({ id: z.string(), name: z.string(), albumCount: z.number().optional() });
 export type SourceArtist = z.infer<typeof sourceArtistSchema>;
 
 const sourceAlbumSchema = z.object({
@@ -59,7 +59,8 @@ const sourceAlbumSchema = z.object({
   title: z.string(),
   artist: z.string(),
   year: z.string(),
-  songCount: z.number(),
+  /** Not every server tells it in a list: Plex does not */
+  songCount: z.number().optional(),
   /** The id of the cover, which the server names; it is asked for through the protocol and never as an address of the server */
   coverArt: z.string().optional(),
 });
@@ -80,6 +81,13 @@ export type SourceBrowseResult = z.infer<typeof sourceBrowseResultSchema>;
 
 export const sourceBrowsedSchema = z.object({ request: sourceBrowseSchema, result: sourceBrowseResultSchema.optional(), error: z.string().optional() });
 export const sourceDiscoveredSchema = z.object({ servers: z.array(discoveredServerSchema), error: z.string().optional() });
+/** Where the sign in with plex.tv is: waiting for the user to approve it in the browser, the servers of the account (the names only), or failed */
+export const plexAccountSchema = z.object({
+  status: z.enum(['waiting', 'servers', 'failed']),
+  servers: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
+  error: z.string().optional(),
+});
+export type PlexAccount = z.infer<typeof plexAccountSchema>;
 export const sourceServerFailedSchema = z.object({ id: z.string().optional(), error: z.string(), code: z.number().optional() });
 export const sourceCertificateReadSchema = z.object({ url: z.string(), certificate: z.string(), code: z.string() });
 

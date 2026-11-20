@@ -9,7 +9,14 @@ import { remoteHostStateSchema } from './remote-host';
 import { remoteNearbySchema } from './remote-nearby';
 import { remoteListenerStateSchema } from './remote-listener';
 import { trackSchema } from './library';
-import { sourceBrowsedSchema, sourceCertificateReadSchema, sourceDiscoveredSchema, sourceServerFailedSchema, sourceServerInfoSchema } from './sources';
+import {
+  plexAccountSchema,
+  sourceBrowsedSchema,
+  sourceCertificateReadSchema,
+  sourceDiscoveredSchema,
+  sourceServerFailedSchema,
+  sourceServerInfoSchema,
+} from './sources';
 import { radioSearchSchema } from '../types/radio-query';
 
 // what the main process sends to the page, by channel; a message of the wrong shape is dropped by the page (client/services/on-message.ts)
@@ -53,6 +60,7 @@ export const messageSchemas = {
   SOURCE_CERTIFICATE_READ: sourceCertificateReadSchema,
   SOURCE_BROWSED: sourceBrowsedSchema,
   SOURCE_DISCOVERED: sourceDiscoveredSchema,
+  PLEX_ACCOUNT: plexAccountSchema,
   // the items of these are checked one by one by the page, which leaves out the ones it cannot show (saved by a newer version)
   FAVOURITES: z.object({ favourites: z.array(z.unknown()) }),
   HISTORY: z.object({ history: z.array(z.unknown()) }),
