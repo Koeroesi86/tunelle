@@ -25,6 +25,8 @@ describe('growingTrack with the real ffmpeg', () => {
   it.each([
     ['alac', '1-concert-a.m4a', 'ALAC'],
     ['aiff', '1-concert-a.aiff', 'AIFF'],
+    ['flac', '1-concert-a.flac', 'FLAC'],
+    ['flac-hires', '1-concert-a.flac', 'FLAC'],
   ])('serves the %s fixture with its final size and the tone it holds', async (folder, name, codec) => {
     const source = fixture(folder, name);
     if (!fs.existsSync(source)) return;

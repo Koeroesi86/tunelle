@@ -10,11 +10,11 @@ The first play of a track waits for the whole decode, and the page gets the answ
 
 ## The progressive decode
 
-A codec whose length in frames is exact before the decode (ALAC, APE, WavPack, AIFF; `progressiveCodecs` in `electron/utils/is-supported.ts`) is served while ffmpeg writes it (`growing-track.ts`, `serve-growing.ts`). `ffprobe` (`probe-audio.ts`) gives the channels, the rate and the frames, only when the time base of the stream is one frame (`1/<rate>`); the header of the WAV (`wav-header.ts`) is then written with the size that the file will have, and the answer to the page has that size and the ranges of the finished file. ffmpeg writes raw samples to a pipe (the `s16le`, `s24le` and `s32le` muxers of the build), the app appends them to the `.part` file after the header and a read waits for the bytes that are not written yet, so the track starts at once and a seek far ahead waits for the decode to get there.
+A codec whose length in frames is exact before the decode (ALAC, FLAC, APE, WavPack, AIFF; `progressiveCodecs` in `electron/utils/is-supported.ts`) is served while ffmpeg writes it (`growing-track.ts`, `serve-growing.ts`). `ffprobe` (`probe-audio.ts`) gives the channels, the rate and the frames, only when the time base of the stream is one frame (`1/<rate>`); the header of the WAV (`wav-header.ts`) is then written with the size that the file will have, and the answer to the page has that size and the ranges of the finished file. ffmpeg writes raw samples to a pipe (the `s16le`, `s24le` and `s32le` muxers of the build), the app appends them to the `.part` file after the header and a read waits for the bytes that are not written yet, so the track starts at once and a seek far ahead waits for the decode to get there.
 
 - A decode is not stopped when a request goes: several range reads share the file, so it runs to the end and stays in the cache.
 - A byte count that differs from the declared size drops the file, and that track uses the whole decode from then on (until the app restarts).
-- WMA and DSD have an inexact length and stay on the whole decode. FLAC joins the list once it is decoded here (#491).
+- WMA and DSD have an inexact length and stay on the whole decode.
 - The reader of a growing file opens it when the decode has its slot, so a read that comes first waits for the file.
 - Not tried yet: a seek in the app while the decode runs. `growing-track.integration.test.ts` covers the real ffmpeg without Electron.
 
@@ -42,7 +42,7 @@ Decode time of Monkey's Audio, measured on a laptop: a 10 minute 24 bit, 96 kHz 
 
 FLAC takes the same way since [#466](https://github.com/Koeroesi86/tunelle/issues/466), so what is heard no longer depends on the Chromium build of the system. The build has the `flac` and `ogg` demuxers, the `flac` decoder and parser (`ffmpeg-source.json`), so Ogg FLAC in an `.ogg` or `.oga` is decoded too. The depth of the file is kept (`toEncoder`): 16 bit FLAC gives `pcm_s16le`, 24 bit `pcm_s24le`. An embedded cover is a video stream and `-map 0:a:0` leaves it out of the WAV.
 
-- Timing: a 10 minute stereo file of pink noise plus a tone, 44.1 kHz 16 bit (62 MB, the WAV is 106 MB), decoded in 0.14 s on a laptop, and one at 96 kHz 24 bit (136 MB, the WAV is 346 MB) in 0.19 s, so about 3000 to 4000 times faster than playing (warm file cache; a cold disk adds the time to read the file). The first play can wait for the whole decode, and progressive decoding is not needed for FLAC.
+- Timing: a 10 minute stereo file of pink noise plus a tone, 44.1 kHz 16 bit (62 MB, the WAV is 106 MB), decoded in 0.14 s on a laptop, and one at 96 kHz 24 bit (136 MB, the WAV is 346 MB) in 0.19 s, so about 3000 to 4000 times faster than playing (warm file cache; a cold disk adds the time to read the file). The first play could wait for the whole decode; FLAC is served progressively anyway, like the other codecs with an exact length (see above), which also spares the wait on a cold disk.
 - Size: the WAV of a 24/96 file is about 2.5 times the FLAC (2 times for 16 bit CD material), so the 2 GiB cache holds some hours of 24/96 music, and the three tracks that were served last are never removed.
 - Gapless: FLAC has no encoder delay or padding, so the decoded WAV has exactly the samples of the file (6 s fixtures give 6 s in `decoded-track.integration.test.ts`) and nothing is trimmed. The two tracks join without a gap as ALAC does.
 
