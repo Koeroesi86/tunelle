@@ -40,6 +40,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [The background task queue](docs/app/task-queue.md)
 - [Loudness measurement](docs/app/loudness-measurement.md)
 - [Saving power](docs/app/power-saving.md)
+- [Servers of the user (Subsonic)](docs/app/sources.md)
 - [Measuring the battery use](docs/development/battery.md)
 - [Library notifications](docs/app/library-notifications.md)
 - [Calls on the library folders](docs/app/mount-guard.md)

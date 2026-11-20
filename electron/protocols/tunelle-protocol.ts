@@ -9,6 +9,8 @@ import type { RadioStreamDeps } from './radio-proxy';
 import type { RadioArtImage } from '../services/radio/radio-art';
 import { notFound, serveFile } from './serve-file';
 import { serveTrack } from './serve-track';
+import { serveSource } from './source-protocol';
+import type { Sources } from '../services/sources/sources';
 import { serveRemoteAudio, serveRemoteCover } from '../remote/remote-media';
 import { artKeySchema, assetPathSchema, stationUuidSchema, trackPathSchema } from '../schemas/routes';
 
@@ -25,6 +27,8 @@ export const registerTunelleScheme = () =>
 interface TunelleDeps {
   getDatabase: () => Database | undefined;
   radio: RadioStreamDeps & { getArt?: (key: string) => RadioArtImage | undefined; getLogo?: (uuid: string) => Promise<RadioArtImage | undefined> };
+  /** The servers of the user, which the audio and the covers of their tracks come from */
+  sources: Pick<Sources, 'clientOf'>;
   /** The folder of the built page */
   appRoot: string;
   /** The origin of the dev server, the page of a development run is not served from here and asks across origins */
@@ -36,7 +40,7 @@ const pageFile = (appRoot: string, pathname: string) => {
   return file.startsWith(appRoot + path.sep) ? file : undefined;
 };
 
-const route = async (request: Request, { getDatabase, radio, appRoot }: TunelleDeps) => {
+const route = async (request: Request, { getDatabase, radio, sources, appRoot }: TunelleDeps) => {
   const { pathname, searchParams } = new URL(request.url);
   if (Object.hasOwn(libraryRoutes, pathname)) return libraryRoutes[pathname](getDatabase(), searchParams);
 
@@ -46,6 +50,10 @@ const route = async (request: Request, { getDatabase, radio, appRoot }: TunelleD
   // the audio of the host that this app listens to, relayed with the range of the request; the page names neither host nor file
   if (pathname === '/remote/audio') return serveRemoteAudio(request);
   if (pathname === '/remote/cover') return serveRemoteCover(request);
+
+  // a track of a server of the user, named by its path (`subsonic:<serverId>:<id>`), never by an address
+  if (pathname === '/source/audio') return serveSource('audio', searchParams.get('path'), request, sources);
+  if (pathname === '/source/cover') return serveSource('cover', searchParams.get('path'), request, sources);
 
   const { kind, key = '' } = assetPathSchema.safeParse(pathname).data ?? {};
   if (kind === 'radio') return serveRadio(key, request.signal, radio);

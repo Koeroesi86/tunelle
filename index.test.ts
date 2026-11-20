@@ -64,6 +64,7 @@ vi.mock('./electron/protocols/tunelle-protocol', () => ({
   handleTunelleProtocol: vi.fn((deps: Record<string, unknown>) => void mocks.protocolDeps.push(deps)),
 }));
 vi.mock('./electron/services/radio/radio-browser', () => ({ createRadioBrowser: vi.fn(() => ({ resolveStream: vi.fn(), getLogoUrl: vi.fn() })) }));
+vi.mock('./electron/services/sources/sources', () => ({ createSources: vi.fn(() => ({ clientOf: vi.fn() })) }));
 vi.mock('./electron/services/radio/radio-art', () => ({ createRadioArt: vi.fn(() => ({ get: vi.fn(), lookup: vi.fn(async () => 'art.png') })) }));
 vi.mock('./electron/services/radio/radio-logos', () => ({ createRadioLogos: vi.fn(() => ({ get: vi.fn() })) }));
 vi.mock('./electron/app-user-model-id', () => ({ getAppUserModelId: vi.fn(() => 'io.github.tunelle'), setsAppUserModelId: vi.fn(() => true) }));
@@ -201,6 +202,7 @@ describe('the start of the app', () => {
     expect(modules.setupListeners).toHaveBeenCalledWith(
       mocks.database,
       { main: mocks.main },
+      expect.anything(),
       expect.anything(),
       expect.anything(),
       mocks.updates,

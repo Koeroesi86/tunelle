@@ -7,6 +7,7 @@ import { serveRemoteAudio, serveRemoteCover } from '../remote/remote-media';
 import { fakeDatabase } from '../test-fake-database';
 import { libraryRoutes } from './library-routes';
 import { serveRadio } from './radio-protocol';
+import { serveSource } from './source-protocol';
 import { notFound, serveFile } from './serve-file';
 import { serveTrack } from './serve-track';
 import { handleTunelleProtocol, handleTunelleRequest, registerTunelleScheme, tunelleOrigin } from './tunelle-protocol';
@@ -21,6 +22,7 @@ vi.mock('../library/art/album-art-accents', () => ({ getCoverAccent: vi.fn() }))
 vi.mock('../remote/remote-media', () => ({ serveRemoteAudio: vi.fn(), serveRemoteCover: vi.fn() }));
 vi.mock('./library-routes', () => ({ libraryRoutes: { '/library': vi.fn() } }));
 vi.mock('./radio-protocol', () => ({ serveRadio: vi.fn() }));
+vi.mock('./source-protocol', () => ({ serveSource: vi.fn() }));
 vi.mock('./serve-file', () => ({ notFound: vi.fn(), serveFile: vi.fn() }));
 vi.mock('./serve-track', () => ({ serveTrack: vi.fn() }));
 
@@ -29,7 +31,8 @@ const ok = (body: string) => new Response(body);
 const getArt = vi.fn();
 const getLogo = vi.fn();
 const radio = { resolveStream: vi.fn(), onTitle: vi.fn(), onSampleRate: vi.fn(), getArt, getLogo };
-const handle = handleTunelleRequest({ getDatabase: () => database, radio, appRoot: path.resolve('/app/out'), devOrigin: 'http://localhost:3000' });
+const sources = { clientOf: vi.fn() };
+const handle = handleTunelleRequest({ getDatabase: () => database, radio, sources, appRoot: path.resolve('/app/out'), devOrigin: 'http://localhost:3000' });
 const ask = (path: string, init?: RequestInit & { host?: string }) => handle(new Request(`tunelle://${init?.host ?? 'app'}${path}`, init));
 const key = 'abcdef0123456789';
 
@@ -41,6 +44,7 @@ describe('the tunelle protocol', () => {
     vi.mocked(serveFile).mockReset().mockResolvedValue(ok('file'));
     vi.mocked(serveTrack).mockReset().mockResolvedValue(ok('track'));
     vi.mocked(serveRadio).mockReset().mockResolvedValue(ok('radio'));
+    vi.mocked(serveSource).mockReset().mockResolvedValue(ok('source'));
     vi.mocked(libraryRoutes['/library'])
       .mockReset()
       .mockImplementation(async () => ok('library'));
@@ -54,7 +58,7 @@ describe('the tunelle protocol', () => {
 
   it('registers the scheme as one the page can fetch and stream from, and handles it', () => {
     registerTunelleScheme();
-    handleTunelleProtocol({ getDatabase: () => database, radio, appRoot: '/app' });
+    handleTunelleProtocol({ getDatabase: () => database, radio, sources, appRoot: '/app' });
 
     expect(tunelleOrigin).toBe('tunelle://app');
     expect(vi.mocked(protocol.registerSchemesAsPrivileged).mock.calls[0][0][0]).toMatchObject({
@@ -68,6 +72,15 @@ describe('the tunelle protocol', () => {
     expect((await ask('/', { host: 'other' })).status).toBe(404);
     expect((await ask('/', { method: 'POST' })).status).toBe(405);
     expect((await ask('/', { method: 'OPTIONS' })).status).toBe(204);
+  });
+
+  it('serves the audio and the cover of a track of a server by its path, and nothing else of it', async () => {
+    const path = 'subsonic:5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11:42';
+
+    expect((await ask(`/source/audio?path=${encodeURIComponent(path)}`)).status).toBe(200);
+    expect((await ask(`/source/cover?path=${encodeURIComponent(path)}`)).status).toBe(200);
+    expect(serveSource).toHaveBeenNthCalledWith(1, 'audio', path, expect.any(Request), sources);
+    expect(serveSource).toHaveBeenNthCalledWith(2, 'cover', path, expect.any(Request), sources);
   });
 
   it('allows the dev server to ask across origins, and no other origin', async () => {
@@ -137,7 +150,7 @@ describe('the tunelle protocol', () => {
   });
 
   it('adds the content security policy to the response of the page, and of nothing else', () => {
-    handleTunelleProtocol({ getDatabase: () => database, radio, appRoot: '/app/out' });
+    handleTunelleProtocol({ getDatabase: () => database, radio, sources, appRoot: '/app/out' });
     const [filter, listener] = onHeadersReceived.mock.lastCall ?? [];
     const callback = vi.fn();
     listener({ responseHeaders: { 'Content-Type': ['text/html'] } }, callback);
