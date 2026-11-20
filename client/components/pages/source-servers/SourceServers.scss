@@ -1,0 +1,117 @@
+@use '../../../styles/settings-tile' as *;
+
+.sourceServers {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 720px;
+    padding: 24px 24px 32px;
+  }
+
+  .tile {
+    @include tile;
+  }
+
+  .sectionTitle {
+    @include tile-title;
+  }
+
+  .hint {
+    @include tile-hint;
+  }
+
+  .warning,
+  .error {
+    @include tile-hint;
+    color: var(--danger, var(--text));
+  }
+
+  .code {
+    font-family: monospace;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+  }
+
+  .form,
+  .buttons,
+  .crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    input {
+      flex: 1 1 140px;
+      box-sizing: border-box;
+      min-width: 0;
+      height: 44px;
+      padding: 0 8px;
+      font: inherit;
+      color: var(--text);
+      background: var(--overlay);
+      border: 1px solid transparent;
+      border-radius: 3px;
+      outline: 0;
+
+      &:focus {
+        background: var(--overlay-faint);
+        border-color: var(--accent);
+      }
+    }
+  }
+
+  .action {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 12px;
+    font: inherit;
+    color: var(--text);
+    cursor: pointer;
+    background: var(--overlay);
+    border: 0;
+    border-radius: 3px;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  .row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    min-height: 44px;
+
+    &.current {
+      color: var(--accent);
+    }
+  }
+
+  .rowText {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cover {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    background: var(--overlay);
+    border-radius: 3px;
+  }
+
+  .meta {
+    flex: none;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+}

@@ -17,6 +17,7 @@ import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import type { Control } from '@shared/constants/remote-controls';
 import type { PowerSavingMode } from '@shared/schemas/settings';
+import type { SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
 import type { LibraryView, OnlineView, PersistedSettings } from './persisted-settings';
 
 export type { LibraryView, OnlineView, PersistedSettings };
@@ -151,6 +152,16 @@ export type AppAction =
   | EmptyAction<'OPEN_SPONSOR_PAGE'>
   | PayloadAction<'SET_AUTOMATIC_UPDATES', { enabled: boolean }>
   | PayloadAction<'UPDATE_STATE', UpdateState>
+  | EmptyAction<'LOAD_SOURCE_SERVERS'>
+  | PayloadAction<'SOURCE_SERVERS_LOADED', { servers: SourceServerInfo[] }>
+  | PayloadAction<'SAVE_SOURCE_SERVER', { server: Record<string, unknown> }>
+  | PayloadAction<'REMOVE_SOURCE_SERVER', { id: string }>
+  | PayloadAction<'SOURCE_SERVER_FAILED', { id?: string; error: string; code?: number }>
+  | PayloadAction<'READ_SOURCE_CERTIFICATE', { url: string }>
+  | PayloadAction<'SOURCE_CERTIFICATE_READ', { url: string; certificate: string; code: string }>
+  | EmptyAction<'CLEAR_SOURCE_CERTIFICATE'>
+  | PayloadAction<'BROWSE_SOURCE', { request: SourceBrowse }>
+  | PayloadAction<'SOURCE_BROWSED', { request: SourceBrowse; result?: SourceBrowseResult; error?: string }>
   | PayloadAction<'SEARCH_RADIO', { query: RadioQuery }>
   | PayloadAction<'RADIO_STATIONS', { query: RadioQuery; stations: RadioStation[]; hasMore?: boolean; error?: string }>
   | PayloadAction<'RADIO_TAGS_LOADED', { tags: RadioTag[] }>

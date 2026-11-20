@@ -12,7 +12,7 @@ const realWorld = [
   { pattern: /test-database/, modules: [] },
   { pattern: /from 'sqlite3'/, modules: ['sqlite3'] },
   { pattern: /mkdtemp|tmpdir\(/, modules: ['fs', 'os'] },
-  { pattern: /createServer/, modules: ['http', 'https', 'net'] },
+  { pattern: /\bcreateServer\b/, modules: ['http', 'https', 'net'] },
   { pattern: /spawnSync|execFileSync|execSync/, modules: ['child_process', 'childProcess'] },
 ];
 

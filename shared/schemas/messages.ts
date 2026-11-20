@@ -9,6 +9,7 @@ import { remoteHostStateSchema } from './remote-host';
 import { remoteNearbySchema } from './remote-nearby';
 import { remoteListenerStateSchema } from './remote-listener';
 import { trackSchema } from './library';
+import { sourceBrowsedSchema, sourceCertificateReadSchema, sourceServerFailedSchema, sourceServerInfoSchema } from './sources';
 import { radioSearchSchema } from '../types/radio-query';
 
 // what the main process sends to the page, by channel; a message of the wrong shape is dropped by the page (client/services/on-message.ts)
@@ -47,6 +48,10 @@ export const messageSchemas = {
   RADIO_STREAM_TITLE: radioStreamSchema.extend({ title: z.string() }),
   RADIO_STREAM_RATE: radioStreamSchema.extend({ sampleRate: z.number() }),
   RADIO_STREAM_ART: radioStreamSchema.extend({ title: z.string(), art: z.string().optional() }),
+  SOURCE_SERVERS_LOADED: z.object({ servers: z.array(sourceServerInfoSchema) }),
+  SOURCE_SERVER_FAILED: sourceServerFailedSchema,
+  SOURCE_CERTIFICATE_READ: sourceCertificateReadSchema,
+  SOURCE_BROWSED: sourceBrowsedSchema,
   // the items of these are checked one by one by the page, which leaves out the ones it cannot show (saved by a newer version)
   FAVOURITES: z.object({ favourites: z.array(z.unknown()) }),
   HISTORY: z.object({ history: z.array(z.unknown()) }),
