@@ -1,5 +1,5 @@
 import type { Reducer } from 'redux';
-import type { SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
+import type { DiscoveredServer, SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
 import { isAppAction } from '../types';
 
 export interface SourcesState {
@@ -9,6 +9,8 @@ export interface SourcesState {
   failure?: { id?: string; error: string; code?: number };
   /** The certificate of a server that the user is asked to approve */
   certificate?: { url: string; certificate: string; code: string };
+  /** The Jellyfin servers that answered on the network: `searching` until they did */
+  discovery?: { searching: boolean; servers: DiscoveredServer[]; error?: string };
   /** The answers of the browses by their request, a request without an answer is loading */
   browsed: Record<string, { result?: SourceBrowseResult; error?: string }>;
 }
@@ -36,6 +38,10 @@ const reducer: Reducer<SourcesState> = (state = initialState, action) => {
       return { ...state, certificate: action.payload };
     case 'CLEAR_SOURCE_CERTIFICATE':
       return { ...state, certificate: undefined };
+    case 'DISCOVER_SOURCE_SERVERS':
+      return { ...state, discovery: { searching: true, servers: [] } };
+    case 'SOURCE_SERVERS_DISCOVERED':
+      return { ...state, discovery: { searching: false, ...action.payload } };
     case 'BROWSE_SOURCE':
       return { ...state, browsed: without(state.browsed, browseKey(action.payload.request)) };
     case 'SOURCE_BROWSED': {

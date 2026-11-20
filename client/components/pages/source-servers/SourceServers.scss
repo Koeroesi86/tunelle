@@ -127,6 +127,18 @@
     }
   }
 
+  // the servers that answered on the network, above the form
+  .discovery {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+
+    .server {
+      align-self: stretch;
+    }
+  }
+
   // a server: its name and address, and what can be done with it
   .server {
     display: flex;

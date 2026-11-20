@@ -14,6 +14,7 @@ const setup = (state: Partial<SourcesState> = {}, kind: 'subsonic' | 'jellyfin' 
     save: vi.fn(),
     remove: vi.fn(),
     readCertificate: vi.fn(),
+    discover: vi.fn(),
     clearCertificate: vi.fn(),
     browse: vi.fn(),
     play: vi.fn(),
@@ -128,5 +129,35 @@ describe('SourceServers for Jellyfin', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
     expect(save).toHaveBeenCalledWith(expect.objectContaining({ kind: 'jellyfin', name: 'Film room' }));
+  });
+
+  it('has no search of the network for Subsonic', () => {
+    setup();
+
+    expect(screen.queryByRole('button', { name: 'Look on the network' })).toBeNull();
+  });
+
+  it('looks on the network and fills the form with the server that is chosen', () => {
+    const { discover } = setup({ discovery: { searching: false, servers: [{ id: 'x', name: 'Film room', url: 'http://192.168.1.5:8096' }] } }, 'jellyfin');
+    fireEvent.click(screen.getByRole('button', { name: 'Look on the network' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use Film room' }));
+
+    expect(discover).toHaveBeenCalled();
+    expect((screen.getByLabelText('Address') as HTMLInputElement).value).toBe('http://192.168.1.5:8096');
+    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Film room');
+  });
+
+  it('does not offer a server that is added already, and says when none answered', () => {
+    setup(
+      {
+        servers: [{ ...server, kind: 'jellyfin', url: 'http://192.168.1.5:8096' }],
+        discovery: { searching: false, servers: [{ id: 'x', name: 'Film room', url: 'http://192.168.1.5:8096' }] },
+      },
+      'jellyfin'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Add a server' }));
+
+    expect(screen.queryByRole('button', { name: 'Use Film room' })).toBeNull();
+    expect(screen.getByText(/No Jellyfin server answered/)).toBeTruthy();
   });
 });

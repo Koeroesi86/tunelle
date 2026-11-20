@@ -5,6 +5,7 @@ import { sourceBrowseSchema, sourceServerInputSchema, type SourceBrowse } from '
 import type { ListenerContext } from './listener-context';
 import { approvalCode } from '../remote/certificate';
 import { readCertificate, SourceError } from '../services/sources/source-request';
+import { discoverJellyfin } from '../services/sources/jellyfin-discovery';
 import type { SourceClient } from '../services/sources/sources';
 
 const certificateRequestSchema = z.object({ url: z.url() });
@@ -63,6 +64,13 @@ const registerSourceListeners = ({ sources }: ListenerContext) => {
     readCertificate(new URL(request.data.url))
       .then((certificate) => event.sender.send('SOURCE_CERTIFICATE_READ', { url: request.data.url, certificate, code: approvalCode(certificate) }))
       .catch((error) => event.sender.send('SOURCE_SERVER_FAILED', { error: errorMessage(error) }));
+  });
+
+  // the Jellyfin servers that answer on the network, for the page to offer; the user still gives the login
+  ipcMain.on('SOURCE_DISCOVER', (event) => {
+    discoverJellyfin()
+      .then((servers) => event.sender.send('SOURCE_DISCOVERED', { servers }))
+      .catch((error) => event.sender.send('SOURCE_DISCOVERED', { servers: [], error: errorMessage(error) }));
   });
 
   ipcMain.on('SOURCE_BROWSE', async (event, payload: unknown) => {

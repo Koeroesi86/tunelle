@@ -18,6 +18,7 @@ interface SourceServersProps {
   load: () => void;
   save: (server: Record<string, unknown>) => void;
   remove: (id: string) => void;
+  discover: () => void;
   readCertificate: (url: string) => void;
   clearCertificate: () => void;
   browse: (request: SourceBrowse) => void;
@@ -41,12 +42,14 @@ const AddServer = ({
   kind,
   state,
   save,
+  discover,
   readCertificate,
   clearCertificate,
   onClose,
-}: Pick<SourceServersProps, 'kind' | 'state' | 'save' | 'readCertificate' | 'clearCertificate'> & { onClose?: () => void }) => {
+}: Pick<SourceServersProps, 'kind' | 'state' | 'save' | 'discover' | 'readCertificate' | 'clearCertificate'> & { onClose?: () => void }) => {
   const { t } = useTranslation();
-  const { saving, failure, certificate } = state;
+  const { saving, failure, certificate, discovery } = state;
+  const offered = (discovery?.servers ?? []).filter(({ url }) => !state.servers.some((server) => server.url === url));
   const [form, setForm] = useState({ name: '', url: '', username: '', password: '' });
   const field = (name: keyof typeof form) => ({
     value: form[name],
@@ -64,6 +67,28 @@ const AddServer = ({
     <div className={style.tile}>
       <div className={style.sectionTitle}>{t('sources.add')}</div>
       <div className={style.hint}>{t(words[kind].hint)}</div>
+      {kind === 'jellyfin' && (
+        <div className={style.discovery}>
+          <button type="button" className={style.action} disabled={discovery?.searching} onClick={discover}>
+            {t(discovery?.searching ? 'sources.searching' : 'sources.discover')}
+          </button>
+          {discovery?.error && (
+            <div className={style.error} role="alert">
+              {t('sources.failed', { error: discovery.error })}
+            </div>
+          )}
+          {discovery && !discovery.searching && !discovery.error && offered.length === 0 && <div className={style.hint}>{t('sources.noneFound')}</div>}
+          {offered.map(({ id, name, url }) => (
+            <div key={id} className={style.server}>
+              <span className={style.name}>{name}</span>
+              <span className={style.meta}>{url}</span>
+              <button type="button" className={style.action} aria-label={t('sources.use', { name })} onClick={() => setForm({ ...form, name, url })}>
+                {t('sources.useShort')}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <form className={style.form} onSubmit={(event) => submit(event, certificate?.certificate)}>
         <label className={style.field}>
           <span>{t('sources.name')}</span>
@@ -252,7 +277,7 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
   );
 };
 
-const SourceServers = ({ kind, state, load, save, remove, readCertificate, clearCertificate, browse, play }: SourceServersProps) => {
+const SourceServers = ({ kind, state, load, save, remove, discover, readCertificate, clearCertificate, browse, play }: SourceServersProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState<string | undefined>(undefined);
   const [adding, setAdding] = useState(false);
@@ -306,6 +331,7 @@ const SourceServers = ({ kind, state, load, save, remove, readCertificate, clear
             kind={kind}
             state={state}
             save={save}
+            discover={discover}
             readCertificate={readCertificate}
             clearCertificate={clearCertificate}
             onClose={servers.length > 0 ? () => setAdding(false) : undefined}

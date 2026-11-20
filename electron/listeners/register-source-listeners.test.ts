@@ -3,6 +3,7 @@ import type { IpcMainEvent } from 'electron';
 import type { ListenerContext } from './listener-context';
 import { approvalCode } from '../remote/certificate';
 import { readCertificate, SourceError } from '../services/sources/source-request';
+import { discoverJellyfin } from '../services/sources/jellyfin-discovery';
 import registerSourceListeners from './register-source-listeners';
 
 type Listener = (event: IpcMainEvent, payload?: unknown) => unknown;
@@ -10,6 +11,7 @@ type Listener = (event: IpcMainEvent, payload?: unknown) => unknown;
 const listeners = new Map<string, Listener>();
 
 vi.mock('electron', () => ({ ipcMain: { on: (channel: string, listener: Listener) => listeners.set(channel, listener) } }));
+vi.mock('../services/sources/jellyfin-discovery', () => ({ discoverJellyfin: vi.fn() }));
 vi.mock('../remote/certificate', () => ({ approvalCode: vi.fn() }));
 vi.mock('../services/sources/source-request', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../services/sources/source-request')>()),
@@ -80,6 +82,23 @@ describe('registerSourceListeners', () => {
 
     expect(send).toHaveBeenCalledWith('SOURCE_SERVER_FAILED', { error: 'The server is not valid' });
     expect(sources.check).not.toHaveBeenCalled();
+  });
+
+  it('sends the Jellyfin servers that answered on the network', async () => {
+    const servers = [{ id: 'x', name: 'Film room', url: 'http://192.168.1.5:8096' }];
+    vi.mocked(discoverJellyfin).mockResolvedValue(servers);
+
+    await fire('SOURCE_DISCOVER');
+
+    await vi.waitFor(() => expect(send).toHaveBeenCalledWith('SOURCE_DISCOVERED', { servers }));
+  });
+
+  it('says why the network could not be searched', async () => {
+    vi.mocked(discoverJellyfin).mockRejectedValue(new Error('network is unreachable'));
+
+    await fire('SOURCE_DISCOVER');
+
+    await vi.waitFor(() => expect(send).toHaveBeenCalledWith('SOURCE_DISCOVERED', { servers: [], error: 'network is unreachable' }));
   });
 
   it('removes a server and sends the list without it', async () => {

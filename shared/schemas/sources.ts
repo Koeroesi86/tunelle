@@ -23,6 +23,10 @@ export const toSourcePath = ({ source, serverId, id }: SourceRef) => `${source}:
 
 const httpUrl = z.url({ protocol: /^https?$/ }).transform((value) => value.replace(/\/+$/, ''));
 
+/** A server that answered on the network: the user chooses it and gives the login, nothing of it is kept */
+export const discoveredServerSchema = z.object({ id: z.string().min(1).max(100), name: z.string().min(1).max(100), url: httpUrl });
+export type DiscoveredServer = z.infer<typeof discoveredServerSchema>;
+
 /** A server as the user entered it, without the password */
 export const sourceServerSchema = z.object({
   id: serverIdSchema,
@@ -75,6 +79,7 @@ const sourceBrowseResultSchema = z.union([z.array(sourceArtistSchema), z.array(s
 export type SourceBrowseResult = z.infer<typeof sourceBrowseResultSchema>;
 
 export const sourceBrowsedSchema = z.object({ request: sourceBrowseSchema, result: sourceBrowseResultSchema.optional(), error: z.string().optional() });
+export const sourceDiscoveredSchema = z.object({ servers: z.array(discoveredServerSchema), error: z.string().optional() });
 export const sourceServerFailedSchema = z.object({ id: z.string().optional(), error: z.string(), code: z.number().optional() });
 export const sourceCertificateReadSchema = z.object({ url: z.string(), certificate: z.string(), code: z.string() });
 
