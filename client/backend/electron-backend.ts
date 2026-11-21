@@ -7,5 +7,5 @@ export const createElectronBackend = (api: ElectronApi): Backend => ({
   on: api.on,
   resolveUrl: (route) => `tunelle://app${route}`,
   pathForFile: api.getPathForFile,
-  capabilities: { blur: api.blurred, mpris: api.mpris },
+  capabilities: { blur: api.blurred, mpris: api.mpris, software: api.software },
 });

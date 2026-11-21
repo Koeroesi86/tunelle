@@ -7,6 +7,13 @@ const flagSchema = z.literal('1');
 
 export const isFlagSet = (value: string | undefined) => flagSchema.safeParse(value).success;
 
+/** `0` forces the software mode of the page (see gpu-acceleration.ts), `1` the accelerated one, anything else lets the app ask the GPU */
+export const gpuOverrideSchema = z
+  .enum(['0', '1'])
+  .transform((value) => value === '1')
+  .optional()
+  .catch(undefined);
+
 /** A whole number from 1 up to `max` */
 export const batchSizeSchema = (max: number, fallback: number) => z.string().transform(Number).pipe(z.number().int().min(1).max(max)).catch(fallback);
 

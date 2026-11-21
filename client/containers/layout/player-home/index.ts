@@ -8,7 +8,7 @@ import PlayerHome from '../../../components/layout/player-home/PlayerHome';
 const mapState = (state: RootState) => ({
   loaded: state.library.loaded,
   maximized: state.uiState.maximized,
-  blurred: getBackend().capabilities.blur || state.uiState.desktopBlur,
+  blurred: !getBackend().capabilities.software && (getBackend().capabilities.blur || state.uiState.desktopBlur),
   folders: state.folders,
 });
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({

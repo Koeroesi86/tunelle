@@ -1,0 +1,26 @@
+# Software rendering (no GPU)
+
+A machine with no GPU, or one whose driver Chromium does not use, draws the window in software. The compositor then pays for every translucent pixel, and the canvas of the spectrum is drawn by the CPU. The app notices this when it opens the window and does less.
+
+## The detection (`electron/windows/gpu-acceleration.ts`)
+
+`hasGpuAcceleration()` is true when `app.getGPUFeatureStatus()` reports both `gpu_compositing` and `2d_canvas` as `enabled…` (`enabled`, `enabled_on`, `enabled_force`). `disabled_software`, `unavailable_software` and `disabled_off` (`--disable-gpu`) are software. It is asked once, in `createWindow`, so a change of the GPU needs a restart.
+
+`TUNELLE_GPU=0` forces the software mode, `TUNELLE_GPU=1` forces the accelerated one, anything else asks the GPU. Try the mode on a machine that has a GPU with `TUNELLE_GPU=0 npm run dev`. The end to end tests set `TUNELLE_GPU=1`, as the runners have no GPU and the tests run the app as a user with a GPU sees it.
+
+## What changes
+
+| Part | Software mode |
+|---|---|
+| The window (`create-window.ts`) | not `transparent`, with the background colour of the theme (`#1f1f1f` dark, `#f2f2f2` light); no macOS vibrancy |
+| The page is told | the argument `--software-rendering` (`softwareArgument`), read by the preload as `electronAPI.software`, and `capabilities.software` of the backend |
+| Motion | `data-reduce-motion` is set on the root element like the setting Reduce motion does (`containers/layout/theme-provider`), so the bars of the spectrum and the transitions stop; the setting itself is not changed |
+| Blur | the panels are never translucent (`blurred` is false), and the setting Window blur is not shown |
+
+## The colours of the spectrum
+
+`AudioSpectrum` reads `--spectrum-cap` and `--spectrum-meter` with `getComputedStyle` once and again after `data-theme` or `style` of the root element change (a `MutationObserver`), not for each frame: forcing a style recalculation 30 times a second is work the canvas does not need.
+
+## Not checked
+
+`getGPUFeatureStatus()` was read in a Flatpak session of VS Code (AMD and NVIDIA GPUs, Wayland, `--no-sandbox`) and said `disabled_software` there with and without `--disable-gpu`, so the value for a working GPU was not seen. Check it on a desktop with a GPU: the window must be transparent and the bars must move without `TUNELLE_GPU`.
