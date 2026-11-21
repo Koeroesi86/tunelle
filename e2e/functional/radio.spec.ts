@@ -1,15 +1,7 @@
 import { expect, navigate, test } from '../support/app';
 import { player } from '../support/player';
 
-test('lists the stations of the directory with their format', async ({ start }) => {
-  const { page } = await start();
-  await navigate(page, 'Radio stations');
-
-  await expect(page.getByText('Night Owl FM')).toBeVisible();
-  await expect(page.getByText('Juniper Classical')).toBeVisible();
-  await expect(page.getByText('FLAC', { exact: true }).first()).toBeVisible();
-});
-
+// the list of the stations and their codecs are tried in client/components/pages/radio-stations/RadioStations.test.tsx
 test('plays a station live, with the title its stream announces', async ({ start }) => {
   const { page } = await start();
   const controls = player(page);

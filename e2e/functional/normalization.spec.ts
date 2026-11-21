@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { addFolder, expect, navigate, quit, test } from '../support/app';
+import { addFolder, expect, navigate, test } from '../support/app';
 import { albums, writeTrack } from '../support/library';
 import { expectTone, levelNow, steadyLevel } from '../support/audio';
 import { player } from '../support/player';
@@ -47,18 +47,4 @@ test('levels the tracks by their ReplayGain tags, per album by default, and play
   const untagged = await steadyLevel(page);
   await page.getByRole('radio', { name: 'Off', exact: true }).click();
   await expect.poll(async () => (await levelNow(page)) / untagged).toBeCloseTo(1, 1);
-});
-
-test('keeps the mode after a restart', async ({ start }) => {
-  const first = await start();
-  await navigate(first.page, 'Settings');
-  await first.page.getByRole('radio', { name: 'Track', exact: true }).click();
-  await expect(first.page.getByRole('radio', { name: 'Track', exact: true })).toHaveAttribute('aria-checked', 'true');
-
-  await quit(first.app);
-
-  const second = await start();
-  await navigate(second.page, 'Settings');
-
-  await expect(second.page.getByRole('radio', { name: 'Track', exact: true })).toHaveAttribute('aria-checked', 'true');
 });

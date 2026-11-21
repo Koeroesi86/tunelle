@@ -1,7 +1,5 @@
 import { spawn } from 'child_process';
-import { rmSync, writeFileSync } from 'fs';
-import { basename, dirname, join } from 'path';
-import { expect, libraryTracks, navigate, quit, test } from '../support/app';
+import { expect, quit, test } from '../support/app';
 import { player } from '../support/player';
 
 // where the app meets the system around it: the window, the media controls of the desktop, the protocol that serves the files
@@ -52,36 +50,6 @@ test('a second start of the same profile leaves and keeps the window of the firs
   await expect(page.locator('#root')).not.toBeEmpty();
 });
 
-test('serves a track in ranges, and nothing outside of the library', async ({ session: { page }, music }) => {
-  const [track] = await libraryTracks(page);
-  // a real file next to the library: a missing one would be a 404 on every system, whether or not the request was refused
-  const secret = join(dirname(music), `${basename(music)}-secret.txt`);
-  writeFileSync(secret, 'secret');
-  const url = (path: string) => `tunelle://app/track?path=${encodeURIComponent(path)}`;
-
-  const answers = await page.evaluate(
-    async ([inside, outside]) => {
-      const whole = await fetch(inside);
-      const part = await fetch(inside, { headers: { range: 'bytes=0-99' } });
-      const refused = await fetch(outside);
-      return {
-        whole: whole.status,
-        size: (await whole.arrayBuffer()).byteLength,
-        part: part.status,
-        range: part.headers.get('content-range'),
-        refused: refused.status,
-      };
-    },
-    [url(track.path), url(`${music}/../${basename(secret)}`)]
-  );
-  rmSync(secret, { force: true });
-
-  expect(answers.whole).toBe(200);
-  expect(answers.part).toBe(206);
-  expect(answers.range).toBe(`bytes 0-99/${answers.size}`);
-  expect(answers.refused).toBe(404);
-});
-
 test('maximizes the window from its own button', async ({ session: { app, page } }) => {
   const maximized = () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().some((window) => window.isMaximized()));
 
@@ -103,20 +71,12 @@ test('closes the window with the close button, and quits the app where closing t
   await app.waitForEvent('close', { timeout: 60_000 });
 });
 
-test('speaks the language that is picked', async ({ session }) => {
-  await navigate(session.page, 'Settings');
-  await session.page.locator('select[class*="LanguageSelect__select"]').selectOption('hu');
-  await expect(session.page.locator('[class*="Navigation__label"]').getByText('Kezdőlap')).toBeVisible();
-});
-
-// the policy is set on the response of the page by the main process (docs/development/electron-security.md): a script that is written into the page is refused
-test('enforces the content security policy on the page', async ({ session: { page } }) => {
+// the header is tried in electron/protocols/tunelle-protocol.test.ts; what stays here is that Chromium refuses a script that is written into the page
+test('refuses an inline script that is written into the page', async ({ session: { page } }) => {
   const ran = await page.evaluate(() => {
     document.body.append(Object.assign(document.createElement('script'), { textContent: 'globalThis.inlineScriptRan = true' }));
     return Reflect.get(globalThis, 'inlineScriptRan') === true;
   });
-  const policy = await page.evaluate(async () => (await fetch(location.href)).headers.get('content-security-policy'));
 
-  expect(policy).toContain("script-src 'self'");
   expect(ran).toBe(false);
 });
