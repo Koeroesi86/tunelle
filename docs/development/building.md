@@ -14,6 +14,7 @@
 ## Environment variables
 
 - `TUNELLE_NO_UPDATE=1` turns the updater off (see [updater.md](../app/updater.md)).
+- `TUNELLE_GPU=0` draws the window as a machine with no GPU does (no transparency or blur, no bars or motion), `TUNELLE_GPU=1` as one with a GPU, whatever the machine has (see [software-rendering.md](../app/software-rendering.md)). `TUNELLE_GPU=0 npm run dev` tries it.
 - `TUNELLE_METERED=1` makes the connection count as metered, so the update asks before it downloads (see [updater.md](../app/updater.md)).
 - `TUNELLE_RADIO_DIRECTORY=<url>` replaces the station directory. The smoke tests set both variables, the second to a station of their own.
 - `TUNELLE_LOUDNESS_IDLE_SECONDS=<seconds>` is how long no folder must have been scanned before the loudness of the library is measured in the background (30 by default, see [loudness-measurement.md](../app/loudness-measurement.md)). The end to end test of the measurement sets it to 0.

@@ -45,6 +45,8 @@ const AudioSpectrum = ({
   const isPlaying = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const animationId = useRef<number>(undefined);
+  // the computed style is read when the theme changes, not for each frame
+  const themeColors = useRef<{ cap: string; fill: string }>(undefined);
 
   const stopAnimation = () => {
     clearTimeout(timer.current);
@@ -68,8 +70,9 @@ const AudioSpectrum = ({
 
     const drawBars = (data: Uint8Array) => {
       const values = getBandValues(data, meterCount);
-      const cap = capColor ?? readThemeColor('--spectrum-cap');
-      const fill = meterColor ?? readThemeColor('--spectrum-meter');
+      themeColors.current ??= { cap: readThemeColor('--spectrum-cap'), fill: readThemeColor('--spectrum-meter') };
+      const cap = capColor ?? themeColors.current.cap;
+      const fill = meterColor ?? themeColors.current.fill;
       clearCanvas();
       caps.push(...values.slice(caps.length, Math.round(meterCount)));
       for (let i = 0; i < meterCount; i++) {
@@ -132,6 +135,14 @@ const AudioSpectrum = ({
 
   useEffect(connectCanvas);
   useEffect(() => stopAnimation, []);
+  useEffect(() => {
+    // the theme and the accent are attributes and properties of the root element (see ThemeProvider.tsx)
+    const observer = new MutationObserver(() => {
+      themeColors.current = undefined;
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style'] });
+    return () => observer.disconnect();
+  }, []);
 
   return <canvas aria-hidden="true" className={style.audioSpectrum} ref={canvas} width={width} height={height} />;
 };

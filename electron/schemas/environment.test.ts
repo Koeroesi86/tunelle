@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { batchSizeSchema, directoryUrlSchema, isFlagSet, secondsSchema } from './environment';
+import { batchSizeSchema, directoryUrlSchema, gpuOverrideSchema, isFlagSet, secondsSchema } from './environment';
 
 describe('environment', () => {
   it('switches on for 1 only', () => {
     expect([isFlagSet('1'), isFlagSet('true'), isFlagSet(''), isFlagSet(undefined)]).toEqual([true, false, false, false]);
+  });
+
+  it('forces the GPU with 1 and the software mode with 0, and forces nothing else', () => {
+    expect(['1', '0', '', 'yes', undefined].map((value) => gpuOverrideSchema.parse(value))).toEqual([true, false, undefined, undefined, undefined]);
   });
 
   it.each([
