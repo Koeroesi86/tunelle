@@ -70,6 +70,8 @@ jobs:
       - name: Measure the base branch
         if: github.event_name == 'pull_request'
         env:
+          # the numbers are of the app with a GPU (the bars, the translucent window), as a runner draws by the CPU and the app would take its motion away. See docs/app/software-rendering.md
+          TUNELLE_GPU: 1
           PERF_TRACKS: 3000
           # a run of a runner differs by tens of percent on its own: the summary takes the median of three
           PERF_REPEAT: 3
@@ -83,6 +85,8 @@ jobs:
       - name: Measure
         if: ${{ !cancelled() }}
         env:
+          # the numbers are of the app with a GPU (the bars, the translucent window), as a runner draws by the CPU and the app would take its motion away. See docs/app/software-rendering.md
+          TUNELLE_GPU: 1
           PERF_TRACKS: 3000
           # a run of a runner differs by tens of percent on its own: the summary takes the median of three
           PERF_REPEAT: 3
