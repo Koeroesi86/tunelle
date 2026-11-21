@@ -20,7 +20,7 @@ export interface SourceCapabilities {
 
 export const sourceCapabilities: Record<SourceKind, SourceCapabilities> = {
   subsonic: {},
-  jellyfin: {},
+  jellyfin: { library: { sections: ['albums', 'artists', 'tracks'], sorts: ['recent', 'title'] } },
   plex: { library: { sections: ['albums', 'artists', 'tracks'], sorts: ['recent', 'title'] } },
 };
 

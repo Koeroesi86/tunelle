@@ -29,7 +29,7 @@ A server with a valid certificate needs nothing. A server with a self-signed one
 
 ## What a kind can show
 
-`sourceCapabilities` in `shared/schemas/sources.ts` says per kind what the page can show besides the artists, albums and tracks drill down that every kind has. Today `library` (the albums, artists or songs of the whole server, in pages) is there for Plex only; a kind lists the `sections` and `sorts` it answers, and the page shows only those: the tabs of a library with one or two sections, no sort when there is one order, and the drill down at the top when there is no library. A client that lists a library has `library(kind, sort, start, size)` (`SourceLibrary` in `electron/services/sources/sources.ts`) and answers a `SourcePage`. To give another kind a library, add the method to its client and its entry to `sourceCapabilities`.
+`sourceCapabilities` in `shared/schemas/sources.ts` says per kind what the page can show besides the artists, albums and tracks drill down that every kind has. Today `library` (the albums, artists or songs of the whole server, in pages) is there for Plex and Jellyfin; a kind lists the `sections` and `sorts` it answers, and the page shows only those: the tabs of a library with one or two sections, no sort when there is one order, and the drill down at the top when there is no library. A client that lists a library has `library(kind, sort, start, size)` (`SourceLibrary` in `electron/services/sources/sources.ts`) and answers a `SourcePage`. To give another kind a library, add the method to its client and its entry to `sourceCapabilities`.
 
 ## The page
 
