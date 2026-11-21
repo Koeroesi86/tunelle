@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import classNames from 'classnames';
 import {
@@ -26,6 +26,7 @@ import {
 } from 'react-icons/md';
 import type { NavigationGroup, LibraryView, OnlineView, Tab } from '../../../redux/types';
 import type { Playlist } from '@shared/types/playlists';
+import { sourceCapabilities, type SourceKind } from '@shared/schemas/sources';
 import { useDragReorder } from '../../../hooks/use-drag-reorder';
 import style from './Navigation.scss';
 import NameField from '../../ui/name-field';
@@ -44,6 +45,9 @@ interface NavigationProps {
   onlineView?: OnlineView;
   libraryOpen?: boolean;
   onlineOpen?: boolean;
+  /** The kinds of server that have a server of the user: only they show the sections of their library */
+  sourceKinds?: SourceKind[];
+  loadSources?: () => void;
   playlistsOpen?: boolean;
   playlists?: Playlist[];
   playlistId?: number | null;
@@ -71,6 +75,15 @@ const onlineViews = [
   { view: 'jellyfin', label: 'nav.jellyfin', Icon: ServersIcon },
   { view: 'plex', label: 'nav.plex', Icon: ServersIcon },
   { view: 'nearby', label: 'nav.nearby', Icon: NearbyIcon },
+] as const;
+
+/** The page of a kind of server where the servers are added, and its name: its library sections follow it in the sidebar once it has a server */
+const serverViewKinds: Partial<Record<OnlineView, SourceKind>> = { servers: 'subsonic', jellyfin: 'jellyfin', plex: 'plex' };
+const sourceNames: Record<SourceKind, string> = { subsonic: 'Subsonic', jellyfin: 'Jellyfin', plex: 'Plex' };
+const sectionViews = [
+  { section: 'albums', label: 'library.albums', Icon: AlbumsIcon },
+  { section: 'artists', label: 'library.artists', Icon: ArtistsIcon },
+  { section: 'tracks', label: 'library.songs', Icon: TracksIcon },
 ] as const;
 
 interface ItemProps {
@@ -124,6 +137,8 @@ function Navigation({
   onlineView = 'radio',
   libraryOpen = false,
   onlineOpen = true,
+  sourceKinds = [],
+  loadSources = () => {},
   playlistsOpen = true,
   playlists = [],
   playlistId = null,
@@ -137,6 +152,26 @@ function Navigation({
 }: NavigationProps) {
   const { t } = useTranslation();
   const [name, setName] = useState<string | undefined>(undefined);
+
+  // the servers say which sections the sidebar shows
+  useEffect(() => {
+    loadSources();
+  }, []);
+
+  const sectionsOf = (kind: SourceKind | undefined) =>
+    kind && sourceKinds.includes(kind)
+      ? sectionViews
+          .filter(({ section }) => sourceCapabilities[kind].library?.sections.includes(section))
+          .map(({ section, label, Icon }) => ({
+            view: `${kind}:${section}` as const,
+            text: t('nav.sourceSection', { source: sourceNames[kind], section: t(label) }),
+            Icon,
+          }))
+      : [];
+  const onlineEntries = onlineViews.flatMap(({ view: sourceView, label, Icon }) => [
+    { view: sourceView, text: t(label), Icon },
+    ...sectionsOf(serverViewKinds[sourceView]),
+  ]);
   const { itemProps, overIndex } = useDragReorder(movePlaylist);
 
   const setTab = (next: Tab) => {
@@ -210,19 +245,19 @@ function Navigation({
           onClick={toggleOnline}
         />
         {onlineOpen &&
-          onlineViews.map(({ view: sourceView, label, Icon }) => {
+          onlineEntries.map(({ view: sourceView, text, Icon }) => {
             const current = tab === 'online-sources' && onlineView === sourceView;
             return (
               <button
                 type="button"
                 key={sourceView}
-                title={t(label)}
+                title={text}
                 onClick={() => openOnlineView(sourceView)}
                 aria-current={current ? 'page' : undefined}
                 className={classNames(style.item, style.child, { [style.active]: current })}
               >
                 <Icon size={'12px'} />
-                <span className={style.label}>{t(label)}</span>
+                <span className={style.label}>{text}</span>
               </button>
             );
           })}

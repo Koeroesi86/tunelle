@@ -536,6 +536,7 @@
   "nav.servers": "Subsonic servers",
   "nav.jellyfin": "Jellyfin servers",
   "nav.plex": "Plex servers",
+  "nav.sourceSection": "{source}: {section}",
   "online.servers": "Subsonic servers",
   "online.jellyfin": "Jellyfin servers",
   "online.plex": "Plex servers",

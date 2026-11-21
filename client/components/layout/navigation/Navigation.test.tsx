@@ -30,6 +30,34 @@ describe('Navigation', () => {
     expect(openOnlineView).toHaveBeenCalledWith(view);
   });
 
+  it('shows the sections of the library of a kind of server that has a server, and only those it has', () => {
+    render(<Navigation sourceKinds={['plex', 'subsonic']} />);
+
+    ['Plex: Albums', 'Plex: Artists', 'Plex: Songs', 'Subsonic: Albums', 'Subsonic: Artists'].forEach((name) =>
+      expect(screen.getByRole('button', { name })).toBeTruthy()
+    );
+    expect(screen.queryByRole('button', { name: 'Subsonic: Songs' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Jellyfin: / })).toBeNull();
+  });
+
+  it('shows no section without a server, and loads the servers when it is shown', () => {
+    const loadSources = vi.fn();
+    render(<Navigation loadSources={loadSources} />);
+
+    expect(screen.queryByRole('button', { name: /: Albums/ })).toBeNull();
+    expect(loadSources).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens a section and marks it as the page', () => {
+    const openOnlineView = vi.fn();
+    render(<Navigation sourceKinds={['plex']} tab="online-sources" onlineView="plex:artists" openOnlineView={openOnlineView} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Plex: Albums' }));
+
+    expect(openOnlineView).toHaveBeenCalledWith('plex:albums');
+    expect(screen.getByRole('button', { name: 'Plex: Artists' }).getAttribute('aria-current')).toBe('page');
+  });
+
   it('marks the source that is shown, and only that one', () => {
     render(<Navigation tab="online-sources" onlineView="nearby" />);
 

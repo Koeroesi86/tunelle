@@ -1,4 +1,5 @@
 import { useTranslation } from '../../../i18n';
+import type { LibraryKind, SourceKind } from '@shared/schemas/sources';
 import type { OnlineView } from '../../../redux/types';
 import RadioStations from '../radio-stations';
 import SourceServers from '../source-servers';
@@ -11,6 +12,9 @@ interface OnlineSourcesProps {
   setView: (view: OnlineView) => void;
 }
 
+const sourceKinds: SourceKind[] = ['subsonic', 'jellyfin', 'plex'];
+const sections: LibraryKind[] = ['albums', 'artists', 'tracks'];
+
 const OnlineSources = ({ view, setView }: OnlineSourcesProps) => {
   const { t } = useTranslation();
   const views: ViewItem<OnlineView>[] = [
@@ -20,6 +24,14 @@ const OnlineSources = ({ view, setView }: OnlineSourcesProps) => {
     { view: 'plex', label: t('online.plex'), panel: <SourceServers kind="plex" /> },
     // only the shown one looks for hosts: it browses the network while it is mounted
     { view: 'nearby', label: t('online.nearby'), panel: view === 'nearby' && <RemoteListener /> },
+    // only the shown section loads the libraries of its servers
+    ...sourceKinds.flatMap((kind) =>
+      sections.map((section) => ({
+        view: `${kind}:${section}` as const,
+        label: `${kind} ${section}`,
+        panel: view === `${kind}:${section}` && <SourceServers kind={kind} section={section} />,
+      }))
+    ),
   ];
 
   return <ViewSwitcher views={views} current={view} setView={setView} tabs={false} />;

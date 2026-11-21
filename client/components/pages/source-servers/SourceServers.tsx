@@ -25,6 +25,8 @@ import style from './SourceServers.scss';
 interface SourceServersProps {
   /** The kind of server this page is for: each has its own page, as its own API */
   kind: SourceKind;
+  /** The section of the libraries of the servers to show: without one the page is where the servers are added and removed */
+  section?: LibraryKind;
   state: SourcesState;
   load: () => void;
   save: (server: Record<string, unknown>) => void;
@@ -250,11 +252,6 @@ interface LibraryView {
 }
 
 const pageSize = 60;
-const libraryTabs: { kind: LibraryKind; label: MessageKey }[] = [
-  { kind: 'albums', label: 'sources.tabAlbums' },
-  { kind: 'artists', label: 'sources.artists' },
-  { kind: 'tracks', label: 'sources.tabSongs' },
-];
 const sortLabels: Record<LibrarySort, MessageKey> = { recent: 'sources.sortRecent', title: 'sources.sortTitle' };
 
 const libraryRequest = (serverId: string, { kind, sort }: LibraryView, page: number): SourceBrowse =>
@@ -274,20 +271,19 @@ const Cover = ({ kind, serverId, coverArt, large }: { kind: SourceKind; serverId
 
 const Browser = ({
   server,
+  section,
   named,
   state,
   browse,
   play,
-  remove,
-}: { server: SourceServerInfo; named: boolean } & Pick<SourceServersProps, 'state' | 'browse' | 'play' | 'remove'>) => {
+}: { server: SourceServerInfo; section: LibraryKind; named: boolean } & Pick<SourceServersProps, 'state' | 'browse' | 'play'>) => {
   const { t } = useTranslation();
   const [position, setPosition] = useState<Position>({});
   const [text, setText] = useState('');
   const { library } = sourceCapabilities[server.kind];
-  const sections = libraryTabs.filter(({ kind }) => library?.sections.includes(kind));
-  const [view, setView] = useState<LibraryView>({ kind: sections.at(0)?.kind ?? 'albums', sort: library?.sorts.at(0) ?? 'recent', pages: 1 });
+  const [view, setView] = useState<LibraryView>({ kind: section, sort: library?.sorts.at(0) ?? 'recent', pages: 1 });
   // a server with a library lists it in pages at the top, with the sections and orders it has; the others start at their artists
-  const inLibrary = sections.length > 0 && !position.artist && !position.album && !position.query;
+  const inLibrary = library?.sections.includes(section) === true && !position.artist && !position.album && !position.query;
   const request = inLibrary ? libraryRequest(server.id, view, view.pages - 1) : requestOf(server.id, position);
   const key = browseKey(request);
   const answers = Array.from(
@@ -361,20 +357,12 @@ const Browser = ({
 
   return (
     <div className={style.tile}>
-      <div className={style.header}>
-        {named ? (
-          <div className={style.serverName}>
-            <span className={style.sectionTitle}>{server.name}</span>
-            <span className={style.meta}>{server.url}</span>
-          </div>
-        ) : (
-          <span />
-        )}
-        <button type="button" className={style.action} aria-label={t('sources.remove', { name: server.name })} onClick={() => remove(server.id)}>
-          {t('sources.removeShort')}
-        </button>
-      </div>
-      {!server.protected && <div className={style.warning}>{t('sources.unprotected')}</div>}
+      {named && (
+        <div className={style.serverName}>
+          <span className={style.sectionTitle}>{server.name}</span>
+          <span className={style.meta}>{server.url}</span>
+        </div>
+      )}
       <form className={classNames(style.form, style.inline)} role="search" onSubmit={search}>
         <input
           type="search"
@@ -401,13 +389,6 @@ const Browser = ({
       </nav>
       {inLibrary && (
         <div className={style.libraryBar}>
-          <div className={style.crumbs} role="group" aria-label={t('sources.library')}>
-            {sections.map(({ kind, label }) => (
-              <button key={kind} type="button" className={style.action} aria-pressed={view.kind === kind} onClick={() => setView({ ...view, kind, pages: 1 })}>
-                {t(label)}
-              </button>
-            ))}
-          </div>
           {(library?.sorts.length ?? 0) > 1 && (
             <label className={style.sort}>
               <span className={style.meta}>{t('sources.sort')}</span>
@@ -462,6 +443,7 @@ const Browser = ({
 
 const SourceServers = ({
   kind,
+  section,
   state,
   load,
   save,
@@ -488,6 +470,18 @@ const SourceServers = ({
     setAdding(false);
   }, [servers.length]);
 
+  if (section)
+    return (
+      <div className={style.sourceServers}>
+        <div className={style.content}>
+          {servers.length === 0 && <div className={style.hint}>{t('sources.none')}</div>}
+          {servers.map((server) => (
+            <Browser key={server.id} server={server} section={section} named={servers.length > 1} state={state} browse={browse} play={play} />
+          ))}
+        </div>
+      </div>
+    );
+
   return (
     <div className={style.sourceServers}>
       <div className={style.content}>
@@ -501,6 +495,20 @@ const SourceServers = ({
             )}
           </div>
           {servers.length === 0 && <div className={style.hint}>{t('sources.none')}</div>}
+          {servers.map((server) => (
+            <div key={server.id} className={style.server}>
+              <div className={style.serverName}>
+                <span className={style.name}>{server.name}</span>
+                <span className={style.meta}>{server.url}</span>
+              </div>
+              <div className={style.buttons}>
+                <button type="button" className={style.action} aria-label={t('sources.remove', { name: server.name })} onClick={() => remove(server.id)}>
+                  {t('sources.removeShort')}
+                </button>
+              </div>
+              {!server.protected && <div className={style.warning}>{t('sources.unprotected')}</div>}
+            </div>
+          ))}
         </div>
         {(adding || servers.length === 0) && (
           <AddServer
@@ -516,9 +524,6 @@ const SourceServers = ({
             onClose={servers.length > 0 ? () => setAdding(false) : undefined}
           />
         )}
-        {servers.map((server) => (
-          <Browser key={server.id} server={server} named={servers.length > 1} state={state} browse={browse} play={play} remove={remove} />
-        ))}
       </div>
     </div>
   );

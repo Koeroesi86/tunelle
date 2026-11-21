@@ -10,11 +10,13 @@ const mapState = (state: RootState) => ({
   onlineView: state.uiState.onlineView,
   libraryOpen: state.uiState.libraryOpen,
   onlineOpen: state.uiState.onlineOpen,
+  sourceKinds: state.sources.servers.map(({ kind }) => kind),
   playlistsOpen: state.uiState.playlistsOpen,
   playlists: state.playlists,
   playlistId: state.uiState.playlistId,
 });
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
+  loadSources: () => dispatch({ type: 'LOAD_SOURCE_SERVERS' }),
   setTab: (tab: Tab) => dispatch({ type: 'SET_TAB', payload: { tab } }),
   // the sidebar picks the view of the library, and the library to show it in
   openLibraryView: (view: LibraryView) => {
