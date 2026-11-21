@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { MdMenu as MenuIcon } from 'react-icons/md';
 import type { Track } from '@shared/types/library';
 import { toNowPlaying } from '../../../domain/now-playing';
@@ -5,8 +6,6 @@ import { useTranslation } from '../../../i18n';
 import appIcon from '../../../../assets/icon.svg';
 import style from './TitleBar.scss';
 import AudioSpectrum from '../audio-spectrum';
-import QueueIndicator from '../../../containers/layout/queue-indicator';
-import WindowControls from '../../../containers/layout/window-controls';
 import Wordmark from '../wordmark/Wordmark';
 import CoverFade from '../../ui/cover-fade';
 
@@ -18,10 +17,12 @@ interface TitleBarProps {
   /** The button that opens the navigation drawer, which the compact size of the window has instead of a sidebar */
   onMenu?: () => void;
   menuOpen?: boolean;
+  /** What sits at the end of the bar: the queue and the controls of the window */
+  actions?: ReactNode;
 }
 
 /** The bar across the top of the window: the app, the track that plays in the middle, and the window buttons; the empty part of it drags the window */
-function TitleBar({ currentSong = null, streamTitle = null, streamArt = null, openNowPlaying = () => {}, onMenu, menuOpen = false }: TitleBarProps) {
+function TitleBar({ currentSong = null, streamTitle = null, streamArt = null, openNowPlaying = () => {}, onMenu, menuOpen = false, actions }: TitleBarProps) {
   const { t } = useTranslation();
   const shown = currentSong ? toNowPlaying(currentSong, streamTitle, streamArt) : undefined;
 
@@ -48,10 +49,7 @@ function TitleBar({ currentSong = null, streamTitle = null, streamArt = null, op
       ) : (
         <span />
       )}
-      <div className={style.actions}>
-        <QueueIndicator />
-        <WindowControls />
-      </div>
+      <div className={style.actions}>{actions}</div>
     </div>
   );
 }

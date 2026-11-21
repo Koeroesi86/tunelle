@@ -7,7 +7,6 @@ import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import { listKey } from '../../../redux/sources/lists';
 import AlbumView from '../../../components/library/album-view/AlbumView';
-import { albumCornerActions } from '../item-actions';
 import { keepSourcePages, loadSourcePage, pagesAhead, unanswered } from '../source-list';
 
 interface OwnProps {
@@ -35,7 +34,6 @@ export default connect(mapState, mapDispatch, (state, dispatch, { open, toolbar 
   ...dispatch,
   pagesAhead,
   sort: undefined,
-  renderActions: albumCornerActions,
   toolbar,
   openAlbum: open,
   playAlbum: open,
