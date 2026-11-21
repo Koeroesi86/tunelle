@@ -5,18 +5,6 @@ import { getCoverUrl } from '../../../utils/cover-url';
 import { getImageTint } from '../../../utils/cover-tint';
 import AlbumDetails from './AlbumDetails';
 
-vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
-vi.mock('../../../containers/library/add-to-playlist', () => ({ default: () => null }));
-vi.mock('../../../containers/library/album-cover-menu', () => ({ default: () => null }));
-const queued = vi.hoisted(() => vi.fn());
-vi.mock('../../../containers/library/add-to-queue', async () => {
-  const { createElement } = await import('react');
-
-  return {
-    default: ({ getTracks, next }: { getTracks: () => Promise<unknown[]>; next?: boolean }) =>
-      createElement('button', { 'aria-label': next ? 'Play next' : 'Add to the queue', onClick: () => void getTracks().then(queued) }),
-  };
-});
 vi.mock('../../../utils/cover-tint', () => ({ getImageTint: vi.fn() }));
 
 const album: Album = {
@@ -30,11 +18,13 @@ const album: Album = {
   tracks: [{ path: '/music/a1/1.flac', artist: 'Artist', album: 'Title', title: 'One', year: 2019, track: 1, disk: 1, genre: '', picture: null, duration: 65 }],
 };
 
-const setup = (shown: Album) => render(<AlbumDetails album={shown} playTracks={vi.fn()} close={vi.fn()} />);
+const addToQueue = vi.fn();
+const baseProps = { playTracks: vi.fn(), addToQueue, close: vi.fn() };
+const setup = (shown: Album) => render(<AlbumDetails album={shown} {...baseProps} />);
 
 describe('AlbumDetails', () => {
   it('is a modal dialog named by the album, with the focus inside it', () => {
-    render(<AlbumDetails album={album} playTracks={vi.fn()} close={vi.fn()} />);
+    render(<AlbumDetails album={album} {...baseProps} />);
 
     const dialog = screen.getByRole('dialog', { name: 'Title' });
     expect(dialog.getAttribute('aria-modal')).toBe('true');
@@ -43,7 +33,7 @@ describe('AlbumDetails', () => {
 
   afterEach(() => {
     vi.mocked(getImageTint).mockReset();
-    queued.mockReset();
+    addToQueue.mockReset();
   });
 
   it('shows the same cover as the thumbnail', () => {
@@ -84,7 +74,7 @@ describe('AlbumDetails', () => {
 
   it('plays the tracks of the album', () => {
     const playTracks = vi.fn();
-    render(<AlbumDetails album={album} playTracks={playTracks} close={vi.fn()} />);
+    render(<AlbumDetails album={album} {...baseProps} playTracks={playTracks} close={vi.fn()} />);
 
     fireEvent.click(screen.getByText('Play album'));
 
@@ -93,14 +83,15 @@ describe('AlbumDetails', () => {
 
   it('adds the tracks of the album, or one of them, to the queue', async () => {
     setup(album);
-    const [albumButton, trackButton] = screen.getAllByRole('button', { name: 'Add to the queue' });
+    const albumButton = screen.getByRole('button', { name: 'Add to queue' });
+    const trackButton = screen.getByRole('button', { name: 'Add to the queue' });
 
     fireEvent.click(albumButton);
-    await waitFor(() => expect(queued).toHaveBeenLastCalledWith(album.tracks));
+    await waitFor(() => expect(addToQueue).toHaveBeenLastCalledWith(album.tracks, false));
     fireEvent.click(trackButton);
-    await waitFor(() => expect(queued).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(addToQueue).toHaveBeenCalledTimes(2));
 
-    expect(queued).toHaveBeenLastCalledWith([album.tracks![0]]);
+    expect(addToQueue).toHaveBeenLastCalledWith([album.tracks![0]], false);
   });
 
   it('puts the tracks of the album, or one of them, next', async () => {
@@ -108,11 +99,28 @@ describe('AlbumDetails', () => {
     const [albumButton, trackButton] = screen.getAllByRole('button', { name: 'Play next' });
 
     fireEvent.click(albumButton);
-    await waitFor(() => expect(queued).toHaveBeenLastCalledWith(album.tracks));
+    await waitFor(() => expect(addToQueue).toHaveBeenLastCalledWith(album.tracks, true));
     fireEvent.click(trackButton);
-    await waitFor(() => expect(queued).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(addToQueue).toHaveBeenCalledTimes(2));
 
-    expect(queued).toHaveBeenLastCalledWith([album.tracks![0]]);
+    expect(addToQueue).toHaveBeenLastCalledWith([album.tracks![0]], true);
+  });
+
+  it('shows what the slots give, with the classes that place it, and nothing without them', () => {
+    const { rerender } = render(<AlbumDetails album={album} {...baseProps} />);
+    expect(screen.queryByText('actions')).toBeNull();
+
+    rerender(
+      <AlbumDetails
+        album={album}
+        {...baseProps}
+        renderActions={(shown, slot) => <i>{`actions ${shown.id} ${slot.favouriteClass.length > 0} ${slot.playlistClass.length > 0}`}</i>}
+        renderCoverMenu={(shown) => <i>{`cover menu ${shown.id}`}</i>}
+      />
+    );
+
+    expect(screen.getByText('actions a1 true true')).toBeTruthy();
+    expect(screen.getByText('cover menu a1')).toBeTruthy();
   });
 
   it('tints the header with the color of the loaded cover', () => {
@@ -134,14 +142,14 @@ describe('AlbumDetails', () => {
   });
 
   it('shows nothing while no album is open', () => {
-    const { container } = render(<AlbumDetails album={null} playTracks={vi.fn()} close={vi.fn()} />);
+    const { container } = render(<AlbumDetails album={null} {...baseProps} playTracks={vi.fn()} close={vi.fn()} />);
 
     expect(container.children).toHaveLength(0);
   });
 
   it('goes back with the button on top, and not with a click inside the page', () => {
     const close = vi.fn();
-    render(<AlbumDetails album={album} playTracks={vi.fn()} close={close} />);
+    render(<AlbumDetails album={album} {...baseProps} playTracks={vi.fn()} close={close} />);
 
     fireEvent.click(screen.getByText('One'));
     expect(close).not.toHaveBeenCalled();
@@ -152,7 +160,7 @@ describe('AlbumDetails', () => {
 
   it('leaves an Escape that something else used, as the menu of the cover that closes with it', () => {
     const close = vi.fn();
-    render(<AlbumDetails album={album} playTracks={vi.fn()} close={close} />);
+    render(<AlbumDetails album={album} {...baseProps} playTracks={vi.fn()} close={close} />);
 
     const used = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
     used.preventDefault();
@@ -163,13 +171,13 @@ describe('AlbumDetails', () => {
 
   it('closes with Escape while an album is open, and listens no more once it is closed', () => {
     const close = vi.fn();
-    const { rerender } = render(<AlbumDetails album={album} playTracks={vi.fn()} close={close} />);
+    const { rerender } = render(<AlbumDetails album={album} {...baseProps} playTracks={vi.fn()} close={close} />);
 
     fireEvent.keyDown(document, { key: 'Enter' });
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(close).toHaveBeenCalledTimes(1);
 
-    rerender(<AlbumDetails album={null} playTracks={vi.fn()} close={close} />);
+    rerender(<AlbumDetails album={null} {...baseProps} playTracks={vi.fn()} close={close} />);
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(close).toHaveBeenCalledTimes(1);
   });

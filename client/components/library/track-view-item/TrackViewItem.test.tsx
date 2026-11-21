@@ -3,10 +3,6 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { Track } from '@shared/types/library';
 import TrackViewItem from './TrackViewItem';
 
-vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
-vi.mock('../../../containers/library/add-to-playlist', () => ({ default: () => null }));
-vi.mock('../../../containers/library/add-to-queue', () => ({ default: () => null }));
-
 const track: Track = {
   path: '/music/1.flac',
   artist: 'Artist',
@@ -19,6 +15,20 @@ const track: Track = {
   picture: null,
   duration: 65,
 };
+
+describe('TrackViewItem actions', () => {
+  it('shows the buttons the slot gives on the row of a track, and none on the header', () => {
+    const renderActions = (shown: Track, slot: { heartClass: string; actionClass: string }) => (
+      <i>{`actions ${shown.title} ${slot.heartClass.length > 0} ${slot.actionClass.length > 0}`}</i>
+    );
+    const { rerender } = render(<TrackViewItem track={track} renderActions={renderActions} />);
+    expect(screen.getByText('actions One true true')).toBeTruthy();
+
+    const labels = { duration: 'Duration', artist: 'Artist', year: 'Year', album: 'Album', track: '#', title: 'Title' };
+    rerender(<TrackViewItem track={labels} isHeader renderActions={renderActions} />);
+    expect(screen.queryByText(/^actions/)).toBeNull();
+  });
+});
 
 describe('TrackViewItem keyboard', () => {
   it('plays on Enter and selects on Space', () => {

@@ -7,9 +7,6 @@ import TrackView from './TrackView';
 import { pageSize } from '../../../constants/library';
 
 // the heart is tested with its own component, it needs the store
-vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
-vi.mock('../../../containers/library/add-to-playlist', () => ({ default: () => null }));
-vi.mock('../../../containers/library/add-to-queue', () => ({ default: () => null }));
 
 const track = (index: number): Track => ({
   path: `/music/${index}.flac`,

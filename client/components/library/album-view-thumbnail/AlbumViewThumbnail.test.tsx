@@ -4,9 +4,6 @@ import type { AlbumSummary } from '@shared/types/library';
 import { expectNoViolations } from '../../../test/expect-no-violations';
 import AlbumViewThumbnail from './AlbumViewThumbnail';
 
-vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
-vi.mock('../../../containers/library/add-to-playlist', () => ({ default: () => null }));
-
 const album: AlbumSummary = {
   id: '/music/night - Night Shift',
   title: 'Night Shift',
@@ -26,6 +23,21 @@ const renderTile = (props: Partial<Parameters<typeof AlbumViewThumbnail>[0]> = {
   render(<AlbumViewThumbnail album={album} offlineFolders={[]} selectAlbum={vi.fn()} playAlbum={vi.fn()} {...props} />);
 
 describe('AlbumViewThumbnail', () => {
+  it('shows the buttons the slot gives on the cover, with the classes of the corners and the tab stop of the tile', () => {
+    renderTile({
+      tile: { 'data-tile-index': 0, tabIndex: -1 },
+      renderActions: (shown, slot) => <i>{`actions ${shown.title} ${slot.favouriteClass.length > 0} ${slot.playlistClass.length > 0} ${slot.tabIndex}`}</i>,
+    });
+
+    expect(screen.getByText('actions Night Shift true true -1')).toBeTruthy();
+  });
+
+  it('has no buttons on the cover but play when it has no slot', () => {
+    renderTile();
+
+    expect(screen.getAllByRole('button').map((button) => button.getAttribute('aria-label') ?? button.textContent)).toEqual(['Play Night Shift', 'Night Shift']);
+  });
+
   it('has no accessibility violation as a tile of the grid', async () => {
     const { container } = renderTile({ tile: { 'data-tile-index': 0, tabIndex: 0 } });
 

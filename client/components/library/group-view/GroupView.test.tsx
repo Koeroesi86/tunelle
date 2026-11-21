@@ -17,12 +17,11 @@ vi.mock('../genre-card', () => ({
   ),
 }));
 vi.mock('../../../domain/group-tracks', () => ({ fetchGroupTracks: vi.fn() }));
-vi.mock('../../../containers/library/artist-photo-menu', () => ({ default: ({ photoKey }: { photoKey: string }) => <div>{`photo menu ${photoKey}`}</div> }));
-vi.mock('../../../containers/library/artist-photo', () => ({ default: ({ photoKey }: { photoKey: string }) => <div>{`photo ${photoKey}`}</div> }));
-vi.mock('../../../containers/library/album-sort', () => ({ default: () => <div>album sort</div> }));
-vi.mock('../../../containers/library/group-albums', () => ({ default: ({ toolbar }: { toolbar: ReactNode }) => <div>{toolbar}group albums</div> }));
 
 const group = (key: string, name: string, albumCount = 1, trackCount = 2): GroupSummary => ({ key, name, albumCount, trackCount, cover: null, covers: [] });
+
+const renderAlbums = (toolbar: ReactNode) => <div>{toolbar}group albums</div>;
+const renderOpenParts = (open: { key: string }) => ({ photo: <i>{`photo ${open.key}`}</i>, menu: <i>{`photo menu ${open.key}`}</i>, sort: <i>album sort</i> });
 
 const renderView = (props: Partial<ComponentProps<typeof GroupView>> = {}) => {
   const handlers = { loadPage: vi.fn(), openGroup: vi.fn(), closeGroup: vi.fn(), playTracks: vi.fn() };
@@ -39,6 +38,8 @@ const renderView = (props: Partial<ComponentProps<typeof GroupView>> = {}) => {
       selected={[]}
       folders={[]}
       open={undefined}
+      renderAlbums={renderAlbums}
+      renderOpenParts={renderOpenParts}
       {...handlers}
       {...props}
     />
@@ -110,18 +111,26 @@ describe('GroupView', () => {
     expect(closeGroup).toHaveBeenCalled();
   });
 
-  it('offers to change the photo of an open artist or album artist that has a name, not of a genre or of the tracks without one', () => {
+  it('puts the parts of the open group in its bar, the photo before the name and the sort last', () => {
     renderView({ kind: 'artist', open: { kind: 'artist', key: 'adam', name: 'Adam' } });
-    expect(screen.getByText('photo menu adam')).toBeTruthy();
-    expect(screen.getByText('photo adam')).toBeTruthy();
 
-    cleanup();
-    renderView({ kind: 'albumArtist', open: { kind: 'albumArtist', key: '', name: '' } });
-    expect(screen.queryByText(/photo/)).toBeNull();
+    const bar = screen.getByText('Adam').parentElement;
+    expect([...(bar?.children ?? [])].map((child) => child.textContent)).toEqual([
+      '',
+      'photo adam',
+      'Adam',
+      'Play all',
+      'Shuffle',
+      'photo menu adam',
+      'album sort',
+    ]);
+  });
 
-    cleanup();
-    renderView({ kind: 'genre', open: { kind: 'genre', key: 'pop', name: 'Pop' } });
-    expect(screen.queryByText(/photo/)).toBeNull();
+  it('shows the list when the groups are not opened here', () => {
+    renderView({ renderAlbums: undefined, open: { kind: 'genre', key: 'pop', name: 'Pop' } });
+
+    expect(screen.getByText('card Adam')).toBeTruthy();
+    expect(screen.queryByText('group albums')).toBeNull();
   });
 
   it('plays all the tracks of the open group in the selected folders, or shuffled', async () => {

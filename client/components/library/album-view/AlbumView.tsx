@@ -11,7 +11,8 @@ import { useWindowedList } from '../../../hooks/use-windowed-list';
 import { getCachedItem } from '../../../redux/library/pages';
 import type { PageCache } from '../../../redux/library/pages';
 import style from './AlbumView.scss';
-import AlbumViewThumbnail from '../../../containers/library/album-view-thumbnail';
+import AlbumViewThumbnail from '../album-view-thumbnail/AlbumViewThumbnail';
+import type { AlbumActionSlot } from '../album-view-thumbnail/AlbumViewThumbnail';
 import CoverSizeSlider from '../../ui/cover-size-slider';
 import { selectedFolders } from '../../../domain/library-query';
 
@@ -42,6 +43,10 @@ interface AlbumViewProps {
   pagesAhead?: number;
   /** Told which pages the window wants, for the requests of the others to be dropped; none for the local library */
   keepPages?: (pages: number[]) => void;
+  /** The folders that cannot be reached, whose albums are dimmed; a list that has none omits them */
+  offlineFolders?: string[];
+  /** The buttons on the corners of the covers, which belong to where the albums are from; none when omitted */
+  renderActions?: (album: AlbumSummary, slot: AlbumActionSlot) => ReactNode;
   /** The least width of a cover in px, which the slider of the bar below the list sets */
   coverSize: number;
   setCoverSize: (size: number) => void;
@@ -63,6 +68,8 @@ const AlbumView = ({
   pagesAhead,
   keepPages,
   toolbar,
+  offlineFolders,
+  renderActions,
 }: AlbumViewProps) => {
   const { t } = useTranslation();
   const { separator, listing: scrolled } = useScrollSeparator(style.scrolled);
@@ -105,7 +112,15 @@ const AlbumView = ({
               {indexes.map((index) => {
                 const album = getCachedItem(albums, index);
                 return album ? (
-                  <AlbumViewThumbnail key={album.id} album={album} selectAlbum={openAlbum} playAlbum={playAlbum} tile={tileProps(index)} />
+                  <AlbumViewThumbnail
+                    key={album.id}
+                    album={album}
+                    offlineFolders={offlineFolders}
+                    renderActions={renderActions}
+                    selectAlbum={openAlbum}
+                    playAlbum={playAlbum}
+                    tile={tileProps(index)}
+                  />
                 ) : (
                   <div key={index} className={style.placeholder} />
                 );

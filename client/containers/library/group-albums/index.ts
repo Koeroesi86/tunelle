@@ -4,6 +4,7 @@ import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import { selectSearch } from '../../../domain/library-query';
 import { localAlbumActions } from '../local-album';
+import { albumCornerActions } from '../item-actions';
 import AlbumView from '../../../components/library/album-view/AlbumView';
 
 /** The albums of the open artist, album artist or genre: the list of the albums, fetched for the group */
@@ -14,10 +15,12 @@ const mapState = (state: RootState) => ({
   selected: state.uiState.libraryFolders,
   folders: state.folders,
   search: selectSearch(state),
+  offlineFolders: state.offlineFolders,
 });
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   ...localAlbumActions(dispatch),
+  renderActions: albumCornerActions,
   setCoverSize: (size: number) => dispatch({ type: 'SET_COVER_SIZE', payload: { size } }),
   loadPage: (page: number) => dispatch({ type: 'LOAD_LIBRARY_PAGE', payload: { kind: 'groupAlbums', page } }),
 });

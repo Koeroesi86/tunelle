@@ -4,8 +4,6 @@ import type { AlbumSummary } from '@shared/types/library';
 import { createPageCache, storePage } from '../../../redux/library/pages';
 import AlbumView from './AlbumView';
 
-vi.mock('../../../containers/library/album-view-thumbnail', () => ({ default: () => null }));
-
 const album = (index: number): AlbumSummary => ({
   id: `/music/${index} - Album`,
   title: 'Album',
@@ -37,6 +35,16 @@ describe('AlbumView', () => {
     render(<AlbumView {...baseProps} albums={albums} />);
 
     expect(screen.getByText('420 albums')).toBeTruthy();
+  });
+
+  it('gives each album the slot and the offline folders', () => {
+    const albums = storePage(createPageCache<AlbumSummary>(), 0, [album(1)], 1);
+    const renderActions = (shown: AlbumSummary) => <i>{`actions ${shown.path}`}</i>;
+
+    const { container } = render(<AlbumView {...baseProps} albums={albums} renderActions={renderActions} offlineFolders={['/music/1']} />);
+
+    expect(screen.getByText('actions /music/1')).toBeTruthy();
+    expect(container.querySelector('[title^="The folder cannot be reached"]')).not.toBeNull();
   });
 
   it('says that nothing matches the search', () => {

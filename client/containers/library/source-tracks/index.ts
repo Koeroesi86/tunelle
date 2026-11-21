@@ -7,6 +7,7 @@ import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import { listKey } from '../../../redux/sources/lists';
 import TrackView from '../../../components/library/track-view/TrackView';
+import { trackActions } from '../item-actions';
 import { keepSourcePages, loadSourcePage, pagesAhead, unanswered } from '../source-list';
 
 interface OwnProps {
@@ -39,5 +40,6 @@ export default connect(mapState, mapDispatch, (state, dispatch, { request, setTi
   setSort: (sort: TrackSort | undefined) => setTitleOrder?.(sort?.field === 'title'),
   // the pages that are not fetched yet are not in the cache, the selection is what is listed
   pagesAhead,
+  renderActions: trackActions,
   fetchAll: () => Promise.resolve(Object.values(state.tracks.pages).flat()),
 }))(TrackView);
