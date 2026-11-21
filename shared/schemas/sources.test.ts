@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sourceBrowseSchema, sourcePathSchema, sourceServerInputSchema, toSourcePath } from './sources';
+import { sourceBrowseSchema, sourceCapabilities, sourcePathSchema, sourceServerInputSchema, toSourcePath } from './sources';
 
 const serverId = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';
 
@@ -46,5 +46,14 @@ describe('what the page asks to browse', () => {
     expect(sourceBrowseSchema.parse({ what: 'search', serverId, query: ' bach ' })).toEqual({ what: 'search', serverId, query: 'bach' });
     expect(sourceBrowseSchema.safeParse({ what: 'albums', serverId }).success).toBe(false);
     expect(sourceBrowseSchema.safeParse({ what: 'delete', serverId }).success).toBe(false);
+  });
+});
+
+describe('what a kind of server can show', () => {
+  it('has a library with sections and orders only where the server lists one', () => {
+    expect(sourceCapabilities.plex.library?.sections).toEqual(['albums', 'artists', 'tracks']);
+    expect(sourceCapabilities.plex.library?.sorts).toEqual(['recent', 'title']);
+    expect(sourceCapabilities.subsonic.library).toBeUndefined();
+    expect(sourceCapabilities.jellyfin.library).toBeUndefined();
   });
 });

@@ -27,6 +27,10 @@ A server with a valid certificate needs nothing. A server with a self-signed one
 
 `electron/services/sources/server-store.ts` keeps the servers in `sources/servers.json` of the [app data folder](user-data.md), readable by the user only (mode 0600). The password is encrypted with `safeStorage` and the page never gets it back: it sends it once and sees `protected`. Where the system has no keyring (`isEncryptionAvailable()` is false, or the Linux backend is `basic_text`, which encrypts with a fixed password) the password is kept in plain text and `protected` is false, for the page to warn about. A server is checked with `ping` before it is kept.
 
+## What a kind can show
+
+`sourceCapabilities` in `shared/schemas/sources.ts` says per kind what the page can show besides the artists, albums and tracks drill down that every kind has. Today `library` (the albums, artists or songs of the whole server, in pages) is there for Plex only; a kind lists the `sections` and `sorts` it answers, and the page shows only those: the tabs of a library with one or two sections, no sort when there is one order, and the drill down at the top when there is no library. A client that lists a library has `library(kind, sort, start, size)` (`SourceLibrary` in `electron/services/sources/sources.ts`) and answers a `SourcePage`. To give another kind a library, add the method to its client and its entry to `sourceCapabilities`.
+
 ## The page
 
 Online, "Subsonic servers" (`client/components/pages/source-servers/`, state in `client/redux/sources/`). The page lists the servers, adds one (name, address, user, password), removes one and browses one: the artists, the albums of an artist, the tracks of an album, or a search. A track plays through `/source/audio` (`client/audio/track-source.ts`); `isSourcePath` keeps such a track out of the history, the loudness measurement and the gapless preload, which are for files.
