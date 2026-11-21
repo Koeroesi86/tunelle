@@ -15,7 +15,7 @@ export interface SourceLists {
 export const noSourceLists: SourceLists = { albums: {}, artists: {}, tracks: {} };
 
 /** The key of a list: the pages of a library list are one list, so it is the request of its first page */
-export const listKey = (request: SourceBrowse) => JSON.stringify(request.what === 'library' ? { ...request, start: 0 } : request);
+export const listKey = (request: SourceBrowse) => JSON.stringify(pageRequest(request, 0));
 
 /** The request of a page of a list: only a library list is in pages, the others are one answer */
 export const pageRequest = (request: SourceBrowse, page: number): SourceBrowse =>

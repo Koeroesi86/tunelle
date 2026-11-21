@@ -574,20 +574,7 @@
   "sources.removeShort": "Eltávolítás",
   "sources.unprotected": "Ezen a rendszeren nincs kulcstartó, ezért a szerver jelszava egyszerű szövegként van az alkalmazás adataiban.",
   "sources.search": "Keresés",
-  "sources.location": "Hol vagy",
-  "sources.library": "Könyvtár",
-  "sources.tabAlbums": "Albumok",
-  "sources.tabSongs": "Számok",
   "sources.sort": "Rendezés",
   "sources.sortRecent": "Nemrég hozzáadott",
-  "sources.sortTitle": "Cím",
-  "sources.showMore": "Továbbiak",
-  "sources.artists": "Előadók",
-  "sources.resultsFor": "Találatok: {query}",
-  "sources.loading": "Betöltés…",
-  "sources.empty": "Itt nincs semmi.",
-  "sources.albums_one": "{count} album",
-  "sources.albums_other": "{count} album",
-  "sources.songs_one": "{count} szám",
-  "sources.songs_other": "{count} szám"
+  "sources.sortTitle": "Cím"
 }
