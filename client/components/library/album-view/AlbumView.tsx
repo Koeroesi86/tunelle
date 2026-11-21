@@ -1,20 +1,22 @@
 import { useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import classNames from 'classnames';
-import type { Album, AlbumSummary, Folder, Track } from '@shared/types/library';
+import type { AlbumSummary, Folder } from '@shared/types/library';
 import type { AlbumSort as AlbumSortValue } from '@shared/types/library-query';
 import { useTranslation } from '../../../i18n';
 import { useScrollSeparator } from '../../../hooks/use-scroll-separator';
 import { usePageLoader } from '../../../hooks/use-page-loader';
 import { useTileGrid } from '../../../hooks/use-tile-grid';
 import { useWindowedList } from '../../../hooks/use-windowed-list';
-import { fetchAlbum } from '../../../services/library-api';
 import { getCachedItem } from '../../../redux/library/pages';
 import type { PageCache } from '../../../redux/library/pages';
 import style from './AlbumView.scss';
 import AlbumViewThumbnail from '../../../containers/library/album-view-thumbnail';
 import CoverSizeSlider from '../../ui/cover-size-slider';
 import { selectedFolders } from '../../../domain/library-query';
+
+const noFolders: string[] = [];
+const noKnownFolders: Folder[] = [];
 
 /** The gap between two covers in px, the covers grow to fill the width; matching .row in AlbumView.scss */
 const columnGap = 18;
@@ -26,15 +28,20 @@ const rowHeightOf = (coverWidth: number) => coverWidth + textHeight + rowGap;
 
 interface AlbumViewProps {
   albums: PageCache<AlbumSummary>;
-  /** The sort of the list and the folders it is limited to, the selection can hold a folder the library no longer has */
+  /** The sort of the list and the folders it is limited to, the selection can hold a folder the library no longer has; a list that has no folders omits them */
   sort: AlbumSortValue | undefined;
-  selected: string[];
-  folders: Folder[];
+  selected?: string[];
+  folders?: Folder[];
   /** The text the albums are searched for, undefined is no search */
   search: string | undefined;
-  playTracks: (tracks: Track[]) => void;
-  selectAlbum: (album: Album | null) => void;
+  /** The tracks of an album are not in the list, the container fetches them where the album is from */
+  openAlbum: (album: AlbumSummary) => void;
+  playAlbum: (album: AlbumSummary) => void;
   loadPage: (page: number) => void;
+  /** The pages after the window that are fetched as well, so they are there before the scroll gets to them; none for the local library */
+  pagesAhead?: number;
+  /** Told which pages the window wants, for the requests of the others to be dropped; none for the local library */
+  keepPages?: (pages: number[]) => void;
   /** The least width of a cover in px, which the slider of the bar below the list sets */
   coverSize: number;
   setCoverSize: (size: number) => void;
@@ -42,7 +49,21 @@ interface AlbumViewProps {
   toolbar?: ReactNode;
 }
 
-const AlbumView = ({ playTracks, selectAlbum, albums, sort, selected, folders, search, coverSize, setCoverSize, loadPage, toolbar }: AlbumViewProps) => {
+const AlbumView = ({
+  openAlbum,
+  playAlbum,
+  albums,
+  sort,
+  selected = noFolders,
+  folders = noKnownFolders,
+  search,
+  coverSize,
+  setCoverSize,
+  loadPage,
+  pagesAhead,
+  keepPages,
+  toolbar,
+}: AlbumViewProps) => {
   const { t } = useTranslation();
   const { separator, listing: scrolled } = useScrollSeparator(style.scrolled);
   const { listing, columns, rowHeight, firstIndex, lastIndex, offsetTop, height } = useWindowedList({
@@ -51,7 +72,7 @@ const AlbumView = ({ playTracks, selectAlbum, albums, sort, selected, folders, s
     itemWidth: coverSize,
     gap: columnGap,
   });
-  usePageLoader(albums, firstIndex, lastIndex, loadPage);
+  usePageLoader(albums, firstIndex, lastIndex, loadPage, pagesAhead, keepPages);
   const { tileProps } = useTileGrid({ listing, itemCount: albums.total ?? 0, columns, rowHeight, firstIndex, lastIndex });
 
   const queryKey = JSON.stringify([sort, selectedFolders(selected, folders), search]);
@@ -66,16 +87,6 @@ const AlbumView = ({ playTracks, selectAlbum, albums, sort, selected, folders, s
       scrolled.current = element;
     },
     [listing, scrolled]
-  );
-
-  // the tracks of an album are fetched when it is opened or played, the listing has the albums only
-  const openAlbum = useCallback((album: AlbumSummary) => fetchAlbum(album).then(selectAlbum).catch(console.error), [selectAlbum]);
-  const playAlbum = useCallback(
-    (album: AlbumSummary) =>
-      fetchAlbum(album)
-        .then(({ tracks }) => playTracks(tracks))
-        .catch(console.error),
-    [playTracks]
   );
 
   const rows = Array.from({ length: Math.ceil((lastIndex - firstIndex) / columns) }, (_, row) =>

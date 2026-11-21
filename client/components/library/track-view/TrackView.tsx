@@ -6,7 +6,7 @@ import { useTranslation } from '../../../i18n';
 import { useScrollSeparator } from '../../../hooks/use-scroll-separator';
 import { usePageLoader } from '../../../hooks/use-page-loader';
 import { useWindowedList } from '../../../hooks/use-windowed-list';
-import { fetchLibrary } from '../../../services/library-api';
+import type { LibraryQuery } from '@shared/types/library-query';
 import { selectedFolders } from '../../../domain/library-query';
 import { getCachedItem } from '../../../redux/library/pages';
 import type { PageCache } from '../../../redux/library/pages';
@@ -21,39 +21,52 @@ const rowHeight = 28;
 interface TrackViewProps {
   tracks: PageCache<Track>;
   currentSong: Track | null;
-  offlineFolders: string[];
+  /** The folders kept offline, a list that has no folders omits them */
+  offlineFolders?: string[];
   /** The sort of the list, undefined is the default order */
   sort: TrackSort | undefined;
   /** The selected folders and the folders of the library, the selection can hold a folder the library no longer has */
-  selected: string[];
-  folders: Folder[];
+  selected?: string[];
+  folders?: Folder[];
   /** The text the tracks are searched for, undefined is no search */
   search: string | undefined;
   playTracks: (tracks: Track[]) => void;
   loadPage: (page: number) => void;
+  /** The pages after the window that are fetched as well, so they are there before the scroll gets to them; none for the local library */
+  pagesAhead?: number;
+  /** Told which pages the window wants, for the requests of the others to be dropped; none for the local library */
+  keepPages?: (pages: number[]) => void;
   setSort: (sort: TrackSort | undefined) => void;
   /** The selected tracks by their path */
   selectedTracks: Record<string, Track>;
   toggleTrack: (track: Track) => void;
   selectTracks: (tracks: Track[]) => void;
   clearSelection: () => void;
+  /** The whole list for the selection, as the pages not fetched yet are not in the cache */
+  fetchAll: (query: LibraryQuery<TrackSort>) => Promise<Track[]>;
 }
+
+const noFolders: string[] = [];
+const noKnownFolders: Folder[] = [];
 
 const TrackView = ({
   currentSong,
   playTracks,
   tracks,
-  offlineFolders,
+  offlineFolders = noFolders,
   sort,
-  selected,
-  folders,
+  selected = noFolders,
+  folders = noKnownFolders,
   search,
   loadPage,
+  pagesAhead,
+  keepPages,
   setSort,
   selectedTracks,
   toggleTrack,
   selectTracks,
   clearSelection,
+  fetchAll,
 }: TrackViewProps) => {
   const { t } = useTranslation();
   const headerLabels = useMemo<TrackLabels>(
@@ -76,7 +89,7 @@ const TrackView = ({
     },
     [listing, scrolled]
   );
-  usePageLoader(tracks, firstIndex, lastIndex, loadPage);
+  usePageLoader(tracks, firstIndex, lastIndex, loadPage, pagesAhead, keepPages);
 
   const folderSelection = selectedFolders(selected, folders);
   const query = { sort, folders: folderSelection, search };
@@ -104,8 +117,7 @@ const TrackView = ({
     [playTracks, selectTracks]
   );
 
-  // the pages that are not fetched yet are not in the cache, the whole library is fetched for the selection
-  const selectAll = () => fetchLibrary(query).then(selectTracks).catch(console.error);
+  const selectAll = () => fetchAll(query).then(selectTracks).catch(console.error);
 
   return (
     <div className={style.tracks} role="grid" aria-label={t('library.songs')}>

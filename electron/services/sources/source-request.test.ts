@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 import { TLSSocket } from 'node:tls';
 import { request as httpRequest, type IncomingMessage } from 'node:http';
 import { request as httpsRequest } from 'node:https';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openSource, readCertificate, readJson, toResponse } from './source-request';
 
 vi.mock('node:http', () => ({ request: vi.fn() }));
@@ -79,6 +79,56 @@ describe('openSource', () => {
 
     sent.emit('error', new Error('socket hang up'));
     return expect(opened).rejects.toThrow('socket hang up');
+  });
+});
+
+describe('openSource when the server is asked too much', () => {
+  beforeEach(() => {
+    vi.mocked(httpsRequest).mockReset();
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const url = new URL('https://music.example.com/x');
+
+  it('waits for the time the server names and asks again', async () => {
+    respondWith(httpsRequest, answer('', 429, { 'retry-after': '2' }));
+    respondWith(httpsRequest, answer('ok'));
+
+    const result = openSource(url);
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(vi.mocked(httpsRequest)).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect((await result).statusCode).toBe(200);
+    expect(vi.mocked(httpsRequest)).toHaveBeenCalledTimes(2);
+  });
+
+  it('backs off when the server names no time, and gives the refusal after the third try', async () => {
+    [503, 503, 503].forEach((status) => respondWith(httpsRequest, answer('', status)));
+
+    const result = openSource(url);
+    await vi.advanceTimersByTimeAsync(500 + 1000);
+
+    expect((await result).statusCode).toBe(503);
+    expect(vi.mocked(httpsRequest)).toHaveBeenCalledTimes(3);
+  });
+
+  it('waits at most a few seconds whatever the server says', async () => {
+    respondWith(httpsRequest, answer('', 429, { 'retry-after': '3600' }));
+    respondWith(httpsRequest, answer('ok'));
+
+    const result = openSource(url);
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect((await result).statusCode).toBe(200);
+  });
+
+  it('does not ask a POST again, as it may have done something', async () => {
+    respondWith(httpsRequest, answer('', 429));
+
+    expect((await openSource(url, { method: 'POST', body: '{}' })).statusCode).toBe(429);
+    expect(vi.mocked(httpsRequest)).toHaveBeenCalledTimes(1);
   });
 });
 

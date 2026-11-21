@@ -64,8 +64,7 @@
     @include tile-quiet-button;
   }
 
-  .buttons,
-  .crumbs {
+  .buttons {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -182,88 +181,5 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--text-muted);
-  }
-
-  .libraryBar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .sort {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  // the tiles of the library: as wide as the local ones, a cover and its lines
-  .tiles {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 18px;
-    align-items: start;
-  }
-
-  .trackList {
-    display: flex;
-    flex-direction: column;
-  }
-
-  // the page of a library fills the area as the local one does: no box, the tiles at the edge of the page
-  .wide {
-    max-width: none;
-    height: 100%;
-    padding: 0;
-    gap: 0;
-  }
-
-  // a server fills the page: the toolbar and the footer stay, the tiles scroll between them; several servers are a page each
-  .library {
-    display: flex;
-    flex: 0 0 100%;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-  }
-
-  // the search takes the left, the order the right, as in the local library
-  .toolbar {
-    display: flex;
-    flex: none;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 16px;
-  }
-
-  .serverName {
-    padding: 8px 16px 0;
-  }
-
-  .listing {
-    display: flex;
-    flex: 1 1 0;
-    flex-direction: column;
-    gap: 12px;
-    min-height: 0;
-    padding: 4px 16px 12px;
-    overflow-y: auto;
-  }
-
-  // the count and the size of the tiles, at the foot of the page as in the local library
-  .footer {
-    display: flex;
-    flex: none;
-    align-items: center;
-    justify-content: space-between;
-    box-sizing: border-box;
-    min-height: 40px;
-    padding: 0 20px;
-    font-size: 12px;
-    color: var(--text-muted);
-    border-top: 1px solid var(--overlay);
   }
 }

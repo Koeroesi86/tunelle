@@ -1,9 +1,9 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
-import type { Album, Track } from '@shared/types/library';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import { selectSearch } from '../../../domain/library-query';
+import { localAlbumActions } from '../local-album';
 import AlbumView from '../../../components/library/album-view/AlbumView';
 
 const mapState = (state: RootState) => ({
@@ -16,8 +16,7 @@ const mapState = (state: RootState) => ({
 });
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
-  selectAlbum: (album: Album | null) => dispatch({ type: 'SELECT_ALBUM', payload: { album } }),
-  playTracks: (tracks: Track[]) => dispatch({ type: 'PLAY_TRACKS', payload: { tracks } }),
+  ...localAlbumActions(dispatch),
   setCoverSize: (size: number) => dispatch({ type: 'SET_COVER_SIZE', payload: { size } }),
   loadPage: (page: number) => dispatch({ type: 'LOAD_LIBRARY_PAGE', payload: { kind: 'albums', page } }),
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SourceBrowse } from '@shared/schemas/sources';
 import reducer, { browseKey } from './reducer';
+import { listKey } from './lists';
 
 const serverId = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';
 const request: SourceBrowse = { what: 'artists', serverId };
@@ -21,10 +22,19 @@ describe('the sources reducer', () => {
     expect(reducer(read, { type: 'SOURCE_SERVERS_LOADED', payload: { servers: [] } }).certificate).toBeUndefined();
   });
 
-  it('has no answer for a request that is asked and the answer of one that came', () => {
-    const answered = reducer(start, { type: 'SOURCE_BROWSED', payload: { request, result: [] } });
-    expect(answered.browsed[browseKey(request)]).toEqual({ result: [], error: undefined });
-    expect(reducer(answered, { type: 'BROWSE_SOURCE', payload: { request } }).browsed[browseKey(request)]).toBeUndefined();
+  it('keeps the failure of a request until it is asked again, and the answer as a list', () => {
+    const failed = reducer(start, { type: 'SOURCE_BROWSED', payload: { request, error: 'down' } });
+    expect(failed.browsed[browseKey(request)]).toEqual({ error: 'down' });
+    expect(reducer(failed, { type: 'BROWSE_SOURCE', payload: { request } }).browsed[browseKey(request)]).toBeUndefined();
+  });
+
+  it('marks the lists out of date when the servers are loaded again', () => {
+    const server = { id: serverId, kind: 'subsonic' as const, name: 'Home', url: 'http://home', username: 'a', protected: true };
+    const loaded = reducer(start, { type: 'SOURCE_SERVERS_LOADED', payload: { servers: [server] } });
+    const answered = reducer(loaded, { type: 'SOURCE_BROWSED', payload: { request, result: [{ id: 'a1', name: 'Halo' }] } });
+    const key = listKey(request);
+    expect(answered.lists.artists[key].stale).toEqual([]);
+    expect(reducer(answered, { type: 'SOURCE_SERVERS_LOADED', payload: { servers: [server] } }).lists.artists[key].stale).toEqual([0]);
   });
 
   it('is searching the network until the servers that answered arrive', () => {

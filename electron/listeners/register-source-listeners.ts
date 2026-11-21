@@ -6,10 +6,21 @@ import type { ListenerContext } from './listener-context';
 import { approvalCode } from '../remote/certificate';
 import { readCertificate, SourceError } from '../services/sources/source-request';
 import { discoverJellyfin } from '../services/sources/jellyfin-discovery';
+import { createGate, Dropped } from '../services/sources/request-gate';
 import type { SourceClient } from '../services/sources/sources';
 
 const certificateRequestSchema = z.object({ url: z.url() });
+const keepSchema = z.object({
+  request: sourceBrowseSchema,
+  pages: z.array(z.number().int().min(0).max(100000)).max(100),
+});
 const removeSchema = z.object({ id: z.uuid() });
+
+/** A page that scrolls fast asks for many pages at once: few run at a time for a server */
+const inTurn = createGate(4);
+
+/** The requests that are on their way, the answer of one comes to the page that asked first */
+const pending = new Set<string>();
 
 const browse = async (client: SourceClient, request: SourceBrowse) => {
   switch (request.what) {
@@ -84,9 +95,31 @@ const registerSourceListeners = ({ sources }: ListenerContext) => {
     const client = await sources.clientOf(request.data.serverId);
     if (!client) return event.sender.send('SOURCE_BROWSED', { request: request.data, error: 'The server is not known' });
 
-    browse(client, request.data)
+    const key = JSON.stringify(request.data);
+    if (pending.has(key)) return;
+
+    pending.add(key);
+    inTurn(request.data.serverId, () => browse(client, request.data), key)
       .then((result) => event.sender.send('SOURCE_BROWSED', { request: request.data, result }))
-      .catch((error) => event.sender.send('SOURCE_BROWSED', { request: request.data, error: errorMessage(error) }));
+      .catch((error) => (error instanceof Dropped ? undefined : event.sender.send('SOURCE_BROWSED', { request: request.data, error: errorMessage(error) })))
+      .finally(() => pending.delete(key));
+  });
+
+  // the window scrolled: the pages of the list it no longer wants are not fetched if they still wait for their turn
+  ipcMain.on('SOURCE_BROWSE_KEEP', (_event, payload: unknown) => {
+    const keep = keepSchema.safeParse(payload);
+    if (!keep.success || keep.data.request.what !== 'library') return;
+
+    const { request, pages } = keep.data;
+    const wanted = new Set(pages.map((page) => page * request.size));
+    const dropped = inTurn.drop(request.serverId, (tag) => {
+      const queued = sourceBrowseSchema.safeParse(JSON.parse(tag)).data;
+      const sameList = queued?.what === 'library' && queued.kind === request.kind && queued.sort === request.sort && queued.size === request.size;
+
+      return sameList && !wanted.has(queued.start);
+    });
+    // a page that is asked for again must not be taken for one that is on its way
+    dropped.forEach((tag) => pending.delete(tag));
   });
 };
 

@@ -190,5 +190,76 @@ describe('registerSourceListeners', () => {
       expect(sources.clientOf).not.toHaveBeenCalled();
       expect(send).not.toHaveBeenCalled();
     });
+
+    it('asks the server once for a request that is on its way, and not for the same again', async () => {
+      let answer: (result: unknown[]) => void = () => undefined;
+      client.artists.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+      const request = { what: 'artists', serverId };
+
+      await fire('SOURCE_BROWSE', request);
+      await fire('SOURCE_BROWSE', request);
+      answer([]);
+
+      await vi.waitFor(() => expect(send).toHaveBeenCalledWith('SOURCE_BROWSED', { request, result: [] }));
+      expect(client.artists).toHaveBeenCalledTimes(1);
+
+      await fire('SOURCE_BROWSE', request);
+      await vi.waitFor(() => expect(client.artists).toHaveBeenCalledTimes(2));
+    });
+
+    it('runs a few requests of a server at a time and the rest as they finish', async () => {
+      const answers: ((result: unknown) => void)[] = [];
+      client.library.mockImplementation(() => new Promise((resolve) => answers.push(resolve)));
+      const page = (start: number) => ({ what: 'library', serverId, kind: 'albums', sort: 'recent', start, size: 100 });
+
+      await Promise.all([0, 100, 200, 300, 400, 500].map((start) => fire('SOURCE_BROWSE', page(start))));
+      await vi.waitFor(() => expect(client.library).toHaveBeenCalledTimes(4));
+
+      answers[0]({ items: [] });
+      await vi.waitFor(() => expect(client.library).toHaveBeenCalledTimes(5));
+      answers.slice(1).forEach((resolve) => resolve({ items: [] }));
+      await vi.waitFor(() => expect(client.library).toHaveBeenCalledTimes(6));
+      answers.forEach((resolve) => resolve({ items: [] }));
+      await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(6));
+    });
+  });
+
+  describe('keeping the pages that the window wants', () => {
+    const page = (start: number) => ({ what: 'library', serverId, kind: 'albums', sort: 'recent', start, size: 100 });
+
+    it('does not fetch a queued page that the window no longer wants, and answers the others', async () => {
+      const answers: ((result: unknown) => void)[] = [];
+      client.library.mockImplementation(() => new Promise((resolve) => answers.push(resolve)));
+
+      await Promise.all([0, 1, 2, 3, 4, 5, 6].map((index) => fire('SOURCE_BROWSE', page(index * 100))));
+      await vi.waitFor(() => expect(client.library).toHaveBeenCalledTimes(4));
+      await fire('SOURCE_BROWSE_KEEP', { request: page(0), pages: [5, 6] });
+      answers.forEach((resolve) => resolve({ items: [] }));
+
+      await vi.waitFor(() => expect(client.library).toHaveBeenCalledTimes(6));
+      answers.forEach((resolve) => resolve({ items: [] }));
+      await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(6));
+      expect(client.library.mock.calls.map(([, , start]) => start)).toEqual([0, 100, 200, 300, 500, 600]);
+      expect(send).not.toHaveBeenCalledWith('SOURCE_BROWSED', expect.objectContaining({ error: expect.anything() }));
+    });
+
+    it('asks again for a page that was dropped', async () => {
+      const answers: ((result: unknown) => void)[] = [];
+      client.library.mockImplementation(() => new Promise((resolve) => answers.push(resolve)));
+
+      await Promise.all([0, 1, 2, 3, 4].map((index) => fire('SOURCE_BROWSE', page(index * 100))));
+      await fire('SOURCE_BROWSE_KEEP', { request: page(0), pages: [] });
+      await fire('SOURCE_BROWSE', page(400));
+      answers.forEach((resolve) => resolve({ items: [] }));
+
+      await vi.waitFor(() => expect(client.library.mock.calls.map(([, , start]) => start)).toContain(400));
+      answers.forEach((resolve) => resolve({ items: [] }));
+    });
+
+    it.each([undefined, {}, { request: { what: 'artists', serverId }, pages: [0] }, { request: page(0), pages: ['x'] }])('ignores %j', async (payload) => {
+      await fire('SOURCE_BROWSE_KEEP', payload);
+
+      expect(send).not.toHaveBeenCalled();
+    });
   });
 });

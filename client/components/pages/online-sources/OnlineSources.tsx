@@ -2,6 +2,7 @@ import { useTranslation } from '../../../i18n';
 import type { LibraryKind, SourceKind } from '@shared/schemas/sources';
 import type { OnlineView } from '../../../redux/types';
 import RadioStations from '../../../containers/pages/radio-stations';
+import SourceLibrary from '../../../containers/pages/source-library';
 import SourceServers from '../../../containers/pages/source-servers';
 import RemoteListener from '../../../containers/pages/remote-listener';
 import ViewSwitcher from '../../ui/view-switcher/ViewSwitcher';
@@ -19,9 +20,9 @@ const OnlineSources = ({ view, setView }: OnlineSourcesProps) => {
   const { t } = useTranslation();
   const views: ViewItem<OnlineView>[] = [
     { view: 'radio', label: t('online.radio'), panel: <RadioStations /> },
-    { view: 'servers', label: t('online.servers'), panel: <SourceServers kind="subsonic" /> },
-    { view: 'jellyfin', label: t('online.jellyfin'), panel: <SourceServers kind="jellyfin" /> },
-    { view: 'plex', label: t('online.plex'), panel: <SourceServers kind="plex" /> },
+    { view: 'servers', label: t('online.servers'), panel: <SourceServers kind="subsonic" openSection={(section) => setView(`subsonic:${section}`)} /> },
+    { view: 'jellyfin', label: t('online.jellyfin'), panel: <SourceServers kind="jellyfin" openSection={(section) => setView(`jellyfin:${section}`)} /> },
+    { view: 'plex', label: t('online.plex'), panel: <SourceServers kind="plex" openSection={(section) => setView(`plex:${section}`)} /> },
     // only the shown one looks for hosts: it browses the network while it is mounted
     { view: 'nearby', label: t('online.nearby'), panel: view === 'nearby' && <RemoteListener /> },
     // only the shown section loads the libraries of its servers
@@ -29,7 +30,7 @@ const OnlineSources = ({ view, setView }: OnlineSourcesProps) => {
       sections.map((section) => ({
         view: `${kind}:${section}` as const,
         label: `${kind} ${section}`,
-        panel: view === `${kind}:${section}` && <SourceServers kind={kind} section={section} />,
+        panel: view === `${kind}:${section}` && <SourceLibrary kind={kind} section={section} />,
       }))
     ),
   ];

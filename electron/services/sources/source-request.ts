@@ -33,7 +33,7 @@ interface OpenOptions {
 }
 
 /** One request (a GET unless told); the answer is there as soon as its headers are, and only the wait for them has a limit, as a player may read the body slowly */
-export const openSource = (url: URL, { certificate, headers, signal, unpinned, method = 'GET', body }: OpenOptions = {}) =>
+const attempt = (url: URL, { certificate, headers, signal, unpinned, method = 'GET', body }: OpenOptions = {}) =>
   new Promise<IncomingMessage>((resolve, reject) => {
     const secure = url.protocol === 'https:';
     const tls = { ...(unpinned ? unpinnedOptions : {}), ...(certificate && !unpinned ? pinnedOptions(certificate) : {}) };
@@ -50,6 +50,44 @@ export const openSource = (url: URL, { certificate, headers, signal, unpinned, m
     outgoing.on('error', reject);
     outgoing.end(body);
   });
+
+/** A server that is asked too much says so with 429 or 503, and when to ask again: that is waited for, a little and a few times, with the wait it names */
+const retriedStatuses = [429, 503];
+const retries = 2;
+const longestWait = 5000;
+
+const waitOf = (response: IncomingMessage, retry: number) => {
+  const seconds = Number(response.headers['retry-after']);
+  return Math.min(Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : 500 * 2 ** retry, longestWait);
+};
+
+const pause = (milliseconds: number, signal?: AbortSignal) =>
+  new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, milliseconds);
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+
+/** One request (a GET unless told); a GET that is refused for asking too much is asked again after the wait the server names */
+export const openSource = async (url: URL, options: OpenOptions = {}): Promise<IncomingMessage> => {
+  const response = await attempt(url, options);
+  const again = (options.method ?? 'GET') === 'GET' && retriedStatuses.includes(response.statusCode ?? 0);
+
+  return again ? retryAfter(response, url, options, 0) : response;
+};
+
+const retryAfter = async (refused: IncomingMessage, url: URL, options: OpenOptions, retry: number): Promise<IncomingMessage> => {
+  const wait = waitOf(refused, retry);
+  refused.destroy();
+  await pause(wait, options.signal);
+
+  const response = await attempt(url, options);
+  const last = retry + 1 >= retries || options.signal?.aborted === true;
+
+  return !last && retriedStatuses.includes(response.statusCode ?? 0) ? retryAfter(response, url, options, retry + 1) : response;
+};
 
 const pem = (der: Buffer) => `-----BEGIN CERTIFICATE-----\n${der.toString('base64').replace(/(.{64})/g, '$1\n')}\n-----END CERTIFICATE-----\n`;
 

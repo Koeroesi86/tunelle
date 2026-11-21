@@ -38,6 +38,25 @@ describe('serveSource', () => {
     expect(await response.text()).toBe('cover');
   });
 
+  it('lets the page keep a cover for a day and not an answer that is an error', async () => {
+    const kept = await serveSource('cover', `subsonic:${serverId}:al-1`, ask(), sources);
+    client.cover.mockResolvedValue(new Response('slow down', { status: 429 }));
+    const refused = await serveSource('cover', `subsonic:${serverId}:al-2`, ask(), sources);
+
+    expect(kept.headers.get('Cache-Control')).toBe('private, max-age=86400');
+    expect(refused.status).toBe(429);
+    expect(refused.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('answers 502 when the server does not answer for a cover', async () => {
+    client.cover.mockRejectedValue(new Error('gone'));
+
+    const response = await serveSource('cover', `subsonic:${serverId}:al-1`, ask(), sources);
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+
   it.each([null, '', '/music/a.flac', 'radio:abc', 'subsonic:not-a-server:1', `tidal:${serverId}:1`])(
     'is not found for the path %j, and no server is asked',
     async (bad) => {
@@ -59,5 +78,30 @@ describe('serveSource', () => {
 
     expect((await serveSource('audio', path, ask(), sources)).status).toBe(502);
     expect((await serveSource('cover', path, ask(), sources)).status).toBe(502);
+  });
+
+  it('does not fetch a cover that was asked for no more while it waited for its turn', async () => {
+    const answers: ((response: Response) => void)[] = [];
+    client.cover.mockImplementation(() => new Promise((resolve) => answers.push(resolve)));
+    const asked = Array.from({ length: 8 }, (_, index) => {
+      const controller = new AbortController();
+      const response = serveSource(
+        'cover',
+        `subsonic:${serverId}:al-${index}`,
+        new Request('tunelle://app/source/cover', { signal: controller.signal }),
+        sources
+      );
+      return { controller, response };
+    });
+    await vi.waitFor(() => expect(client.cover).toHaveBeenCalledTimes(6));
+
+    asked[6].controller.abort();
+    answers.forEach((resolve) => resolve(new Response('cover')));
+    await vi.waitFor(() => expect(client.cover).toHaveBeenCalledTimes(7));
+    answers.forEach((resolve) => resolve(new Response('cover')));
+
+    expect((await asked[6].response).status).toBe(502);
+    expect((await asked[7].response).status).toBe(200);
+    expect(client.cover.mock.calls.map(([id]) => id)).not.toContain('al-6');
   });
 });

@@ -19,13 +19,11 @@ const album = (index: number): AlbumSummary => ({
 
 const baseProps = {
   sort: undefined,
-  selected: [],
-  folders: [],
   search: undefined,
   coverSize: 160,
   setCoverSize: vi.fn(),
-  playTracks: vi.fn(),
-  selectAlbum: vi.fn(),
+  openAlbum: vi.fn(),
+  playAlbum: vi.fn(),
   loadPage: vi.fn(),
 };
 
