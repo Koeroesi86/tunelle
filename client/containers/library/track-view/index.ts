@@ -5,6 +5,7 @@ import type { TrackSort } from '@shared/types/library-query';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import { selectSearch } from '../../../domain/library-query';
+import { fetchLibrary } from '../../../services/library-api';
 import TrackView from '../../../components/library/track-view/TrackView';
 
 const mapState = (state: RootState) => ({
@@ -25,6 +26,7 @@ const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   toggleTrack: (track: Track) => dispatch({ type: 'TOGGLE_TRACK_SELECTION', payload: { track } }),
   selectTracks: (tracks: Track[]) => dispatch({ type: 'SELECT_TRACKS', payload: { tracks } }),
   clearSelection: () => dispatch({ type: 'CLEAR_TRACK_SELECTION', payload: {} }),
+  fetchAll: fetchLibrary,
 });
 
 export default connect(mapState, mapDispatch)(TrackView);

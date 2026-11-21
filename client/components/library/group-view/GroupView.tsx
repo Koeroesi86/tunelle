@@ -27,6 +27,9 @@ import style from './GroupView.scss';
 /** The groups that have a photo, which can be changed */
 const photoKinds: GroupKind[] = ['artist', 'albumArtist'];
 
+const noFolders: string[] = [];
+const noKnownFolders: Folder[] = [];
+
 /** The gap between two tiles in px, the tiles grow to fill the width; matching .tileRow in GroupView.scss */
 const tileGap = 18;
 /** The space under a tile and the height of its two lines of text in px, matching .groupTile in GroupTile.scss */
@@ -49,8 +52,8 @@ interface GroupViewProps {
   /** The least width of a tile in px, which the slider below the tiles sets */
   coverSize: number;
   /** The selected folders and the folders of the library, the selection can hold a folder the library no longer has */
-  selected: string[];
-  folders: Folder[];
+  selected?: string[];
+  folders?: Folder[];
   /** The group whose albums are shown instead of the list */
   open: OpenGroup | undefined;
   loadPage: (page: number) => void;
@@ -67,8 +70,8 @@ const GroupList = ({
   sort,
   filter,
   coverSize,
-  selected,
-  folders,
+  selected = noFolders,
+  folders = noKnownFolders,
   loadPage,
   setCoverSize,
   openGroup,
@@ -148,7 +151,7 @@ const GroupView = ({ open, closeGroup, playTracks, ...list }: GroupViewProps) =>
     if (!open) return;
 
     setBusy(true);
-    fetchGroupTracks(open, selectedFolders(list.selected, list.folders))
+    fetchGroupTracks(open, selectedFolders(list.selected ?? noFolders, list.folders ?? noKnownFolders))
       .then((tracks) => playTracks(shuffle ? shuffled(tracks) : tracks))
       .catch(console.error)
       .finally(() => setBusy(false));

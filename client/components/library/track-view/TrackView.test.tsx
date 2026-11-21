@@ -38,6 +38,7 @@ const baseProps = {
   toggleTrack: vi.fn(),
   selectTracks: vi.fn(),
   clearSelection: vi.fn(),
+  fetchAll: vi.fn().mockResolvedValue([]),
 };
 
 describe('TrackView', () => {
