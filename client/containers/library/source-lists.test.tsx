@@ -8,6 +8,7 @@ import { pageRequest } from '../../redux/sources/lists';
 import SourceAlbums from './source-albums';
 import SourceArtists from './source-artists';
 import SourceTracks from './source-tracks';
+import { loadSourcePage } from './source-list';
 
 // the views have their own tests; they show what their container gives them
 vi.mock('../../components/library/album-view/AlbumView', () => ({
@@ -116,5 +117,15 @@ describe('the containers of the lists of a source', () => {
 
     fireEvent.click(getByRole('button', { name: /^tracks \d* ?title$/ }));
     expect(setTitleOrder).toHaveBeenCalledWith(true);
+  });
+});
+
+describe('the page loader of a list', () => {
+  it('is the same function for the same list, as the views load again when it changes', () => {
+    const dispatch = vi.fn();
+    const request = library('albums');
+
+    expect(loadSourcePage(dispatch, { ...request })).toBe(loadSourcePage(dispatch, { ...request }));
+    expect(loadSourcePage(dispatch, library('artists'))).not.toBe(loadSourcePage(dispatch, request));
   });
 });
