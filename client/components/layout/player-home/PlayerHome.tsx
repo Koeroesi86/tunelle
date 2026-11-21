@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import classNames from 'classnames';
 import type { Folder } from '@shared/types/library';
 import { getBackend } from '../../../backend/backend';
@@ -7,16 +8,19 @@ import { useBreakpoint } from '../../../hooks/use-breakpoint';
 import { useTranslation } from '../../../i18n';
 import style from './PlayerHome.scss';
 import Confirm from '../../ui/confirm';
-import PlayerControls from '../../../containers/layout/player-controls';
 import { playerId } from '../player-controls/PlayerControls';
-import AudioComponent from '../../../containers/layout/audio-component';
-import TitleBar from '../../../containers/layout/title-bar';
-import Navigation from '../../../containers/layout/navigation';
 import AudioSpectrum from '../audio-spectrum';
-import PlayerTabs from '../../../containers/layout/player-tabs';
-import LauncherOffer from '../../../containers/layout/launcher-offer';
-import RemoteRequest from '../../../containers/layout/remote-request';
-import PlaylistImportReport from '../../../containers/layout/playlist-import-report';
+
+/** What the window tells the bar and the navigation it holds */
+export interface TitleBarSlot {
+  onMenu?: () => void;
+  menuOpen: boolean;
+}
+export interface NavigationSlot {
+  rail: boolean;
+  onNavigate: () => void;
+  spectrum: ReactNode;
+}
 
 interface PlayerHomeProps {
   maximized: boolean;
@@ -26,6 +30,13 @@ interface PlayerHomeProps {
   folders: Folder[];
   addFiles: (files: FileList) => void;
   onUnload: () => void;
+  renderTitleBar: (slot: TitleBarSlot) => ReactNode;
+  renderNavigation: (slot: NavigationSlot) => ReactNode;
+  /** The pages, which take the files that are dropped on the window */
+  renderTabs: (addFiles: (files: FileList) => void) => ReactNode;
+  controls: ReactNode;
+  /** What is not part of the layout: the offers and reports over the window, and the audio */
+  overlays: ReactNode;
 }
 
 interface Confirmation {
@@ -39,7 +50,20 @@ const findContainedPath = (files: FileList, folders: Folder[]) =>
     .map((file) => getBackend().pathForFile(file))
     .findLast((filePath) => folders.some((folder) => folder.path.startsWith(filePath) || filePath.startsWith(folder.path)));
 
-const PlayerHome = ({ maximized, enableTransparency = true, blurred, loaded, folders, addFiles, onUnload }: PlayerHomeProps) => {
+const PlayerHome = ({
+  maximized,
+  enableTransparency = true,
+  blurred,
+  loaded,
+  folders,
+  addFiles,
+  onUnload,
+  renderTitleBar,
+  renderNavigation,
+  renderTabs,
+  controls,
+  overlays,
+}: PlayerHomeProps) => {
   const { t } = useTranslation();
   const [confirmation, setConfirmation] = useState<Confirmation>();
   const latestOnUnload = useLatest(onUnload);
@@ -93,25 +117,25 @@ const PlayerHome = ({ maximized, enableTransparency = true, blurred, loaded, fol
         {t('a11y.skipToPlayer')}
       </button>
       <div className={style.wrapper}>
-        <TitleBar onMenu={compact ? () => setDrawerOpen((open) => !open) : undefined} menuOpen={drawerShown} />
+        {renderTitleBar({ onMenu: compact ? () => setDrawerOpen((open) => !open) : undefined, menuOpen: drawerShown })}
         <div className={style.mainPanel}>
           <div className={style.library}>
             {drawerShown && <button type="button" className={style.scrim} aria-label={t('nav.closeMenu')} onClick={() => setDrawerOpen(false)} />}
             <div className={style.manageLibrary}>
               <div className={style.manageLibraryPanel}>
                 <div className={style.navigationContainer}>
-                  <Navigation
-                    rail={breakpoint === 'medium'}
-                    onNavigate={() => setDrawerOpen(false)}
-                    spectrum={<AudioSpectrum width={180} height={32} capHeight={1} meterCount={45} meterWidth={2} gap={2} />}
-                  />
+                  {renderNavigation({
+                    rail: breakpoint === 'medium',
+                    onNavigate: () => setDrawerOpen(false),
+                    spectrum: <AudioSpectrum width={180} height={32} capHeight={1} meterCount={45} meterWidth={2} gap={2} />,
+                  })}
                 </div>
               </div>
             </div>
-            <PlayerTabs addFiles={addDroppedFiles} />
+            {renderTabs(addDroppedFiles)}
           </div>
         </div>
-        <PlayerControls />
+        {controls}
       </div>
       <Confirm
         message={confirmation?.message ?? null}
@@ -121,10 +145,7 @@ const PlayerHome = ({ maximized, enableTransparency = true, blurred, loaded, fol
         }}
         cancel={() => setConfirmation(undefined)}
       />
-      <LauncherOffer />
-      <RemoteRequest />
-      <PlaylistImportReport />
-      <AudioComponent />
+      {overlays}
     </div>
   );
 };
