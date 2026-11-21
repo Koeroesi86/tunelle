@@ -130,8 +130,17 @@ export const createPlexClient = (server: SourceServer, token: string, userAgent:
   const metadata = (path: string, params?: Record<string, string>) =>
     call(path, metadataSchema, params).then(({ MediaContainer }) => MediaContainer.Metadata ?? []);
 
-  const musicSections = () =>
+  // asked once for a client: every page of a list would else cost a second round trip, and a failure is asked again
+  let sectionsOnce: ReturnType<typeof listSections> | undefined;
+  const listSections = () =>
     call('/library/sections', sectionsSchema).then(({ MediaContainer }) => (MediaContainer.Directory ?? []).filter(({ type }) => type === musicType));
+  const musicSections = () => {
+    sectionsOnce ??= listSections().catch((error) => {
+      sectionsOnce = undefined;
+      throw error;
+    });
+    return sectionsOnce;
+  };
 
   /** The file of a song is a part of its first media: its path is read from the song once */
   const fileOf = async (songId: string) => {

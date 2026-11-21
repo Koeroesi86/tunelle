@@ -206,6 +206,18 @@ describe('the Plex client', () => {
     expect(page).toEqual({ total: 120, items: [{ id: '20', title: 'First', artist: 'A', year: '1999', songCount: undefined, coverArt: '20' }] });
   });
 
+  it('asks for the sections once for the pages of a list, and again after a failure', async () => {
+    reply(container({ Directory: [{ key: '3', type: 'artist' }] }), container({ Metadata: [] }), container({ Metadata: [] }));
+    const plex = client();
+
+    await plex.library('albums', 'recent', 0, 20);
+    await plex.library('albums', 'recent', 20, 20);
+
+    expect(sentUrl(0).pathname).toBe('/library/sections');
+    expect(sentUrl(1).pathname).toBe('/library/sections/3/all');
+    expect(sentUrl(2).pathname).toBe('/library/sections/3/all');
+  });
+
   it.each([
     ['artists', '8', { id: '10', name: 'A', albumCount: undefined, coverArt: '10' }],
     ['tracks', '10', expect.objectContaining({ path: `plex:${serverId}:10`, title: 'A' })],
