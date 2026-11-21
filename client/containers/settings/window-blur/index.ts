@@ -6,7 +6,10 @@ import type { AppAction } from '../../../redux/types';
 import WindowBlur from '../../../components/settings/window-blur/WindowBlur';
 
 // macOS blurs the window itself, there is nothing to choose
-const mapState = ({ uiState: { desktopBlur } }: RootState) => ({ available: !getBackend().capabilities.blur, enabled: desktopBlur });
+const mapState = ({ uiState: { desktopBlur, softwareRendering } }: RootState) => ({
+  available: !getBackend().capabilities.blur && !softwareRendering,
+  enabled: desktopBlur,
+});
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   toggle: () => dispatch({ type: 'TOGGLE_DESKTOP_BLUR', payload: {} }),

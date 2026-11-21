@@ -67,6 +67,8 @@ export interface UiState extends PersistedSettings {
   groupFilter: string;
   /** Whether the main process lowers the background work (on battery, or as the setting says), as it tells; not saved */
   savingPower: boolean;
+  /** Nothing is drawn by a GPU (the main process tells after the window has loaded): the motion and the translucency stop */
+  softwareRendering: boolean;
   /** How far the measurement of the loudness of the library is, undefined until the main process tells; not saved */
   loudnessStatus: LoudnessProgress | undefined;
   /** The tracks that could not be measured, undefined until the list is asked for; not saved */
@@ -220,6 +222,7 @@ export type AppAction =
   | PayloadAction<'SET_MEASURE_LOUDNESS', { enabled: boolean }>
   | PayloadAction<'SET_POWER_SAVING', { mode: PowerSavingMode }>
   | PayloadAction<'POWER_SAVING', { saving: boolean }>
+  | PayloadAction<'SOFTWARE_RENDERING', { software: boolean }>
   | EmptyAction<'LOAD_LOUDNESS_STATUS'>
   | EmptyAction<'LOAD_LOUDNESS_FAILED'>
   | PayloadAction<'LOUDNESS_FAILED', { tracks: FailedLoudnessTrack[] }>

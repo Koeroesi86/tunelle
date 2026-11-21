@@ -12,6 +12,7 @@ import { isMeteredConnection } from './electron/services/updates/metered-connect
 import { askOnSplash } from './electron/services/updates/splash-confirm';
 import { copyOldLibrary, copyOldUserData, getAppName } from './electron/utils/user-data';
 import createWindow from './electron/windows/create-window';
+import { detectSoftwareRendering, isSoftwareRendering } from './electron/windows/gpu-acceleration';
 import { createStartupSignal } from './electron/services/platform/startup-signal';
 import loadPage from './electron/windows/load-page';
 import createDatabase from './electron/database/create-database';
@@ -160,7 +161,7 @@ const openWindow = () => {
 
   main.once('ready-to-show', () => {
     main.show();
-    if (isWin) main.setBackgroundMaterial('acrylic');
+    if (isWin && !isSoftwareRendering()) main.setBackgroundMaterial('acrylic');
   });
   main.on('closed', () => {
     windows.main = null;
@@ -274,6 +275,7 @@ app
     const main = openWindow();
     startup = createStartupSignal(main);
     await loadPage(main, windowLocation);
+    detectSoftwareRendering(main);
     // the splash is static and shows the text the main process sends; the picked language is in the library, which opens after the splash
     sendIfAlive(main.webContents, 'SPLASH_PROGRESS', { text: getMainTranslator().t('splash.loading', { title: 'Tunelle' }) });
 

@@ -46,6 +46,7 @@ describe('ThemeProvider connected to the store', () => {
     vi.unstubAllGlobals();
     document.documentElement.removeAttribute('data-theme');
     document.documentElement.removeAttribute('style');
+    document.documentElement.removeAttribute('data-reduce-motion');
   });
 
   it('reads the cover of the local track that plays', async () => {
@@ -62,6 +63,18 @@ describe('ThemeProvider connected to the store', () => {
     ]);
 
     await waitFor(() => expect(coverAccent).toHaveBeenCalledExactlyOnceWith('tunelle://app/radio-art/art-1.png'));
+  });
+
+  it('stops the motion of a window that has no GPU, whatever the setting is', () => {
+    setup([{ type: 'SOFTWARE_RENDERING', payload: { software: true } }]);
+
+    expect(document.documentElement.hasAttribute('data-reduce-motion')).toBe(true);
+  });
+
+  it('leaves the motion of a window with a GPU to the setting', () => {
+    setup([]);
+
+    expect(document.documentElement.hasAttribute('data-reduce-motion')).toBe(false);
   });
 
   it('reads nothing without a track or a cover', () => {

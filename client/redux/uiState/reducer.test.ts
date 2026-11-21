@@ -531,6 +531,11 @@ describe('uiState reducer', () => {
       expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { volume: 0.1 } } }, always).powerSaving).toBe('always');
     });
 
+    it('keeps whether the main process found no GPU, which is not a setting', () => {
+      expect(initial.softwareRendering).toBe(false);
+      expect(run({ type: 'SOFTWARE_RENDERING', payload: { software: true } }).softwareRendering).toBe(true);
+    });
+
     it('keeps whether the main process saves power now, which is not a setting', () => {
       const saving = run({ type: 'POWER_SAVING', payload: { saving: true } });
 

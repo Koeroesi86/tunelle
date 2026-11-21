@@ -83,6 +83,7 @@ const initialState: UiState = {
   measureLoudness: true,
   powerSaving: defaultPowerSavingMode,
   savingPower: false,
+  softwareRendering: false,
   loudnessStatus: undefined,
   loudnessFailed: undefined,
   backgroundTasks: [],
@@ -175,6 +176,8 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, powerSaving: action.payload.mode };
     case 'POWER_SAVING':
       return { ...state, savingPower: action.payload.saving };
+    case 'SOFTWARE_RENDERING':
+      return { ...state, softwareRendering: action.payload.software };
     case 'BACKGROUND_TASKS':
       return { ...state, backgroundTasks: action.payload.tasks };
     case 'SET_NOTIFY_LIBRARY_CHANGES':

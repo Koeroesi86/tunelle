@@ -35,6 +35,7 @@ function addListeners(store: Store) {
   onMessage('STORE_FOLDERS', messageSchemas.STORE_FOLDERS, (payload) => store.dispatch({ type: 'STORE_FOLDERS', payload }));
   onMessage('BACKGROUND_TASKS', messageSchemas.BACKGROUND_TASKS, (payload) => store.dispatch({ type: 'BACKGROUND_TASKS', payload }));
   onMessage('POWER_SAVING', messageSchemas.POWER_SAVING, (payload) => store.dispatch({ type: 'POWER_SAVING', payload }));
+  onMessage('SOFTWARE_RENDERING', messageSchemas.SOFTWARE_RENDERING, (payload) => store.dispatch({ type: 'SOFTWARE_RENDERING', payload }));
   onMessage('LOUDNESS_STATUS', messageSchemas.LOUDNESS_STATUS, (payload) => store.dispatch({ type: 'LOUDNESS_STATUS', payload }));
   onMessage('LOUDNESS_FAILED', messageSchemas.LOUDNESS_FAILED, (payload) => store.dispatch({ type: 'LOUDNESS_FAILED', payload }));
   onMessage('OFFLINE_FOLDERS', messageSchemas.OFFLINE_FOLDERS, (payload) => store.dispatch({ type: 'OFFLINE_FOLDERS', payload }));
