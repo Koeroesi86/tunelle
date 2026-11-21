@@ -3,16 +3,16 @@ import { render, screen } from '@testing-library/react';
 import type { LibraryView } from '../../../redux/types';
 import LocalCollection from './LocalCollection';
 
-vi.mock('../../library/album-view', () => ({ default: () => null }));
-vi.mock('../../library/group-view', () => ({ default: () => null }));
-vi.mock('../../library/track-view', () => ({ default: () => null }));
-vi.mock('../../settings/folder-management', () => ({ default: () => null }));
-vi.mock('../../library/folder-filter', () => ({ default: () => <button>folders</button> }));
-vi.mock('../../library/library-search', () => ({ default: () => <input aria-label="search" /> }));
-vi.mock('../../library/group-filter', () => ({ default: ({ label }: { label: string }) => <input aria-label={label} /> }));
-vi.mock('../../library/group-sort', () => ({ default: () => <button>group sort</button> }));
-vi.mock('../../library/album-sort', () => ({ default: () => <button>album sort</button> }));
-vi.mock('../../library/rescan-button', () => ({ default: () => <button>Rescan</button> }));
+vi.mock('../../../containers/library/album-view', () => ({ default: () => null }));
+vi.mock('../../../containers/library/group-view', () => ({ default: () => null }));
+vi.mock('../../../containers/library/track-view', () => ({ default: () => null }));
+vi.mock('../../../containers/settings/folder-management', () => ({ default: () => null }));
+vi.mock('../../../containers/library/folder-filter', () => ({ default: () => <button>folders</button> }));
+vi.mock('../../../containers/library/library-search', () => ({ default: () => <input aria-label="search" /> }));
+vi.mock('../../../containers/library/group-filter', () => ({ default: ({ label }: { label: string }) => <input aria-label={label} /> }));
+vi.mock('../../../containers/library/group-sort', () => ({ default: () => <button>group sort</button> }));
+vi.mock('../../../containers/library/album-sort', () => ({ default: () => <button>album sort</button> }));
+vi.mock('../../../containers/library/rescan-button', () => ({ default: () => <button>Rescan</button> }));
 
 const renderPage = (view: LibraryView, props: Partial<Parameters<typeof LocalCollection>[0]> = {}) =>
   render(<LocalCollection view={view} setView={vi.fn()} groupOpen={false} addFiles={vi.fn()} {...props} />);

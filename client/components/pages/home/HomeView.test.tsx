@@ -9,7 +9,7 @@ import { stationFavourite, trackFavourite } from '../../../domain/favourites';
 import { toRadioTrack } from '../../../domain/radio-track';
 import HomeView from './HomeView';
 
-vi.mock('../../ui/favourite-button', () => ({ default: () => null }));
+vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
 
 const track: Track = {
   path: '/music/a.flac',

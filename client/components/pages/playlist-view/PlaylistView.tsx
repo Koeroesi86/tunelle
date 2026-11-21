@@ -9,7 +9,7 @@ import { useDragReorder } from '../../../hooks/use-drag-reorder';
 import { useTranslation } from '../../../i18n';
 import style from './PlaylistView.scss';
 import AudioFormatBadge from '../../ui/audio-format-badge';
-import AddToQueue from '../../library/add-to-queue';
+import AddToQueue from '../../../containers/library/add-to-queue';
 import NameField from '../../ui/name-field';
 import Confirm from '../../ui/confirm';
 

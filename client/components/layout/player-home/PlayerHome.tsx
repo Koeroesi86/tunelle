@@ -7,16 +7,16 @@ import { useBreakpoint } from '../../../hooks/use-breakpoint';
 import { useTranslation } from '../../../i18n';
 import style from './PlayerHome.scss';
 import Confirm from '../../ui/confirm';
-import PlayerControls from '../player-controls';
+import PlayerControls from '../../../containers/layout/player-controls';
 import { playerId } from '../player-controls/PlayerControls';
-import AudioComponent from '../audio-component';
-import TitleBar from '../title-bar';
-import Navigation from '../navigation';
+import AudioComponent from '../../../containers/layout/audio-component';
+import TitleBar from '../../../containers/layout/title-bar';
+import Navigation from '../../../containers/layout/navigation';
 import AudioSpectrum from '../audio-spectrum';
-import PlayerTabs from '../player-tabs';
-import LauncherOffer from '../launcher-offer';
-import RemoteRequest from '../remote-request';
-import PlaylistImportReport from '../playlist-import-report';
+import PlayerTabs from '../../../containers/layout/player-tabs';
+import LauncherOffer from '../../../containers/layout/launcher-offer';
+import RemoteRequest from '../../../containers/layout/remote-request';
+import PlaylistImportReport from '../../../containers/layout/playlist-import-report';
 
 interface PlayerHomeProps {
   maximized: boolean;

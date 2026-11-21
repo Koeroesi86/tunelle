@@ -10,8 +10,8 @@ import { tileAccent } from '../../../utils/tile-accent';
 import { albumFormatLabel } from '../../../utils/audio-format-label';
 import { formatLength } from '../../../utils/format-length';
 import { albumFavourite } from '../../../domain/favourites';
-import FavouriteButton from '../../ui/favourite-button';
-import AddToPlaylist from '../add-to-playlist';
+import FavouriteButton from '../../../containers/ui/favourite-button';
+import AddToPlaylist from '../../../containers/library/add-to-playlist';
 
 interface AlbumViewThumbnailProps {
   album: AlbumSummary;

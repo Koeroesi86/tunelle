@@ -12,7 +12,7 @@ import { fetchAlbum } from '../../../services/library-api';
 import { getCachedItem } from '../../../redux/library/pages';
 import type { PageCache } from '../../../redux/library/pages';
 import style from './AlbumView.scss';
-import AlbumViewThumbnail from '../album-view-thumbnail';
+import AlbumViewThumbnail from '../../../containers/library/album-view-thumbnail';
 import CoverSizeSlider from '../../ui/cover-size-slider';
 import { selectedFolders } from '../../../domain/library-query';
 

@@ -10,7 +10,7 @@ import { useDelayedValue } from '../../../hooks/use-delayed-value';
 import { useUpdateEffect } from '../../../hooks/use-update-effect';
 import { stationFavourite } from '../../../domain/favourites';
 import type { Translator } from '@shared/locales/translate';
-import FavouriteButton from '../../ui/favourite-button';
+import FavouriteButton from '../../../containers/ui/favourite-button';
 import StationLogo from '../../ui/station-logo';
 import style from './RadioStations.scss';
 import { radioPageSize } from '@shared/constants/radio';

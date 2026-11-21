@@ -8,10 +8,10 @@ import { useDialogFocus } from '../../../hooks/use-dialog-focus';
 import { getImageTint } from '../../../utils/cover-tint';
 import { albumFavourite } from '../../../domain/favourites';
 import style from './AlbumDetails.scss';
-import FavouriteButton from '../../ui/favourite-button';
-import AddToPlaylist from '../add-to-playlist';
-import AddToQueue from '../add-to-queue';
-import AlbumCoverMenu from '../album-cover-menu';
+import FavouriteButton from '../../../containers/ui/favourite-button';
+import AddToPlaylist from '../../../containers/library/add-to-playlist';
+import AddToQueue from '../../../containers/library/add-to-queue';
+import AlbumCoverMenu from '../../../containers/library/album-cover-menu';
 import AudioFormatBadge from '../../ui/audio-format-badge';
 import Time from '../../ui/time';
 

@@ -6,7 +6,7 @@ import type { RadioStation } from '@shared/types/radio';
 import reducers from '../../../redux/reducers';
 import { stationFavourite } from '../../../domain/favourites';
 import FavouriteButton from './FavouriteButton';
-import ConnectedFavouriteButton from './index';
+import ConnectedFavouriteButton from '../../../containers/ui/favourite-button/index';
 
 const station: RadioStation = { uuid: 'abc', name: 'Jazz FM', country: 'Hungary', tags: [], codec: 'MP3', bitrate: 128 };
 const item = stationFavourite(station);

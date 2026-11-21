@@ -17,10 +17,10 @@ vi.mock('../genre-card', () => ({
   ),
 }));
 vi.mock('../../../domain/group-tracks', () => ({ fetchGroupTracks: vi.fn() }));
-vi.mock('../artist-photo-menu', () => ({ default: ({ photoKey }: { photoKey: string }) => <div>{`photo menu ${photoKey}`}</div> }));
-vi.mock('../artist-photo', () => ({ default: ({ photoKey }: { photoKey: string }) => <div>{`photo ${photoKey}`}</div> }));
-vi.mock('../album-sort', () => ({ default: () => <div>album sort</div> }));
-vi.mock('../group-albums', () => ({ default: ({ toolbar }: { toolbar: ReactNode }) => <div>{toolbar}group albums</div> }));
+vi.mock('../../../containers/library/artist-photo-menu', () => ({ default: ({ photoKey }: { photoKey: string }) => <div>{`photo menu ${photoKey}`}</div> }));
+vi.mock('../../../containers/library/artist-photo', () => ({ default: ({ photoKey }: { photoKey: string }) => <div>{`photo ${photoKey}`}</div> }));
+vi.mock('../../../containers/library/album-sort', () => ({ default: () => <div>album sort</div> }));
+vi.mock('../../../containers/library/group-albums', () => ({ default: ({ toolbar }: { toolbar: ReactNode }) => <div>{toolbar}group albums</div> }));
 
 const group = (key: string, name: string, albumCount = 1, trackCount = 2): GroupSummary => ({ key, name, albumCount, trackCount, cover: null, covers: [] });
 

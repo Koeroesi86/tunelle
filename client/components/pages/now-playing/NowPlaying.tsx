@@ -14,8 +14,8 @@ import { trackFavourite } from '../../../domain/favourites';
 import style from './NowPlaying.scss';
 import AudioFormatBadge from '../../ui/audio-format-badge';
 import CoverFade from '../../ui/cover-fade';
-import FavouriteButton from '../../ui/favourite-button';
-import LoudnessPanel from '../../ui/loudness-panel';
+import FavouriteButton from '../../../containers/ui/favourite-button';
+import LoudnessPanel from '../../../containers/ui/loudness-panel';
 import Time from '../../ui/time';
 
 interface NowPlayingProps {

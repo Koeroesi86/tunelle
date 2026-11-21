@@ -16,7 +16,7 @@ import style from './HomeView.scss';
 import AudioFormatBadge from '../../ui/audio-format-badge';
 import StationLogo from '../../ui/station-logo';
 import Confirm from '../../ui/confirm';
-import FavouriteButton from '../../ui/favourite-button';
+import FavouriteButton from '../../../containers/ui/favourite-button';
 import Time from '../../ui/time';
 
 interface HomeViewProps {

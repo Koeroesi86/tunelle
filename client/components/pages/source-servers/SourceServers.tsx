@@ -5,7 +5,7 @@ import type { Track } from '@shared/types/library';
 import LibrarySearch from '../../library/library-search/LibrarySearch';
 import SortSelect from '../../ui/sort-select/SortSelect';
 import CoverSizeSlider from '../../ui/cover-size-slider';
-import AlbumViewThumbnail from '../../library/album-view-thumbnail';
+import AlbumViewThumbnail from '../../../containers/library/album-view-thumbnail';
 import GroupTile from '../../library/group-tile';
 import TrackViewItem from '../../library/track-view-item';
 import { toAlbumSummary, toGroupSummary } from '../../../domain/source-library';

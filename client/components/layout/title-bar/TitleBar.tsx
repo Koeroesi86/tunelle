@@ -5,8 +5,8 @@ import { useTranslation } from '../../../i18n';
 import appIcon from '../../../../assets/icon.svg';
 import style from './TitleBar.scss';
 import AudioSpectrum from '../audio-spectrum';
-import QueueIndicator from '../queue-indicator';
-import WindowControls from '../window-controls';
+import QueueIndicator from '../../../containers/layout/queue-indicator';
+import WindowControls from '../../../containers/layout/window-controls';
 import Wordmark from '../wordmark/Wordmark';
 import CoverFade from '../../ui/cover-fade';
 

@@ -8,9 +8,9 @@ import { albumFavourite, stationFavourite, trackFavourite } from '../../../domai
 import type { FavouritesOrder, FavouritesSource } from '../../../redux/types';
 import FavouritesView from './FavouritesView';
 
-vi.mock('../../ui/favourite-button', () => ({ default: () => null }));
+vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
 const queued = vi.hoisted(() => vi.fn());
-vi.mock('../../library/add-to-queue', async () => {
+vi.mock('../../../containers/library/add-to-queue', async () => {
   const { createElement } = await import('react');
 
   return {

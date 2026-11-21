@@ -15,12 +15,12 @@ import { shuffled } from '../../../domain/shuffled';
 import { getCachedItem } from '../../../redux/library/pages';
 import type { PageCache } from '../../../redux/library/pages';
 import type { OpenGroup } from '../../../redux/types';
-import AlbumSort from '../album-sort';
-import ArtistPhoto from '../artist-photo';
-import ArtistPhotoMenu from '../artist-photo-menu';
+import AlbumSort from '../../../containers/library/album-sort';
+import ArtistPhoto from '../../../containers/library/artist-photo';
+import ArtistPhotoMenu from '../../../containers/library/artist-photo-menu';
 import CoverSizeSlider from '../../ui/cover-size-slider';
 import GenreCard from '../genre-card';
-import GroupAlbums from '../group-albums';
+import GroupAlbums from '../../../containers/library/group-albums';
 import GroupTile from '../group-tile';
 import style from './GroupView.scss';
 
