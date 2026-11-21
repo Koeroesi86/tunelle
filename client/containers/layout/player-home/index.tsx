@@ -9,6 +9,7 @@ import AudioComponent from '../audio-component';
 import LauncherOffer from '../launcher-offer';
 import Navigation from '../navigation';
 import PlayerControls from '../player-controls';
+import PlayerIntegrations from '../player-integrations';
 import PlayerTabs from '../player-tabs';
 import PlaylistImportReport from '../playlist-import-report';
 import RemoteRequest from '../remote-request';
@@ -24,6 +25,7 @@ const overlays = (
     <RemoteRequest />
     <PlaylistImportReport />
     <AudioComponent />
+    <PlayerIntegrations />
   </>
 );
 

@@ -5,6 +5,7 @@ import type { GroupKind } from '@shared/types/library-query';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction, OpenGroup } from '../../../redux/types';
 import { localGroupParts, renderGroupAlbums } from '../local-group';
+import { fetchGroupTracks } from '../../../domain/group-tracks';
 import GroupView from '../../../components/library/group-view/GroupView';
 
 interface OwnProps {
@@ -27,6 +28,7 @@ const mapDispatch = (dispatch: Dispatch<AppAction>, { kind }: OwnProps) => ({
   openGroup: (group: OpenGroup) => dispatch({ type: 'OPEN_GROUP', payload: { group } }),
   closeGroup: () => dispatch({ type: 'CLOSE_GROUP', payload: {} }),
   playTracks: (tracks: Track[]) => dispatch({ type: 'PLAY_TRACKS', payload: { tracks } }),
+  fetchTracks: fetchGroupTracks,
   renderAlbums: renderGroupAlbums,
   renderOpenParts: localGroupParts,
 });

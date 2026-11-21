@@ -9,7 +9,6 @@ import { usePageLoader } from '../../../hooks/use-page-loader';
 import { useScrollSeparator } from '../../../hooks/use-scroll-separator';
 import { useTileGrid } from '../../../hooks/use-tile-grid';
 import { useWindowedList } from '../../../hooks/use-windowed-list';
-import { fetchGroupTracks } from '../../../domain/group-tracks';
 import { selectedFolders } from '../../../domain/library-query';
 import { shuffled } from '../../../domain/shuffled';
 import { getCachedItem } from '../../../redux/library/pages';
@@ -63,6 +62,8 @@ interface GroupViewProps {
   /** Told which pages the window wants, for the requests of the others to be dropped; none for the local library */
   keepPages?: (pages: number[]) => void;
   playTracks: (tracks: Track[]) => void;
+  /** Every track of the open group in the folders given, for the buttons of its bar; a list whose groups are not opened here omits it */
+  fetchTracks?: (group: OpenGroup, folders: string[]) => Promise<Track[]>;
   setCoverSize: (size: number) => void;
   openGroup: (group: OpenGroup) => void;
   closeGroup: () => void;
@@ -85,7 +86,7 @@ const GroupList = ({
   keepPages,
   setCoverSize,
   openGroup,
-}: Omit<GroupViewProps, 'open' | 'closeGroup' | 'playTracks' | 'renderAlbums' | 'renderOpenParts'>) => {
+}: Omit<GroupViewProps, 'open' | 'closeGroup' | 'playTracks' | 'fetchTracks' | 'renderAlbums' | 'renderOpenParts'>) => {
   const { t } = useTranslation();
   const { separator, listing: scrolled } = useScrollSeparator(style.scrolled);
   // the artists and the album artists are photo tiles of the size of the slider, the genres are cards of one size
@@ -150,7 +151,7 @@ const GroupList = ({
   );
 };
 
-const GroupView = ({ open, closeGroup, playTracks, renderAlbums, renderOpenParts, ...list }: GroupViewProps) => {
+const GroupView = ({ open, closeGroup, playTracks, fetchTracks, renderAlbums, renderOpenParts, ...list }: GroupViewProps) => {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const parts = open && renderOpenParts?.(open);
@@ -158,10 +159,10 @@ const GroupView = ({ open, closeGroup, playTracks, renderAlbums, renderOpenParts
 
   // the albums of the group are fetched for the queue, which can take a moment for a big group
   const play = (shuffle: boolean) => {
-    if (!open) return;
+    if (!open || !fetchTracks) return;
 
     setBusy(true);
-    fetchGroupTracks(open, selectedFolders(list.selected ?? noFolders, list.folders ?? noKnownFolders))
+    fetchTracks(open, selectedFolders(list.selected ?? noFolders, list.folders ?? noKnownFolders))
       .then((tracks) => playTracks(shuffle ? shuffled(tracks) : tracks))
       .catch(console.error)
       .finally(() => setBusy(false));
