@@ -4,15 +4,8 @@ import type { Track } from '@shared/types/library';
 import type { Playlist } from '@shared/types/playlists';
 import PlaylistView from './PlaylistView';
 
-const queued = vi.hoisted(() => vi.fn());
-vi.mock('../../../containers/library/add-to-queue', async () => {
-  const { createElement } = await import('react');
-
-  return {
-    default: ({ getTracks, next }: { getTracks: () => Promise<unknown[]>; next?: boolean }) =>
-      createElement('button', { 'aria-label': next ? 'Play next' : 'Add to the queue', onClick: () => void getTracks().then(queued) }),
-  };
-});
+const queued = vi.fn();
+const addToQueue = (tracks: Track[], next: boolean) => queued(tracks, next);
 
 const track = (title: string): Track => ({
   path: `/music/${title}.flac`,
@@ -52,6 +45,7 @@ describe('PlaylistView', () => {
       undoImport: vi.fn(),
       removeEntry: vi.fn(),
       moveEntry: vi.fn(),
+      addToQueue,
     };
     render(<PlaylistView playlist={shown ?? undefined} {...props} />);
     return props;
@@ -120,22 +114,22 @@ describe('PlaylistView', () => {
     renderView();
 
     const buttons = screen.getAllByRole('button', { name: 'Add to the queue' });
-    expect(buttons).toHaveLength(3);
+    expect(buttons).toHaveLength(2);
 
-    fireEvent.click(buttons[2]);
-    await waitFor(() => expect(queued).toHaveBeenCalledWith([playlist.entries[2].track]));
+    fireEvent.click(buttons[1]);
+    await waitFor(() => expect(queued).toHaveBeenCalledWith([playlist.entries[2].track], false));
   });
 
   it('adds the tracks that are available, or puts them next, from the header', async () => {
     renderView();
     const available = [playlist.entries[0].track, playlist.entries[2].track];
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Add to the queue' })[0]);
-    await waitFor(() => expect(queued).toHaveBeenLastCalledWith(available));
+    fireEvent.click(screen.getByRole('button', { name: 'Add to queue' }));
+    await waitFor(() => expect(queued).toHaveBeenLastCalledWith(available, false));
     fireEvent.click(screen.getAllByRole('button', { name: 'Play next' })[0]);
     await waitFor(() => expect(queued).toHaveBeenCalledTimes(2));
 
-    expect(queued).toHaveBeenLastCalledWith(available);
+    expect(queued).toHaveBeenLastCalledWith(available, true);
   });
 
   it('puts a track that is available next', async () => {
@@ -145,7 +139,7 @@ describe('PlaylistView', () => {
     expect(buttons).toHaveLength(3);
 
     fireEvent.click(buttons[1]);
-    await waitFor(() => expect(queued).toHaveBeenCalledWith([playlist.entries[0].track]));
+    await waitFor(() => expect(queued).toHaveBeenCalledWith([playlist.entries[0].track], true));
   });
 
   it('says so when the playlist is not there', () => {

@@ -9,7 +9,7 @@ import { stationFavourite, trackFavourite } from '../../../domain/favourites';
 import { toRadioTrack } from '../../../domain/radio-track';
 import HomeView from './HomeView';
 
-vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
+const renderFavourite = () => null;
 
 const track: Track = {
   path: '/music/a.flac',
@@ -41,7 +41,7 @@ const played = (item: ReturnType<typeof trackFavourite>, available = true): Hist
 
 describe('HomeView', () => {
   const renderView = (history: HistoryItem[], currentSong: Track | null = null, extra: Partial<ComponentProps<typeof HomeView>> = {}) => {
-    const props = { playTracks: vi.fn(), playStation: vi.fn(), clearHistory: vi.fn(), resume: vi.fn(), addFolder: vi.fn() };
+    const props = { playTracks: vi.fn(), playStation: vi.fn(), renderFavourite, clearHistory: vi.fn(), resume: vi.fn(), addFolder: vi.fn() };
     render(<HomeView history={history} currentSong={currentSong} {...props} {...extra} />);
     return props;
   };

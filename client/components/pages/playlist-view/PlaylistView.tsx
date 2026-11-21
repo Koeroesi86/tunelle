@@ -9,7 +9,7 @@ import { useDragReorder } from '../../../hooks/use-drag-reorder';
 import { useTranslation } from '../../../i18n';
 import style from './PlaylistView.scss';
 import AudioFormatBadge from '../../ui/audio-format-badge';
-import AddToQueue from '../../../containers/library/add-to-queue';
+import AddToQueue from '../../library/add-to-queue/AddToQueue';
 import NameField from '../../ui/name-field';
 import Confirm from '../../ui/confirm';
 
@@ -24,6 +24,8 @@ interface PlaylistViewProps {
   undoImport: (id: number) => void;
   removeEntry: (id: number, entryId: number) => void;
   moveEntry: (id: number, entryId: number, toIndex: number) => void;
+  /** Puts the tracks at the end of the queue, or right after the song that plays */
+  addToQueue: (tracks: Track[], next: boolean) => void;
 }
 
 interface TitleProps {
@@ -70,6 +72,7 @@ const PlaylistView = ({
   undoImport,
   removeEntry,
   moveEntry,
+  addToQueue,
 }: PlaylistViewProps) => {
   const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
@@ -98,8 +101,12 @@ const PlaylistView = ({
           <PlayIcon size="16px" aria-hidden />
           {t('playlists.playAll')}
         </button>
-        {playable.length > 0 && <AddToQueue withLabel className={style.queue} getTracks={() => Promise.resolve(playable)} />}
-        {playable.length > 0 && <AddToQueue next withLabel className={style.queue} getTracks={() => Promise.resolve(playable)} />}
+        {playable.length > 0 && (
+          <AddToQueue withLabel add={(tracks) => addToQueue(tracks, false)} className={style.queue} getTracks={() => Promise.resolve(playable)} />
+        )}
+        {playable.length > 0 && (
+          <AddToQueue next withLabel add={(tracks) => addToQueue(tracks, true)} className={style.queue} getTracks={() => Promise.resolve(playable)} />
+        )}
         <button type="button" className={style.export} onClick={() => exportPlaylist(playlist.id)}>
           {t('playlists.export')}
         </button>
@@ -162,8 +169,8 @@ const PlaylistView = ({
             >
               <PlayIcon size="12px" />
             </button>
-            {available && <AddToQueue className={style.action} getTracks={() => Promise.resolve([track])} />}
-            {available && <AddToQueue next className={style.action} getTracks={() => Promise.resolve([track])} />}
+            {available && <AddToQueue add={(tracks) => addToQueue(tracks, false)} className={style.action} getTracks={() => Promise.resolve([track])} />}
+            {available && <AddToQueue next add={(tracks) => addToQueue(tracks, true)} className={style.action} getTracks={() => Promise.resolve([track])} />}
             <button
               type="button"
               className={style.action}

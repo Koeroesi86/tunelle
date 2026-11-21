@@ -16,7 +16,7 @@ import style from './HomeView.scss';
 import AudioFormatBadge from '../../ui/audio-format-badge';
 import StationLogo from '../../ui/station-logo';
 import Confirm from '../../ui/confirm';
-import FavouriteButton from '../../../containers/ui/favourite-button';
+import type { RenderFavourite } from '../../ui/favourite-button/FavouriteButton';
 import Time from '../../ui/time';
 
 interface HomeViewProps {
@@ -29,6 +29,8 @@ interface HomeViewProps {
   hasFolders?: boolean;
   playTracks: (tracks: Track[]) => void;
   playStation: (station: RadioStation) => void;
+  /** The heart of an item, which belongs to where the favourites are kept */
+  renderFavourite: RenderFavourite;
   clearHistory: () => void;
   resume?: () => void;
   addFolder?: () => void;
@@ -86,6 +88,7 @@ const HomeView = ({
   hasFolders = true,
   playTracks,
   playStation,
+  renderFavourite,
   clearHistory,
   resume = () => {},
   addFolder = () => {},
@@ -186,7 +189,7 @@ const HomeView = ({
                     <AudioFormatBadge track={item.kind === 'station' ? toRadioTrack(item.snapshot) : item.kind === 'track' ? item.snapshot : undefined} />
                   </span>
                   <span className={style.duration}>{item.kind === 'track' && item.snapshot.duration ? <Time seconds={item.snapshot.duration} /> : null}</span>
-                  <FavouriteButton item={item} />
+                  {renderFavourite(item)}
                   <button className={style.playButton} disabled={!item.available} aria-label={t('player.play')} onClick={() => play(item)}>
                     <PlayIcon size="12px" />
                   </button>

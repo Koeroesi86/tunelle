@@ -11,8 +11,8 @@ import { useTranslation } from '../../../i18n';
 import type { MessageKey, Translator } from '@shared/locales/translate';
 import style from './FavouritesView.scss';
 import AudioFormatBadge from '../../ui/audio-format-badge';
-import FavouriteButton from '../../../containers/ui/favourite-button';
-import AddToQueue from '../../../containers/library/add-to-queue';
+import type { RenderFavourite } from '../../ui/favourite-button/FavouriteButton';
+import AddToQueue from '../../library/add-to-queue/AddToQueue';
 
 const sources: Source[] = ['local', 'online'];
 const orders: Order[] = ['recent', 'name', 'details'];
@@ -29,6 +29,10 @@ interface FavouritesViewProps {
   order: Order;
   setSource: (source: Source) => void;
   setOrder: (order: Order) => void;
+  /** The heart of an item, which belongs to where the favourites are kept */
+  renderFavourite: RenderFavourite;
+  /** Puts the tracks at the end of the queue, or right after the song that plays */
+  addToQueue: (tracks: Track[], next: boolean) => void;
 }
 
 const describe = (favourite: Favourite, { t }: Translator) => {
@@ -92,16 +96,18 @@ const likedOn = (addedAt: number, now: number, language: string) => {
 interface RowProps {
   favourite: Favourite;
   play: (favourites: Favourite[]) => void;
+  renderFavourite: RenderFavourite;
+  addToQueue: (tracks: Track[], next: boolean) => void;
 }
 
-const Row = ({ favourite, play }: RowProps) => {
+const Row = ({ favourite, play, renderFavourite, addToQueue }: RowProps) => {
   const translator = useTranslation();
   const { t, language } = translator;
   const KindIcon = kindIcons[favourite.kind];
 
   return (
     <div className={classNames(style.row, { [style.unavailable]: !favourite.available })} onDoubleClick={() => favourite.available && play([favourite])}>
-      <FavouriteButton item={favourite} />
+      {renderFavourite(favourite)}
       <span className={classNames(style.kind, style[favourite.kind])} title={t(kindTitles[favourite.kind])}>
         <KindIcon size="14px" />
       </span>
@@ -122,7 +128,9 @@ const Row = ({ favourite, play }: RowProps) => {
         <AudioFormatBadge track={formatTrack(favourite)} />
       </span>
       <span className={style.actions}>
-        {favourite.available && favourite.kind !== 'station' && <AddToQueue getTracks={() => getFavouriteTracks([favourite])} />}
+        {favourite.available && favourite.kind !== 'station' && (
+          <AddToQueue add={(tracks) => addToQueue(tracks, false)} getTracks={() => getFavouriteTracks([favourite])} />
+        )}
         <button disabled={!favourite.available} aria-label={t('player.play')} onClick={() => play([favourite])}>
           <PlayIcon size="14px" />
         </button>
@@ -138,7 +146,7 @@ interface FavouritesViewProps {
   playStation: (station: RadioStation) => void;
 }
 
-const FavouritesView = ({ favourites, playTracks, playStation, source, order, setSource, setOrder }: FavouritesViewProps) => {
+const FavouritesView = ({ favourites, playTracks, playStation, source, order, setSource, setOrder, renderFavourite, addToQueue }: FavouritesViewProps) => {
   const translator = useTranslation();
   const { t } = translator;
 
@@ -235,7 +243,13 @@ const FavouritesView = ({ favourites, playTracks, playStation, source, order, se
         {side
           .filter(({ available }) => available)
           .map((favourite) => (
-            <Row key={`${favourite.source}/${favourite.kind}/${favourite.id}`} favourite={favourite} play={play} />
+            <Row
+              key={`${favourite.source}/${favourite.kind}/${favourite.id}`}
+              favourite={favourite}
+              play={play}
+              renderFavourite={renderFavourite}
+              addToQueue={addToQueue}
+            />
           ))}
         {gone.length > 0 && (
           <div className={style.goneHeading}>
@@ -245,7 +259,13 @@ const FavouritesView = ({ favourites, playTracks, playStation, source, order, se
           </div>
         )}
         {gone.map((favourite) => (
-          <Row key={`${favourite.source}/${favourite.kind}/${favourite.id}`} favourite={favourite} play={play} />
+          <Row
+            key={`${favourite.source}/${favourite.kind}/${favourite.id}`}
+            favourite={favourite}
+            play={play}
+            renderFavourite={renderFavourite}
+            addToQueue={addToQueue}
+          />
         ))}
       </div>
     </div>

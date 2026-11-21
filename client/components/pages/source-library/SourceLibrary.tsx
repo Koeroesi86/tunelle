@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { FaChevronLeft } from 'react-icons/fa';
 import type { AlbumSummary } from '@shared/types/library';
 import { sourceBrowseSchema, sourceCapabilities } from '@shared/schemas/sources';
@@ -7,9 +8,6 @@ import { useTranslation } from '../../../i18n';
 import type { SourcesState } from '../../../redux/sources/reducer';
 import { browseKey } from '../../../redux/sources/reducer';
 import { pageRequest } from '../../../redux/sources/lists';
-import SourceAlbums from '../../../containers/library/source-albums';
-import SourceArtists from '../../../containers/library/source-artists';
-import SourceTracks from '../../../containers/library/source-tracks';
 import LibrarySearch from '../../library/library-search/LibrarySearch';
 import SortSelect from '../../ui/sort-select/SortSelect';
 import style from './SourceLibrary.scss';
@@ -21,6 +19,10 @@ interface SourceLibraryProps {
   /** What the servers answered to the requests, by the key of the request */
   browsed: SourcesState['browsed'];
   load: () => void;
+  /** The lists of a server, which are connected to the store: the request is the first page of the list, and what is opened in it is told back */
+  renderAlbums: (request: SourceBrowse, open: (album: AlbumSummary) => void) => ReactNode;
+  renderArtists: (request: SourceBrowse, open: (artist: { id: string; name: string }) => void) => ReactNode;
+  renderTracks: (request: SourceBrowse, setTitleOrder?: (title: boolean) => void) => ReactNode;
 }
 
 interface Position {
@@ -44,7 +46,7 @@ const requestOf = (serverId: string, section: LibraryKind, sort: LibrarySort, qu
             : { what: 'artists', serverId }
   );
 
-const SourceLibrary = ({ kind, section, servers, browsed, load }: SourceLibraryProps) => {
+const SourceLibrary = ({ kind, section, servers, browsed, load, renderAlbums, renderArtists, renderTracks }: SourceLibraryProps) => {
   const { t } = useTranslation();
   const [serverId, setServerId] = useState<string | undefined>(undefined);
   const [sort, setSort] = useState<LibrarySort>('recent');
@@ -133,15 +135,12 @@ const SourceLibrary = ({ kind, section, servers, browsed, load }: SourceLibraryP
         </div>
       )}
       <div className={style.view}>
-        {kindShown === 'albums' && <SourceAlbums key={browseKey(request)} request={request} open={open} />}
-        {kindShown === 'artists' && <SourceArtists key={browseKey(request)} request={request} open={openArtist} />}
-        {kindShown === 'tracks' && (
-          <SourceTracks
-            key={browseKey(request)}
-            request={request}
-            setTitleOrder={request.what === 'library' ? (byTitle) => setSort(byTitle ? 'title' : 'recent') : undefined}
-          />
-        )}
+        {/* another request is another list, which starts from its top */}
+        <Fragment key={browseKey(request)}>
+          {kindShown === 'albums' && renderAlbums(request, open)}
+          {kindShown === 'artists' && renderArtists(request, openArtist)}
+          {kindShown === 'tracks' && renderTracks(request, request.what === 'library' ? (byTitle) => setSort(byTitle ? 'title' : 'recent') : undefined)}
+        </Fragment>
       </div>
     </div>
   );

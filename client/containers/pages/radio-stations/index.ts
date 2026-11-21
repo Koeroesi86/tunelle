@@ -4,6 +4,7 @@ import type { RadioQuery, RadioStation } from '@shared/types/radio';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import { radioUuidOf } from '../../../domain/radio-track';
+import { renderFavourite } from '../../ui/render-favourite';
 import RadioStations from '../../../components/pages/radio-stations/RadioStations';
 
 const mapState = (state: RootState) => ({
@@ -15,6 +16,7 @@ const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   search: (query: RadioQuery) => dispatch({ type: 'SEARCH_RADIO', payload: { query } }),
   loadTags: () => dispatch({ type: 'LOAD_RADIO_TAGS', payload: {} }),
   loadOptions: () => dispatch({ type: 'LOAD_RADIO_OPTIONS', payload: {} }),
+  renderFavourite,
   play: (station: RadioStation) => dispatch({ type: 'PLAY_RADIO_STATION', payload: { station } }),
 });
 
