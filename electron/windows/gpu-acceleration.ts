@@ -1,29 +1,25 @@
-import { app, BrowserWindow, type GPUFeatureStatus } from 'electron';
+import { app, type BrowserWindow, type GPUFeatureStatus, type WebContents } from 'electron';
 import { gpuOverrideSchema } from '../schemas/environment';
+import { sendIfAlive } from '../utils/send-if-alive';
 
 const isOn = (status: string) => status.startsWith('enabled');
 
 /** Whether Chromium composites the window and draws its canvases on the GPU, and not in software (a machine with no GPU, a driver on the blocklist, `--disable-gpu`) */
 export const isAccelerated = (status: Pick<GPUFeatureStatus, 'gpu_compositing' | '2d_canvas'>) => isOn(status.gpu_compositing) && isOn(status['2d_canvas']);
 
-/** The status says software until a page was drawn, as the GPU process starts with the first one: a hidden window shows one, and the window of the app opens on a GPU process that runs already. See docs/app/software-rendering.md */
-const probe = async () => {
-  // Electron quits when the last window closes and nothing listens (the app registers its own listener when it has started)
-  app.on('window-all-closed', () => undefined);
-  const window = new BrowserWindow({ show: false, webPreferences: { sandbox: true } });
-  try {
-    await window.loadURL('data:text/html,<body>Tunelle</body>');
-    return isAccelerated(app.getGPUFeatureStatus());
-  } finally {
-    window.destroy();
-  }
-};
+let software = false;
 
-let probed: Promise<boolean> | undefined;
+export const isSoftwareRendering = () => software;
 
-/** `TUNELLE_GPU=0` or `1` forces the answer, to try the software mode on a machine with a GPU. A probe that fails is a GPU, as the app does not take its motion away on a guess */
-export const hasGpuAcceleration = async () => {
-  probed ??= probe().catch(() => true);
+/** Tells the page whether nothing is drawn by a GPU, which it does not know until the window has loaded (see detectSoftwareRendering) */
+export const sendSoftwareRendering = (sender: WebContents) => sendIfAlive(sender, 'SOFTWARE_RENDERING', { software });
 
-  return gpuOverrideSchema.parse(process.env.TUNELLE_GPU) ?? probed;
+/** Asks the GPU status once the page of the window has loaded (it says software before) and takes from the window what the compositor pays for. See docs/app/software-rendering.md */
+export const detectSoftwareRendering = (window: BrowserWindow) => {
+  software = !(gpuOverrideSchema.parse(process.env.TUNELLE_GPU) ?? isAccelerated(app.getGPUFeatureStatus()));
+  if (!software) return;
+
+  if (process.platform === 'darwin') window.setVibrancy(null);
+  if (process.platform === 'win32') window.setBackgroundMaterial('none');
+  sendSoftwareRendering(window.webContents);
 };

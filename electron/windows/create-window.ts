@@ -5,13 +5,10 @@ import lockNavigation from './lock-navigation';
 import registerWindowZoom from './window-zoom';
 import { correctWindowBounds, minWindowSize } from './window-bounds';
 import { isDarkTheme } from '../theme';
-import { hasGpuAcceleration } from './gpu-acceleration';
 import { applyWindowBackdrop, getBackdropArguments, getWindowBackdrop } from './window-backdrop';
 
-const createWindow = async () => {
-  const accelerated = await hasGpuAcceleration();
-  // a window that is drawn by the CPU gets no translucency and no blur behind it: both are work for the compositor (see docs/app/software-rendering.md)
-  const backdrop = accelerated ? getWindowBackdrop(process.platform) : 'none';
+const createWindow = () => {
+  const backdrop = getWindowBackdrop(process.platform);
   const mainWindowState = windowStateKeeper({
     defaultWidth: 1200,
     defaultHeight: 800,
@@ -22,10 +19,9 @@ const createWindow = async () => {
     minWidth: minWindowSize.width,
     minHeight: minWindowSize.height,
     frame: false,
-    transparent: accelerated,
-    // the mode is on the native theme before the window opens (index.ts), so the first paint has the right theme; a transparent window has no background of its own
+    transparent: true,
+    // the mode is on the native theme before the window opens (index.ts), so the first paint has the right theme; the window is transparent, so it has no background of its own
     darkTheme: isDarkTheme(),
-    ...(accelerated ? {} : { backgroundColor: isDarkTheme() ? '#1f1f1f' : '#f2f2f2' }),
     show: false,
     icon: resolve(__dirname, '../../../icons/png/512x512.png'),
     webPreferences: {
@@ -35,7 +31,7 @@ const createWindow = async () => {
       sandbox: true,
       nodeIntegration: false,
       disableBlinkFeatures: 'Auxclick',
-      additionalArguments: getBackdropArguments(backdrop, accelerated),
+      additionalArguments: getBackdropArguments(backdrop),
     },
   });
   applyWindowBackdrop(mainWindow, backdrop);

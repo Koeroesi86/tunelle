@@ -1,23 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const electron = vi.hoisted(() => ({
-  getGPUFeatureStatus: vi.fn(),
-  loadURL: vi.fn(),
-  destroy: vi.fn(),
-  windows: vi.fn(),
-  on: vi.fn(),
-}));
+const electron = vi.hoisted(() => ({ getGPUFeatureStatus: vi.fn() }));
+const send = vi.hoisted(() => vi.fn());
 
-vi.mock('electron', () => ({
-  app: { getGPUFeatureStatus: electron.getGPUFeatureStatus, on: electron.on },
-  BrowserWindow: class {
-    constructor(options: unknown) {
-      electron.windows(options);
-    }
-    loadURL = electron.loadURL;
-    destroy = electron.destroy;
-  },
-}));
+vi.mock('electron', () => ({ app: { getGPUFeatureStatus: electron.getGPUFeatureStatus } }));
+vi.mock('../utils/send-if-alive', () => ({ sendIfAlive: send }));
 
 const status = (gpu_compositing: string, canvas: string) => ({ gpu_compositing, '2d_canvas': canvas });
 
@@ -26,6 +13,8 @@ const load = async () => {
 
   return import('./gpu-acceleration');
 };
+
+const windowOf = () => ({ setVibrancy: vi.fn(), setBackgroundMaterial: vi.fn(), webContents: { id: 1 } }) as unknown as import('electron').BrowserWindow;
 
 describe('isAccelerated', () => {
   it.each(['enabled', 'enabled_on', 'enabled_force'])('is true when the compositing and the canvas are %s', async (value) => {
@@ -41,68 +30,76 @@ describe('isAccelerated', () => {
   });
 });
 
-describe('hasGpuAcceleration', () => {
+describe('detectSoftwareRendering', () => {
+  const platform = (name: NodeJS.Platform) => vi.spyOn(process, 'platform', 'get').mockReturnValue(name);
+
   beforeEach(() => {
-    electron.loadURL.mockResolvedValue(undefined);
+    send.mockReset();
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
-    Object.values(electron).forEach((mock) => mock.mockReset());
+    vi.restoreAllMocks();
   });
 
-  it('reads the status once a hidden window has shown a page, and closes the window', async () => {
-    electron.getGPUFeatureStatus.mockImplementation(() =>
-      electron.loadURL.mock.calls.length > 0 ? status('enabled', 'enabled') : status('disabled_software', 'disabled_software')
-    );
-    const { hasGpuAcceleration } = await load();
-
-    expect(await hasGpuAcceleration()).toBe(true);
-    expect(electron.windows).toHaveBeenCalledWith(expect.objectContaining({ show: false }));
-    expect(electron.destroy).toHaveBeenCalledOnce();
-  });
-
-  it('keeps the app open when the probe window is the last one that closes', async () => {
+  it('leaves the window and the page alone with a GPU', async () => {
     electron.getGPUFeatureStatus.mockReturnValue(status('enabled', 'enabled'));
-    await (await load()).hasGpuAcceleration();
+    platform('darwin');
+    const window = windowOf();
+    const gpu = await load();
 
-    expect(electron.on).toHaveBeenCalledWith('window-all-closed', expect.any(Function));
+    gpu.detectSoftwareRendering(window);
+
+    expect(gpu.isSoftwareRendering()).toBe(false);
+    expect(window.setVibrancy).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
   });
 
-  it('is false when the page was drawn in software', async () => {
+  it('drops the vibrancy of macOS and tells the page without a GPU', async () => {
     electron.getGPUFeatureStatus.mockReturnValue(status('disabled_software', 'disabled_software'));
+    platform('darwin');
+    const window = windowOf();
+    const gpu = await load();
 
-    expect(await (await load()).hasGpuAcceleration()).toBe(false);
+    gpu.detectSoftwareRendering(window);
+
+    expect(gpu.isSoftwareRendering()).toBe(true);
+    expect(window.setVibrancy).toHaveBeenCalledWith(null);
+    expect(send).toHaveBeenCalledWith(window.webContents, 'SOFTWARE_RENDERING', { software: true });
   });
 
-  it('probes once', async () => {
+  it('drops the acrylic of Windows without a GPU', async () => {
+    electron.getGPUFeatureStatus.mockReturnValue(status('disabled_software', 'disabled_software'));
+    platform('win32');
+    const window = windowOf();
+
+    (await load()).detectSoftwareRendering(window);
+
+    expect(window.setBackgroundMaterial).toHaveBeenCalledWith('none');
+    expect(window.setVibrancy).not.toHaveBeenCalled();
+  });
+
+  it('is forced on by TUNELLE_GPU=0 and off by TUNELLE_GPU=1', async () => {
     electron.getGPUFeatureStatus.mockReturnValue(status('enabled', 'enabled'));
-    const { hasGpuAcceleration } = await load();
-
-    await hasGpuAcceleration();
-    await hasGpuAcceleration();
-
-    expect(electron.windows).toHaveBeenCalledOnce();
-  });
-
-  it('takes a probe that fails for a GPU, and still closes the window', async () => {
-    electron.loadURL.mockRejectedValue(new Error('the page did not load'));
-
-    expect(await (await load()).hasGpuAcceleration()).toBe(true);
-    expect(electron.destroy).toHaveBeenCalledOnce();
-  });
-
-  it('is forced off by TUNELLE_GPU=0', async () => {
     vi.stubEnv('TUNELLE_GPU', '0');
-    electron.getGPUFeatureStatus.mockReturnValue(status('enabled', 'enabled'));
+    const gpu = await load();
+    gpu.detectSoftwareRendering(windowOf());
+    expect(gpu.isSoftwareRendering()).toBe(true);
 
-    expect(await (await load()).hasGpuAcceleration()).toBe(false);
+    electron.getGPUFeatureStatus.mockReturnValue(status('disabled_software', 'disabled_software'));
+    vi.stubEnv('TUNELLE_GPU', '1');
+    gpu.detectSoftwareRendering(windowOf());
+    expect(gpu.isSoftwareRendering()).toBe(false);
   });
 
-  it('is forced on by TUNELLE_GPU=1', async () => {
-    vi.stubEnv('TUNELLE_GPU', '1');
+  it('tells a page that asks later what was found', async () => {
     electron.getGPUFeatureStatus.mockReturnValue(status('disabled_software', 'disabled_software'));
+    const gpu = await load();
+    gpu.detectSoftwareRendering(windowOf());
+    const sender = { id: 2 } as unknown as import('electron').WebContents;
 
-    expect(await (await load()).hasGpuAcceleration()).toBe(true);
+    gpu.sendSoftwareRendering(sender);
+
+    expect(send).toHaveBeenLastCalledWith(sender, 'SOFTWARE_RENDERING', { software: true });
   });
 });

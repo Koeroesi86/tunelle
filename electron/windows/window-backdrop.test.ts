@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { BrowserWindow } from 'electron';
-import { applyWindowBackdrop, blurArgument, getBackdropArguments, getWindowBackdrop, softwareArgument } from './window-backdrop';
+import { applyWindowBackdrop, blurArgument, getBackdropArguments, getWindowBackdrop } from './window-backdrop';
 
 describe('getWindowBackdrop', () => {
   it('is vibrancy on macOS', () => {
@@ -19,10 +19,6 @@ describe('getBackdropArguments', () => {
 
   it('tells the page nothing without a backdrop', () => {
     expect(getBackdropArguments('none')).toEqual([]);
-  });
-
-  it('tells the page that nothing is accelerated', () => {
-    expect(getBackdropArguments('none', false)).toEqual([softwareArgument]);
   });
 });
 

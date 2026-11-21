@@ -8,8 +8,6 @@ export interface ElectronApi {
   getPathForFile: (file: File) => string;
   /** Something blurs behind the translucent parts of the window (see window-backdrop.ts) */
   blurred: boolean;
-  /** The window is drawn by the CPU (no GPU), so the page stops the canvas animations and has no translucency (see gpu-acceleration.ts) */
-  software: boolean;
   /** The main process shows the player in the media controls of the desktop (MPRIS, Linux), so the page does not use navigator.mediaSession */
   mpris: boolean;
 }

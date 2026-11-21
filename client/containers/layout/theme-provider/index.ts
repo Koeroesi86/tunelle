@@ -1,12 +1,11 @@
 import { connect } from 'react-redux';
 import type { RootState } from '../../../redux/reducers';
-import { getBackend } from '../../../backend/backend';
 import { toNowPlaying } from '../../../domain/now-playing';
 import ThemeProvider from '../../../components/layout/theme-provider/ThemeProvider';
 
-const mapState = ({ uiState: { theme, reduceMotion, currentSong, streamTitle, streamArt } }: RootState) => ({
+const mapState = ({ uiState: { theme, reduceMotion, softwareRendering, currentSong, streamTitle, streamArt } }: RootState) => ({
   theme,
-  reduceMotion: reduceMotion || getBackend().capabilities.software,
+  reduceMotion: reduceMotion || softwareRendering,
   cover: currentSong ? toNowPlaying(currentSong, streamTitle, streamArt).cover : undefined,
 });
 

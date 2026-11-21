@@ -9,13 +9,7 @@ export const blurArgument = '--window-blur';
 /** Electron can only blur behind a window on macOS; on Linux and Windows the desktop has to do it, which the app cannot detect */
 export const getWindowBackdrop = (platform: NodeJS.Platform): WindowBackdrop => (platform === 'darwin' ? 'vibrancy' : 'none');
 
-/** The page is told that nothing is accelerated (`electronAPI.software`) through this argument */
-export const softwareArgument = '--software-rendering';
-
-export const getBackdropArguments = (backdrop: WindowBackdrop, accelerated = true) => [
-  ...(backdrop === 'none' ? [] : [blurArgument]),
-  ...(accelerated ? [] : [softwareArgument]),
-];
+export const getBackdropArguments = (backdrop: WindowBackdrop) => (backdrop === 'none' ? [] : [blurArgument]);
 
 export const applyWindowBackdrop = (window: BrowserWindow, backdrop: WindowBackdrop) => {
   if (backdrop === 'vibrancy') window.setVibrancy('under-window');
