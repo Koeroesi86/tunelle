@@ -56,7 +56,7 @@ const isAlbums = (result: unknown): result is SourceAlbum[] => Array.isArray(res
 const isTracks = (result: unknown): result is Track[] => Array.isArray(result) && result.every((item) => 'path' in item);
 const isObject = (result: unknown): result is object => typeof result === 'object' && result !== null && !Array.isArray(result);
 const isSearch = (result: unknown): result is SourceSearchResult => isObject(result) && 'artists' in result;
-const isPage = (result: unknown): result is SourcePage => isObject(result) && 'total' in result;
+const isPage = (result: unknown): result is SourcePage => isObject(result) && 'items' in result;
 
 const PlexAccount = ({
   state,
@@ -347,9 +347,10 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
     ));
 
   const items = loaded.flatMap<unknown>((page) => page.items);
-  const total = loaded.at(0)?.total ?? 0;
+  const total = loaded.at(0)?.total;
   const result: unknown = inLibrary ? (loaded.length ? items : undefined) : answer?.result;
-  const hasMore = inLibrary && loaded.length === view.pages && items.length < total;
+  // a server that tells no total has more while its last page is full
+  const hasMore = inLibrary && loaded.length === view.pages && (total === undefined ? (loaded.at(-1)?.items.length ?? 0) >= pageSize : items.length < total);
 
   return (
     <div className={style.tile}>
@@ -431,7 +432,7 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
           <button type="button" className={style.action} onClick={() => setView({ ...view, pages: view.pages + 1 })}>
             {t('sources.showMore')}
           </button>
-          <span className={style.meta}>{t('sources.shown', { shown: items.length, total })}</span>
+          {total !== undefined && <span className={style.meta}>{t('sources.shown', { shown: items.length, total })}</span>}
         </div>
       )}
       {Array.isArray(result) && result.length === 0 && <div className={style.hint}>{t('sources.empty')}</div>}

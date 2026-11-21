@@ -1,7 +1,15 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import type { Track } from '@shared/types/library';
-import { toSourcePath, type SourceAlbum, type SourceArtist, type SourceServer } from '@shared/schemas/sources';
+import {
+  toSourcePath,
+  type LibraryKind,
+  type LibrarySort,
+  type SourceAlbum,
+  type SourceArtist,
+  type SourcePage,
+  type SourceServer,
+} from '@shared/schemas/sources';
 import { openSource, readJson, SourceError, toResponse } from './source-request';
 
 const apiVersion = '1.16.1';
@@ -38,7 +46,10 @@ const songSchema = z.object({
   suffix: text,
 });
 
+const libraryOrders = { title: 'alphabeticalByName', recent: 'newest' };
+
 const pingSchema = z.object({});
+const albumListSchema = z.object({ albumList2: z.object({ album: z.array(albumSchema).optional() }) });
 const artistsSchema = z.object({ artists: z.object({ index: z.array(z.object({ artist: z.array(artistSchema).optional() })).optional() }) });
 const artistAlbumsSchema = z.object({ artist: z.object({ album: z.array(albumSchema).optional() }) });
 const albumSongsSchema = z.object({ album: z.object({ song: z.array(songSchema).optional() }) });
@@ -117,9 +128,24 @@ export const createSubsonicClient = (server: SourceServer, password: string, use
     return new Response(undefined, { status: 404 });
   };
 
+  const artists = () => call('getArtists', artistsSchema).then(({ artists: found }) => (found.index ?? []).flatMap(({ artist }) => artist ?? []).map(toArtist));
+
+  /** A page of the albums or the artists. The server counts neither the albums (no total) nor pages the artists, which are all cut here; it has no list of all songs */
+  const library = async (kind: LibraryKind, sort: LibrarySort, start: number, size: number): Promise<SourcePage> => {
+    if (kind === 'tracks') throw new Error('This server has no list of its songs');
+    if (kind === 'artists') {
+      const all = await artists();
+      return { total: all.length, items: all.slice(start, start + size) };
+    }
+
+    const { albumList2 } = await call('getAlbumList2', albumListSchema, { type: libraryOrders[sort], offset: String(start), size: String(size) });
+    return { items: (albumList2.album ?? []).map(toAlbum) };
+  };
+
   return {
     ping: () => call('ping', pingSchema).then(() => undefined),
-    artists: () => call('getArtists', artistsSchema).then(({ artists }) => (artists.index ?? []).flatMap(({ artist }) => artist ?? []).map(toArtist)),
+    artists,
+    library,
     albumsOf: (artistId: string) => call('getArtist', artistAlbumsSchema, { id: artistId }).then(({ artist }) => (artist.album ?? []).map(toAlbum)),
     tracksOf: (albumId: string) =>
       call('getAlbum', albumSongsSchema, { id: albumId }).then(({ album }) => (album.song ?? []).map((song) => toTrack(server.id, song))),
