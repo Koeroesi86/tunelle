@@ -195,8 +195,6 @@ export const launchApp = async ({ home, radioDirectory, initScripts, offline = f
       NODE_ENV: 'production',
       ...(offline ? {} : { TUNELLE_NO_UPDATE: '1' }),
       TUNELLE_NO_ARTIST_PHOTOS: '1',
-      // the runners draw by the CPU, and the tests run the app as it is with a GPU: the bars and the translucent window of it
-      TUNELLE_GPU: '1',
       // a change in a folder of the library is seen within a second, not after the ten that a listener waits
       TUNELLE_WATCH_MIN_SECONDS: '1',
       // the library is in the profile of the run on every system, not in the app data folder of the user (macOS and Windows do not follow HOME there)
