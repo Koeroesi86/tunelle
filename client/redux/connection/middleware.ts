@@ -69,6 +69,7 @@ function addListeners(store: Store) {
   onMessage('SOURCE_SERVER_FAILED', messageSchemas.SOURCE_SERVER_FAILED, (payload) => store.dispatch({ type: 'SOURCE_SERVER_FAILED', payload }));
   onMessage('SOURCE_CERTIFICATE_READ', messageSchemas.SOURCE_CERTIFICATE_READ, (payload) => store.dispatch({ type: 'SOURCE_CERTIFICATE_READ', payload }));
   onMessage('SOURCE_DISCOVERED', messageSchemas.SOURCE_DISCOVERED, (payload) => store.dispatch({ type: 'SOURCE_SERVERS_DISCOVERED', payload }));
+  onMessage('PLEX_ACCOUNT', messageSchemas.PLEX_ACCOUNT, (payload) => store.dispatch({ type: 'PLEX_ACCOUNT', payload }));
   onMessage('SOURCE_BROWSED', messageSchemas.SOURCE_BROWSED, (payload) => store.dispatch({ type: 'SOURCE_BROWSED', payload }));
   onMessage('RADIO_STATIONS', messageSchemas.RADIO_STATIONS, (payload) => store.dispatch({ type: 'RADIO_STATIONS', payload }));
   onMessage('RADIO_TAGS_LOADED', messageSchemas.RADIO_TAGS_LOADED, (payload) => store.dispatch({ type: 'RADIO_TAGS_LOADED', payload }));
@@ -352,6 +353,9 @@ const handleActions = actionMiddleware((store) => [
   onAction('REMOVE_SOURCE_SERVER', ({ payload }) => send('SOURCE_SERVER_REMOVE', payload)),
   onAction('READ_SOURCE_CERTIFICATE', ({ payload }) => send('SOURCE_CERTIFICATE', payload)),
   onAction('DISCOVER_SOURCE_SERVERS', () => send('SOURCE_DISCOVER')),
+  onAction('SIGN_IN_PLEX', () => send('PLEX_SIGN_IN')),
+  onAction('CANCEL_PLEX_SIGN_IN', () => send('PLEX_SIGN_IN_CANCEL')),
+  onAction('ADD_PLEX_SERVER', ({ payload }) => send('PLEX_SERVER_ADD', payload)),
   onAction('BROWSE_SOURCE', ({ payload }) => send('SOURCE_BROWSE', payload.request)),
   onAction('SEARCH_RADIO', ({ payload }) => send('RADIO_SEARCH', payload.query)),
   onAction('LOAD_RADIO_TAGS', () => send('RADIO_TAGS')),

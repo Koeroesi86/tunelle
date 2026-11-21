@@ -69,6 +69,7 @@ const onlineViews = [
   { view: 'radio', label: 'nav.radio', Icon: RadioIcon },
   { view: 'servers', label: 'nav.servers', Icon: ServersIcon },
   { view: 'jellyfin', label: 'nav.jellyfin', Icon: ServersIcon },
+  { view: 'plex', label: 'nav.plex', Icon: ServersIcon },
   { view: 'nearby', label: 'nav.nearby', Icon: NearbyIcon },
 ] as const;
 

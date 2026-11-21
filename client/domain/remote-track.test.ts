@@ -47,5 +47,6 @@ describe('remote track', () => {
     expect(trackCoverUrl({ path: '/music/a.flac', picture: 'abc.png' })).not.toContain('/remote/cover');
     expect(trackCoverUrl(toRemoteTrack(snapshot))).toBeUndefined();
     expect(trackCoverUrl({ path: '/music/a.flac', picture: null })).toBeUndefined();
+    expect(trackCoverUrl({ path: 'plex:5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11:77', picture: null })).toContain('/source/cover?path=plex%3A5f6a1c1e');
   });
 });

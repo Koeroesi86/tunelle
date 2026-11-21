@@ -1,5 +1,5 @@
 import type { Reducer } from 'redux';
-import type { DiscoveredServer, SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
+import type { DiscoveredServer, PlexAccount, SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
 import { isAppAction } from '../types';
 
 export interface SourcesState {
@@ -11,6 +11,8 @@ export interface SourcesState {
   certificate?: { url: string; certificate: string; code: string };
   /** The Jellyfin servers that answered on the network: `searching` until they did */
   discovery?: { searching: boolean; servers: DiscoveredServer[]; error?: string };
+  /** The sign in with plex.tv: the user approves it in the browser, then the servers of the account are there to add */
+  plexAccount?: PlexAccount;
   /** The answers of the browses by their request, a request without an answer is loading */
   browsed: Record<string, { result?: SourceBrowseResult; error?: string }>;
 }
@@ -27,7 +29,7 @@ const reducer: Reducer<SourcesState> = (state = initialState, action) => {
 
   switch (action.type) {
     case 'SOURCE_SERVERS_LOADED':
-      return { ...state, servers: action.payload.servers, saving: false, failure: undefined, certificate: undefined };
+      return { ...state, servers: action.payload.servers, saving: false, plexAccount: undefined, failure: undefined, certificate: undefined };
     case 'SAVE_SOURCE_SERVER':
       return { ...state, saving: true, failure: undefined };
     case 'SOURCE_SERVER_FAILED':
@@ -42,6 +44,14 @@ const reducer: Reducer<SourcesState> = (state = initialState, action) => {
       return { ...state, discovery: { searching: true, servers: [] } };
     case 'SOURCE_SERVERS_DISCOVERED':
       return { ...state, discovery: { searching: false, ...action.payload } };
+    case 'SIGN_IN_PLEX':
+      return { ...state, plexAccount: { status: 'waiting' }, failure: undefined };
+    case 'CANCEL_PLEX_SIGN_IN':
+      return { ...state, plexAccount: undefined };
+    case 'PLEX_ACCOUNT':
+      return { ...state, plexAccount: action.payload };
+    case 'ADD_PLEX_SERVER':
+      return { ...state, saving: true, failure: undefined };
     case 'BROWSE_SOURCE':
       return { ...state, browsed: without(state.browsed, browseKey(action.payload.request)) };
     case 'SOURCE_BROWSED': {

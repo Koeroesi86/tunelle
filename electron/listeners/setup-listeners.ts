@@ -23,6 +23,7 @@ import registerBackgroundTaskListeners from './register-background-task-listener
 import registerMprisListeners from './register-mpris-listeners';
 import registerRemoteListeners from './register-remote-listeners';
 import registerSourceListeners from './register-source-listeners';
+import registerPlexListeners from './register-plex-listeners';
 import registerMediaPermission from '../windows/media-permission';
 
 const registrars: ((context: ListenerContext) => void)[] = [
@@ -44,6 +45,7 @@ const registrars: ((context: ListenerContext) => void)[] = [
   registerMprisListeners,
   registerRemoteListeners,
   registerSourceListeners,
+  registerPlexListeners,
   registerMediaPermission,
 ];
 

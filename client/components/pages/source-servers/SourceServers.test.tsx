@@ -6,7 +6,7 @@ import SourceServers from './SourceServers';
 const id = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';
 const server = { id, kind: 'subsonic' as const, name: 'Home', url: 'https://music.example.com', username: 'me', protected: true };
 
-const setup = (state: Partial<SourcesState> = {}, kind: 'subsonic' | 'jellyfin' = 'subsonic') => {
+const setup = (state: Partial<SourcesState> = {}, kind: 'subsonic' | 'jellyfin' | 'plex' = 'subsonic') => {
   const props = {
     kind,
     state: { servers: [], saving: false, browsed: {}, ...state },
@@ -15,6 +15,9 @@ const setup = (state: Partial<SourcesState> = {}, kind: 'subsonic' | 'jellyfin' 
     remove: vi.fn(),
     readCertificate: vi.fn(),
     discover: vi.fn(),
+    signInPlex: vi.fn(),
+    cancelPlexSignIn: vi.fn(),
+    addPlexServer: vi.fn(),
     clearCertificate: vi.fn(),
     browse: vi.fn(),
     play: vi.fn(),
@@ -104,6 +107,39 @@ describe('SourceServers', () => {
     expect(props.browse).toHaveBeenCalledWith({ what: 'artists', serverId: id });
     expect(screen.getByText('Artist')).toBeTruthy();
   });
+
+  it('leaves without an error when the actions it dispatches answer with an object', () => {
+    const dispatched = () => ({ type: 'ANY' });
+    const props = {
+      kind: 'subsonic' as const,
+      state: { servers: [server], saving: false, browsed: {} },
+      load: vi.fn(dispatched),
+      save: vi.fn(),
+      remove: vi.fn(),
+      readCertificate: vi.fn(),
+      discover: vi.fn(),
+      signInPlex: vi.fn(),
+      cancelPlexSignIn: vi.fn(),
+      addPlexServer: vi.fn(),
+      clearCertificate: vi.fn(),
+      browse: vi.fn(dispatched),
+      play: vi.fn(),
+    };
+    const { unmount } = render(<SourceServers {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Browse Home' }));
+
+    expect(unmount).not.toThrow();
+  });
+
+  it('shows no count of albums or songs that the server did not tell', () => {
+    const artists = JSON.stringify({ what: 'artists', serverId: id });
+    setup({ servers: [server], browsed: { [artists]: { result: [{ id: 'ar1', name: 'Artist' }] } } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Browse Home' }));
+
+    expect(screen.getByText('Artist')).toBeTruthy();
+    expect(screen.queryByText(/album/i, { selector: 'span' })).toBeNull();
+  });
 });
 
 describe('SourceServers for Jellyfin', () => {
@@ -159,5 +195,57 @@ describe('SourceServers for Jellyfin', () => {
 
     expect(screen.queryByRole('button', { name: 'Use Film room' })).toBeNull();
     expect(screen.getByText(/No Jellyfin server answered/)).toBeTruthy();
+  });
+
+  it('sends a Plex server with its token and a fixed user, and asks for no user name', () => {
+    const { save } = setup({}, 'plex');
+    expect(screen.queryByLabelText('User name')).toBeNull();
+    type('Name', 'Den');
+    type('Address', 'https://plex.example.com:32400');
+    type('Token', 'abc');
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({ kind: 'plex', name: 'Den', username: 'plex', password: 'abc' }));
+  });
+
+  it('lists only the Plex servers on the Plex page', () => {
+    setup({ servers: [server, { ...server, id: '6f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b12', kind: 'plex', name: 'Den' }] }, 'plex');
+
+    expect(screen.getByText('Den')).toBeTruthy();
+    expect(screen.queryByText('Home')).toBeNull();
+  });
+
+  it('signs in with Plex from the Plex page only', () => {
+    const { signInPlex } = setup({}, 'plex');
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in with Plex' }));
+
+    expect(signInPlex).toHaveBeenCalled();
+  });
+
+  it('does not offer the sign in with Plex on the page of another kind', () => {
+    setup();
+
+    expect(screen.queryByRole('button', { name: 'Sign in with Plex' })).toBeNull();
+  });
+
+  it('shows the wait with a way to cancel it', () => {
+    const { cancelPlexSignIn } = setup({ plexAccount: { status: 'waiting' } }, 'plex');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByRole('status').textContent).toContain('approve the sign in');
+    expect(cancelPlexSignIn).toHaveBeenCalled();
+  });
+
+  it('lists the servers of the account and adds the one that is chosen', () => {
+    const { addPlexServer } = setup({ plexAccount: { status: 'servers', servers: [{ id: 'm1', name: 'Den' }] } }, 'plex');
+    fireEvent.click(screen.getByRole('button', { name: 'Add Den' }));
+
+    expect(addPlexServer).toHaveBeenCalledWith('m1');
+  });
+
+  it('says when the sign in failed', () => {
+    setup({ plexAccount: { status: 'failed', error: 'plex.tv answered 500' } }, 'plex');
+
+    expect(screen.getByRole('alert').textContent).toContain('plex.tv answered 500');
   });
 });

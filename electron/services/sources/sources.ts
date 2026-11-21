@@ -1,12 +1,14 @@
 import type { SourceServer } from '@shared/schemas/sources';
 import { createSourceStore } from './server-store';
 import { createJellyfinClient } from './jellyfin-client';
+import { createPlexClient } from './plex-client';
 import { createSubsonicClient } from './subsonic-client';
 
-const createClient = (server: SourceServer, password: string, userAgent: string) =>
-  server.kind === 'jellyfin' ? createJellyfinClient(server, password, userAgent) : createSubsonicClient(server, password, userAgent);
+const clientFactories = { subsonic: createSubsonicClient, jellyfin: createJellyfinClient, plex: createPlexClient };
 
-/** The calls of one server, whatever its kind: both clients answer the same */
+const createClient = (server: SourceServer, password: string, userAgent: string) => clientFactories[server.kind](server, password, userAgent);
+
+/** The calls of one server, whatever its kind: every client answers the same */
 export type SourceClient = ReturnType<typeof createClient>;
 
 /** The servers of the user and a client for each, which the protocol and the listeners share. See docs/app/sources.md */

@@ -17,7 +17,7 @@ import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import type { Control } from '@shared/constants/remote-controls';
 import type { PowerSavingMode } from '@shared/schemas/settings';
-import type { DiscoveredServer, SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
+import type { DiscoveredServer, PlexAccount, SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
 import type { LibraryView, OnlineView, PersistedSettings } from './persisted-settings';
 
 export type { LibraryView, OnlineView, PersistedSettings };
@@ -162,6 +162,10 @@ export type AppAction =
   | EmptyAction<'CLEAR_SOURCE_CERTIFICATE'>
   | EmptyAction<'DISCOVER_SOURCE_SERVERS'>
   | PayloadAction<'SOURCE_SERVERS_DISCOVERED', { servers: DiscoveredServer[]; error?: string }>
+  | EmptyAction<'SIGN_IN_PLEX'>
+  | EmptyAction<'CANCEL_PLEX_SIGN_IN'>
+  | PayloadAction<'PLEX_ACCOUNT', PlexAccount>
+  | PayloadAction<'ADD_PLEX_SERVER', { id: string }>
   | PayloadAction<'BROWSE_SOURCE', { request: SourceBrowse }>
   | PayloadAction<'SOURCE_BROWSED', { request: SourceBrowse; result?: SourceBrowseResult; error?: string }>
   | PayloadAction<'SEARCH_RADIO', { query: RadioQuery }>
