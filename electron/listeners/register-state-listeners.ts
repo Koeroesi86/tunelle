@@ -7,6 +7,7 @@ import { setPickedLanguage } from '../language';
 import { applyThemeMode } from '../theme';
 import { applyWatchSetting, startLibraryWatching } from '../library/watch/library-watching';
 import { applyPowerSetting } from '../power/power-state';
+import { sendSoftwareRendering } from '../windows/gpu-acceleration';
 import { sendPowerSaving } from '../power/send-power-saving';
 import { savedSettingsSchema } from '@shared/schemas/requests';
 import { parsePayload } from '../utils/parse-payload';
@@ -25,6 +26,7 @@ const registerStateListeners = (context: ListenerContext) => {
   ipcMain.on('APP_READY', (event) => {
     sendState(context, event.sender).catch(logError);
     sendPowerSaving(event.sender);
+    sendSoftwareRendering(event.sender);
     attachOpenedFiles(event.sender);
     startLibraryWatching(context.database, event.sender).catch(logError);
   });

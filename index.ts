@@ -12,7 +12,7 @@ import { isMeteredConnection } from './electron/services/updates/metered-connect
 import { askOnSplash } from './electron/services/updates/splash-confirm';
 import { copyOldLibrary, copyOldUserData, getAppName } from './electron/utils/user-data';
 import createWindow from './electron/windows/create-window';
-import { hasGpuAcceleration } from './electron/windows/gpu-acceleration';
+import { detectSoftwareRendering, isSoftwareRendering } from './electron/windows/gpu-acceleration';
 import { createStartupSignal } from './electron/services/platform/startup-signal';
 import loadPage from './electron/windows/load-page';
 import createDatabase from './electron/database/create-database';
@@ -154,15 +154,14 @@ function setAppId() {
 }
 
 // the window opens at once with the splash that is in its page, the player is mounted under it when the app has started. See docs/app/startup.md
-const openWindow = async () => {
+const openWindow = () => {
   setAppId();
-  const main = await createWindow();
-  const accelerated = await hasGpuAcceleration();
+  const main = createWindow();
   windows.main = main;
 
   main.once('ready-to-show', () => {
     main.show();
-    if (isWin && accelerated) main.setBackgroundMaterial('acrylic');
+    if (isWin && !isSoftwareRendering()) main.setBackgroundMaterial('acrylic');
   });
   main.on('closed', () => {
     windows.main = null;
@@ -273,9 +272,10 @@ app
   .whenReady()
   .then(serveApp)
   .then(async () => {
-    const main = await openWindow();
+    const main = openWindow();
     startup = createStartupSignal(main);
     await loadPage(main, windowLocation);
+    detectSoftwareRendering(main);
     // the splash is static and shows the text the main process sends; the picked language is in the library, which opens after the splash
     sendIfAlive(main.webContents, 'SPLASH_PROGRESS', { text: getMainTranslator().t('splash.loading', { title: 'Tunelle' }) });
 

@@ -32,6 +32,7 @@ export const messageSchemas = {
   OFFLINE_FOLDERS: z.object({ folders: z.array(z.string()) }),
   LOUDNESS_STATUS: loudnessProgressSchema,
   POWER_SAVING: z.object({ saving: z.boolean() }),
+  SOFTWARE_RENDERING: z.object({ software: z.boolean() }),
   LOUDNESS_FAILED: z.object({ tracks: z.array(failedLoudnessTrackSchema) }),
   ARTIST_PHOTO_FAILED: z.object({ reason: artistPhotoFailureSchema }),
   ALBUM_COVER_FAILED: z.object({ reason: albumCoverFailureSchema }),

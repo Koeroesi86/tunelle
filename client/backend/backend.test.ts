@@ -3,7 +3,7 @@ import type { ElectronApi } from '@shared/types/global';
 import { getBackend, setBackend } from './backend';
 import { createElectronBackend } from './electron-backend';
 
-const api = (): ElectronApi => ({ send: vi.fn(), on: vi.fn(), getPathForFile: vi.fn(() => '/music/a.flac'), blurred: true, mpris: false, software: false });
+const api = (): ElectronApi => ({ send: vi.fn(), on: vi.fn(), getPathForFile: vi.fn(() => '/music/a.flac'), blurred: true, mpris: false });
 
 describe('backend', () => {
   afterEach(() => vi.resetModules());
@@ -13,7 +13,7 @@ describe('backend', () => {
     const detached = fresh();
 
     expect(detached.send('PING')).toBeUndefined();
-    expect(detached.capabilities).toEqual({ blur: false, mpris: false, software: false });
+    expect(detached.capabilities).toEqual({ blur: false, mpris: false });
     expect(detached.resolveUrl('/track')).toBe('tunelle://app/track');
   });
 
@@ -43,6 +43,6 @@ describe('createElectronBackend', () => {
     const backend = createElectronBackend(api());
 
     expect(backend.resolveUrl('/albumart/cover.png')).toBe('tunelle://app/albumart/cover.png');
-    expect(backend.capabilities).toEqual({ blur: true, mpris: false, software: false });
+    expect(backend.capabilities).toEqual({ blur: true, mpris: false });
   });
 });

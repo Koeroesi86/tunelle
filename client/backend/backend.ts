@@ -11,8 +11,6 @@ export interface Backend {
     blur: boolean;
     /** The host shows the player in the media controls of the desktop, so the page does not use navigator.mediaSession */
     mpris: boolean;
-    /** Nothing is drawn by a GPU: the page stops the animations and does not ask for translucent panels */
-    software: boolean;
   };
 }
 
@@ -22,7 +20,7 @@ const detachedBackend: Backend = {
   on: () => undefined,
   resolveUrl: (route) => `tunelle://app${route}`,
   pathForFile: () => '',
-  capabilities: { blur: false, mpris: false, software: false },
+  capabilities: { blur: false, mpris: false },
 };
 
 let current: Backend = detachedBackend;

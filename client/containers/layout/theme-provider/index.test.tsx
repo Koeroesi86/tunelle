@@ -6,7 +6,6 @@ import reducers from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import { toRadioTrack } from '../../../domain/radio-track';
 import type { Track } from '@shared/types/library';
-import { getBackend, setBackend } from '../../../backend/backend';
 import ThemeProvider from './index';
 
 const coverAccent = vi.hoisted(() => vi.fn());
@@ -37,8 +36,6 @@ const setup = (actions: AppAction[]) => {
   );
 };
 
-const original = getBackend();
-
 describe('ThemeProvider connected to the store', () => {
   beforeEach(() => {
     coverAccent.mockReset().mockResolvedValue(undefined);
@@ -50,7 +47,6 @@ describe('ThemeProvider connected to the store', () => {
     document.documentElement.removeAttribute('data-theme');
     document.documentElement.removeAttribute('style');
     document.documentElement.removeAttribute('data-reduce-motion');
-    setBackend(original);
   });
 
   it('reads the cover of the local track that plays', async () => {
@@ -70,8 +66,7 @@ describe('ThemeProvider connected to the store', () => {
   });
 
   it('stops the motion of a window that has no GPU, whatever the setting is', () => {
-    setBackend({ ...original, capabilities: { blur: false, mpris: false, software: true } });
-    setup([]);
+    setup([{ type: 'SOFTWARE_RENDERING', payload: { software: true } }]);
 
     expect(document.documentElement.hasAttribute('data-reduce-motion')).toBe(true);
   });
