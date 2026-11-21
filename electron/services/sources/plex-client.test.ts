@@ -188,6 +188,43 @@ describe('the Plex client', () => {
     expect(sentUrl(0).search).toBe('?width=600&height=600');
   });
 
+  it('lists a page of the albums of the first music library with the order and the total of the server', async () => {
+    reply(
+      container({ Directory: [{ key: '3', type: 'artist' }] }),
+      container({ totalSize: 120, Metadata: [{ ratingKey: '20', title: 'First', parentTitle: 'A', year: 1999, thumb: '/t' }] })
+    );
+
+    const page = await client().library('albums', 'recent', 40, 20);
+
+    expect(sentUrl(1).pathname).toBe('/library/sections/3/all');
+    expect(Object.fromEntries(sentUrl(1).searchParams)).toEqual({
+      type: '9',
+      sort: 'addedAt:desc',
+      'X-Plex-Container-Start': '40',
+      'X-Plex-Container-Size': '20',
+    });
+    expect(page).toEqual({ total: 120, items: [{ id: '20', title: 'First', artist: 'A', year: '1999', songCount: undefined, coverArt: '20' }] });
+  });
+
+  it.each([
+    ['artists', '8', { id: '10', name: 'A', albumCount: undefined, coverArt: '10' }],
+    ['tracks', '10', expect.objectContaining({ path: `plex:${serverId}:10`, title: 'A' })],
+  ] as const)('lists a page of %s with type %s', async (kind, type, item) => {
+    reply(container({ Directory: [{ key: '3', type: 'artist' }] }), container({ Metadata: [{ ratingKey: '10', title: 'A', thumb: '/t' }] }));
+
+    const page = await client().library(kind, 'title', 0, 10);
+
+    expect(sentUrl(1).searchParams.get('type')).toBe(type);
+    expect(sentUrl(1).searchParams.get('sort')).toBe('titleSort');
+    expect(page).toEqual({ total: 1, items: [item] });
+  });
+
+  it('has nothing to list without a music library', async () => {
+    reply(container({ Directory: [{ key: '1', type: 'movie' }] }));
+
+    expect(await client().library('albums', 'title', 0, 10)).toEqual({ total: 0, items: [] });
+  });
+
   it('shows the picture of the album for a song that has none of its own', async () => {
     reply(
       answer('', 404),

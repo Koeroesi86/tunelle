@@ -11,7 +11,7 @@ import type { SourceClient } from '../services/sources/sources';
 const certificateRequestSchema = z.object({ url: z.url() });
 const removeSchema = z.object({ id: z.uuid() });
 
-const browse = (client: SourceClient, request: SourceBrowse) => {
+const browse = async (client: SourceClient, request: SourceBrowse) => {
   switch (request.what) {
     case 'artists':
       return client.artists();
@@ -21,6 +21,10 @@ const browse = (client: SourceClient, request: SourceBrowse) => {
       return client.tracksOf(request.id);
     case 'search':
       return client.search(request.query);
+    case 'library':
+      return (
+        client.library?.(request.kind, request.sort, request.start, request.size) ?? Promise.reject(new Error('This kind of server has no library to list'))
+      );
   }
 };
 

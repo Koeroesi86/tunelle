@@ -23,7 +23,7 @@ const input = { id: serverId, kind: 'subsonic', name: 'Home', url: 'https://musi
 const info = { id: serverId, kind: 'subsonic', name: 'Home', url: 'https://music.example.com', username: 'me', protected: true };
 const send = vi.fn();
 const event = { sender: { send } } as unknown as IpcMainEvent;
-const client = { artists: vi.fn(), albumsOf: vi.fn(), tracksOf: vi.fn(), search: vi.fn() };
+const client = { artists: vi.fn(), albumsOf: vi.fn(), tracksOf: vi.fn(), search: vi.fn(), library: vi.fn() };
 const sources = { list: vi.fn(), check: vi.fn(), save: vi.fn(), remove: vi.fn(), clientOf: vi.fn() };
 const fire = async (channel: string, payload?: unknown) => {
   await listeners.get(channel)?.(event, payload);
@@ -136,6 +136,7 @@ describe('registerSourceListeners', () => {
       [{ what: 'albums', serverId, id: 'b' }, 'albumsOf', ['b']],
       [{ what: 'tracks', serverId, id: 'a1' }, 'tracksOf', ['a1']],
       [{ what: 'search', serverId, query: 'bach' }, 'search', ['bach']],
+      [{ what: 'library', serverId, kind: 'albums', sort: 'recent', start: 50, size: 25 }, 'library', ['albums', 'recent', 50, 25]],
     ] as const)('answers %j from the client', async (request, method, args) => {
       client[method].mockResolvedValue([{ id: 'x' }]);
 
@@ -152,6 +153,26 @@ describe('registerSourceListeners', () => {
       await fire('SOURCE_BROWSE', request);
 
       await vi.waitFor(() => expect(send).toHaveBeenCalledWith('SOURCE_BROWSED', { request, error: 'music.example.com answered 500' }));
+    });
+
+    it('answers with an error for a server that can not list its library', async () => {
+      sources.clientOf.mockResolvedValue({ artists: vi.fn() });
+      const request = { what: 'library', serverId, kind: 'albums', sort: 'title', start: 0, size: 10 };
+
+      await fire('SOURCE_BROWSE', request);
+
+      await vi.waitFor(() => expect(send).toHaveBeenCalledWith('SOURCE_BROWSED', { request, error: 'This kind of server has no library to list' }));
+    });
+
+    it.each([
+      { kind: 'albums', sort: 'title', start: -1, size: 10 },
+      { kind: 'albums', sort: 'title', start: 0, size: 500 },
+      { kind: 'genres', sort: 'title', start: 0, size: 10 },
+      { kind: 'albums', sort: 'random', start: 0, size: 10 },
+    ])('ignores a library page of %j', async (page) => {
+      await fire('SOURCE_BROWSE', { what: 'library', serverId, ...page });
+
+      expect(send).not.toHaveBeenCalled();
     });
 
     it('answers with an error for a server that is not known', async () => {

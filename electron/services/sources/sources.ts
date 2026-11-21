@@ -1,15 +1,15 @@
 import type { SourceServer } from '@shared/schemas/sources';
 import { createSourceStore } from './server-store';
 import { createJellyfinClient } from './jellyfin-client';
-import { createPlexClient } from './plex-client';
+import { createPlexClient, type PlexClient } from './plex-client';
 import { createSubsonicClient } from './subsonic-client';
 
 const clientFactories = { subsonic: createSubsonicClient, jellyfin: createJellyfinClient, plex: createPlexClient };
 
 const createClient = (server: SourceServer, password: string, userAgent: string) => clientFactories[server.kind](server, password, userAgent);
 
-/** The calls of one server, whatever its kind: every client answers the same */
-export type SourceClient = ReturnType<typeof createClient>;
+/** The calls of one server, whatever its kind: every client answers the same, and a Plex server can list its library in pages besides */
+export type SourceClient = ReturnType<typeof createClient> & Partial<Pick<PlexClient, 'library'>>;
 
 /** The servers of the user and a client for each, which the protocol and the listeners share. See docs/app/sources.md */
 export const createSources = (appData: string, userAgent: string) => {

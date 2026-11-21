@@ -10,6 +10,10 @@ Part of [#66](https://github.com/Koeroesi86/tunelle/issues/66), on the pieces of
 - JSON needs `Accept: application/json`. Artists are `GET /library/sections/{key}/all?type=8` of each section of the type `artist` (a music library); the albums of an artist and the songs of an album are `GET /library/metadata/{ratingKey}/children`; a search is `GET /hubs/search` grouped by the type of each hub.
 - `stream` reads the path of the first part of the song (`/library/metadata/{id}`, kept for the life of the client) and then asks for that path with the `Range` of the player. The cover is `/library/metadata/{id}/thumb` with `width` and `height`.
 
+### The library page
+
+The page of a Plex server starts with the whole library, not the artists: the tabs Albums, Artists and Songs as a cover grid (songs as lines), sorted by what was added last or by title, 60 items per page with "Show more". The browse `library` is answered by `library` of the client with `GET /library/sections/{key}/all?type=9|8|10&sort=addedAt:desc|titleSort` of the first music section, paged with the parameters `X-Plex-Container-Start` and `X-Plex-Container-Size`; `totalSize` of the answer is the total. A server without a music section answers an empty page. Only the first music section is listed here; the search and a click on an artist or an album work as before. Genres and a search over the tabs are issue #499.
+
 ## Signing in with plex.tv
 
 "Sign in with Plex" on the Plex page (`plex-account.ts`, `register-plex-listeners.ts`) does what the Plex documents describe for an app without a password:
