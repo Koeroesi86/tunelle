@@ -35,6 +35,7 @@ const mapState = (state: RootState) => ({
 });
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   addFiles: (fileList: FileList) => dispatch({ type: 'FILES_ADDED', payload: { fileList } }),
+  pathForFile: (file: File) => getBackend().pathForFile(file),
   onUnload: () => dispatch({ type: 'SAVE_SETTINGS', payload: {} }),
 });
 

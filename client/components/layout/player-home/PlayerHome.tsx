@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import classNames from 'classnames';
 import type { Folder } from '@shared/types/library';
-import { getBackend } from '../../../backend/backend';
 import { useLatest } from '../../../hooks/use-latest';
 import { useBreakpoint } from '../../../hooks/use-breakpoint';
 import { useTranslation } from '../../../i18n';
@@ -29,6 +28,8 @@ interface PlayerHomeProps {
   loaded: boolean;
   folders: Folder[];
   addFiles: (files: FileList) => void;
+  /** The path of a file that was dropped on the window */
+  pathForFile: (file: File) => string;
   onUnload: () => void;
   renderTitleBar: (slot: TitleBarSlot) => ReactNode;
   renderNavigation: (slot: NavigationSlot) => ReactNode;
@@ -45,9 +46,9 @@ interface Confirmation {
 }
 
 /** The last dropped path that is, contains or lies inside a folder of the library */
-const findContainedPath = (files: FileList, folders: Folder[]) =>
+const findContainedPath = (files: FileList, folders: Folder[], pathForFile: (file: File) => string) =>
   Array.from(files)
-    .map((file) => getBackend().pathForFile(file))
+    .map((file) => pathForFile(file))
     .findLast((filePath) => folders.some((folder) => folder.path.startsWith(filePath) || filePath.startsWith(folder.path)));
 
 const PlayerHome = ({
@@ -57,6 +58,7 @@ const PlayerHome = ({
   loaded,
   folders,
   addFiles,
+  pathForFile,
   onUnload,
   renderTitleBar,
   renderNavigation,
@@ -95,7 +97,7 @@ const PlayerHome = ({
   const addDroppedFiles = (files: FileList) => {
     if (files.length === 0) return;
 
-    const contained = findContainedPath(files, folders);
+    const contained = findContainedPath(files, folders, pathForFile);
     if (contained) setConfirmation({ message: t('folders.addConfirm', { path: contained }), onConfirm: () => addFiles(files) });
     else addFiles(files);
   };
