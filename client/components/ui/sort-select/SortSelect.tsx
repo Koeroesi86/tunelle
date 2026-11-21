@@ -21,10 +21,12 @@ interface SortSelectProps<F extends string> {
   /** The sort of the list, undefined is the default order */
   sort: Sort<F> | undefined;
   setSort: (sort: Sort<F> | undefined) => void;
+  /** Whether the direction is a choice, a list that a server sorts one way has none */
+  directional?: boolean;
 }
 
 /** A chip with the field and the direction a list is sorted by, which opens a menu to pick them */
-const SortSelect = <F extends string>({ fields, labels, sort, setSort }: SortSelectProps<F>) => {
+const SortSelect = <F extends string>({ fields, labels, sort, setSort, directional = true }: SortSelectProps<F>) => {
   const { open, panelId, close, toggle, rootProps } = usePopup();
   const current = sort ? labels.fields[sort.field] : labels.default;
 
@@ -42,8 +44,8 @@ const SortSelect = <F extends string>({ fields, labels, sort, setSort }: SortSel
         <FaSort aria-hidden />
         <span className={style.hint}>{labels.prefix}</span>
         {current}
-        {sort?.direction === 'asc' && <FaArrowUp className={style.direction} aria-hidden />}
-        {sort?.direction === 'desc' && <FaArrowDown className={style.direction} aria-hidden />}
+        {directional && sort?.direction === 'asc' && <FaArrowUp className={style.direction} aria-hidden />}
+        {directional && sort?.direction === 'desc' && <FaArrowDown className={style.direction} aria-hidden />}
         <FaChevronDown className={style.chevron} aria-hidden />
       </button>
       {open && (
@@ -61,20 +63,22 @@ const SortSelect = <F extends string>({ fields, labels, sort, setSort }: SortSel
               {field ? labels.fields[field] : labels.default}
             </button>
           ))}
-          <div role="group" aria-label={labels.direction} className={style.directions}>
-            {sortDirections.map((direction) => (
-              <button
-                key={direction}
-                type="button"
-                role="menuitemradio"
-                aria-checked={sort?.direction === direction}
-                disabled={!sort}
-                onClick={() => pickDirection(direction)}
-              >
-                {labels.directions[direction]}
-              </button>
-            ))}
-          </div>
+          {directional && (
+            <div role="group" aria-label={labels.direction} className={style.directions}>
+              {sortDirections.map((direction) => (
+                <button
+                  key={direction}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={sort?.direction === direction}
+                  disabled={!sort}
+                  onClick={() => pickDirection(direction)}
+                >
+                  {labels.directions[direction]}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

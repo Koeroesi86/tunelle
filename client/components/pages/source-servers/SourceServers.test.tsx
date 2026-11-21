@@ -25,6 +25,8 @@ const setup = (state: Partial<SourcesState> = {}, kind: 'subsonic' | 'jellyfin' 
     clearCertificate: vi.fn(),
     browse: vi.fn(),
     play: vi.fn(),
+    coverSize: 160,
+    setCoverSize: vi.fn(),
   };
   render(
     <Provider store={createStore(reducers)}>
@@ -137,6 +139,8 @@ describe('SourceServers', () => {
       clearCertificate: vi.fn(),
       browse: vi.fn(dispatched),
       play: vi.fn(),
+      coverSize: 160,
+      setCoverSize: vi.fn(),
     };
     const { unmount } = render(<SourceServers {...props} />);
 
@@ -313,14 +317,15 @@ describe('SourceServers library of a Plex server', () => {
     const props = setup({ servers: [plexServer] }, 'plex', section);
 
     expect(props.browse).toHaveBeenLastCalledWith(expect.objectContaining({ kind: section, start: 0 }));
-    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'title' } });
+    fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Title' }));
     expect(props.browse).toHaveBeenLastCalledWith(expect.objectContaining({ kind: section, sort: 'title', start: 0 }));
   });
 
   it('shows more from the server while there is more', () => {
     const props = setup({ servers: [plexServer], browsed: { [page('albums', 'recent', 0)]: { result: { total: 120, items: albums } } } }, 'plex', 'albums');
 
-    expect(screen.getByText('1 of 120')).toBeTruthy();
+    expect(screen.getByText('120 albums')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
 
     expect(props.browse).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'albums', start: 60 }));
@@ -338,14 +343,14 @@ describe('SourceServers library of a Plex server', () => {
     const props = setup({ servers: [server] }, 'subsonic', 'tracks');
 
     expect(props.browse).toHaveBeenCalledWith(expect.not.objectContaining({ what: 'library' }));
-    expect(screen.queryByLabelText('Sort')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Sort/ })).toBeNull();
   });
 
-  it('shows more while the last page is full when the server tells no total, and says no count', () => {
+  it('shows more while the last page is full when the server tells no total, and shows the count of what is loaded', () => {
     const full = Array.from({ length: 60 }, (_, index) => ({ id: `al${index}`, title: `Album ${index}`, artist: 'A', year: '' }));
     const props = setup({ servers: [server], browsed: { [subsonicAlbums]: { result: { items: full } } } }, 'subsonic', 'albums');
 
-    expect(screen.queryByText(/ of /)).toBeNull();
+    expect(screen.queryByText(/\d+ albums/)).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
 
     expect(props.browse).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'albums', start: 60 }));

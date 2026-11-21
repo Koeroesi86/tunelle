@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import classNames from 'classnames';
 import type { Track } from '@shared/types/library';
+import LibrarySearch from '../../library/library-search/LibrarySearch';
+import SortSelect from '../../ui/sort-select/SortSelect';
+import CoverSizeSlider from '../../ui/cover-size-slider';
 import AlbumViewThumbnail from '../../library/album-view-thumbnail';
 import GroupTile from '../../library/group-tile';
 import TrackViewItem from '../../library/track-view-item';
 import { toAlbumSummary, toGroupSummary } from '../../../domain/source-library';
-import type { MessageKey } from '@shared/locales/translate';
 import { sourceBrowseSchema, sourceCapabilities } from '@shared/schemas/sources';
 import type {
   LibraryKind,
@@ -41,6 +43,9 @@ interface SourceServersProps {
   clearCertificate: () => void;
   browse: (request: SourceBrowse) => void;
   play: (tracks: Track[], track: Track) => void;
+  /** The least width of a tile in px, which the local library shares */
+  coverSize: number;
+  setCoverSize: (size: number) => void;
 }
 
 const words = {
@@ -254,7 +259,21 @@ interface LibraryView {
 }
 
 const pageSize = 60;
-const sortLabels: Record<LibrarySort, MessageKey> = { recent: 'sources.sortRecent', title: 'sources.sortTitle' };
+const titleField = ['title'] as const;
+const countKeys: Record<LibraryKind, 'albums.count' | 'groups.count.artist' | 'tracks.count'> = {
+  albums: 'albums.count',
+  artists: 'groups.count.artist',
+  tracks: 'tracks.count',
+};
+
+const sortLabels = (t: ReturnType<typeof useTranslation>['t']) => ({
+  prefix: t('library.sort'),
+  field: t('sources.sort'),
+  direction: t('sources.sort'),
+  default: t('sources.sortRecent'),
+  fields: { title: t('sources.sortTitle') },
+  directions: { asc: '', desc: '' },
+});
 
 const libraryRequest = (serverId: string, { kind, sort }: LibraryView, page: number): SourceBrowse =>
   sourceBrowseSchema.parse({ what: 'library', serverId, kind, sort, start: page * pageSize, size: pageSize });
@@ -266,11 +285,16 @@ const Browser = ({
   state,
   browse,
   play,
-}: { server: SourceServerInfo; section: LibraryKind; named: boolean } & Pick<SourceServersProps, 'state' | 'browse' | 'play'>) => {
+  coverSize,
+  setCoverSize,
+}: { server: SourceServerInfo; section: LibraryKind; named: boolean } & Pick<
+  SourceServersProps,
+  'state' | 'browse' | 'play' | 'coverSize' | 'setCoverSize'
+>) => {
   const { t } = useTranslation();
   const [position, setPosition] = useState<Position>({});
-  const [text, setText] = useState('');
   const { library } = sourceCapabilities[server.kind];
+  const tiles = { gridTemplateColumns: `repeat(auto-fill, minmax(${coverSize}px, 1fr))` };
   const [view, setView] = useState<LibraryView>({ kind: section, sort: library?.sorts.at(0) ?? 'recent', pages: 1 });
   // a server with a library lists it in pages at the top, with the sections and orders it has; the others start at their artists
   const inLibrary = library?.sections.includes(section) === true && !position.artist && !position.album && !position.query;
@@ -287,10 +311,7 @@ const Browser = ({
     browse(request);
   }, [key]);
 
-  const search = (event: FormEvent) => {
-    event.preventDefault();
-    setPosition({ query: text.trim() || undefined });
-  };
+  const search = (text: string) => setPosition({ query: text.trim() || undefined });
 
   const trackRows = (tracks: Track[]) => (
     <div role="grid" className={style.trackList}>
@@ -327,46 +348,31 @@ const Browser = ({
         </div>
       )}
       <div className={style.toolbar}>
-        <form className={classNames(style.form, style.inline)} role="search" onSubmit={search}>
-          <input
-            type="search"
-            aria-label={t('sources.search')}
-            placeholder={t('sources.search')}
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-          />
-          <button type="submit" className={classNames(style.action, style.submit)}>
-            {t('sources.search')}
-          </button>
-        </form>
+        <LibrarySearch search="" setSearch={search} />
         {inLibrary && (library?.sorts.length ?? 0) > 1 && (
-          <label className={style.sort}>
-            <span className={style.meta}>{t('sources.sort')}</span>
-            <select
-              value={view.sort}
-              onChange={(event) => setView({ ...view, sort: library?.sorts.find((sort) => sort === event.target.value) ?? view.sort, pages: 1 })}
-            >
-              {library?.sorts.map((sort) => (
-                <option key={sort} value={sort}>
-                  {t(sortLabels[sort])}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SortSelect
+            fields={titleField}
+            directional={false}
+            labels={sortLabels(t)}
+            sort={view.sort === 'title' ? { field: 'title', direction: 'asc' } : undefined}
+            setSort={(sort) => setView({ ...view, sort: sort ? 'title' : 'recent', pages: 1 })}
+          />
         )}
       </div>
-      <nav className={style.crumbs} aria-label={t('sources.location')}>
-        <button type="button" className={style.action} onClick={() => setPosition({})}>
-          {t(library ? 'sources.library' : 'sources.artists')}
-        </button>
-        {position.artist && (
-          <button type="button" className={style.action} onClick={() => setPosition({ artist: position.artist })}>
-            {position.artist.name}
+      {!inLibrary && (
+        <nav className={style.crumbs} aria-label={t('sources.location')}>
+          <button type="button" className={style.action} onClick={() => setPosition({})}>
+            {t(library ? 'sources.library' : 'sources.artists')}
           </button>
-        )}
-        {position.album && <span className={style.meta}>{position.album.title}</span>}
-        {position.query && <span className={style.meta}>{t('sources.resultsFor', { query: position.query })}</span>}
-      </nav>
+          {position.artist && (
+            <button type="button" className={style.action} onClick={() => setPosition({ artist: position.artist })}>
+              {position.artist.name}
+            </button>
+          )}
+          {position.album && <span className={style.meta}>{position.album.title}</span>}
+          {position.query && <span className={style.meta}>{t('sources.resultsFor', { query: position.query })}</span>}
+        </nav>
+      )}
       {!answer && (
         <div className={style.hint} role="status">
           {t('sources.loading')}
@@ -377,15 +383,39 @@ const Browser = ({
           {t('sources.failed', { error: answer.error })}
         </div>
       )}
-      {inLibrary && isAlbums(result) && result.length > 0 && <div className={style.tiles}>{albumCards(result)}</div>}
-      {inLibrary && isArtists(result) && view.kind === 'artists' && result.length > 0 && <div className={style.tiles}>{artistCards(result)}</div>}
-      {!inLibrary && isArtists(result) && result.length > 0 && <div className={style.tiles}>{artistCards(result)}</div>}
-      {!inLibrary && isAlbums(result) && result.length > 0 && <div className={style.tiles}>{albumCards(result)}</div>}
+      {inLibrary && isAlbums(result) && result.length > 0 && (
+        <div className={style.tiles} style={tiles}>
+          {albumCards(result)}
+        </div>
+      )}
+      {inLibrary && isArtists(result) && view.kind === 'artists' && result.length > 0 && (
+        <div className={style.tiles} style={tiles}>
+          {artistCards(result)}
+        </div>
+      )}
+      {!inLibrary && isArtists(result) && result.length > 0 && (
+        <div className={style.tiles} style={tiles}>
+          {artistCards(result)}
+        </div>
+      )}
+      {!inLibrary && isAlbums(result) && result.length > 0 && (
+        <div className={style.tiles} style={tiles}>
+          {albumCards(result)}
+        </div>
+      )}
       {isTracks(result) && trackRows(result)}
       {isSearch(result) && (
         <>
-          {result.artists.length > 0 && <div className={style.tiles}>{artistCards(result.artists)}</div>}
-          {result.albums.length > 0 && <div className={style.tiles}>{albumCards(result.albums)}</div>}
+          {result.artists.length > 0 && (
+            <div className={style.tiles} style={tiles}>
+              {artistCards(result.artists)}
+            </div>
+          )}
+          {result.albums.length > 0 && (
+            <div className={style.tiles} style={tiles}>
+              {albumCards(result.albums)}
+            </div>
+          )}
           {result.tracks.length > 0 && trackRows(result.tracks)}
         </>
       )}
@@ -394,10 +424,13 @@ const Browser = ({
           <button type="button" className={style.action} onClick={() => setView({ ...view, pages: view.pages + 1 })}>
             {t('sources.showMore')}
           </button>
-          {total !== undefined && <span className={style.meta}>{t('sources.shown', { shown: items.length, total })}</span>}
         </div>
       )}
       {Array.isArray(result) && result.length === 0 && <div className={style.hint}>{t('sources.empty')}</div>}
+      <div className={style.footer}>
+        <span>{inLibrary ? t(countKeys[view.kind], { count: total ?? items.length }) : ''}</span>
+        <CoverSizeSlider size={coverSize} setSize={setCoverSize} />
+      </div>
     </div>
   );
 };
@@ -417,6 +450,8 @@ const SourceServers = ({
   clearCertificate,
   browse,
   play,
+  coverSize,
+  setCoverSize,
 }: SourceServersProps) => {
   const { t } = useTranslation();
   const [adding, setAdding] = useState(false);
@@ -437,7 +472,17 @@ const SourceServers = ({
         <div className={classNames(style.content, style.wide)}>
           {servers.length === 0 && <div className={style.hint}>{t('sources.none')}</div>}
           {servers.map((server) => (
-            <Browser key={server.id} server={server} section={section} named={servers.length > 1} state={state} browse={browse} play={play} />
+            <Browser
+              key={server.id}
+              server={server}
+              section={section}
+              named={servers.length > 1}
+              state={state}
+              browse={browse}
+              play={play}
+              coverSize={coverSize}
+              setCoverSize={setCoverSize}
+            />
           ))}
         </div>
       </div>

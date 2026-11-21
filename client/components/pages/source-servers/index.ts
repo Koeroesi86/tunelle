@@ -6,9 +6,10 @@ import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import SourceServers from './SourceServers';
 
-const mapState = ({ sources }: RootState) => ({ state: sources });
+const mapState = ({ sources, uiState }: RootState) => ({ state: sources, coverSize: uiState.coverSize });
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
+  setCoverSize: (size: number) => dispatch({ type: 'SET_COVER_SIZE', payload: { size } }),
   load: () => dispatch({ type: 'LOAD_SOURCE_SERVERS' }),
   save: (server: Record<string, unknown>) => dispatch({ type: 'SAVE_SOURCE_SERVER', payload: { server } }),
   remove: (id: string) => dispatch({ type: 'REMOVE_SOURCE_SERVER', payload: { id } }),
