@@ -93,8 +93,6 @@ const toTrack = (serverId: string, item: Item): Track => {
   };
 };
 
-export type PlexClient = ReturnType<typeof createPlexClient>;
-
 /** The calls of one Plex Media Server. The token is the secret of the server entry and signs each call in a header, never in an address. See docs/app/plex.md */
 export const createPlexClient = (server: SourceServer, token: string, userAgent: string) => {
   const host = new URL(server.url).host;

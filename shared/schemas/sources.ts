@@ -8,6 +8,22 @@ export type SourceKind = z.infer<typeof sourceKindSchema>;
 
 const serverIdSchema = z.uuid();
 
+const libraryKindSchema = z.enum(['albums', 'artists', 'tracks']);
+const librarySortSchema = z.enum(['title', 'recent']);
+export type LibraryKind = z.infer<typeof libraryKindSchema>;
+export type LibrarySort = z.infer<typeof librarySortSchema>;
+
+/** The parts of the local navigation a kind of server can show beside its drill down: only the sections and orders it lists are offered, an empty one has no library. See docs/app/sources.md */
+export interface SourceCapabilities {
+  library?: { sections: readonly LibraryKind[]; sorts: readonly LibrarySort[] };
+}
+
+export const sourceCapabilities: Record<SourceKind, SourceCapabilities> = {
+  subsonic: {},
+  jellyfin: {},
+  plex: { library: { sections: ['albums', 'artists', 'tracks'], sorts: ['recent', 'title'] } },
+};
+
 /** What a track of a server is called: `<source>:<serverId>:<id>`, the id is whatever the server calls the song and may hold a colon */
 export const sourcePathSchema = z
   .string()
@@ -52,8 +68,8 @@ export const sourceBrowseSchema = z.discriminatedUnion('what', [
   z.object({
     what: z.literal('library'),
     serverId: serverIdSchema,
-    kind: z.enum(['albums', 'artists', 'tracks']),
-    sort: z.enum(['title', 'recent']),
+    kind: libraryKindSchema,
+    sort: librarySortSchema,
     start: z.number().int().min(0).max(1_000_000),
     size: z.number().int().min(1).max(200),
   }),

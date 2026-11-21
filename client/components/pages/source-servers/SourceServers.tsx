@@ -3,8 +3,19 @@ import type { FormEvent } from 'react';
 import classNames from 'classnames';
 import { MdPlayArrow as PlayIcon } from 'react-icons/md';
 import type { Track } from '@shared/types/library';
-import { sourceBrowseSchema, toSourcePath } from '@shared/schemas/sources';
-import type { SourceAlbum, SourceArtist, SourceBrowse, SourceKind, SourcePage, SourceSearchResult, SourceServerInfo } from '@shared/schemas/sources';
+import type { MessageKey } from '@shared/locales/translate';
+import { sourceBrowseSchema, sourceCapabilities, toSourcePath } from '@shared/schemas/sources';
+import type {
+  LibraryKind,
+  LibrarySort,
+  SourceAlbum,
+  SourceArtist,
+  SourceBrowse,
+  SourceKind,
+  SourcePage,
+  SourceSearchResult,
+  SourceServerInfo,
+} from '@shared/schemas/sources';
 import type { SourcesState } from '../../../redux/sources/reducer';
 import { browseKey } from '../../../redux/sources/reducer';
 import { useTranslation } from '../../../i18n';
@@ -233,17 +244,18 @@ const requestOf = (serverId: string, { artist, album, query }: Position): Source
   );
 
 interface LibraryView {
-  kind: 'albums' | 'artists' | 'tracks';
-  sort: 'title' | 'recent';
+  kind: LibraryKind;
+  sort: LibrarySort;
   pages: number;
 }
 
 const pageSize = 60;
-const libraryTabs = [
+const libraryTabs: { kind: LibraryKind; label: MessageKey }[] = [
   { kind: 'albums', label: 'sources.tabAlbums' },
   { kind: 'artists', label: 'sources.artists' },
   { kind: 'tracks', label: 'sources.tabSongs' },
-] as const;
+];
+const sortLabels: Record<LibrarySort, MessageKey> = { recent: 'sources.sortRecent', title: 'sources.sortTitle' };
 
 const libraryRequest = (serverId: string, { kind, sort }: LibraryView, page: number): SourceBrowse =>
   sourceBrowseSchema.parse({ what: 'library', serverId, kind, sort, start: page * pageSize, size: pageSize });
@@ -264,9 +276,11 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
   const { t } = useTranslation();
   const [position, setPosition] = useState<Position>({});
   const [text, setText] = useState('');
-  const [view, setView] = useState<LibraryView>({ kind: 'albums', sort: 'recent', pages: 1 });
-  // a Plex server lists its whole library in pages at the top; the others start at their artists
-  const inLibrary = server.kind === 'plex' && !position.artist && !position.album && !position.query;
+  const { library } = sourceCapabilities[server.kind];
+  const sections = libraryTabs.filter(({ kind }) => library?.sections.includes(kind));
+  const [view, setView] = useState<LibraryView>({ kind: sections.at(0)?.kind ?? 'albums', sort: library?.sorts.at(0) ?? 'recent', pages: 1 });
+  // a server with a library lists it in pages at the top, with the sections and orders it has; the others start at their artists
+  const inLibrary = sections.length > 0 && !position.artist && !position.album && !position.query;
   const request = inLibrary ? libraryRequest(server.id, view, view.pages - 1) : requestOf(server.id, position);
   const key = browseKey(request);
   const answers = Array.from(
@@ -354,7 +368,7 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
       </form>
       <nav className={style.crumbs} aria-label={t('sources.location')}>
         <button type="button" className={style.action} onClick={() => setPosition({})}>
-          {t(server.kind === 'plex' ? 'sources.library' : 'sources.artists')}
+          {t(library ? 'sources.library' : 'sources.artists')}
         </button>
         {position.artist && (
           <button type="button" className={style.action} onClick={() => setPosition({ artist: position.artist })}>
@@ -367,19 +381,27 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
       {inLibrary && (
         <div className={style.libraryBar}>
           <div className={style.crumbs} role="group" aria-label={t('sources.library')}>
-            {libraryTabs.map(({ kind, label }) => (
+            {sections.map(({ kind, label }) => (
               <button key={kind} type="button" className={style.action} aria-pressed={view.kind === kind} onClick={() => setView({ ...view, kind, pages: 1 })}>
                 {t(label)}
               </button>
             ))}
           </div>
-          <label className={style.sort}>
-            <span className={style.meta}>{t('sources.sort')}</span>
-            <select value={view.sort} onChange={(event) => setView({ ...view, sort: event.target.value === 'title' ? 'title' : 'recent', pages: 1 })}>
-              <option value="recent">{t('sources.sortRecent')}</option>
-              <option value="title">{t('sources.sortTitle')}</option>
-            </select>
-          </label>
+          {(library?.sorts.length ?? 0) > 1 && (
+            <label className={style.sort}>
+              <span className={style.meta}>{t('sources.sort')}</span>
+              <select
+                value={view.sort}
+                onChange={(event) => setView({ ...view, sort: library?.sorts.find((sort) => sort === event.target.value) ?? view.sort, pages: 1 })}
+              >
+                {library?.sorts.map((sort) => (
+                  <option key={sort} value={sort}>
+                    {t(sortLabels[sort])}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
       )}
       {!answer && (
