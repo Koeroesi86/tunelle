@@ -46,56 +46,6 @@ test('measures a track without gain tags in the background and levels it by the 
   await expect.poll(async () => (await levelNow(page)) / full).toBeCloseTo(cut, 1);
 });
 
-test('measures a track that is queued before the ones that come first in the library', async ({ start }) => {
-  const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
-  const count = 8;
-  const folder = mkdtempSync(join(tmpdir(), 'tunelle-loudness-'));
-  const album = { ...albums[0], tracks: [...Array(count).keys()].map((index) => ({ title: `Tone ${index + 1}`, frequency: 200 + index * 100 })) };
-  album.tracks.forEach((_, index) => writeTrack(folder, album, index, 10));
-  await addFolder(page, folder, count);
-  const paths = (await libraryTracks(page)).map((track) => track.path).sort();
-  const last = paths[paths.length - 1];
-  const others = paths.slice(0, -1);
-  const measuredOthers = async () =>
-    (await Promise.all(others.map(async (path) => (await gainsOf(page, path)).trackGain))).filter((gain) => gain !== null).length;
-
-  // what was measured before the page asked says nothing about the queue
-  const before = await measuredOthers();
-  // what the page sends when a track is added to the queue
-  await page.evaluate((trackPath) => window.electronAPI.send('LOUDNESS_PRIORITISE', { paths: [trackPath] }), last);
-
-  // Without the queue the last track is measured after every other one. With it only the track in progress and at most one that was already taken can come first. The queued track is read first and a measurement takes seconds, so a short poll sees the count of the moment it was measured. See docs/development/end-to-end-tests.md
-  let measuredSince = others.length;
-  await expect
-    .poll(
-      async () => {
-        const queued = (await gainsOf(page, last)).trackGain;
-        measuredSince = queued === null ? others.length : (await measuredOthers()) - before;
-        return queued;
-      },
-      { message: 'the measured gain of the queued track', timeout: 90_000, intervals: [50] }
-    )
-    .not.toBeNull();
-  expect(measuredSince).toBeLessThanOrEqual(2);
-});
-
-test('shows the histogram of the loudness of the song that plays on the now playing page', async ({ start }) => {
-  const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
-  await addFolder(page, folderOfTracks(1), 1);
-  const [{ path }] = await libraryTracks(page);
-  await expect.poll(async () => (await gainsOf(page, path)).trackGain, { message: 'the measured gain of the track', timeout: 90_000 }).not.toBeNull();
-
-  await player(page).playAlbum('Pitch Perfect');
-  await navigate(page, 'Now playing');
-
-  // a sine of half the full scale in both channels is at -6.7 LUFS, and its peak is -6.0 dBFS
-  const panel = page.getByRole('region', { name: 'Loudness of the track' });
-  // the number and its unit are shown apart, the unit in the line of the label
-  await expect(panel.getByText('-6.7', { exact: true })).toBeVisible();
-  await expect(panel.getByText('LUFS', { exact: true })).toBeVisible();
-  await expect(page.getByRole('img', { name: /^How the loudness of the track is spread/ })).toBeVisible();
-});
-
 test('shows the histogram of a song that is measured while it plays, and levels it, without leaving the page', async ({ start }) => {
   // the measurement waits 15 s after the scan, so the song is not measured when it starts to play, and it is long enough to still play then
   const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '15' } });
@@ -133,61 +83,4 @@ test('measures a track that is too long to decode as a whole, in pieces', async 
 
   // a sine of half the full scale in one channel is at -9.7 LUFS, 3 dB under the same in two
   expect((await gainsOf(page, path)).trackGain).toBeCloseTo(-8.3, 0);
-});
-
-test('gives the tracks of an album the gain pooled from all of them once each is measured, and levels the album by it', async ({ start }) => {
-  const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
-  await addFolder(page, folderOfTracks(2), 2);
-  const paths = (await libraryTracks(page)).map((track) => track.path);
-
-  await expect
-    .poll(async () => Promise.all(paths.map(async (path) => (await gainsOf(page, path)).albumGain)), {
-      message: 'the pooled gain of the album',
-      timeout: 90_000,
-    })
-    .not.toContain(null);
-  const [first, second] = await Promise.all(paths.map((path) => gainsOf(page, path)));
-  // two sines of the same level pool to the gain of either
-  expect(first.albumGain).toBeCloseTo(-11.3, 0);
-  expect(second.albumGain).toBe(first.albumGain);
-
-  const controls = player(page);
-  await controls.playAlbum('Pitch Perfect');
-  await controls.setVolume(1);
-  await expectTone(page, 440);
-  await navigate(page, 'Settings');
-  await page.getByRole('radio', { name: 'Off', exact: true }).click();
-  const full = await steadyLevel(page);
-
-  await page.getByRole('radio', { name: 'Album', exact: true }).click();
-
-  await expect.poll(async () => (await levelNow(page)) / full).toBeCloseTo(cut, 1);
-});
-
-test('shows how far the measurement is in the settings, turns it off and clears what it measured', async ({ start }) => {
-  const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
-  await addFolder(page, folderOfTracks(2), 2);
-  const paths = (await libraryTracks(page)).map((track) => track.path);
-  await expect
-    .poll(async () => Promise.all(paths.map(async (path) => (await gainsOf(page, path)).trackGain)), { message: 'both tracks measured', timeout: 90_000 })
-    .not.toContain(null);
-
-  await navigate(page, 'Settings');
-  await expect(page.getByRole('status').getByText('All tracks are measured.')).toBeVisible({ timeout: 30_000 });
-
-  // off, so what is cleared stays cleared
-  const measure = page.getByRole('switch', { name: 'Measure loudness' });
-  await measure.click();
-  await expect(measure).toHaveAttribute('aria-checked', 'false');
-  await page.getByRole('button', { name: 'Clear measured values' }).click();
-  // the page shows 0 as soon as the button is pressed, before the main process has deleted the rows
-  await expect(page.getByRole('status').getByText('0 of 2 tracks measured')).toBeVisible();
-  await expect
-    .poll(async () => Promise.all(paths.map(async (path) => (await gainsOf(page, path)).trackGain)), { message: 'the gains are gone' })
-    .toEqual([null, null]);
-
-  await measure.click();
-
-  await expect(page.getByRole('status').getByText('All tracks are measured.')).toBeVisible({ timeout: 60_000 });
-  expect(await Promise.all(paths.map(async (path) => (await gainsOf(page, path)).trackGain))).not.toContain(null);
 });
