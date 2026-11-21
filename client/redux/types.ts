@@ -169,6 +169,7 @@ export type AppAction =
   | PayloadAction<'PLEX_ACCOUNT', PlexAccount>
   | PayloadAction<'ADD_PLEX_SERVER', { id: string }>
   | PayloadAction<'BROWSE_SOURCE', { request: SourceBrowse }>
+  | PayloadAction<'KEEP_SOURCE_PAGES', { request: SourceBrowse; pages: number[] }>
   | PayloadAction<'SOURCE_BROWSED', { request: SourceBrowse; result?: SourceBrowseResult; error?: string }>
   | PayloadAction<'SEARCH_RADIO', { query: RadioQuery }>
   | PayloadAction<'RADIO_STATIONS', { query: RadioQuery; stations: RadioStation[]; hasMore?: boolean; error?: string }>

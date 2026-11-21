@@ -30,16 +30,18 @@ export const storePage = <T>(cache: PageCache<T>, page: number, items: T[], tota
 /** Every cached page is out of date, they are fetched again when they are needed */
 export const markStale = <T>(cache: PageCache<T>): PageCache<T> => ({ ...cache, stale: cachedPages(cache) });
 
-/** The pages to fetch for the items from start to end (exclusive): the missing and the stale ones */
-export const pagesToLoad = <T>(cache: PageCache<T>, start: number, end: number): number[] => {
-  if (cache.total === undefined) return cache.pages[0] ? [] : [0];
+/** The pages that the items from start to end (exclusive) are in, the first page of a list that has no total yet */
+export const pagesIn = <T>(cache: PageCache<T>, start: number, end: number): number[] => {
+  if (cache.total === undefined) return [0];
 
   const first = Math.floor(start / pageSize);
   // an empty list still has its first page, which is stale when the library was empty and then filled
   const last = Math.floor(Math.max(Math.min(end, cache.total) - 1, 0) / pageSize);
-  return Array.from({ length: Math.max(last - first + 1, 0) }, (_, offset) => first + offset).filter(
-    (page) => !cache.pages[page] || cache.stale.includes(page)
-  );
+  return Array.from({ length: Math.max(last - first + 1, 0) }, (_, offset) => first + offset);
 };
+
+/** The pages to fetch for the items from start to end (exclusive): the missing and the stale ones */
+export const pagesToLoad = <T>(cache: PageCache<T>, start: number, end: number): number[] =>
+  pagesIn(cache, start, end).filter((page) => !cache.pages[page] || cache.stale.includes(page));
 
 export const getCachedItem = <T>(cache: PageCache<T>, index: number): T | undefined => cache.pages[Math.floor(index / pageSize)]?.[index % pageSize];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGate } from './request-gate';
+import { createGate, Dropped } from './request-gate';
 
 const deferred = () => {
   let finish: (value: string) => void = () => undefined;
@@ -45,5 +45,22 @@ describe('createGate', () => {
     await expect(failed).rejects.toThrow('no');
     expect(other).toBe('b');
     expect(await after).toBe('after');
+  });
+
+  it('drops the waiting tasks that the test names, and lets the running and the others finish', async () => {
+    const gate = createGate(1);
+    const running = deferred();
+    const first = gate('a', () => running.promise, 'first');
+    const dropped = gate('a', () => Promise.resolve('dropped'), 'old');
+    const kept = gate('a', () => Promise.resolve('kept'), 'new');
+    const outcome = dropped.catch((error) => error);
+
+    expect(gate.drop('a', (tag) => tag !== 'new')).toEqual(['old']);
+    expect(gate.drop('unknown', () => true)).toEqual([]);
+    running.finish('first');
+
+    expect(await outcome).toBeInstanceOf(Dropped);
+    expect(await first).toBe('first');
+    expect(await kept).toBe('kept');
   });
 });

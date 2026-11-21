@@ -34,6 +34,8 @@ interface TrackViewProps {
   loadPage: (page: number) => void;
   /** The pages after the window that are fetched as well, so they are there before the scroll gets to them; none for the local library */
   pagesAhead?: number;
+  /** Told which pages the window wants, for the requests of the others to be dropped; none for the local library */
+  keepPages?: (pages: number[]) => void;
   setSort: (sort: TrackSort | undefined) => void;
   /** The selected tracks by their path */
   selectedTracks: Record<string, Track>;
@@ -58,6 +60,7 @@ const TrackView = ({
   search,
   loadPage,
   pagesAhead,
+  keepPages,
   setSort,
   selectedTracks,
   toggleTrack,
@@ -86,7 +89,7 @@ const TrackView = ({
     },
     [listing, scrolled]
   );
-  usePageLoader(tracks, firstIndex, lastIndex, loadPage, pagesAhead);
+  usePageLoader(tracks, firstIndex, lastIndex, loadPage, pagesAhead, keepPages);
 
   const folderSelection = selectedFolders(selected, folders);
   const query = { sort, folders: folderSelection, search };

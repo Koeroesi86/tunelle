@@ -6,7 +6,7 @@ import type { RootState } from '../../../redux/reducers';
 import type { AppAction, OpenGroup } from '../../../redux/types';
 import { listKey } from '../../../redux/sources/lists';
 import GroupView from '../../../components/library/group-view/GroupView';
-import { loadSourcePage, pagesAhead, unanswered } from '../source-list';
+import { keepSourcePages, loadSourcePage, pagesAhead, unanswered } from '../source-list';
 
 interface OwnProps {
   /** The first page of the list, which says the server and what is listed of it */
@@ -22,6 +22,7 @@ const mapState = (state: RootState, { request }: OwnProps) => ({
 
 const mapDispatch = (dispatch: Dispatch<AppAction>, { request }: OwnProps) => ({
   loadPage: loadSourcePage(dispatch, request),
+  keepPages: keepSourcePages(dispatch, request),
   setCoverSize: (size: number) => dispatch({ type: 'SET_COVER_SIZE', payload: { size } }),
   playTracks: (tracks: Track[]) => dispatch({ type: 'PLAY_TRACKS', payload: { tracks } }),
 });

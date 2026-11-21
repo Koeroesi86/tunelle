@@ -359,6 +359,7 @@ const handleActions = actionMiddleware((store) => [
   onAction('CANCEL_PLEX_SIGN_IN', () => send('PLEX_SIGN_IN_CANCEL')),
   onAction('ADD_PLEX_SERVER', ({ payload }) => send('PLEX_SERVER_ADD', payload)),
   onAction('BROWSE_SOURCE', ({ payload }) => send('SOURCE_BROWSE', payload.request)),
+  onAction('KEEP_SOURCE_PAGES', ({ payload }) => send('SOURCE_BROWSE_KEEP', payload)),
   onAction('SEARCH_RADIO', ({ payload }) => send('RADIO_SEARCH', payload.query)),
   onAction('LOAD_RADIO_TAGS', () => send('RADIO_TAGS')),
   onAction('LOAD_RADIO_OPTIONS', () => send('RADIO_OPTIONS')),

@@ -8,7 +8,7 @@ import { pageRequest } from '../../redux/sources/lists';
 import SourceAlbums from './source-albums';
 import SourceArtists from './source-artists';
 import SourceTracks from './source-tracks';
-import { loadSourcePage } from './source-list';
+import { keepSourcePages, loadSourcePage } from './source-list';
 
 // the views have their own tests; they show what their container gives them
 vi.mock('../../components/library/album-view/AlbumView', () => ({
@@ -127,5 +127,16 @@ describe('the page loader of a list', () => {
 
     expect(loadSourcePage(dispatch, { ...request })).toBe(loadSourcePage(dispatch, { ...request }));
     expect(loadSourcePage(dispatch, library('artists'))).not.toBe(loadSourcePage(dispatch, request));
+  });
+
+  it('tells the main process the pages that are wanted, by the first page of the list, with one function for a list', () => {
+    const dispatch = vi.fn();
+    const request = library('albums');
+    const keep = keepSourcePages(dispatch, { ...request });
+
+    keep([3, 4]);
+
+    expect(keepSourcePages(dispatch, request)).toBe(keep);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'KEEP_SOURCE_PAGES', payload: { request: pageRequest(request, 0), pages: [3, 4] } });
   });
 });

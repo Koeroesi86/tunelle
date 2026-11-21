@@ -59,6 +59,8 @@ interface GroupViewProps {
   loadPage: (page: number) => void;
   /** The pages after the window that are fetched as well, so they are there before the scroll gets to them; none for the local library */
   pagesAhead?: number;
+  /** Told which pages the window wants, for the requests of the others to be dropped; none for the local library */
+  keepPages?: (pages: number[]) => void;
   playTracks: (tracks: Track[]) => void;
   setCoverSize: (size: number) => void;
   openGroup: (group: OpenGroup) => void;
@@ -76,6 +78,7 @@ const GroupList = ({
   folders = noKnownFolders,
   loadPage,
   pagesAhead,
+  keepPages,
   setCoverSize,
   openGroup,
 }: Omit<GroupViewProps, 'open' | 'closeGroup' | 'playTracks'>) => {
@@ -89,7 +92,7 @@ const GroupList = ({
     itemWidth: cards ? cardWidth : coverSize,
     gap: cards ? cardGap : tileGap,
   });
-  usePageLoader(groups, firstIndex, lastIndex, loadPage, pagesAhead);
+  usePageLoader(groups, firstIndex, lastIndex, loadPage, pagesAhead, keepPages);
   const { tileProps } = useTileGrid({ listing, itemCount: groups.total ?? 0, columns, rowHeight, firstIndex, lastIndex });
 
   const queryKey = JSON.stringify([sort, filter, selectedFolders(selected, folders)]);

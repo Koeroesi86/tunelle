@@ -21,3 +21,15 @@ export const loadSourcePage = (dispatch: Dispatch<AppAction>, request: SourceBro
   loaders.set(dispatch, known.set(key, loader));
   return loader;
 };
+
+const keepers = new WeakMap<Dispatch<AppAction>, Map<string, (pages: number[]) => void>>();
+
+/** Tells the main process which pages of a list are wanted now, so that the pages it still has queued for others are not fetched; one function for a list, as a loader is */
+export const keepSourcePages = (dispatch: Dispatch<AppAction>, request: SourceBrowse) => {
+  const known = keepers.get(dispatch) ?? new Map<string, (pages: number[]) => void>();
+  const key = listKey(request);
+  const keeper = known.get(key) ?? ((pages: number[]) => dispatch({ type: 'KEEP_SOURCE_PAGES', payload: { request: pageRequest(request, 0), pages } }));
+
+  keepers.set(dispatch, known.set(key, keeper));
+  return keeper;
+};
