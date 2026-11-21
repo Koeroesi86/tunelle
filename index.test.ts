@@ -52,7 +52,8 @@ vi.mock('./electron/services/updates/update-preference', () => ({
 vi.mock('./electron/services/updates/metered-connection', () => ({ isMeteredConnection: vi.fn() }));
 vi.mock('./electron/services/updates/splash-confirm', () => ({ askOnSplash: vi.fn() }));
 vi.mock('./electron/utils/user-data', () => ({ copyOldLibrary: vi.fn(), copyOldUserData: vi.fn(() => false), getAppName: vi.fn(() => 'Tunelle') }));
-vi.mock('./electron/windows/create-window', () => ({ default: vi.fn(() => mocks.main) }));
+vi.mock('./electron/windows/create-window', () => ({ default: vi.fn(async () => mocks.main) }));
+vi.mock('./electron/windows/gpu-acceleration', () => ({ hasGpuAcceleration: vi.fn(async () => true) }));
 vi.mock('./electron/services/platform/startup-signal', () => ({ createStartupSignal: vi.fn(() => mocks.startup) }));
 vi.mock('./electron/windows/load-page', () => ({ default: vi.fn(async () => undefined) }));
 vi.mock('./electron/database/create-database', () => ({ default: vi.fn(async () => mocks.database) }));

@@ -8,8 +8,8 @@ import { isDarkTheme } from '../theme';
 import { hasGpuAcceleration } from './gpu-acceleration';
 import { applyWindowBackdrop, getBackdropArguments, getWindowBackdrop } from './window-backdrop';
 
-const createWindow = () => {
-  const accelerated = hasGpuAcceleration();
+const createWindow = async () => {
+  const accelerated = await hasGpuAcceleration();
   // a window that is drawn by the CPU gets no translucency and no blur behind it: both are work for the compositor (see docs/app/software-rendering.md)
   const backdrop = accelerated ? getWindowBackdrop(process.platform) : 'none';
   const mainWindowState = windowStateKeeper({
