@@ -8,7 +8,18 @@ import RemoteListener from './RemoteListener';
 const target = { host: '192.168.1.5', port: 40000 };
 
 const setup = (state: RemoteListenerState | undefined, nearby: NearbyHost[] = [], host?: RemoteHostState) => {
-  const props = { state, host, connect: vi.fn(), confirm: vi.fn(), leave: vi.fn(), control: vi.fn(), listenAlong: vi.fn(), nearby, browse: vi.fn() };
+  const props = {
+    state,
+    host,
+    connect: vi.fn(),
+    confirm: vi.fn(),
+    leave: vi.fn(),
+    control: vi.fn(),
+    listenAlong: vi.fn(),
+    nearby,
+    browse: vi.fn(),
+    resolveUrl: (route: string) => `tunelle://app${route}`,
+  };
   const view = render(<RemoteListener {...props} />);
   return { ...props, ...view };
 };
