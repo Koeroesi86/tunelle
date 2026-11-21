@@ -359,74 +359,76 @@ const Browser = ({
           />
         )}
       </div>
-      {!inLibrary && (
-        <nav className={style.crumbs} aria-label={t('sources.location')}>
-          <button type="button" className={style.action} onClick={() => setPosition({})}>
-            {t(library ? 'sources.library' : 'sources.artists')}
-          </button>
-          {position.artist && (
-            <button type="button" className={style.action} onClick={() => setPosition({ artist: position.artist })}>
-              {position.artist.name}
+      <div className={style.listing}>
+        {!inLibrary && (
+          <nav className={style.crumbs} aria-label={t('sources.location')}>
+            <button type="button" className={style.action} onClick={() => setPosition({})}>
+              {t(library ? 'sources.library' : 'sources.artists')}
             </button>
-          )}
-          {position.album && <span className={style.meta}>{position.album.title}</span>}
-          {position.query && <span className={style.meta}>{t('sources.resultsFor', { query: position.query })}</span>}
-        </nav>
-      )}
-      {!answer && (
-        <div className={style.hint} role="status">
-          {t('sources.loading')}
-        </div>
-      )}
-      {answer?.error && (
-        <div className={style.error} role="alert">
-          {t('sources.failed', { error: answer.error })}
-        </div>
-      )}
-      {inLibrary && isAlbums(result) && result.length > 0 && (
-        <div className={style.tiles} style={tiles}>
-          {albumCards(result)}
-        </div>
-      )}
-      {inLibrary && isArtists(result) && view.kind === 'artists' && result.length > 0 && (
-        <div className={style.tiles} style={tiles}>
-          {artistCards(result)}
-        </div>
-      )}
-      {!inLibrary && isArtists(result) && result.length > 0 && (
-        <div className={style.tiles} style={tiles}>
-          {artistCards(result)}
-        </div>
-      )}
-      {!inLibrary && isAlbums(result) && result.length > 0 && (
-        <div className={style.tiles} style={tiles}>
-          {albumCards(result)}
-        </div>
-      )}
-      {isTracks(result) && trackRows(result)}
-      {isSearch(result) && (
-        <>
-          {result.artists.length > 0 && (
-            <div className={style.tiles} style={tiles}>
-              {artistCards(result.artists)}
-            </div>
-          )}
-          {result.albums.length > 0 && (
-            <div className={style.tiles} style={tiles}>
-              {albumCards(result.albums)}
-            </div>
-          )}
-          {result.tracks.length > 0 && trackRows(result.tracks)}
-        </>
-      )}
-      {hasMore && (
-        <div className={style.buttons}>
-          <button type="button" className={style.action} onClick={() => setView({ ...view, pages: view.pages + 1 })}>
-            {t('sources.showMore')}
-          </button>
-        </div>
-      )}
-      {Array.isArray(result) && result.length === 0 && <div className={style.hint}>{t('sources.empty')}</div>}
+            {position.artist && (
+              <button type="button" className={style.action} onClick={() => setPosition({ artist: position.artist })}>
+                {position.artist.name}
+              </button>
+            )}
+            {position.album && <span className={style.meta}>{position.album.title}</span>}
+            {position.query && <span className={style.meta}>{t('sources.resultsFor', { query: position.query })}</span>}
+          </nav>
+        )}
+        {!answer && (
+          <div className={style.hint} role="status">
+            {t('sources.loading')}
+          </div>
+        )}
+        {answer?.error && (
+          <div className={style.error} role="alert">
+            {t('sources.failed', { error: answer.error })}
+          </div>
+        )}
+        {inLibrary && isAlbums(result) && result.length > 0 && (
+          <div className={style.tiles} style={tiles}>
+            {albumCards(result)}
+          </div>
+        )}
+        {inLibrary && isArtists(result) && view.kind === 'artists' && result.length > 0 && (
+          <div className={style.tiles} style={tiles}>
+            {artistCards(result)}
+          </div>
+        )}
+        {!inLibrary && isArtists(result) && result.length > 0 && (
+          <div className={style.tiles} style={tiles}>
+            {artistCards(result)}
+          </div>
+        )}
+        {!inLibrary && isAlbums(result) && result.length > 0 && (
+          <div className={style.tiles} style={tiles}>
+            {albumCards(result)}
+          </div>
+        )}
+        {isTracks(result) && trackRows(result)}
+        {isSearch(result) && (
+          <>
+            {result.artists.length > 0 && (
+              <div className={style.tiles} style={tiles}>
+                {artistCards(result.artists)}
+              </div>
+            )}
+            {result.albums.length > 0 && (
+              <div className={style.tiles} style={tiles}>
+                {albumCards(result.albums)}
+              </div>
+            )}
+            {result.tracks.length > 0 && trackRows(result.tracks)}
+          </>
+        )}
+        {hasMore && (
+          <div className={style.buttons}>
+            <button type="button" className={style.action} onClick={() => setView({ ...view, pages: view.pages + 1 })}>
+              {t('sources.showMore')}
+            </button>
+          </div>
+        )}
+        {Array.isArray(result) && result.length === 0 && <div className={style.hint}>{t('sources.empty')}</div>}
+      </div>
       <div className={style.footer}>
         <span>{inLibrary ? t(countKeys[view.kind], { count: total ?? items.length }) : ''}</span>
         <CoverSizeSlider size={coverSize} setSize={setCoverSize} />

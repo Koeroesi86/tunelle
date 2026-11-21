@@ -214,39 +214,56 @@
   // the page of a library fills the area as the local one does: no box, the tiles at the edge of the page
   .wide {
     max-width: none;
-    padding: 12px 16px 20px;
+    height: 100%;
+    padding: 0;
+    gap: 0;
   }
 
+  // a server fills the page: the toolbar and the footer stay, the tiles scroll between them; several servers are a page each
   .library {
     display: flex;
+    flex: 0 0 100%;
     flex-direction: column;
-    gap: 12px;
     min-width: 0;
+    min-height: 0;
   }
 
   // the search takes the left, the order the right, as in the local library
   .toolbar {
     display: flex;
+    flex: none;
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
     justify-content: space-between;
+    padding: 8px 16px;
+  }
+
+  .serverName {
+    padding: 8px 16px 0;
+  }
+
+  .listing {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    padding: 4px 16px 12px;
+    overflow-y: auto;
   }
 
   // the count and the size of the tiles, at the foot of the page as in the local library
   .footer {
-    position: sticky;
-    bottom: -20px;
     display: flex;
+    flex: none;
     align-items: center;
     justify-content: space-between;
     box-sizing: border-box;
     min-height: 40px;
-    margin: 0 -16px -20px;
     padding: 0 20px;
     font-size: 12px;
     color: var(--text-muted);
-    background-color: var(--app-background);
     border-top: 1px solid var(--overlay);
   }
 }
