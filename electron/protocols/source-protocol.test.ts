@@ -38,6 +38,25 @@ describe('serveSource', () => {
     expect(await response.text()).toBe('cover');
   });
 
+  it('lets the page keep a cover for a day and not an answer that is an error', async () => {
+    const kept = await serveSource('cover', `subsonic:${serverId}:al-1`, ask(), sources);
+    client.cover.mockResolvedValue(new Response('slow down', { status: 429 }));
+    const refused = await serveSource('cover', `subsonic:${serverId}:al-2`, ask(), sources);
+
+    expect(kept.headers.get('Cache-Control')).toBe('private, max-age=86400');
+    expect(refused.status).toBe(429);
+    expect(refused.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('answers 502 when the server does not answer for a cover', async () => {
+    client.cover.mockRejectedValue(new Error('gone'));
+
+    const response = await serveSource('cover', `subsonic:${serverId}:al-1`, ask(), sources);
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+
   it.each([null, '', '/music/a.flac', 'radio:abc', 'subsonic:not-a-server:1', `tidal:${serverId}:1`])(
     'is not found for the path %j, and no server is asked',
     async (bad) => {

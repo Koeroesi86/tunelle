@@ -58,3 +58,7 @@ What the documentation of [Subsonic](https://www.subsonic.org/pages/api.jsp) and
 - Whether a server that ignores `format=raw` sends a transcoded file (and a `Content-Type` that tells).
 - The look of the tiles and rows with a server's data (the favourite and playlist buttons of a tile on an album of a server) was not seen in the running app.
 - The page was tested with component tests only, not in the running app against a server: the layout at the three sizes, the approval of a certificate and playing a track are not seen.
+
+## Load and rate limits
+
+A window of tiles asks for dozens of pages and covers at once, which a server answers late or refuses. `openSource` asks a GET again when the server says 429 or 503 (at most twice, after the `Retry-After` it names, capped at 5 s, else 0.5 s and 1 s). The pages of a list are asked a few at a time per server (`createGate`, 4), the same request that is on its way is not asked again (`register-source-listeners.ts`), and the covers go through a gate of 6 per server. A cover is kept by the page for a day (`Cache-Control: private, max-age=86400`) and an answer that is an error is not (`no-store`). The tiles show a cover as a background image, which has no way to ask again after a failure: a cover that failed after its retries stays blank until the page is shown again. Plex asks for its music sections once per client. Connections are not pooled (`agent: false`), so every request pays its handshake.

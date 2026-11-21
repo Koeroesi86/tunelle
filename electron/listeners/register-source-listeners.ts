@@ -6,30 +6,14 @@ import type { ListenerContext } from './listener-context';
 import { approvalCode } from '../remote/certificate';
 import { readCertificate, SourceError } from '../services/sources/source-request';
 import { discoverJellyfin } from '../services/sources/jellyfin-discovery';
+import { createGate } from '../services/sources/request-gate';
 import type { SourceClient } from '../services/sources/sources';
 
 const certificateRequestSchema = z.object({ url: z.url() });
 const removeSchema = z.object({ id: z.uuid() });
 
-/** A page that scrolls fast asks for many pages at once, and a server answers all of them late: so few run at a time for a server */
-const parallelRequests = 4;
-const slots = new Map<string, { active: number; queue: (() => void)[] }>();
-
-const release = (serverId: string) => {
-  const slot = slots.get(serverId);
-  const next = slot?.queue.shift();
-  if (next) next();
-  else if (slot) slot.active -= 1;
-};
-
-const inTurn = async <T>(serverId: string, task: () => Promise<T>): Promise<T> => {
-  const slot = slots.get(serverId) ?? { active: 0, queue: [] };
-  slots.set(serverId, slot);
-  if (slot.active < parallelRequests) slot.active += 1;
-  else await new Promise<void>((resolve) => slot.queue.push(resolve));
-
-  return task().finally(() => release(serverId));
-};
+/** A page that scrolls fast asks for many pages at once: few run at a time for a server */
+const inTurn = createGate(4);
 
 /** The requests that are on their way, the answer of one comes to the page that asked first */
 const pending = new Set<string>();
