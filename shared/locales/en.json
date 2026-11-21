@@ -591,7 +591,5 @@
   "sources.albums_one": "{count} album",
   "sources.albums_other": "{count} albums",
   "sources.songs_one": "{count} song",
-  "sources.songs_other": "{count} songs",
-  "sources.browse": "Browse {name}",
-  "sources.browseShort": "Browse"
+  "sources.songs_other": "{count} songs"
 }

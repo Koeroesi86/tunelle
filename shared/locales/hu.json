@@ -590,7 +590,5 @@
   "sources.albums_one": "{count} album",
   "sources.albums_other": "{count} album",
   "sources.songs_one": "{count} szám",
-  "sources.songs_other": "{count} szám",
-  "sources.browse": "{name} böngészése",
-  "sources.browseShort": "Böngészés"
+  "sources.songs_other": "{count} szám"
 }

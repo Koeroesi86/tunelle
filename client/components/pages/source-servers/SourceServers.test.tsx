@@ -144,21 +144,21 @@ describe('SourceServers', () => {
 describe('SourceServers with one or more servers', () => {
   const other = { ...server, id: '6f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b12', name: 'Cabin' };
 
-  it('browses the only server at once and offers just to add another', () => {
+  it('shows the library of the only server with no name, and just adding another as an option', () => {
     const props = setup({ servers: [server], browsed: {} });
 
     expect(props.browse).toHaveBeenCalledWith(expect.objectContaining({ what: 'library', serverId: id }));
-    expect(screen.queryByRole('button', { name: 'Browse Home' })).toBeNull();
+    expect(screen.queryByText('Home')).toBeNull();
     expect(screen.getByRole('button', { name: 'Add a server' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Remove Home' })).toBeTruthy();
   });
 
-  it('lists several servers and browses the one that is chosen', () => {
+  it('groups the libraries of several servers under their names', () => {
     const props = setup({ servers: [server, other], browsed: {} });
 
-    expect(props.browse).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Browse Cabin' }));
-
+    expect(screen.getByText('Home')).toBeTruthy();
+    expect(screen.getByText('Cabin')).toBeTruthy();
+    expect(props.browse).toHaveBeenCalledWith(expect.objectContaining({ what: 'library', serverId: id }));
     expect(props.browse).toHaveBeenCalledWith(expect.objectContaining({ what: 'library', serverId: other.id }));
   });
 });
@@ -167,8 +167,8 @@ describe('SourceServers for Jellyfin', () => {
   it('lists only the servers of its kind', () => {
     setup({ servers: [server, { ...server, id: '6f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b12', kind: 'jellyfin', name: 'Film room' }] }, 'jellyfin');
 
-    expect(screen.getAllByText('Film room').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Home')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Remove Film room' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Remove Home' })).toBeNull();
   });
 
   it('suggests a name of its own kind', () => {
@@ -232,8 +232,8 @@ describe('SourceServers for Jellyfin', () => {
   it('lists only the Plex servers on the Plex page', () => {
     setup({ servers: [server, { ...server, id: '6f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b12', kind: 'plex', name: 'Den' }] }, 'plex');
 
-    expect(screen.getAllByText('Den').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Home')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Remove Den' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Remove Home' })).toBeNull();
   });
 
   it('signs in with Plex from the Plex page only', () => {

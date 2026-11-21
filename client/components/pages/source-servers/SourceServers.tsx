@@ -272,7 +272,14 @@ const Cover = ({ kind, serverId, coverArt, large }: { kind: SourceKind; serverId
     <span className={large ? style.cardCover : style.cover} />
   );
 
-const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } & Pick<SourceServersProps, 'state' | 'browse' | 'play'>) => {
+const Browser = ({
+  server,
+  named,
+  state,
+  browse,
+  play,
+  remove,
+}: { server: SourceServerInfo; named: boolean } & Pick<SourceServersProps, 'state' | 'browse' | 'play' | 'remove'>) => {
   const { t } = useTranslation();
   const [position, setPosition] = useState<Position>({});
   const [text, setText] = useState('');
@@ -354,7 +361,20 @@ const Browser = ({ server, state, browse, play }: { server: SourceServerInfo } &
 
   return (
     <div className={style.tile}>
-      <div className={style.sectionTitle}>{server.name}</div>
+      <div className={style.header}>
+        {named ? (
+          <div className={style.serverName}>
+            <span className={style.sectionTitle}>{server.name}</span>
+            <span className={style.meta}>{server.url}</span>
+          </div>
+        ) : (
+          <span />
+        )}
+        <button type="button" className={style.action} aria-label={t('sources.remove', { name: server.name })} onClick={() => remove(server.id)}>
+          {t('sources.removeShort')}
+        </button>
+      </div>
+      {!server.protected && <div className={style.warning}>{t('sources.unprotected')}</div>}
       <form className={classNames(style.form, style.inline)} role="search" onSubmit={search}>
         <input
           type="search"
@@ -456,12 +476,8 @@ const SourceServers = ({
   play,
 }: SourceServersProps) => {
   const { t } = useTranslation();
-  const [open, setOpen] = useState<string | undefined>(undefined);
   const [adding, setAdding] = useState(false);
   const servers = state.servers.filter((server) => server.kind === kind);
-  // the only server of a kind is shown at once, with nothing to pick: more than one are listed to browse one
-  const single = servers.length === 1;
-  const opened = single ? servers.at(0) : servers.find(({ id }) => id === open);
 
   useEffect(() => {
     load();
@@ -485,31 +501,6 @@ const SourceServers = ({
             )}
           </div>
           {servers.length === 0 && <div className={style.hint}>{t('sources.none')}</div>}
-          {servers.map((server) => (
-            <div key={server.id} className={classNames(style.server, { [style.current]: !single && server.id === open })}>
-              <div className={style.serverName}>
-                <span className={style.name}>{server.name}</span>
-                <span className={style.meta}>{server.url}</span>
-              </div>
-              <div className={style.buttons}>
-                {!single && (
-                  <button
-                    type="button"
-                    className={style.action}
-                    aria-label={t('sources.browse', { name: server.name })}
-                    aria-pressed={server.id === open}
-                    onClick={() => setOpen(server.id === open ? undefined : server.id)}
-                  >
-                    {t('sources.browseShort')}
-                  </button>
-                )}
-                <button type="button" className={style.action} aria-label={t('sources.remove', { name: server.name })} onClick={() => remove(server.id)}>
-                  {t('sources.removeShort')}
-                </button>
-              </div>
-              {!server.protected && <div className={style.warning}>{t('sources.unprotected')}</div>}
-            </div>
-          ))}
         </div>
         {(adding || servers.length === 0) && (
           <AddServer
@@ -525,7 +516,9 @@ const SourceServers = ({
             onClose={servers.length > 0 ? () => setAdding(false) : undefined}
           />
         )}
-        {opened && <Browser key={opened.id} server={opened} state={state} browse={browse} play={play} />}
+        {servers.map((server) => (
+          <Browser key={server.id} server={server} named={servers.length > 1} state={state} browse={browse} play={play} remove={remove} />
+        ))}
       </div>
     </div>
   );
