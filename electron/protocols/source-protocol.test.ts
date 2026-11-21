@@ -79,4 +79,29 @@ describe('serveSource', () => {
     expect((await serveSource('audio', path, ask(), sources)).status).toBe(502);
     expect((await serveSource('cover', path, ask(), sources)).status).toBe(502);
   });
+
+  it('does not fetch a cover that was asked for no more while it waited for its turn', async () => {
+    const answers: ((response: Response) => void)[] = [];
+    client.cover.mockImplementation(() => new Promise((resolve) => answers.push(resolve)));
+    const asked = Array.from({ length: 8 }, (_, index) => {
+      const controller = new AbortController();
+      const response = serveSource(
+        'cover',
+        `subsonic:${serverId}:al-${index}`,
+        new Request('tunelle://app/source/cover', { signal: controller.signal }),
+        sources
+      );
+      return { controller, response };
+    });
+    await vi.waitFor(() => expect(client.cover).toHaveBeenCalledTimes(6));
+
+    asked[6].controller.abort();
+    answers.forEach((resolve) => resolve(new Response('cover')));
+    await vi.waitFor(() => expect(client.cover).toHaveBeenCalledTimes(7));
+    answers.forEach((resolve) => resolve(new Response('cover')));
+
+    expect((await asked[6].response).status).toBe(502);
+    expect((await asked[7].response).status).toBe(200);
+    expect(client.cover.mock.calls.map(([id]) => id)).not.toContain('al-6');
+  });
 });

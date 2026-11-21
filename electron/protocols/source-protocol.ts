@@ -1,10 +1,20 @@
 import { sourcePathSchema } from '@shared/schemas/sources';
 import type { Sources } from '../services/sources/sources';
-import { createGate } from '../services/sources/request-gate';
+import { createGate, Dropped } from '../services/sources/request-gate';
 import { notFound } from './serve-file';
 
 /** A window of tiles asks for dozens of covers at once: few run at a time for a server, the others wait */
 const coverInTurn = createGate(6);
+
+let covers = 0;
+
+/** A cover that the page no longer wants (its tile scrolled away, so the request is aborted) is not fetched if it still waits for its turn */
+const coverWaiting = <T>(serverId: string, signal: AbortSignal, task: () => Promise<T>) => {
+  const tag = String(covers++);
+  signal.addEventListener('abort', () => coverInTurn.drop(serverId, (queued) => queued === tag), { once: true });
+
+  return coverInTurn(serverId, () => (signal.aborted ? Promise.reject(new Dropped()) : task()), tag);
+};
 
 /** A cover is kept for a day by the page, an answer that is an error is not kept */
 const kept = (response: Response) => {
@@ -22,7 +32,7 @@ export const serveSource = async (kind: 'audio' | 'cover', path: string | null, 
 
   return kind === 'audio'
     ? client.stream(ref.id, request.headers.get('range') ?? undefined, request.signal).catch(() => new Response(undefined, { status: 502 }))
-    : coverInTurn(ref.serverId, () => client.cover(ref.id, request.signal))
+    : coverWaiting(ref.serverId, request.signal, () => client.cover(ref.id, request.signal))
         .then(kept)
         .catch(() => new Response(undefined, { status: 502, headers: { 'Cache-Control': 'no-store' } }));
 };
