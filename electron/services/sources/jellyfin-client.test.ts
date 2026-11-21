@@ -174,6 +174,55 @@ describe('the Jellyfin client', () => {
     });
   });
 
+  describe('the library', () => {
+    it.each([
+      ['albums', 'MusicAlbum'],
+      ['artists', 'MusicArtist'],
+      ['tracks', 'Audio'],
+    ] as const)('asks for a page of the %s, sorted and counted by the server', async (kind, type) => {
+      reply(login(), json({ Items: [], TotalRecordCount: 120 }));
+
+      const page = await client().library(kind, 'recent', 60, 30);
+
+      expect(page).toEqual({ total: 120, items: [] });
+      expect(Object.fromEntries(sentUrl(1).searchParams)).toMatchObject({
+        includeItemTypes: type,
+        sortBy: 'DateCreated',
+        sortOrder: 'Descending',
+        startIndex: '60',
+        limit: '30',
+        recursive: 'true',
+      });
+    });
+
+    it('sorts by name for the title order', async () => {
+      reply(login(), json({ Items: [] }));
+
+      await client().library('albums', 'title', 0, 10);
+
+      expect(Object.fromEntries(sentUrl(1).searchParams)).toMatchObject({ sortBy: 'SortName', sortOrder: 'Ascending' });
+    });
+
+    it('turns the items of each kind into the ones of the page, and counts the page when the server gives no total', async () => {
+      reply(
+        login(),
+        json({ Items: [{ Id: 'al1', Name: 'Goldberg', AlbumArtist: 'Bach', ProductionYear: 1981, ChildCount: 32, ImageTags: { Primary: 'x' } }] }),
+        json({ Items: [{ Id: 'a1', Name: 'Bach', AlbumCount: 3 }] }),
+        json({ Items: [{ Id: 's1', Name: 'Aria', Container: 'flac' }], TotalRecordCount: 9 })
+      );
+      const jellyfin = client();
+
+      expect(await jellyfin.library('albums', 'title', 20, 10)).toEqual({
+        total: 21,
+        items: [{ id: 'al1', title: 'Goldberg', artist: 'Bach', year: '1981', songCount: 32, coverArt: 'al1' }],
+      });
+      expect(await jellyfin.library('artists', 'title', 0, 10)).toEqual({ total: 1, items: [{ id: 'a1', name: 'Bach', albumCount: 3 }] });
+      const songs = await jellyfin.library('tracks', 'title', 0, 10);
+      expect(songs.total).toBe(9);
+      expect(songs.items[0]).toMatchObject({ title: 'Aria', path: `jellyfin:${serverId}:s1` });
+    });
+  });
+
   describe('the files', () => {
     it('streams the stored file, passes the range on and keeps the token out of the address', async () => {
       reply(login(), answer('audio', 206, { 'content-type': 'audio/flac', 'content-range': 'bytes 0-4/10' }));

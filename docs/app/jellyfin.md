@@ -11,6 +11,10 @@ Part of [#66](https://github.com/Koeroesi86/tunelle/issues/66), on the pieces of
 - `stream` is `GET /Audio/{id}/stream?static=true`, "the original file … streamed statically without any encoding", with the `Range` of the player. The cover is `GET /Items/{id}/Images/Primary?maxWidth=600`; an album has one only when `ImageTags.Primary` says so.
 - The certificate, the timeout, the `User-Agent` and the limit of a list are those of `source-request.ts`.
 
+## The library
+
+`library(kind, sort, start, size)` lists a page of the albums (`MusicAlbum`), artists (`MusicArtist`) or songs (`Audio`) of the whole server from `/Items` with `startIndex` and `limit`; the server sorts (`SortName` ascending for the title, `DateCreated` descending for the newest) and counts (`TotalRecordCount`, and when it is missing the total is the start plus the items of the page). `sourceCapabilities` lists the three sections and both orders, so the page shows the tabs, the sort and the covers as it does for Plex.
+
 ## Finding a server on the network
 
 "Look on the network" on the Jellyfin page (`jellyfin-discovery.ts`) sends `who is JellyfinServer?` as UDP to port 7359, to the limited broadcast and to the broadcast address of each IPv4 network of the machine (a server on a second network is not reached by the limited broadcast of the default route), and collects the answers for two seconds. A Jellyfin server (`AutoDiscoveryHost.cs`, when its network setting `AutoDiscovery` is on) answers with JSON: `Address` (the URL to use), `Id` and `Name`. An answer that is not that, or has an address that is not `http` or `https`, is left out, at most 20 servers are kept, and the page lists them without those it has added already. "Use" fills the name and the address of the form: the user still gives the login, so nothing is kept from the network.
@@ -28,3 +32,4 @@ Read on 2026-11-20 in the OpenAPI document of the stable release (12.4.0, `api.j
 - The picture of a song: a track has the cover of its own item, which may be none, as only albums are checked for a picture.
 - The page was tested with component tests only, as the Subsonic one.
 - The discovery was read in the server code of the master branch and in the description of Navidrome's pull request 6169, which answers the same message; it was not tried on a network. The default of `AutoDiscovery`, the `EndpointAddress` field (not used) and whether the answer comes from the port 7359 or another one are not checked: the socket takes any sender.
+- The library page was not run against a real Jellyfin server; the requests are checked in `jellyfin-client.test.ts` only.

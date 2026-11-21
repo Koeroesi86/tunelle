@@ -1,7 +1,15 @@
 import type { IncomingMessage } from 'node:http';
 import { z } from 'zod';
 import type { Track } from '@shared/types/library';
-import { toSourcePath, type SourceAlbum, type SourceArtist, type SourceServer } from '@shared/schemas/sources';
+import {
+  toSourcePath,
+  type LibraryKind,
+  type LibrarySort,
+  type SourceAlbum,
+  type SourceArtist,
+  type SourcePage,
+  type SourceServer,
+} from '@shared/schemas/sources';
 import { openSource, readJson, SourceError, toResponse, wrongLoginCode } from './source-request';
 
 const clientName = 'Tunelle';
@@ -41,7 +49,14 @@ const songSchema = z.object({
     .catch(undefined),
 });
 
-const listOf = <Item extends z.ZodType>(item: Item) => z.object({ Items: z.array(item) });
+const listOf = <Item extends z.ZodType>(item: Item) => z.object({ Items: z.array(item), TotalRecordCount: count });
+
+const libraryTypes = { albums: 'MusicAlbum', artists: 'MusicArtist', tracks: 'Audio' };
+const libraryFields = { albums: 'ChildCount', artists: 'ItemCounts', tracks: 'Genres,MediaSources' };
+const libraryOrders = {
+  title: { sortBy: 'SortName', sortOrder: 'Ascending' },
+  recent: { sortBy: 'DateCreated', sortOrder: 'Descending' },
+};
 
 const toArtist = ({ Id, Name, AlbumCount, ChildCount }: z.infer<typeof artistSchema>): SourceArtist => ({
   id: Id,
@@ -135,8 +150,34 @@ export const createJellyfinClient = (server: SourceServer, password: string, use
   const songsOf = (params: Record<string, string>) =>
     items(songSchema, { includeItemTypes: 'Audio', fields: 'Genres,MediaSources', ...params }).then((songs) => songs.map((song) => toTrack(server.id, song)));
 
+  const totalOf = (page: z.infer<ReturnType<typeof listOf>>, start: number) => page.TotalRecordCount ?? start + page.Items.length;
+
+  /** A page of the albums, the artists or the songs of the server, which it sorts and counts (`TotalRecordCount`) */
+  const library = async (kind: LibraryKind, sort: LibrarySort, start: number, size: number): Promise<SourcePage> => {
+    const params = {
+      recursive: 'true',
+      includeItemTypes: libraryTypes[kind],
+      fields: libraryFields[kind],
+      ...libraryOrders[sort],
+      startIndex: String(start),
+      limit: String(size),
+    };
+    if (kind === 'artists') {
+      const page = await call('/Items', listOf(artistSchema), params);
+      return { total: totalOf(page, start), items: page.Items.map(toArtist) };
+    }
+    if (kind === 'albums') {
+      const page = await call('/Items', listOf(albumSchema), params);
+      return { total: totalOf(page, start), items: page.Items.map(toAlbum) };
+    }
+
+    const page = await call('/Items', listOf(songSchema), params);
+    return { total: totalOf(page, start), items: page.Items.map((song) => toTrack(server.id, song)) };
+  };
+
   return {
     ping: () => login().then(() => undefined),
+    library,
     // `/Artists` is deprecated in the API without a replacement named, so the artists are items of their own kind
     artists: () => items(artistSchema, { includeItemTypes: 'MusicArtist', fields: 'ItemCounts' }).then((artists) => artists.map(toArtist)),
     albumsOf: (artistId: string) =>

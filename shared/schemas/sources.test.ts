@@ -50,10 +50,10 @@ describe('what the page asks to browse', () => {
 });
 
 describe('what a kind of server can show', () => {
-  it('has a library with sections and orders only where the server lists one', () => {
+  it('has a library with sections and orders only where the server lists one (Subsonic does not yet)', () => {
     expect(sourceCapabilities.plex.library?.sections).toEqual(['albums', 'artists', 'tracks']);
     expect(sourceCapabilities.plex.library?.sorts).toEqual(['recent', 'title']);
     expect(sourceCapabilities.subsonic.library).toBeUndefined();
-    expect(sourceCapabilities.jellyfin.library).toBeUndefined();
+    expect(sourceCapabilities.jellyfin.library?.sections).toEqual(['albums', 'artists', 'tracks']);
   });
 });
