@@ -5,7 +5,7 @@ import type { Playlist } from '@shared/types/playlists';
 import PlaylistView from './PlaylistView';
 
 const queued = vi.hoisted(() => vi.fn());
-vi.mock('../../library/add-to-queue', async () => {
+vi.mock('../../../containers/library/add-to-queue', async () => {
   const { createElement } = await import('react');
 
   return {

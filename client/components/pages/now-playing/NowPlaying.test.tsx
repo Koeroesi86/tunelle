@@ -3,8 +3,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { Track } from '@shared/types/library';
 import NowPlaying from './NowPlaying';
 
-vi.mock('../../ui/favourite-button', () => ({ default: () => null }));
-vi.mock('../../ui/loudness-panel', () => ({
+vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
+vi.mock('../../../containers/ui/loudness-panel', () => ({
   default: ({ path, duration, sampleRate }: { path?: string; duration?: number; sampleRate?: number }) => (
     <div data-testid="loudness" data-duration={duration} data-rate={sampleRate}>
       {path}

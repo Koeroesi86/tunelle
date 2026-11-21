@@ -4,9 +4,9 @@ import PlayerHome from './PlayerHome';
 
 // the parts of the window are replaced: the test is about what the window does when the page is left
 vi.mock('../../ui/confirm', () => ({ default: () => null }));
-vi.mock('../player-controls', () => ({ default: () => null }));
-vi.mock('../audio-component', () => ({ default: () => null }));
-vi.mock('../title-bar', () => ({
+vi.mock('../../../containers/layout/player-controls', () => ({ default: () => null }));
+vi.mock('../../../containers/layout/audio-component', () => ({ default: () => null }));
+vi.mock('../../../containers/layout/title-bar', () => ({
   default: ({ onMenu, menuOpen }: { onMenu?: () => void; menuOpen?: boolean }) =>
     onMenu ? (
       <button type="button" onClick={onMenu}>
@@ -14,7 +14,7 @@ vi.mock('../title-bar', () => ({
       </button>
     ) : null,
 }));
-vi.mock('../navigation', () => ({
+vi.mock('../../../containers/layout/navigation', () => ({
   default: ({ rail, onNavigate }: { rail?: boolean; onNavigate?: () => void }) => (
     <button type="button" onClick={onNavigate}>
       navigation {String(rail)}
@@ -22,10 +22,10 @@ vi.mock('../navigation', () => ({
   ),
 }));
 vi.mock('../audio-spectrum', () => ({ default: () => null }));
-vi.mock('../player-tabs', () => ({ default: () => null }));
-vi.mock('../launcher-offer', () => ({ default: () => null }));
-vi.mock('../remote-request', () => ({ default: () => null }));
-vi.mock('../playlist-import-report', () => ({ default: () => null }));
+vi.mock('../../../containers/layout/player-tabs', () => ({ default: () => null }));
+vi.mock('../../../containers/layout/launcher-offer', () => ({ default: () => null }));
+vi.mock('../../../containers/layout/remote-request', () => ({ default: () => null }));
+vi.mock('../../../containers/layout/playlist-import-report', () => ({ default: () => null }));
 
 const window = (onUnload: () => void) => <PlayerHome maximized={false} blurred={false} loaded folders={[]} addFiles={vi.fn()} onUnload={onUnload} />;
 

@@ -1,9 +1,9 @@
 import { useTranslation } from '../../../i18n';
 import type { LibraryKind, SourceKind } from '@shared/schemas/sources';
 import type { OnlineView } from '../../../redux/types';
-import RadioStations from '../radio-stations';
-import SourceServers from '../source-servers';
-import RemoteListener from '../remote-listener';
+import RadioStations from '../../../containers/pages/radio-stations';
+import SourceServers from '../../../containers/pages/source-servers';
+import RemoteListener from '../../../containers/pages/remote-listener';
 import ViewSwitcher from '../../ui/view-switcher/ViewSwitcher';
 import type { ViewItem } from '../../ui/view-switcher/ViewSwitcher';
 

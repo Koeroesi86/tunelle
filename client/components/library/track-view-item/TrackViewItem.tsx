@@ -8,10 +8,10 @@ import { trackFavourite } from '../../../domain/favourites';
 import { useTranslation } from '../../../i18n';
 import style from './TrackViewItem.scss';
 import Time from '../../ui/time';
-import FavouriteButton from '../../ui/favourite-button';
+import FavouriteButton from '../../../containers/ui/favourite-button';
 import AudioFormatBadge from '../../ui/audio-format-badge';
-import AddToPlaylist from '../add-to-playlist';
-import AddToQueue from '../add-to-queue';
+import AddToPlaylist from '../../../containers/library/add-to-playlist';
+import AddToQueue from '../../../containers/library/add-to-queue';
 
 /** The header row displays labels in place of the track values */
 export type TrackLabels = Record<'duration' | 'artist' | 'year' | 'album' | 'track' | 'title', string>;

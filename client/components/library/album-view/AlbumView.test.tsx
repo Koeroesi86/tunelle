@@ -4,7 +4,7 @@ import type { AlbumSummary } from '@shared/types/library';
 import { createPageCache, storePage } from '../../../redux/library/pages';
 import AlbumView from './AlbumView';
 
-vi.mock('../album-view-thumbnail', () => ({ default: () => null }));
+vi.mock('../../../containers/library/album-view-thumbnail', () => ({ default: () => null }));
 
 const album = (index: number): AlbumSummary => ({
   id: `/music/${index} - Album`,

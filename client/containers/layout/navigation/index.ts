@@ -1,0 +1,38 @@
+import { connect } from 'react-redux';
+import type { Dispatch } from 'redux';
+import type { RootState } from '../../../redux/reducers';
+import type { AppAction, LibraryView, OnlineView, NavigationGroup, Tab } from '../../../redux/types';
+import Navigation from '../../../components/layout/navigation/Navigation';
+
+const mapState = (state: RootState) => ({
+  tab: state.uiState.tab,
+  view: state.uiState.view,
+  onlineView: state.uiState.onlineView,
+  libraryOpen: state.uiState.libraryOpen,
+  onlineOpen: state.uiState.onlineOpen,
+  closedSources: state.uiState.closedSources,
+  sourceKinds: state.sources.servers.map(({ kind }) => kind),
+  playlistsOpen: state.uiState.playlistsOpen,
+  playlists: state.playlists,
+  playlistId: state.uiState.playlistId,
+});
+const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
+  loadSources: () => dispatch({ type: 'LOAD_SOURCE_SERVERS' }),
+  setTab: (tab: Tab) => dispatch({ type: 'SET_TAB', payload: { tab } }),
+  // the sidebar picks the view of the library, and the library to show it in
+  openLibraryView: (view: LibraryView) => {
+    dispatch({ type: 'SET_VIEW', payload: { view } });
+    dispatch({ type: 'SET_TAB', payload: { tab: 'local' } });
+  },
+  openOnlineView: (view: OnlineView) => {
+    dispatch({ type: 'SET_ONLINE_VIEW', payload: { view } });
+    dispatch({ type: 'SET_TAB', payload: { tab: 'online-sources' } });
+  },
+  setGroupOpen: (group: NavigationGroup, open: boolean) => dispatch({ type: 'SET_NAVIGATION_GROUP', payload: { group, open } }),
+  openPlaylist: (id: number) => dispatch({ type: 'OPEN_PLAYLIST', payload: { id } }),
+  importPlaylists: () => dispatch({ type: 'IMPORT_PLAYLISTS' }),
+  createPlaylist: (name: string) => dispatch({ type: 'CREATE_PLAYLIST', payload: { name } }),
+  movePlaylist: (id: number, toIndex: number) => dispatch({ type: 'MOVE_PLAYLIST', payload: { id, toIndex } }),
+});
+
+export default connect(mapState, mapDispatch)(Navigation);

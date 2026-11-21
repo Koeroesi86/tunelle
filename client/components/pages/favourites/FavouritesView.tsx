@@ -11,8 +11,8 @@ import { useTranslation } from '../../../i18n';
 import type { MessageKey, Translator } from '@shared/locales/translate';
 import style from './FavouritesView.scss';
 import AudioFormatBadge from '../../ui/audio-format-badge';
-import FavouriteButton from '../../ui/favourite-button';
-import AddToQueue from '../../library/add-to-queue';
+import FavouriteButton from '../../../containers/ui/favourite-button';
+import AddToQueue from '../../../containers/library/add-to-queue';
 
 const sources: Source[] = ['local', 'online'];
 const orders: Order[] = ['recent', 'name', 'details'];

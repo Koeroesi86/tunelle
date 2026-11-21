@@ -20,6 +20,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [Testing the app](docs/development/end-to-end-tests.md)
 - [Test plan: remote listening](docs/development/remote-listening-test-plan.md)
 - [Unit tests](docs/development/unit-tests.md)
+- [Containers (the components connected to the store)](docs/development/containers.md)
 - [Checks in CI](docs/development/ci.md)
 - [The decode-only ffmpeg build](docs/development/ffmpeg-build.md)
 - [Startup and the splash](docs/app/startup.md)

@@ -5,11 +5,11 @@ import { getCoverUrl } from '../../../utils/cover-url';
 import { getImageTint } from '../../../utils/cover-tint';
 import AlbumDetails from './AlbumDetails';
 
-vi.mock('../../ui/favourite-button', () => ({ default: () => null }));
-vi.mock('../add-to-playlist', () => ({ default: () => null }));
-vi.mock('../album-cover-menu', () => ({ default: () => null }));
+vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
+vi.mock('../../../containers/library/add-to-playlist', () => ({ default: () => null }));
+vi.mock('../../../containers/library/album-cover-menu', () => ({ default: () => null }));
 const queued = vi.hoisted(() => vi.fn());
-vi.mock('../add-to-queue', async () => {
+vi.mock('../../../containers/library/add-to-queue', async () => {
   const { createElement } = await import('react');
 
   return {

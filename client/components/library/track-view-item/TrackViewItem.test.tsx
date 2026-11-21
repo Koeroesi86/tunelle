@@ -3,9 +3,9 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { Track } from '@shared/types/library';
 import TrackViewItem from './TrackViewItem';
 
-vi.mock('../../ui/favourite-button', () => ({ default: () => null }));
-vi.mock('../add-to-playlist', () => ({ default: () => null }));
-vi.mock('../add-to-queue', () => ({ default: () => null }));
+vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
+vi.mock('../../../containers/library/add-to-playlist', () => ({ default: () => null }));
+vi.mock('../../../containers/library/add-to-queue', () => ({ default: () => null }));
 
 const track: Track = {
   path: '/music/1.flac',

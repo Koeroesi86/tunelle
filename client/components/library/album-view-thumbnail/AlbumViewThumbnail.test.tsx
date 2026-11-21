@@ -4,8 +4,8 @@ import type { AlbumSummary } from '@shared/types/library';
 import { expectNoViolations } from '../../../test/expect-no-violations';
 import AlbumViewThumbnail from './AlbumViewThumbnail';
 
-vi.mock('../../ui/favourite-button', () => ({ default: () => null }));
-vi.mock('../add-to-playlist', () => ({ default: () => null }));
+vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
+vi.mock('../../../containers/library/add-to-playlist', () => ({ default: () => null }));
 
 const album: AlbumSummary = {
   id: '/music/night - Night Shift',

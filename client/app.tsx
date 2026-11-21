@@ -1,8 +1,8 @@
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
-import PlayerHome from './components/layout/player-home';
-import ThemeProvider from './components/layout/theme-provider';
-import LanguageProvider from './components/layout/language-provider';
+import PlayerHome from './containers/layout/player-home';
+import ThemeProvider from './containers/layout/theme-provider';
+import LanguageProvider from './containers/layout/language-provider';
 import { createAppStore } from './redux/store';
 import { setBackend } from './backend/backend';
 import { createElectronBackend } from './backend/electron-backend';
