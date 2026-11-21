@@ -58,9 +58,9 @@ module.exports = [
     rules: { 'no-restricted-imports': ['error', { paths: [{ name: 'react-redux', message: 'Read the store in client/containers and pass props.' }] }] },
   },
   {
-    // the views of the library and the pages take what is connected as props or slots, the containers give it; OnlineSources is the shell of its tabs. See docs/development/containers.md
+    // the views of the library and the pages take what is connected as props or slots, the containers give it. See docs/development/containers.md
     files: ['client/components/library/**/*.ts', 'client/components/library/**/*.tsx', 'client/components/pages/**/*.ts', 'client/components/pages/**/*.tsx'],
-    ignores: ['**/*.test.ts', '**/*.test.tsx', 'client/components/pages/online-sources/**'],
+    ignores: ['**/*.test.ts', '**/*.test.tsx'],
     rules: {
       'no-restricted-imports': [
         'error',

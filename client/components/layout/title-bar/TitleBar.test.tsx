@@ -4,8 +4,6 @@ import type { Track } from '@shared/types/library';
 import TitleBar from './TitleBar';
 
 vi.mock('../audio-spectrum', () => ({ default: () => <canvas data-testid="spectrum" /> }));
-vi.mock('../../../containers/layout/queue-indicator', () => ({ default: () => <div data-testid="queue-indicator" /> }));
-vi.mock('../../../containers/layout/window-controls', () => ({ default: () => <div data-testid="window-controls" /> }));
 
 const track: Track = {
   path: '/music/1.flac',
@@ -34,8 +32,8 @@ describe('TitleBar', () => {
     expect(container.querySelector('img')?.compareDocumentPosition(wordmark)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it('holds the window controls', () => {
-    render(<TitleBar />);
+  it('holds the actions it is given at the end', () => {
+    render(<TitleBar actions={<div data-testid="window-controls" />} />);
 
     expect(screen.getByTestId('window-controls')).toBeTruthy();
   });
