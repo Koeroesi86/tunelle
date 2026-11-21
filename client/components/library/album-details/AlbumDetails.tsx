@@ -4,13 +4,14 @@ import { faArrowLeft, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { Album, Track } from '@shared/types/library';
 import { useTranslation } from '../../../i18n';
-import { getCoverUrl } from '../../../utils/cover-url';
+import { coverRouteOf } from '../../../utils/cover-url';
 import { useDialogFocus } from '../../../hooks/use-dialog-focus';
 import { getImageTint } from '../../../utils/cover-tint';
 import style from './AlbumDetails.scss';
 import AddToQueue from '../add-to-queue/AddToQueue';
 import AudioFormatBadge from '../../ui/audio-format-badge';
 import Time from '../../ui/time';
+import { useResolveUrl } from '../../../hooks/use-resolve-url';
 
 /** The classes that place the buttons next to the title */
 export interface AlbumDetailsActionSlot {
@@ -32,13 +33,14 @@ interface AlbumDetailsProps {
 /** The page of an open album, over the library: its cover, what can be done with it and its tracks; Escape and the button on top go back */
 const AlbumDetails = ({ album, playTracks, addToQueue, renderActions, renderCoverMenu, close }: AlbumDetailsProps) => {
   const { t } = useTranslation();
+  const resolveUrl = useResolveUrl();
   const titleId = useId();
   const dialog = useDialogFocus(album !== null);
   const displayed: Partial<Album> = { ...album };
   const [failedCover, setFailedCover] = useState<string | undefined>(undefined);
   const [loadedCover, setLoadedCover] = useState<string | undefined>(undefined);
   const [tint, setTint] = useState<{ url: string; color: string } | undefined>(undefined);
-  const coverUrl = displayed.cover ? getCoverUrl(displayed.cover) : undefined;
+  const coverUrl = displayed.cover ? resolveUrl(coverRouteOf(displayed.cover)) : undefined;
   const headerColor = tint?.url === coverUrl ? tint?.color : undefined;
   const readTint = (image: HTMLImageElement) => {
     const color = getImageTint(image);

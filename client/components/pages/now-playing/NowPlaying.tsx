@@ -16,6 +16,7 @@ import AudioFormatBadge from '../../ui/audio-format-badge';
 import CoverFade from '../../ui/cover-fade';
 import type { RenderFavourite } from '../../ui/favourite-button/FavouriteButton';
 import Time from '../../ui/time';
+import { useResolveUrl } from '../../../hooks/use-resolve-url';
 
 interface NowPlayingProps {
   nowPlaying: Track[];
@@ -58,6 +59,7 @@ const NowPlaying = ({
   renderLoudness,
 }: NowPlayingProps) => {
   const { t } = useTranslation();
+  const resolveUrl = useResolveUrl();
   const shown = currentSong ? toNowPlaying(currentSong, streamTitle, streamArt) : undefined;
   const [confirming, setConfirming] = useState(false);
   const list = useRef<HTMLDivElement>(null);
@@ -113,7 +115,7 @@ const NowPlaying = ({
       <div className={style.contents}>
         {currentSong && shown && (
           <div className={style.currentSong}>
-            <CoverFade className={style.cover} src={shown.cover} />
+            <CoverFade className={style.cover} src={shown.cover && resolveUrl(shown.cover)} />
             <div className={style.meta}>
               <div className={style.title}>{shown.track.title}</div>
               <div className={style.artist}>{shown.track.artist}</div>

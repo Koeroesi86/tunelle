@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { Album } from '@shared/types/library';
-import { getCoverUrl } from '../../../utils/cover-url';
+import { coverRouteOf } from '../../../utils/cover-url';
 import { getImageTint } from '../../../utils/cover-tint';
 import AlbumDetails from './AlbumDetails';
 
@@ -39,7 +39,7 @@ describe('AlbumDetails', () => {
   it('shows the same cover as the thumbnail', () => {
     setup(album);
 
-    expect(screen.getByRole('img').getAttribute('src')).toBe(getCoverUrl('/data/albumart/abc123.jpg'));
+    expect(screen.getByRole('img').getAttribute('src')).toBe(coverRouteOf('/data/albumart/abc123.jpg'));
   });
 
   it('shows the cover only once it has loaded', () => {

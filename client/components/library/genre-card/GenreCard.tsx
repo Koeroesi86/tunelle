@@ -1,9 +1,10 @@
 import classNames from 'classnames';
 import type { GroupSummary } from '@shared/types/library';
-import { getCoverUrl } from '../../../utils/cover-url';
+import { coverRouteOf } from '../../../utils/cover-url';
 import type { TileProps } from '../../../hooks/use-tile-grid';
 import { useTranslation } from '../../../i18n';
 import style from './GenreCard.scss';
+import { useResolveUrl } from '../../../hooks/use-resolve-url';
 
 /** The covers a card fans out, the last one is in front (the query returns no more) */
 const maxCovers = 3;
@@ -26,6 +27,7 @@ const toneOf = (key: string) => Array.from(key).reduce((sum, character) => (sum 
 /** A genre as a card with its own colour: the name, how many albums and tracks it has, and up to three covers of its albums fanned out in the corner */
 const GenreCard = ({ group, unknownName, open, tile }: GenreCardProps) => {
   const { t } = useTranslation();
+  const resolveUrl = useResolveUrl();
   const name = group.name || unknownName;
 
   return (
@@ -40,7 +42,7 @@ const GenreCard = ({ group, unknownName, open, tile }: GenreCardProps) => {
           <span
             key={cover}
             className={classNames(style.art, style[`art${index + maxCovers - group.covers.length}`])}
-            style={{ backgroundImage: `url("${getCoverUrl(cover)}")` }}
+            style={{ backgroundImage: `url("${resolveUrl(coverRouteOf(cover))}")` }}
           />
         ))}
       </span>

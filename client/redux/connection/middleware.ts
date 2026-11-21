@@ -14,7 +14,8 @@ import { emptyMessage, messageSchemas } from '@shared/schemas/messages';
 import { debounce } from '../../utils/debounce';
 import type { RootState } from '../reducers';
 import toAddedFiles from '../../domain/added-files';
-import { getCoverUrl } from '../../utils/cover-url';
+import { coverRouteOf } from '../../utils/cover-url';
+import { localUrl } from '../../services/local-url';
 import { isFavourite, stationFavourite, trackFavourite } from '../../domain/favourites';
 import { isHistoryItem } from '../../domain/history';
 import { toPlaylist } from '../../domain/playlists';
@@ -233,7 +234,7 @@ const notifyPlaying = (track: Track, onClick: () => void) => {
     silent: false,
   };
   if (track.picture) {
-    const url = getCoverUrl(track.picture);
+    const url = localUrl(coverRouteOf(track.picture));
     notification.icon = url;
     notification.image = url;
   }

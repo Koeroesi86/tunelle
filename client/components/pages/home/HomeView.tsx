@@ -5,8 +5,8 @@ import type { Favourite, HistoryItem } from '@shared/types/favourites';
 import type { Track } from '@shared/types/library';
 import type { Playlist } from '@shared/types/playlists';
 import type { RadioStation } from '@shared/types/radio';
-import { getCoverUrl } from '../../../utils/cover-url';
-import { trackCoverUrl } from '../../../domain/remote-track';
+import { coverRouteOf } from '../../../utils/cover-url';
+import { trackCoverRoute } from '../../../domain/remote-track';
 import { getFavouriteTracks } from '../../../domain/favourite-tracks';
 import { isPlayingItem } from '../../../domain/history';
 import { useTranslation } from '../../../i18n';
@@ -18,6 +18,7 @@ import StationLogo from '../../ui/station-logo';
 import Confirm from '../../ui/confirm';
 import type { RenderFavourite } from '../../ui/favourite-button/FavouriteButton';
 import Time from '../../ui/time';
+import { useResolveUrl } from '../../../hooks/use-resolve-url';
 
 interface HomeViewProps {
   history: HistoryItem[];
@@ -94,6 +95,8 @@ const HomeView = ({
   addFolder = () => {},
 }: HomeViewProps) => {
   const { t } = useTranslation();
+  const resolveUrl = useResolveUrl();
+  const continueCover = currentSong && trackCoverRoute(currentSong);
   const [confirming, setConfirming] = useState(false);
   const startTiles = startTilesOf(favourites, playlists, t('home.liked'));
   const stations = stationsOf(favourites, history);
@@ -115,7 +118,7 @@ const HomeView = ({
         )}
         {currentSong && !isPlaying && (
           <div className={style.continue}>
-            <div className={style.continueCover} style={trackCoverUrl(currentSong) ? { backgroundImage: `url("${trackCoverUrl(currentSong)}")` } : undefined} />
+            <div className={style.continueCover} style={continueCover ? { backgroundImage: `url("${resolveUrl(continueCover)}")` } : undefined} />
             <div className={style.continueText}>
               <span className={style.continueLabel}>{t('home.continue')}</span>
               <span className={style.continueTitle}>{currentSong.title}</span>
@@ -145,7 +148,7 @@ const HomeView = ({
                 ) : (
                   <span className={style.mosaic}>
                     {Array.from({ length: maxCovers }, (_, index) => (
-                      <i key={index} style={tile.covers[index] ? { backgroundImage: `url("${getCoverUrl(tile.covers[index])}")` } : undefined} />
+                      <i key={index} style={tile.covers[index] ? { backgroundImage: `url("${resolveUrl(coverRouteOf(tile.covers[index]))}")` } : undefined} />
                     ))}
                   </span>
                 )}
@@ -176,7 +179,11 @@ const HomeView = ({
                 >
                   <div
                     className={style.cover}
-                    style={item.kind === 'track' && item.snapshot.picture ? { backgroundImage: `url("${getCoverUrl(item.snapshot.picture)}")` } : undefined}
+                    style={
+                      item.kind === 'track' && item.snapshot.picture
+                        ? { backgroundImage: `url("${resolveUrl(coverRouteOf(item.snapshot.picture))}")` }
+                        : undefined
+                    }
                   />
                   <span className={style.name} title={nameOf(item)}>
                     {nameOf(item)}

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { GroupKind } from '@shared/types/library-query';
-import { getCoverUrl } from '../../../utils/cover-url';
+import { coverRouteOf } from '../../../utils/cover-url';
 import style from './ArtistPhoto.scss';
+import { useResolveUrl } from '../../../hooks/use-resolve-url';
 
 interface ArtistPhotoProps {
   kind: GroupKind;
@@ -16,6 +17,7 @@ interface ArtistPhotoProps {
 /** The photo of the open artist or album artist, or the cover of one of its albums when it has no photo, as the tile of the group shows it */
 const ArtistPhoto = ({ kind, photoKey, revision, fetchCover }: ArtistPhotoProps) => {
   const [cover, setCover] = useState<string | null>(null);
+  const resolveUrl = useResolveUrl();
 
   useEffect(() => {
     let current = true;
@@ -27,7 +29,7 @@ const ArtistPhoto = ({ kind, photoKey, revision, fetchCover }: ArtistPhotoProps)
     };
   }, [kind, photoKey, revision]);
 
-  return <span className={style.artistPhoto} style={cover ? { backgroundImage: `url("${getCoverUrl(cover)}")` } : undefined} aria-hidden="true" />;
+  return <span className={style.artistPhoto} style={cover ? { backgroundImage: `url("${resolveUrl(coverRouteOf(cover))}")` } : undefined} aria-hidden="true" />;
 };
 
 export default ArtistPhoto;

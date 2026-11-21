@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isRemoteTrack, isSameRemoteTrack, remoteKeyOf, toRemoteTrack, trackCoverUrl } from './remote-track';
+import { isRemoteTrack, isSameRemoteTrack, remoteKeyOf, toRemoteTrack, trackCoverRoute } from './remote-track';
 
 const snapshot = { state: 'playing' as const, title: 'Song', artist: 'Band', album: 'LP', position: 3, at: 1000, duration: 200 };
 
@@ -43,10 +43,10 @@ describe('remote track', () => {
   it('shows the cover of the host for a remote track and the own one for a file, and none without a picture', () => {
     const remote = toRemoteTrack({ ...snapshot, cover: true });
 
-    expect(trackCoverUrl(remote)).toContain('/remote/cover?t=');
-    expect(trackCoverUrl({ path: '/music/a.flac', picture: 'abc.png' })).not.toContain('/remote/cover');
-    expect(trackCoverUrl(toRemoteTrack(snapshot))).toBeUndefined();
-    expect(trackCoverUrl({ path: '/music/a.flac', picture: null })).toBeUndefined();
-    expect(trackCoverUrl({ path: 'plex:5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11:77', picture: null })).toContain('/source/cover?path=plex%3A5f6a1c1e');
+    expect(trackCoverRoute(remote)).toContain('/remote/cover?t=');
+    expect(trackCoverRoute({ path: '/music/a.flac', picture: 'abc.png' })).not.toContain('/remote/cover');
+    expect(trackCoverRoute(toRemoteTrack(snapshot))).toBeUndefined();
+    expect(trackCoverRoute({ path: '/music/a.flac', picture: null })).toBeUndefined();
+    expect(trackCoverRoute({ path: 'plex:5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11:77', picture: null })).toContain('/source/cover?path=plex%3A5f6a1c1e');
   });
 });
