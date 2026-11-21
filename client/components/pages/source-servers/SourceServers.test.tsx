@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { SourcesState } from '../../../redux/sources/reducer';
+import { Provider } from 'react-redux';
+import { createStore } from 'redux';
+import reducers from '../../../redux/reducers';
 import SourceServers from './SourceServers';
 
 const id = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';
@@ -23,7 +26,11 @@ const setup = (state: Partial<SourcesState> = {}, kind: 'subsonic' | 'jellyfin' 
     browse: vi.fn(),
     play: vi.fn(),
   };
-  render(<SourceServers {...props} />);
+  render(
+    <Provider store={createStore(reducers)}>
+      <SourceServers {...props} />
+    </Provider>
+  );
   return props;
 };
 
@@ -110,7 +117,7 @@ describe('SourceServers', () => {
     );
 
     expect(props.browse).toHaveBeenCalledWith({ what: 'library', serverId: id, kind: 'albums', sort: 'recent', start: 0, size: 60 });
-    fireEvent.click(screen.getByRole('button', { name: /Goldberg/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Goldberg' }));
     expect(props.browse).toHaveBeenLastCalledWith({ what: 'tracks', serverId: id, id: 'al1' });
   });
 
@@ -298,7 +305,7 @@ describe('SourceServers library of a Plex server', () => {
 
     expect(props.browse).toHaveBeenCalledWith({ what: 'library', serverId: id, kind: 'albums', sort: 'recent', start: 0, size: 60 });
     expect(screen.getByText('First')).toBeTruthy();
-    expect(screen.getByText('Band · 1999')).toBeTruthy();
+    expect(screen.getByText('Band')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull();
   });
 
@@ -322,7 +329,7 @@ describe('SourceServers library of a Plex server', () => {
   it('opens an album of the grid for its songs', () => {
     const props = setup({ servers: [plexServer], browsed: { [page('albums', 'recent', 0)]: { result: { total: 1, items: albums } } } }, 'plex', 'albums');
 
-    fireEvent.click(screen.getByRole('button', { name: /First/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'First' }));
 
     expect(props.browse).toHaveBeenLastCalledWith({ what: 'tracks', serverId: id, id: 'a1' });
   });

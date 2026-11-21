@@ -180,30 +180,6 @@
     color: var(--text-muted);
   }
 
-  // a line of the browse: a cover, the text and what is known of it
-  .row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    min-height: 44px;
-  }
-
-  button.row {
-    justify-content: flex-start;
-    width: 100%;
-    height: auto;
-    text-align: left;
-    white-space: normal;
-  }
-
-  .rowText {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
   .libraryBar {
     display: flex;
     flex-wrap: wrap;
@@ -218,44 +194,20 @@
     align-items: center;
   }
 
-  .grid {
+  // the tiles of the library: as wide as the local ones, a cover and its lines
+  .tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 18px;
+    align-items: start;
   }
 
-  button.card {
+  .trackList {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    align-items: stretch;
-    height: auto;
-    padding: 6px;
-    text-align: left;
-    white-space: normal;
   }
 
-  .cardCover {
-    display: block;
-    width: 100%;
-    aspect-ratio: 1;
-    object-fit: cover;
-    background: var(--overlay);
-    border-radius: 6px;
-  }
-
-  .cardText {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .cover {
-    flex: none;
-    width: 36px;
-    height: 36px;
-    object-fit: cover;
-    background: var(--overlay);
-    border-radius: 4px;
+  .wide {
+    max-width: none;
   }
 }
