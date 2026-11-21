@@ -4,14 +4,10 @@ import classNames from 'classnames';
 import { FaCaretDown, FaCaretUp } from 'react-icons/fa';
 import type { Track } from '@shared/types/library';
 import type { TrackSort, TrackSortField } from '@shared/types/library-query';
-import { trackFavourite } from '../../../domain/favourites';
 import { useTranslation } from '../../../i18n';
 import style from './TrackViewItem.scss';
 import Time from '../../ui/time';
-import FavouriteButton from '../../../containers/ui/favourite-button';
 import AudioFormatBadge from '../../ui/audio-format-badge';
-import AddToPlaylist from '../../../containers/library/add-to-playlist';
-import AddToQueue from '../../../containers/library/add-to-queue';
 
 /** The header row displays labels in place of the track values */
 export type TrackLabels = Record<'duration' | 'artist' | 'year' | 'album' | 'track' | 'title', string>;
@@ -52,6 +48,12 @@ const TrackViewHeaderField = ({ field, className, label, sort, onSort }: TrackVi
   );
 };
 
+/** The classes that place the buttons of a row */
+export interface TrackActionSlot {
+  heartClass: string;
+  actionClass: string;
+}
+
 interface TrackViewItemProps {
   track: Track | TrackLabels;
   /** The sort of the list and how to change it, the header sorts by a column when it has them */
@@ -67,6 +69,8 @@ interface TrackViewItemProps {
   /** The one row of the list that Tab reaches, the arrow keys move from it to the others */
   isTabStop?: boolean;
   focusTrack?: (track: Track) => void;
+  /** The buttons at the end of the row (a favourite, a playlist, the queue), which belong to where the track is from; none when omitted */
+  renderActions?: (track: Track, slot: TrackActionSlot) => ReactNode;
 }
 
 const focusSibling = (sibling: Element | null) => sibling instanceof HTMLElement && sibling.focus();
@@ -83,6 +87,7 @@ const TrackViewItem = ({
   doubleClickTrack = () => {},
   isTabStop = false,
   focusTrack = () => {},
+  renderActions,
 }: TrackViewItemProps) => {
   const { t } = useTranslation();
 
@@ -134,14 +139,7 @@ const TrackViewItem = ({
         {'path' in track && <AudioFormatBadge track={track} className={classNames(style.pill, { [style.lossless]: track.lossless })} />}
       </TrackViewItemField>
       <TrackViewItemField className={style.actions}>
-        {'path' in track && (
-          <>
-            <FavouriteButton item={trackFavourite(track)} className={style.heart} />
-            <AddToPlaylist source={track} className={style.action} />
-            <AddToQueue getTracks={() => Promise.resolve([track])} className={style.action} />
-            <AddToQueue next getTracks={() => Promise.resolve([track])} className={style.action} />
-          </>
-        )}
+        {'path' in track && renderActions?.(track, { heartClass: style.heart, actionClass: style.action })}
       </TrackViewItemField>
       {renderField('duration', style.duration, typeof track.duration === 'string' ? track.duration : <Time seconds={track.duration} />)}
     </div>

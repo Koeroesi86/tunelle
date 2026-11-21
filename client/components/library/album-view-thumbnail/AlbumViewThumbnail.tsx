@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import classNames from 'classnames';
 import { FaPlay } from 'react-icons/fa';
 import type { AlbumSummary } from '@shared/types/library';
@@ -9,20 +10,28 @@ import { getCoverUrl } from '../../../utils/cover-url';
 import { tileAccent } from '../../../utils/tile-accent';
 import { albumFormatLabel } from '../../../utils/audio-format-label';
 import { formatLength } from '../../../utils/format-length';
-import { albumFavourite } from '../../../domain/favourites';
-import FavouriteButton from '../../../containers/ui/favourite-button';
-import AddToPlaylist from '../../../containers/library/add-to-playlist';
+
+/** What a button of the cover needs to sit on it: the classes that place the buttons on the corners, and the tab stop of the tile */
+export interface AlbumActionSlot {
+  favouriteClass: string;
+  playlistClass: string;
+  tabIndex: number | undefined;
+}
 
 interface AlbumViewThumbnailProps {
   album: AlbumSummary;
-  offlineFolders: string[];
+  offlineFolders?: string[];
+  /** The buttons on the corners of the cover (a favourite, a playlist), which belong to where the album is from; none when omitted */
+  renderActions?: (album: AlbumSummary, slot: AlbumActionSlot) => ReactNode;
   selectAlbum: (album: AlbumSummary) => void;
   playAlbum: (album: AlbumSummary) => void;
   /** The place in the grid of the arrow keys: the tile takes the focus, and its buttons are tab stops only while it is the tab stop */
   tile?: TileProps;
 }
 
-const AlbumViewThumbnail = ({ album, offlineFolders, selectAlbum, playAlbum, tile }: AlbumViewThumbnailProps) => {
+const noFolders: string[] = [];
+
+const AlbumViewThumbnail = ({ album, offlineFolders = noFolders, renderActions, selectAlbum, playAlbum, tile }: AlbumViewThumbnailProps) => {
   const { t } = useTranslation();
   const offline = isOffline(`${album.path}/`, offlineFolders);
   const cover = album.cover ? { backgroundImage: `url("${getCoverUrl(album.cover)}")` } : undefined;
@@ -55,8 +64,7 @@ const AlbumViewThumbnail = ({ album, offlineFolders, selectAlbum, playAlbum, til
     >
       <div className={style.frame} ref={tileAccent(album.accent)}>
         <div title={album.title} className={style.cover} style={cover}>
-          <FavouriteButton item={albumFavourite(album)} className={style.favourite} tabIndex={tabIndex} />
-          <AddToPlaylist source={album} className={style.playlist} tabIndex={tabIndex} />
+          {renderActions?.(album, { favouriteClass: style.favourite, playlistClass: style.playlist, tabIndex })}
           <button
             type="button"
             className={style.play}

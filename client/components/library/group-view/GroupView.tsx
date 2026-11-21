@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import classNames from 'classnames';
 import { FaChevronLeft } from 'react-icons/fa';
 import { MdPlayArrow as PlayIcon, MdShuffle as ShuffleIcon } from 'react-icons/md';
@@ -15,17 +16,10 @@ import { shuffled } from '../../../domain/shuffled';
 import { getCachedItem } from '../../../redux/library/pages';
 import type { PageCache } from '../../../redux/library/pages';
 import type { OpenGroup } from '../../../redux/types';
-import AlbumSort from '../../../containers/library/album-sort';
-import ArtistPhoto from '../../../containers/library/artist-photo';
-import ArtistPhotoMenu from '../../../containers/library/artist-photo-menu';
 import CoverSizeSlider from '../../ui/cover-size-slider';
 import GenreCard from '../genre-card';
-import GroupAlbums from '../../../containers/library/group-albums';
 import GroupTile from '../group-tile';
 import style from './GroupView.scss';
-
-/** The groups that have a photo, which can be changed */
-const photoKinds: GroupKind[] = ['artist', 'albumArtist'];
 
 const noFolders: string[] = [];
 const noKnownFolders: Folder[] = [];
@@ -42,6 +36,13 @@ const tileRowHeightOf = (tileWidth: number) => tileWidth + tileTextHeight + tile
 const cardWidth = 210;
 const cardGap = 14;
 const cardHeight = 112;
+
+/** What the bar of an open group holds besides its name and the play buttons: the photo before the name, the menu of the photo and the sort of the albums after the buttons */
+export interface OpenGroupParts {
+  photo?: ReactNode;
+  menu?: ReactNode;
+  sort?: ReactNode;
+}
 
 interface GroupViewProps {
   kind: GroupKind;
@@ -65,6 +66,9 @@ interface GroupViewProps {
   setCoverSize: (size: number) => void;
   openGroup: (group: OpenGroup) => void;
   closeGroup: () => void;
+  /** The albums of the open group under the bar the view gives them; a list whose groups are not opened here omits both */
+  renderAlbums?: (toolbar: ReactNode) => ReactNode;
+  renderOpenParts?: (open: OpenGroup) => OpenGroupParts;
 }
 
 /** The list of the groups; it is its own component as its scroll and size listeners belong to the element, which is new each time the list comes back */
@@ -81,7 +85,7 @@ const GroupList = ({
   keepPages,
   setCoverSize,
   openGroup,
-}: Omit<GroupViewProps, 'open' | 'closeGroup' | 'playTracks'>) => {
+}: Omit<GroupViewProps, 'open' | 'closeGroup' | 'playTracks' | 'renderAlbums' | 'renderOpenParts'>) => {
   const { t } = useTranslation();
   const { separator, listing: scrolled } = useScrollSeparator(style.scrolled);
   // the artists and the album artists are photo tiles of the size of the slider, the genres are cards of one size
@@ -146,10 +150,10 @@ const GroupList = ({
   );
 };
 
-const GroupView = ({ open, closeGroup, playTracks, ...list }: GroupViewProps) => {
+const GroupView = ({ open, closeGroup, playTracks, renderAlbums, renderOpenParts, ...list }: GroupViewProps) => {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
-  const hasPhoto = !!open?.key && photoKinds.includes(open.kind);
+  const parts = open && renderOpenParts?.(open);
   const openName = open && (open.name || t(`groups.unknown.${open.kind}`));
 
   // the albums of the group are fetched for the queue, which can take a moment for a big group
@@ -163,30 +167,28 @@ const GroupView = ({ open, closeGroup, playTracks, ...list }: GroupViewProps) =>
       .finally(() => setBusy(false));
   };
 
-  return open ? (
-    <GroupAlbums
-      toolbar={
-        <div className={style.albumsBar}>
-          <button type="button" className={style.back} onClick={closeGroup} aria-label={t('groups.back')} title={t('groups.back')}>
-            <FaChevronLeft aria-hidden />
-          </button>
-          {hasPhoto && <ArtistPhoto kind={open.kind} photoKey={open.key} />}
-          <span className={style.openName} title={openName}>
-            {openName}
-          </span>
-          <button type="button" className={classNames(style.action, style.primary)} disabled={busy} onClick={() => play(false)}>
-            <PlayIcon size="14px" aria-hidden />
-            {t('playlists.playAll')}
-          </button>
-          <button type="button" className={style.action} disabled={busy} onClick={() => play(true)}>
-            <ShuffleIcon size="14px" aria-hidden />
-            {t('favourites.shuffle')}
-          </button>
-          {hasPhoto && <ArtistPhotoMenu photoKey={open.key} name={open.name} />}
-          <AlbumSort />
-        </div>
-      }
-    />
+  return open && renderAlbums ? (
+    renderAlbums(
+      <div className={style.albumsBar}>
+        <button type="button" className={style.back} onClick={closeGroup} aria-label={t('groups.back')} title={t('groups.back')}>
+          <FaChevronLeft aria-hidden />
+        </button>
+        {parts?.photo}
+        <span className={style.openName} title={openName}>
+          {openName}
+        </span>
+        <button type="button" className={classNames(style.action, style.primary)} disabled={busy} onClick={() => play(false)}>
+          <PlayIcon size="14px" aria-hidden />
+          {t('playlists.playAll')}
+        </button>
+        <button type="button" className={style.action} disabled={busy} onClick={() => play(true)}>
+          <ShuffleIcon size="14px" aria-hidden />
+          {t('favourites.shuffle')}
+        </button>
+        {parts?.menu}
+        {parts?.sort}
+      </div>
+    )
   ) : (
     <GroupList {...list} />
   );

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { Folder, Track } from '@shared/types/library';
 import { cycleSort } from '@shared/types/library-query';
 import type { TrackSort, TrackSortField } from '@shared/types/library-query';
@@ -13,7 +14,7 @@ import type { PageCache } from '../../../redux/library/pages';
 import { isOffline } from '../../../domain/offline-folders';
 import style from './TrackView.scss';
 import TrackViewItem from '../track-view-item';
-import type { TrackLabels } from '../track-view-item/TrackViewItem';
+import type { TrackActionSlot, TrackLabels } from '../track-view-item/TrackViewItem';
 
 /** The height of a row in px, matching .trackViewItem in TrackViewItem.scss */
 const rowHeight = 28;
@@ -44,6 +45,8 @@ interface TrackViewProps {
   clearSelection: () => void;
   /** The whole list for the selection, as the pages not fetched yet are not in the cache */
   fetchAll: (query: LibraryQuery<TrackSort>) => Promise<Track[]>;
+  /** The buttons at the end of a row, which belong to where the tracks are from; none when omitted */
+  renderActions?: (track: Track, slot: TrackActionSlot) => ReactNode;
 }
 
 const noFolders: string[] = [];
@@ -67,6 +70,7 @@ const TrackView = ({
   selectTracks,
   clearSelection,
   fetchAll,
+  renderActions,
 }: TrackViewProps) => {
   const { t } = useTranslation();
   const headerLabels = useMemo<TrackLabels>(
@@ -138,6 +142,7 @@ const TrackView = ({
                 doubleClickTrack={doubleClickTrack}
                 isTabStop={track.path === tabStopPath}
                 focusTrack={focusTrack}
+                renderActions={renderActions}
               />
             ) : (
               <div key={firstIndex + offset} className={style.placeholder} />

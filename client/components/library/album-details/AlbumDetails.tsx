@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import type { ReactNode } from 'react';
 import { faArrowLeft, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { Album, Track } from '@shared/types/library';
@@ -6,23 +7,30 @@ import { useTranslation } from '../../../i18n';
 import { getCoverUrl } from '../../../utils/cover-url';
 import { useDialogFocus } from '../../../hooks/use-dialog-focus';
 import { getImageTint } from '../../../utils/cover-tint';
-import { albumFavourite } from '../../../domain/favourites';
 import style from './AlbumDetails.scss';
-import FavouriteButton from '../../../containers/ui/favourite-button';
-import AddToPlaylist from '../../../containers/library/add-to-playlist';
-import AddToQueue from '../../../containers/library/add-to-queue';
-import AlbumCoverMenu from '../../../containers/library/album-cover-menu';
+import AddToQueue from '../add-to-queue/AddToQueue';
 import AudioFormatBadge from '../../ui/audio-format-badge';
 import Time from '../../ui/time';
+
+/** The classes that place the buttons next to the title */
+export interface AlbumDetailsActionSlot {
+  favouriteClass: string;
+  playlistClass: string;
+}
 
 interface AlbumDetailsProps {
   album: Album | null;
   playTracks: (tracks: Track[]) => void;
+  /** Puts the tracks at the end of the queue, or right after the song that plays */
+  addToQueue: (tracks: Track[], next: boolean) => void;
+  /** The buttons next to the title (a favourite, a playlist) and the menu of the cover, which belong to where the album is from; none when omitted */
+  renderActions?: (album: Album, slot: AlbumDetailsActionSlot) => ReactNode;
+  renderCoverMenu?: (album: Album) => ReactNode;
   close: () => void;
 }
 
 /** The page of an open album, over the library: its cover, what can be done with it and its tracks; Escape and the button on top go back */
-const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
+const AlbumDetails = ({ album, playTracks, addToQueue, renderActions, renderCoverMenu, close }: AlbumDetailsProps) => {
   const { t } = useTranslation();
   const titleId = useId();
   const dialog = useDialogFocus(album !== null);
@@ -76,10 +84,7 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
             <div id={titleId} className={style.title}>
               {displayed.title}
             </div>
-            <div className={style.actions}>
-              <FavouriteButton item={albumFavourite(album)} className={style.favourite} />
-              <AddToPlaylist source={album} className={style.addToPlaylist} />
-            </div>
+            <div className={style.actions}>{renderActions?.(album, { favouriteClass: style.favourite, playlistClass: style.addToPlaylist })}</div>
             <div className={style.meta}>
               {displayed.year && <span>{displayed.year}</span>}
               <Time seconds={displayed.duration} />
@@ -89,15 +94,15 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
                 <FontAwesomeIcon icon={faPlay} size="sm" />
                 <span className={style.label}>{t('album.play')}</span>
               </button>
-              <AddToQueue withLabel getTracks={() => Promise.resolve(displayed.tracks ?? [])} />
-              <AddToQueue next withLabel getTracks={() => Promise.resolve(displayed.tracks ?? [])} />
+              <AddToQueue withLabel add={(tracks) => addToQueue(tracks, false)} getTracks={() => Promise.resolve(displayed.tracks ?? [])} />
+              <AddToQueue next withLabel add={(tracks) => addToQueue(tracks, true)} getTracks={() => Promise.resolve(displayed.tracks ?? [])} />
             </div>
           </div>
         </div>
       </div>
       <div className={style.body}>
         {/* another album starts with its own text and results */}
-        <AlbumCoverMenu key={album.id} path={album.path} title={album.title} artist={album.artist} />
+        {renderCoverMenu?.(album)}
         <div className={style.tracks}>
           {displayed.tracks?.map((track) => (
             <div key={track.path} className={style.track}>
@@ -105,8 +110,8 @@ const AlbumDetails = ({ album, playTracks, close }: AlbumDetailsProps) => {
               <span className={style.trackTitle}>{track.title}</span>
               <AudioFormatBadge track={track} />
               {track.duration ? <Time seconds={track.duration} /> : null}
-              <AddToQueue getTracks={() => Promise.resolve([track])} className={style.trackQueue} />
-              <AddToQueue next getTracks={() => Promise.resolve([track])} className={style.trackQueue} />
+              <AddToQueue add={(tracks) => addToQueue(tracks, false)} getTracks={() => Promise.resolve([track])} className={style.trackQueue} />
+              <AddToQueue next add={(tracks) => addToQueue(tracks, true)} getTracks={() => Promise.resolve([track])} className={style.trackQueue} />
             </div>
           ))}
         </div>
