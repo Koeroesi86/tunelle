@@ -29,8 +29,8 @@ const AlbumViewThumbnail = ({ album, offlineFolders, selectAlbum, playAlbum, til
   const format = albumFormatLabel(album);
   // the year is missing on a track that has none
   const year = Number(album.year) > 0 ? `${Number(album.year)}` : undefined;
-  const length = formatLength(album.duration);
-  const facts = [year, t('tracks.count', { count: album.trackCount }), length].filter(Boolean).join(' · ');
+  const length = album.duration === null ? undefined : formatLength(album.duration);
+  const facts = [year, album.trackCount > 0 && t('tracks.count', { count: album.trackCount }), length].filter(Boolean).join(' · ');
   // a narrow cover has no room for the number of tracks
   const shortFacts = [year, length].filter(Boolean).join(' · ');
 

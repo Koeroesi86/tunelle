@@ -90,6 +90,10 @@
     &.inline {
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
+
+      .submit {
+        grid-column: auto;
+      }
     }
   }
 
@@ -102,7 +106,7 @@
     color: var(--text-muted);
   }
 
-  input {
+  .field input {
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
@@ -180,30 +184,6 @@
     color: var(--text-muted);
   }
 
-  // a line of the browse: a cover, the text and what is known of it
-  .row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    min-height: 44px;
-  }
-
-  button.row {
-    justify-content: flex-start;
-    width: 100%;
-    height: auto;
-    text-align: left;
-    white-space: normal;
-  }
-
-  .rowText {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
   .libraryBar {
     display: flex;
     flex-wrap: wrap;
@@ -218,44 +198,72 @@
     align-items: center;
   }
 
-  .grid {
+  // the tiles of the library: as wide as the local ones, a cover and its lines
+  .tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 18px;
+    align-items: start;
   }
 
-  button.card {
+  .trackList {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    align-items: stretch;
-    height: auto;
-    padding: 6px;
-    text-align: left;
-    white-space: normal;
   }
 
-  .cardCover {
-    display: block;
-    width: 100%;
-    aspect-ratio: 1;
-    object-fit: cover;
-    background: var(--overlay);
-    border-radius: 6px;
+  // the page of a library fills the area as the local one does: no box, the tiles at the edge of the page
+  .wide {
+    max-width: none;
+    height: 100%;
+    padding: 0;
+    gap: 0;
   }
 
-  .cardText {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  // a server fills the page: the toolbar and the footer stay, the tiles scroll between them; several servers are a page each
+  .library {
+    display: flex;
+    flex: 0 0 100%;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
   }
 
-  .cover {
+  // the search takes the left, the order the right, as in the local library
+  .toolbar {
+    display: flex;
     flex: none;
-    width: 36px;
-    height: 36px;
-    object-fit: cover;
-    background: var(--overlay);
-    border-radius: 4px;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+  }
+
+  .serverName {
+    padding: 8px 16px 0;
+  }
+
+  .listing {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    padding: 4px 16px 12px;
+    overflow-y: auto;
+  }
+
+  // the count and the size of the tiles, at the foot of the page as in the local library
+  .footer {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    box-sizing: border-box;
+    min-height: 40px;
+    padding: 0 20px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--overlay);
   }
 }

@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import classNames from 'classnames';
-import { MdPlayArrow as PlayIcon } from 'react-icons/md';
 import type { Track } from '@shared/types/library';
-import type { MessageKey } from '@shared/locales/translate';
-import { sourceBrowseSchema, sourceCapabilities, toSourcePath } from '@shared/schemas/sources';
+import LibrarySearch from '../../library/library-search/LibrarySearch';
+import SortSelect from '../../ui/sort-select/SortSelect';
+import CoverSizeSlider from '../../ui/cover-size-slider';
+import AlbumViewThumbnail from '../../library/album-view-thumbnail';
+import GroupTile from '../../library/group-tile';
+import TrackViewItem from '../../library/track-view-item';
+import { toAlbumSummary, toGroupSummary } from '../../../domain/source-library';
+import { sourceBrowseSchema, sourceCapabilities } from '@shared/schemas/sources';
 import type {
   LibraryKind,
   LibrarySort,
@@ -19,7 +24,6 @@ import type {
 import type { SourcesState } from '../../../redux/sources/reducer';
 import { browseKey } from '../../../redux/sources/reducer';
 import { useTranslation } from '../../../i18n';
-import { localUrl } from '../../../services/local-url';
 import style from './SourceServers.scss';
 
 interface SourceServersProps {
@@ -39,6 +43,9 @@ interface SourceServersProps {
   clearCertificate: () => void;
   browse: (request: SourceBrowse) => void;
   play: (tracks: Track[], track: Track) => void;
+  /** The least width of a tile in px, which the local library shares */
+  coverSize: number;
+  setCoverSize: (size: number) => void;
 }
 
 const words = {
@@ -252,22 +259,24 @@ interface LibraryView {
 }
 
 const pageSize = 60;
-const sortLabels: Record<LibrarySort, MessageKey> = { recent: 'sources.sortRecent', title: 'sources.sortTitle' };
+const titleField = ['title'] as const;
+const countKeys: Record<LibraryKind, 'albums.count' | 'groups.count.artist' | 'tracks.count'> = {
+  albums: 'albums.count',
+  artists: 'groups.count.artist',
+  tracks: 'tracks.count',
+};
+
+const sortLabels = (t: ReturnType<typeof useTranslation>['t']) => ({
+  prefix: t('library.sort'),
+  field: t('sources.sort'),
+  direction: t('sources.sort'),
+  default: t('sources.sortRecent'),
+  fields: { title: t('sources.sortTitle') },
+  directions: { asc: '', desc: '' },
+});
 
 const libraryRequest = (serverId: string, { kind, sort }: LibraryView, page: number): SourceBrowse =>
   sourceBrowseSchema.parse({ what: 'library', serverId, kind, sort, start: page * pageSize, size: pageSize });
-
-const Cover = ({ kind, serverId, coverArt, large }: { kind: SourceKind; serverId: string; coverArt: string | undefined; large?: boolean }) =>
-  coverArt ? (
-    <img
-      className={large ? style.cardCover : style.cover}
-      alt=""
-      loading="lazy"
-      src={localUrl(`/source/cover?path=${encodeURIComponent(toSourcePath({ source: kind, serverId, id: coverArt }))}`)}
-    />
-  ) : (
-    <span className={large ? style.cardCover : style.cover} />
-  );
 
 const Browser = ({
   server,
@@ -276,11 +285,16 @@ const Browser = ({
   state,
   browse,
   play,
-}: { server: SourceServerInfo; section: LibraryKind; named: boolean } & Pick<SourceServersProps, 'state' | 'browse' | 'play'>) => {
+  coverSize,
+  setCoverSize,
+}: { server: SourceServerInfo; section: LibraryKind; named: boolean } & Pick<
+  SourceServersProps,
+  'state' | 'browse' | 'play' | 'coverSize' | 'setCoverSize'
+>) => {
   const { t } = useTranslation();
   const [position, setPosition] = useState<Position>({});
-  const [text, setText] = useState('');
   const { library } = sourceCapabilities[server.kind];
+  const tiles = { gridTemplateColumns: `repeat(auto-fill, minmax(${coverSize}px, 1fr))` };
   const [view, setView] = useState<LibraryView>({ kind: section, sort: library?.sorts.at(0) ?? 'recent', pages: 1 });
   // a server with a library lists it in pages at the top, with the sections and orders it has; the others start at their artists
   const inLibrary = library?.sections.includes(section) === true && !position.artist && !position.album && !position.query;
@@ -297,56 +311,26 @@ const Browser = ({
     browse(request);
   }, [key]);
 
-  const search = (event: FormEvent) => {
-    event.preventDefault();
-    setPosition({ query: text.trim() || undefined });
-  };
+  const search = (text: string) => setPosition({ query: text.trim() || undefined });
 
-  const artistRows = (artists: SourceArtist[]) =>
-    artists.map((artist) => (
-      <button key={artist.id} type="button" className={classNames(style.link, style.row)} onClick={() => setPosition({ artist })}>
-        <span className={style.rowText}>{artist.name}</span>
-        {artist.albumCount !== undefined && <span className={style.meta}>{t('sources.albums', { count: artist.albumCount })}</span>}
-      </button>
-    ));
-
-  const albumRows = (albums: SourceAlbum[]) =>
-    albums.map((album) => (
-      <button key={album.id} type="button" className={classNames(style.link, style.row)} onClick={() => setPosition({ artist: position.artist, album })}>
-        <Cover kind={server.kind} serverId={server.id} coverArt={album.coverArt} />
-        <span className={style.rowText}>{[album.title, album.artist].filter(Boolean).join(' · ')}</span>
-        <span className={style.meta}>
-          {[album.year, album.songCount !== undefined && t('sources.songs', { count: album.songCount })].filter(Boolean).join(' · ')}
-        </span>
-      </button>
-    ));
-
-  const trackRows = (tracks: Track[]) =>
-    tracks.map((track) => (
-      <div key={track.path} className={style.row}>
-        <button type="button" className={style.action} aria-label={`${t('player.play')}: ${track.title}`} onClick={() => play(tracks, track)}>
-          <PlayIcon size="14px" />
-        </button>
-        <span className={style.rowText}>{[track.track, track.title, track.artist].filter(Boolean).join(' · ')}</span>
-        <span className={style.meta}>{track.codec}</span>
-      </div>
-    ));
+  const trackRows = (tracks: Track[]) => (
+    <div role="grid" className={style.trackList}>
+      {tracks.map((track) => (
+        <TrackViewItem key={track.path} track={track} clickTrack={(clicked) => play(tracks, clicked)} doubleClickTrack={(clicked) => play(tracks, clicked)} />
+      ))}
+    </div>
+  );
 
   const albumCards = (albums: SourceAlbum[]) =>
-    albums.map((album) => (
-      <button key={album.id} type="button" className={classNames(style.link, style.card)} onClick={() => setPosition({ album })}>
-        <Cover kind={server.kind} serverId={server.id} coverArt={album.coverArt} large />
-        <span className={style.cardText}>{album.title}</span>
-        <span className={style.meta}>{[album.artist, album.year].filter(Boolean).join(' · ')}</span>
-      </button>
-    ));
+    albums.map((album) => {
+      const open = () => setPosition({ album });
+
+      return <AlbumViewThumbnail key={album.id} album={toAlbumSummary(server.kind, server.id, album)} selectAlbum={open} playAlbum={open} />;
+    });
 
   const artistCards = (artists: SourceArtist[]) =>
     artists.map((artist) => (
-      <button key={artist.id} type="button" className={classNames(style.link, style.card)} onClick={() => setPosition({ artist })}>
-        <Cover kind={server.kind} serverId={server.id} coverArt={artist.coverArt} large />
-        <span className={style.cardText}>{artist.name}</span>
-      </button>
+      <GroupTile key={artist.id} group={toGroupSummary(server.kind, server.id, artist)} unknownName="" open={() => setPosition({ artist })} />
     ));
 
   const items = loaded.flatMap<unknown>((page) => page.items);
@@ -356,87 +340,99 @@ const Browser = ({
   const hasMore = inLibrary && loaded.length === view.pages && (total === undefined ? (loaded.at(-1)?.items.length ?? 0) >= pageSize : items.length < total);
 
   return (
-    <div className={style.tile}>
+    <div className={style.library}>
       {named && (
         <div className={style.serverName}>
           <span className={style.sectionTitle}>{server.name}</span>
           <span className={style.meta}>{server.url}</span>
         </div>
       )}
-      <form className={classNames(style.form, style.inline)} role="search" onSubmit={search}>
-        <input
-          type="search"
-          aria-label={t('sources.search')}
-          placeholder={t('sources.search')}
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-        />
-        <button type="submit" className={classNames(style.action, style.submit)}>
-          {t('sources.search')}
-        </button>
-      </form>
-      <nav className={style.crumbs} aria-label={t('sources.location')}>
-        <button type="button" className={style.action} onClick={() => setPosition({})}>
-          {t(library ? 'sources.library' : 'sources.artists')}
-        </button>
-        {position.artist && (
-          <button type="button" className={style.action} onClick={() => setPosition({ artist: position.artist })}>
-            {position.artist.name}
-          </button>
+      <div className={style.toolbar}>
+        <LibrarySearch search="" setSearch={search} />
+        {inLibrary && (library?.sorts.length ?? 0) > 1 && (
+          <SortSelect
+            fields={titleField}
+            directional={false}
+            labels={sortLabels(t)}
+            sort={view.sort === 'title' ? { field: 'title', direction: 'asc' } : undefined}
+            setSort={(sort) => setView({ ...view, sort: sort ? 'title' : 'recent', pages: 1 })}
+          />
         )}
-        {position.album && <span className={style.meta}>{position.album.title}</span>}
-        {position.query && <span className={style.meta}>{t('sources.resultsFor', { query: position.query })}</span>}
-      </nav>
-      {inLibrary && (
-        <div className={style.libraryBar}>
-          {(library?.sorts.length ?? 0) > 1 && (
-            <label className={style.sort}>
-              <span className={style.meta}>{t('sources.sort')}</span>
-              <select
-                value={view.sort}
-                onChange={(event) => setView({ ...view, sort: library?.sorts.find((sort) => sort === event.target.value) ?? view.sort, pages: 1 })}
-              >
-                {library?.sorts.map((sort) => (
-                  <option key={sort} value={sort}>
-                    {t(sortLabels[sort])}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-        </div>
-      )}
-      {!answer && (
-        <div className={style.hint} role="status">
-          {t('sources.loading')}
-        </div>
-      )}
-      {answer?.error && (
-        <div className={style.error} role="alert">
-          {t('sources.failed', { error: answer.error })}
-        </div>
-      )}
-      {inLibrary && isAlbums(result) && result.length > 0 && <div className={style.grid}>{albumCards(result)}</div>}
-      {inLibrary && isArtists(result) && view.kind === 'artists' && result.length > 0 && <div className={style.grid}>{artistCards(result)}</div>}
-      {!inLibrary && isArtists(result) && artistRows(result)}
-      {!inLibrary && isAlbums(result) && albumRows(result)}
-      {isTracks(result) && trackRows(result)}
-      {isSearch(result) && (
-        <>
-          {artistRows(result.artists)}
-          {albumRows(result.albums)}
-          {trackRows(result.tracks)}
-        </>
-      )}
-      {hasMore && (
-        <div className={style.buttons}>
-          <button type="button" className={style.action} onClick={() => setView({ ...view, pages: view.pages + 1 })}>
-            {t('sources.showMore')}
-          </button>
-          {total !== undefined && <span className={style.meta}>{t('sources.shown', { shown: items.length, total })}</span>}
-        </div>
-      )}
-      {Array.isArray(result) && result.length === 0 && <div className={style.hint}>{t('sources.empty')}</div>}
+      </div>
+      <div className={style.listing}>
+        {!inLibrary && (
+          <nav className={style.crumbs} aria-label={t('sources.location')}>
+            <button type="button" className={style.action} onClick={() => setPosition({})}>
+              {t(library ? 'sources.library' : 'sources.artists')}
+            </button>
+            {position.artist && (
+              <button type="button" className={style.action} onClick={() => setPosition({ artist: position.artist })}>
+                {position.artist.name}
+              </button>
+            )}
+            {position.album && <span className={style.meta}>{position.album.title}</span>}
+            {position.query && <span className={style.meta}>{t('sources.resultsFor', { query: position.query })}</span>}
+          </nav>
+        )}
+        {!answer && (
+          <div className={style.hint} role="status">
+            {t('sources.loading')}
+          </div>
+        )}
+        {answer?.error && (
+          <div className={style.error} role="alert">
+            {t('sources.failed', { error: answer.error })}
+          </div>
+        )}
+        {inLibrary && isAlbums(result) && result.length > 0 && (
+          <div className={style.tiles} style={tiles}>
+            {albumCards(result)}
+          </div>
+        )}
+        {inLibrary && isArtists(result) && view.kind === 'artists' && result.length > 0 && (
+          <div className={style.tiles} style={tiles}>
+            {artistCards(result)}
+          </div>
+        )}
+        {!inLibrary && isArtists(result) && result.length > 0 && (
+          <div className={style.tiles} style={tiles}>
+            {artistCards(result)}
+          </div>
+        )}
+        {!inLibrary && isAlbums(result) && result.length > 0 && (
+          <div className={style.tiles} style={tiles}>
+            {albumCards(result)}
+          </div>
+        )}
+        {isTracks(result) && trackRows(result)}
+        {isSearch(result) && (
+          <>
+            {result.artists.length > 0 && (
+              <div className={style.tiles} style={tiles}>
+                {artistCards(result.artists)}
+              </div>
+            )}
+            {result.albums.length > 0 && (
+              <div className={style.tiles} style={tiles}>
+                {albumCards(result.albums)}
+              </div>
+            )}
+            {result.tracks.length > 0 && trackRows(result.tracks)}
+          </>
+        )}
+        {hasMore && (
+          <div className={style.buttons}>
+            <button type="button" className={style.action} onClick={() => setView({ ...view, pages: view.pages + 1 })}>
+              {t('sources.showMore')}
+            </button>
+          </div>
+        )}
+        {Array.isArray(result) && result.length === 0 && <div className={style.hint}>{t('sources.empty')}</div>}
+      </div>
+      <div className={style.footer}>
+        <span>{inLibrary ? t(countKeys[view.kind], { count: total ?? items.length }) : ''}</span>
+        <CoverSizeSlider size={coverSize} setSize={setCoverSize} />
+      </div>
     </div>
   );
 };
@@ -456,6 +452,8 @@ const SourceServers = ({
   clearCertificate,
   browse,
   play,
+  coverSize,
+  setCoverSize,
 }: SourceServersProps) => {
   const { t } = useTranslation();
   const [adding, setAdding] = useState(false);
@@ -473,10 +471,20 @@ const SourceServers = ({
   if (section)
     return (
       <div className={style.sourceServers}>
-        <div className={style.content}>
+        <div className={classNames(style.content, style.wide)}>
           {servers.length === 0 && <div className={style.hint}>{t('sources.none')}</div>}
           {servers.map((server) => (
-            <Browser key={server.id} server={server} section={section} named={servers.length > 1} state={state} browse={browse} play={play} />
+            <Browser
+              key={server.id}
+              server={server}
+              section={section}
+              named={servers.length > 1}
+              state={state}
+              browse={browse}
+              play={play}
+              coverSize={coverSize}
+              setCoverSize={setCoverSize}
+            />
           ))}
         </div>
       </div>

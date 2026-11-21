@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { SourcesState } from '../../../redux/sources/reducer';
+import { Provider } from 'react-redux';
+import { createStore } from 'redux';
+import reducers from '../../../redux/reducers';
 import SourceServers from './SourceServers';
 
 const id = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';
@@ -22,8 +25,14 @@ const setup = (state: Partial<SourcesState> = {}, kind: 'subsonic' | 'jellyfin' 
     clearCertificate: vi.fn(),
     browse: vi.fn(),
     play: vi.fn(),
+    coverSize: 160,
+    setCoverSize: vi.fn(),
   };
-  render(<SourceServers {...props} />);
+  render(
+    <Provider store={createStore(reducers)}>
+      <SourceServers {...props} />
+    </Provider>
+  );
   return props;
 };
 
@@ -110,7 +119,7 @@ describe('SourceServers', () => {
     );
 
     expect(props.browse).toHaveBeenCalledWith({ what: 'library', serverId: id, kind: 'albums', sort: 'recent', start: 0, size: 60 });
-    fireEvent.click(screen.getByRole('button', { name: /Goldberg/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Goldberg' }));
     expect(props.browse).toHaveBeenLastCalledWith({ what: 'tracks', serverId: id, id: 'al1' });
   });
 
@@ -130,6 +139,8 @@ describe('SourceServers', () => {
       clearCertificate: vi.fn(),
       browse: vi.fn(dispatched),
       play: vi.fn(),
+      coverSize: 160,
+      setCoverSize: vi.fn(),
     };
     const { unmount } = render(<SourceServers {...props} />);
 
@@ -298,7 +309,7 @@ describe('SourceServers library of a Plex server', () => {
 
     expect(props.browse).toHaveBeenCalledWith({ what: 'library', serverId: id, kind: 'albums', sort: 'recent', start: 0, size: 60 });
     expect(screen.getByText('First')).toBeTruthy();
-    expect(screen.getByText('Band · 1999')).toBeTruthy();
+    expect(screen.getByText('Band')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull();
   });
 
@@ -306,14 +317,15 @@ describe('SourceServers library of a Plex server', () => {
     const props = setup({ servers: [plexServer] }, 'plex', section);
 
     expect(props.browse).toHaveBeenLastCalledWith(expect.objectContaining({ kind: section, start: 0 }));
-    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'title' } });
+    fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Title' }));
     expect(props.browse).toHaveBeenLastCalledWith(expect.objectContaining({ kind: section, sort: 'title', start: 0 }));
   });
 
   it('shows more from the server while there is more', () => {
     const props = setup({ servers: [plexServer], browsed: { [page('albums', 'recent', 0)]: { result: { total: 120, items: albums } } } }, 'plex', 'albums');
 
-    expect(screen.getByText('1 of 120')).toBeTruthy();
+    expect(screen.getByText('120 albums')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
 
     expect(props.browse).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'albums', start: 60 }));
@@ -322,7 +334,7 @@ describe('SourceServers library of a Plex server', () => {
   it('opens an album of the grid for its songs', () => {
     const props = setup({ servers: [plexServer], browsed: { [page('albums', 'recent', 0)]: { result: { total: 1, items: albums } } } }, 'plex', 'albums');
 
-    fireEvent.click(screen.getByRole('button', { name: /First/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'First' }));
 
     expect(props.browse).toHaveBeenLastCalledWith({ what: 'tracks', serverId: id, id: 'a1' });
   });
@@ -331,14 +343,14 @@ describe('SourceServers library of a Plex server', () => {
     const props = setup({ servers: [server] }, 'subsonic', 'tracks');
 
     expect(props.browse).toHaveBeenCalledWith(expect.not.objectContaining({ what: 'library' }));
-    expect(screen.queryByLabelText('Sort')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Sort/ })).toBeNull();
   });
 
-  it('shows more while the last page is full when the server tells no total, and says no count', () => {
+  it('shows more while the last page is full when the server tells no total, and shows the count of what is loaded', () => {
     const full = Array.from({ length: 60 }, (_, index) => ({ id: `al${index}`, title: `Album ${index}`, artist: 'A', year: '' }));
     const props = setup({ servers: [server], browsed: { [subsonicAlbums]: { result: { items: full } } } }, 'subsonic', 'albums');
 
-    expect(screen.queryByText(/ of /)).toBeNull();
+    expect(screen.queryByText(/\d+ albums/)).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
 
     expect(props.browse).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'albums', start: 60 }));

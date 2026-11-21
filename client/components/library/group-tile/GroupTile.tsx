@@ -14,7 +14,7 @@ interface GroupTileProps {
   tile?: TileProps;
 }
 
-/** An artist or album artist as a tile: the photo or cover, the name and how many albums and tracks it has */
+/** An artist or album artist as a tile: the photo or cover, the name and how many albums and tracks it has, when it is known */
 const GroupTile = ({ group, unknownName, open, tile }: GroupTileProps) => {
   const { t } = useTranslation();
   const name = group.name || unknownName;
@@ -28,7 +28,11 @@ const GroupTile = ({ group, unknownName, open, tile }: GroupTileProps) => {
       <span className={style.name} title={name}>
         {name}
       </span>
-      <span className={style.counts}>{`${t('groups.albumCount', { count: group.albumCount })} · ${t('groups.trackCount', { count: group.trackCount })}`}</span>
+      <span className={style.counts}>
+        {[group.albumCount && t('groups.albumCount', { count: group.albumCount }), group.trackCount && t('groups.trackCount', { count: group.trackCount })]
+          .filter(Boolean)
+          .join(' · ')}
+      </span>
     </button>
   );
 };
