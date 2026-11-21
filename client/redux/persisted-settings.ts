@@ -14,7 +14,11 @@ const albumSchema = z.custom<Album>(
 
 const libraryViewSchema = z.enum(['albums', 'artists', 'albumArtists', 'genres', 'tracks', 'folders']);
 
-const onlineViewSchema = z.enum(['radio', 'servers', 'jellyfin', 'plex', 'nearby']);
+/** A page of the online group: the radio, the page of a kind of server to add and remove them, the nearby devices, or one section of the library of a kind (`plex:albums`) */
+const onlineViewSchema = z.union([
+  z.enum(['radio', 'servers', 'jellyfin', 'plex', 'nearby']),
+  z.templateLiteral([z.enum(['subsonic', 'jellyfin', 'plex']), ':', z.enum(['albums', 'artists', 'tracks'])]),
+]);
 
 /** The part of the UI state that is persisted between sessions, by key (the keys are saved by client/redux/connection/middleware.ts) */
 const persistedShape = {
@@ -24,6 +28,8 @@ const persistedShape = {
   libraryOpen: z.boolean(),
   onlineOpen: z.boolean(),
   playlistsOpen: z.boolean(),
+  /** The providers of the online group that are folded in the sidebar, all start open */
+  closedSources: z.array(z.enum(['subsonic', 'jellyfin', 'plex'])),
   nowPlaying: z.array(trackSchema),
   played: z.array(trackSchema),
   currentSong: trackSchema.nullable(),

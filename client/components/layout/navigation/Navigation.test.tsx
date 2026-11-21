@@ -30,6 +30,64 @@ describe('Navigation', () => {
     expect(openOnlineView).toHaveBeenCalledWith(view);
   });
 
+  it('shows the sections of the library of a kind of server that has a server, and only those it has', () => {
+    render(<Navigation sourceKinds={['plex', 'subsonic']} />);
+
+    ['Plex: Albums', 'Plex: Artists', 'Plex: Songs', 'Subsonic: Albums', 'Subsonic: Artists'].forEach((name) =>
+      expect(screen.getByRole('button', { name })).toBeTruthy()
+    );
+    expect(screen.queryByRole('button', { name: 'Subsonic: Songs' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Jellyfin: / })).toBeNull();
+  });
+
+  it('groups the servers pages and the sections under their provider, and folds a provider on click', () => {
+    const setGroupOpen = vi.fn();
+    render(<Navigation sourceKinds={['plex']} setGroupOpen={setGroupOpen} />);
+
+    ['Subsonic', 'Jellyfin', 'Plex'].forEach((name) => expect(screen.getByRole('button', { name }).getAttribute('aria-expanded')).toBe('true'));
+    expect(screen.getByRole('button', { name: 'Plex servers' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Plex' }));
+
+    expect(setGroupOpen).toHaveBeenCalledWith('plex', false);
+  });
+
+  it('shows only the row of a folded provider, and opens it on click', () => {
+    const setGroupOpen = vi.fn();
+    render(<Navigation sourceKinds={['plex']} closedSources={['plex']} setGroupOpen={setGroupOpen} />);
+
+    expect(screen.getByRole('button', { name: 'Plex' }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('button', { name: 'Plex servers' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Plex: Albums' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Subsonic servers' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Plex' }));
+
+    expect(setGroupOpen).toHaveBeenCalledWith('plex', true);
+  });
+
+  it('marks a folded provider while one of its pages is shown', () => {
+    render(<Navigation sourceKinds={['plex']} closedSources={['plex']} tab="online-sources" onlineView="plex:albums" />);
+
+    expect(screen.getByRole('button', { name: 'Plex' }).closest('div')?.className).toContain('active');
+  });
+
+  it('shows no section without a server, and loads the servers when it is shown', () => {
+    const loadSources = vi.fn();
+    render(<Navigation loadSources={loadSources} />);
+
+    expect(screen.queryByRole('button', { name: /: Albums/ })).toBeNull();
+    expect(loadSources).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens a section and marks it as the page', () => {
+    const openOnlineView = vi.fn();
+    render(<Navigation sourceKinds={['plex']} tab="online-sources" onlineView="plex:artists" openOnlineView={openOnlineView} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Plex: Albums' }));
+
+    expect(openOnlineView).toHaveBeenCalledWith('plex:albums');
+    expect(screen.getByRole('button', { name: 'Plex: Artists' }).getAttribute('aria-current')).toBe('page');
+  });
+
   it('marks the source that is shown, and only that one', () => {
     render(<Navigation tab="online-sources" onlineView="nearby" />);
 

@@ -39,7 +39,7 @@ Online, "Subsonic servers" (`client/components/pages/source-servers/`, state in 
 - An address with `http` shows a warning: the token of a call travels with it.
 - After a failed add of an `https` address the page offers to read the certificate. It shows the code (`approvalCode`) to compare with the one the server shows, and "Approve and add" sends the server with that certificate, which every later call is pinned to.
 - A server with `protected: false` shows that its password is kept in plain text.
-- The page shows the library of every server of its kind at once, with no list to pick from: a lone server has no name shown (its "Remove" and the warning stay), several are grouped, each under its name and address. "Add a server" stays at the top.
+- The Online group of the sidebar has a group for each provider (Subsonic, Jellyfin, Plex) that folds on click; the folded ones are saved (`closedSources`) and all start open. A provider holds "Servers", the page where its servers are added and removed, and once it has a server the sections of its library (`Albums`, `Artists`, `Songs`, only those in `sourceCapabilities`, named `Plex: Albums` for a screen reader), which open `<kind>:<section>` of `OnlineView`. A folded provider shows as the current one while one of its pages is shown. A section shows the library of every server of the kind, a lone server with no name, several grouped under their names and addresses. Only the section that is shown loads. The sidebar loads the servers when it starts.
 - The page keeps the answers of a browse by their request (`browseKey`), a request without an answer is loading.
 
 ## Not done yet

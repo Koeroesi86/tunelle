@@ -5,7 +5,7 @@ import { knownFolders, parseFolders } from '@shared/types/library-query';
 import { parseRadioQuery } from '@shared/types/radio-query';
 import { defaultPowerSavingMode } from '@shared/schemas/settings';
 import { isAppAction } from '../types';
-import type { OnlineView, UiState } from '../types';
+import type { NavigationGroup, OnlineView, UiState } from '../types';
 import { radioUuidOf } from '../../domain/radio-track';
 import { defaultTheme, parseAccent, restoreTheme } from '../../theme';
 import { defaultNormalization } from '../../audio/loudness';
@@ -14,12 +14,23 @@ import { clampGain, defaultGains, restoreGains } from '../../audio/equalizer';
 import { autoAccent } from '../../constants/theme';
 import { coverSizes } from '../../constants/cover-size';
 
+/** Opens or folds a group of the sidebar: a provider of the online group is kept in the list of the folded ones */
+const setGroupOpen = (state: UiState, group: NavigationGroup, open: boolean): UiState => {
+  if (group === 'library') return { ...state, libraryOpen: open };
+  if (group === 'online') return { ...state, onlineOpen: open };
+  if (group === 'playlists') return { ...state, playlistsOpen: open };
+
+  const others = state.closedSources.filter((kind) => kind !== group);
+  return { ...state, closedSources: open ? others : [...others, group] };
+};
+
 const initialState: UiState = {
   view: 'albums',
   onlineView: 'radio',
   libraryOpen: true,
   onlineOpen: true,
   playlistsOpen: true,
+  closedSources: [],
   tab: 'home',
   favouritesSource: 'local',
   favouritesOrder: 'recent',
@@ -335,10 +346,8 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, maximized: action.payload.maximized };
     case 'SET_TAB':
       return { ...state, tab: action.payload.tab, selectedAlbum: null };
-    case 'SET_NAVIGATION_GROUP': {
-      const { group, open } = action.payload;
-      return group === 'library' ? { ...state, libraryOpen: open } : group === 'online' ? { ...state, onlineOpen: open } : { ...state, playlistsOpen: open };
-    }
+    case 'SET_NAVIGATION_GROUP':
+      return setGroupOpen(state, action.payload.group, action.payload.open);
     case 'PLAYLIST_IMPORT_REPORTED':
       return { ...state, playlistImport: action.payload.reports };
     case 'DISMISS_PLAYLIST_IMPORT':
@@ -397,6 +406,7 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
         ...('libraryOpen' in settings && { libraryOpen: settings.libraryOpen !== false }),
         ...('onlineOpen' in settings && { onlineOpen: settings.onlineOpen !== false }),
         ...('playlistsOpen' in settings && { playlistsOpen: settings.playlistsOpen !== false }),
+        ...(settings.closedSources && { closedSources: settings.closedSources }),
         ...(settings.equalizer && { equalizer: restoreGains(settings.equalizer) }),
         ...('outputDevice' in settings && { outputDevice: restoreOutputDevice(settings.outputDevice) }),
         ...(settings.theme && { theme: restoreTheme(settings.theme) }),

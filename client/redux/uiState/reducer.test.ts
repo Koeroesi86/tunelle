@@ -738,6 +738,20 @@ describe('uiState reducer', () => {
       expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { view: 'tracks' } } })).toMatchObject({ onlineOpen: true });
     });
 
+    it('folds and opens each provider of the online group on its own, and restores the folded ones', () => {
+      const plex = run({ type: 'SET_NAVIGATION_GROUP', payload: { group: 'plex', open: false } });
+      const both = run({ type: 'SET_NAVIGATION_GROUP', payload: { group: 'jellyfin', open: false } }, plex);
+      const twice = run({ type: 'SET_NAVIGATION_GROUP', payload: { group: 'plex', open: false } }, both);
+      const reopened = run({ type: 'SET_NAVIGATION_GROUP', payload: { group: 'plex', open: true } }, both);
+
+      expect(plex).toMatchObject({ closedSources: ['plex'], onlineOpen: true });
+      expect(both.closedSources).toEqual(['plex', 'jellyfin']);
+      expect(twice.closedSources).toEqual(['jellyfin', 'plex']);
+      expect(reopened.closedSources).toEqual(['jellyfin']);
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { closedSources: ['subsonic'] } } }).closedSources).toEqual(['subsonic']);
+      expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { view: 'tracks' } } }).closedSources).toEqual([]);
+    });
+
     it('restores the saved state of the groups', () => {
       expect(run({ type: 'RESTORE_SETTINGS', payload: { settings: { libraryOpen: false, playlistsOpen: false } } })).toMatchObject({
         libraryOpen: false,
