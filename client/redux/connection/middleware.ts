@@ -178,6 +178,7 @@ const persistedKeys = [
   'libraryOpen',
   'onlineOpen',
   'playlistsOpen',
+  'closedSources',
   'nowPlaying',
   'played',
   'currentSong',

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import type { IconType } from 'react-icons';
 import classNames from 'classnames';
 import {
   MdAdd as AddIcon,
@@ -47,6 +48,8 @@ interface NavigationProps {
   onlineOpen?: boolean;
   /** The kinds of server that have a server of the user: only they show the sections of their library */
   sourceKinds?: SourceKind[];
+  /** The providers that are folded: they show only their row */
+  closedSources?: SourceKind[];
   loadSources?: () => void;
   playlistsOpen?: boolean;
   playlists?: Playlist[];
@@ -69,16 +72,12 @@ const libraryViews = [
   { view: 'folders', label: 'library.folders', Icon: FoldersIcon },
 ] as const;
 
-const onlineViews = [
-  { view: 'radio', label: 'nav.radio', Icon: RadioIcon },
-  { view: 'servers', label: 'nav.servers', Icon: ServersIcon },
-  { view: 'jellyfin', label: 'nav.jellyfin', Icon: ServersIcon },
-  { view: 'plex', label: 'nav.plex', Icon: ServersIcon },
-  { view: 'nearby', label: 'nav.nearby', Icon: NearbyIcon },
+/** A provider is a group of the online part of the sidebar: the page where its servers are added, and the sections of its library once it has a server */
+const providers = [
+  { kind: 'subsonic', serversView: 'servers' },
+  { kind: 'jellyfin', serversView: 'jellyfin' },
+  { kind: 'plex', serversView: 'plex' },
 ] as const;
-
-/** The page of a kind of server where the servers are added, and its name: its library sections follow it in the sidebar once it has a server */
-const serverViewKinds: Partial<Record<OnlineView, SourceKind>> = { servers: 'subsonic', jellyfin: 'jellyfin', plex: 'plex' };
 const sourceNames: Record<SourceKind, string> = { subsonic: 'Subsonic', jellyfin: 'Jellyfin', plex: 'Plex' };
 const sectionViews = [
   { section: 'albums', label: 'library.albums', Icon: AlbumsIcon },
@@ -106,18 +105,45 @@ const Item = ({ label, icon, active = false, onClick }: ItemProps) => (
   </button>
 );
 
+interface OnlineItemProps {
+  label: string;
+  /** What names the row for a screen reader and in the tooltip, when the label alone does not say it */
+  title?: string;
+  Icon: IconType;
+  current: boolean;
+  /** Inside a provider: two levels in */
+  nested?: boolean;
+  onClick: () => void;
+}
+
+const OnlineItem = ({ label, title = label, Icon, current, nested = false, onClick }: OnlineItemProps) => (
+  <button
+    type="button"
+    title={title}
+    aria-label={title}
+    onClick={onClick}
+    aria-current={current ? 'page' : undefined}
+    className={classNames(style.item, style.child, { [style.nested]: nested, [style.active]: current })}
+  >
+    <Icon size={'12px'} />
+    <span className={style.label}>{label}</span>
+  </button>
+);
+
 interface GroupProps {
   label: string;
   icon: ReactNode;
   open: boolean;
   active?: boolean;
   count?: number;
+  /** A group inside the online group: one level in, as the views are */
+  nested?: boolean;
   onClick: () => void;
 }
 
 /** The row of a group that opens and closes, with the number of what is in it while it is closed, */
-const Group = ({ label, icon, open, active = false, count, onClick }: GroupProps) => (
-  <div className={classNames(style.item, style.group, { [style.active]: active })}>
+const Group = ({ label, icon, open, active = false, count, nested = false, onClick }: GroupProps) => (
+  <div className={classNames(style.item, style.group, { [style.active]: active, [style.child]: nested })}>
     <button type="button" onClick={onClick} title={label} aria-expanded={open} className={style.groupToggle}>
       {icon}
       <span className={style.label}>{label}</span>
@@ -138,6 +164,7 @@ function Navigation({
   libraryOpen = false,
   onlineOpen = true,
   sourceKinds = [],
+  closedSources = [],
   loadSources = () => {},
   playlistsOpen = true,
   playlists = [],
@@ -158,26 +185,56 @@ function Navigation({
     loadSources();
   }, []);
 
-  const sectionsOf = (kind: SourceKind | undefined) =>
-    kind && sourceKinds.includes(kind)
-      ? sectionViews
-          .filter(({ section }) => sourceCapabilities[kind].library?.sections.includes(section))
-          .map(({ section, label, Icon }) => ({
-            view: `${kind}:${section}` as const,
-            text: t('nav.sourceSection', { source: sourceNames[kind], section: t(label) }),
-            Icon,
-          }))
-      : [];
-  const onlineEntries = onlineViews.flatMap(({ view: sourceView, label, Icon }) => [
-    { view: sourceView, text: t(label), Icon },
-    ...sectionsOf(serverViewKinds[sourceView]),
-  ]);
   const { itemProps, overIndex } = useDragReorder(movePlaylist);
 
   const setTab = (next: Tab) => {
     setTabOf(next);
     onNavigate();
   };
+  const isOnline = (view: OnlineView) => tab === 'online-sources' && onlineView === view;
+
+  /** The row of a provider that folds, the page of its servers, and the sections of its library once it has a server */
+  const providerRows = ({ kind, serversView }: (typeof providers)[number]) => {
+    const open = !closedSources.includes(kind);
+    const sections = sourceKinds.includes(kind) ? sectionViews.filter(({ section }) => sourceCapabilities[kind].library?.sections.includes(section)) : [];
+    const inside = isOnline(serversView) || sections.some(({ section }) => isOnline(`${kind}:${section}`));
+
+    return (
+      <Fragment key={kind}>
+        <Group
+          nested
+          label={sourceNames[kind]}
+          icon={<ServersIcon size={'12px'} />}
+          open={open}
+          active={!open && inside}
+          onClick={() => setGroupOpen(kind, !open)}
+        />
+        {open && (
+          <OnlineItem
+            nested
+            label={t('nav.manageServers')}
+            title={t('nav.sourceServers', { source: sourceNames[kind] })}
+            Icon={ServersIcon}
+            current={isOnline(serversView)}
+            onClick={() => openOnlineView(serversView)}
+          />
+        )}
+        {open &&
+          sections.map(({ section, label, Icon }) => (
+            <OnlineItem
+              key={section}
+              nested
+              label={t(label)}
+              title={t('nav.sourceSection', { source: sourceNames[kind], section: t(label) })}
+              Icon={Icon}
+              current={isOnline(`${kind}:${section}`)}
+              onClick={() => openOnlineView(`${kind}:${section}`)}
+            />
+          ))}
+      </Fragment>
+    );
+  };
+
   const openLibraryView = (next: LibraryView) => {
     openLibraryViewOf(next);
     onNavigate();
@@ -244,23 +301,13 @@ function Navigation({
           active={tab === 'online-sources' && !onlineOpen}
           onClick={toggleOnline}
         />
-        {onlineOpen &&
-          onlineEntries.map(({ view: sourceView, text, Icon }) => {
-            const current = tab === 'online-sources' && onlineView === sourceView;
-            return (
-              <button
-                type="button"
-                key={sourceView}
-                title={text}
-                onClick={() => openOnlineView(sourceView)}
-                aria-current={current ? 'page' : undefined}
-                className={classNames(style.item, style.child, { [style.active]: current })}
-              >
-                <Icon size={'12px'} />
-                <span className={style.label}>{text}</span>
-              </button>
-            );
-          })}
+        {onlineOpen && (
+          <>
+            <OnlineItem label={t('nav.radio')} Icon={RadioIcon} current={isOnline('radio')} onClick={() => openOnlineView('radio')} />
+            {providers.map(providerRows)}
+            <OnlineItem label={t('nav.nearby')} Icon={NearbyIcon} current={isOnline('nearby')} onClick={() => openOnlineView('nearby')} />
+          </>
+        )}
         <Item label={t('nav.liked')} icon={<FavouritesIcon size={'14px'} />} active={tab === 'favourites'} onClick={() => setTab('favourites')} />
         <Group
           label={t('nav.playlists')}

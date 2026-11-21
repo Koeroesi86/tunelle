@@ -10,6 +10,7 @@ const mapState = (state: RootState) => ({
   onlineView: state.uiState.onlineView,
   libraryOpen: state.uiState.libraryOpen,
   onlineOpen: state.uiState.onlineOpen,
+  closedSources: state.uiState.closedSources,
   sourceKinds: state.sources.servers.map(({ kind }) => kind),
   playlistsOpen: state.uiState.playlistsOpen,
   playlists: state.playlists,

@@ -17,7 +17,7 @@ import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import type { Control } from '@shared/constants/remote-controls';
 import type { PowerSavingMode } from '@shared/schemas/settings';
-import type { DiscoveredServer, PlexAccount, SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
+import type { DiscoveredServer, PlexAccount, SourceBrowse, SourceBrowseResult, SourceKind, SourceServerInfo } from '@shared/schemas/sources';
 import type { LibraryView, OnlineView, PersistedSettings } from './persisted-settings';
 
 export type { LibraryView, OnlineView, PersistedSettings };
@@ -39,7 +39,7 @@ export type FavouritesSource = 'local' | 'online';
 export type FavouritesOrder = 'recent' | 'name' | 'details';
 
 /** The groups of the sidebar that open and close */
-export type NavigationGroup = 'library' | 'online' | 'playlists';
+export type NavigationGroup = 'library' | 'online' | 'playlists' | SourceKind;
 export type Tab = 'home' | 'now-playing' | 'local' | 'online-sources' | 'favourites' | 'playlist' | 'equalizer' | 'settings';
 
 export interface PlaylistItem {

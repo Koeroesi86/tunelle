@@ -99,8 +99,19 @@
     }
   }
 
+  // the items of a provider, one level further in
+  .item.child.nested {
+    padding-left: 42px;
+  }
+
   .item.group {
     padding: 0;
+
+    &.child .groupToggle {
+      padding-left: 26px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
 
     // the row opens and closes the group, the add button beside it is a button of its own
     .groupToggle {
@@ -194,7 +205,8 @@
       }
     }
 
-    .item.child {
+    .item.child,
+    .item.child.nested {
       padding-left: 0;
     }
 

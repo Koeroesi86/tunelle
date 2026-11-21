@@ -28,6 +28,8 @@ const persistedShape = {
   libraryOpen: z.boolean(),
   onlineOpen: z.boolean(),
   playlistsOpen: z.boolean(),
+  /** The providers of the online group that are folded in the sidebar, all start open */
+  closedSources: z.array(z.enum(['subsonic', 'jellyfin', 'plex'])),
   nowPlaying: z.array(trackSchema),
   played: z.array(trackSchema),
   currentSong: trackSchema.nullable(),

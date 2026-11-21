@@ -40,6 +40,36 @@ describe('Navigation', () => {
     expect(screen.queryByRole('button', { name: /Jellyfin: / })).toBeNull();
   });
 
+  it('groups the servers pages and the sections under their provider, and folds a provider on click', () => {
+    const setGroupOpen = vi.fn();
+    render(<Navigation sourceKinds={['plex']} setGroupOpen={setGroupOpen} />);
+
+    ['Subsonic', 'Jellyfin', 'Plex'].forEach((name) => expect(screen.getByRole('button', { name }).getAttribute('aria-expanded')).toBe('true'));
+    expect(screen.getByRole('button', { name: 'Plex servers' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Plex' }));
+
+    expect(setGroupOpen).toHaveBeenCalledWith('plex', false);
+  });
+
+  it('shows only the row of a folded provider, and opens it on click', () => {
+    const setGroupOpen = vi.fn();
+    render(<Navigation sourceKinds={['plex']} closedSources={['plex']} setGroupOpen={setGroupOpen} />);
+
+    expect(screen.getByRole('button', { name: 'Plex' }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('button', { name: 'Plex servers' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Plex: Albums' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Subsonic servers' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Plex' }));
+
+    expect(setGroupOpen).toHaveBeenCalledWith('plex', true);
+  });
+
+  it('marks a folded provider while one of its pages is shown', () => {
+    render(<Navigation sourceKinds={['plex']} closedSources={['plex']} tab="online-sources" onlineView="plex:albums" />);
+
+    expect(screen.getByRole('button', { name: 'Plex' }).closest('div')?.className).toContain('active');
+  });
+
   it('shows no section without a server, and loads the servers when it is shown', () => {
     const loadSources = vi.fn();
     render(<Navigation loadSources={loadSources} />);
