@@ -150,10 +150,6 @@
     padding: 6px 0;
     border-top: 1px solid var(--overlay);
 
-    &.current .name {
-      color: var(--accent);
-    }
-
     .warning {
       flex: 1 1 100%;
     }
