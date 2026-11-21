@@ -28,6 +28,8 @@ const setup = (state: Partial<SourcesState> = {}, kind: 'subsonic' | 'jellyfin' 
 
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 
+const subsonicAlbums = JSON.stringify({ what: 'library', serverId: id, kind: 'albums', sort: 'recent', start: 0, size: 60 });
+
 describe('SourceServers', () => {
   it('asks for the servers when it is shown', () => {
     expect(setup().load).toHaveBeenCalled();
@@ -80,7 +82,7 @@ describe('SourceServers', () => {
     expect(remove).toHaveBeenCalledWith(id);
   });
 
-  it('browses the artists of a server and plays a track of an album', () => {
+  it('browses the albums of a server and opens one for its songs', () => {
     const track = {
       path: `subsonic:${id}:s1`,
       title: 'Song',
@@ -97,14 +99,14 @@ describe('SourceServers', () => {
       lossless: 1,
     };
     const request = JSON.stringify({ what: 'tracks', serverId: id, id: 'al1' });
-    const artists = JSON.stringify({ what: 'artists', serverId: id });
     const props = setup({
       servers: [server],
-      browsed: { [artists]: { result: [{ id: 'ar1', name: 'Artist', albumCount: 1 }] }, [request]: { result: [track] } },
+      browsed: { [subsonicAlbums]: { result: { items: [{ id: 'al1', title: 'Goldberg', artist: 'Artist', year: '' }] } }, [request]: { result: [track] } },
     });
 
-    expect(props.browse).toHaveBeenCalledWith({ what: 'artists', serverId: id });
-    expect(screen.getByText('Artist')).toBeTruthy();
+    expect(props.browse).toHaveBeenCalledWith({ what: 'library', serverId: id, kind: 'albums', sort: 'recent', start: 0, size: 60 });
+    fireEvent.click(screen.getByRole('button', { name: /Goldberg/ }));
+    expect(props.browse).toHaveBeenLastCalledWith({ what: 'tracks', serverId: id, id: 'al1' });
   });
 
   it('leaves without an error when the actions it dispatches answer with an object', () => {
@@ -130,8 +132,9 @@ describe('SourceServers', () => {
   });
 
   it('shows no count of albums or songs that the server did not tell', () => {
-    const artists = JSON.stringify({ what: 'artists', serverId: id });
-    setup({ servers: [server], browsed: { [artists]: { result: [{ id: 'ar1', name: 'Artist' }] } } });
+    const artists = JSON.stringify({ what: 'library', serverId: id, kind: 'artists', sort: 'recent', start: 0, size: 60 });
+    setup({ servers: [server], browsed: { [artists]: { result: { total: 1, items: [{ id: 'ar1', name: 'Artist' }] } } } });
+    fireEvent.click(screen.getByRole('button', { name: 'Artists' }));
 
     expect(screen.getByText('Artist')).toBeTruthy();
     expect(screen.queryByText(/album/i, { selector: 'span' })).toBeNull();
@@ -144,7 +147,7 @@ describe('SourceServers with one or more servers', () => {
   it('browses the only server at once and offers just to add another', () => {
     const props = setup({ servers: [server], browsed: {} });
 
-    expect(props.browse).toHaveBeenCalledWith({ what: 'artists', serverId: id });
+    expect(props.browse).toHaveBeenCalledWith(expect.objectContaining({ what: 'library', serverId: id }));
     expect(screen.queryByRole('button', { name: 'Browse Home' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Add a server' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Remove Home' })).toBeTruthy();
@@ -156,7 +159,7 @@ describe('SourceServers with one or more servers', () => {
     expect(props.browse).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Browse Cabin' }));
 
-    expect(props.browse).toHaveBeenCalledWith({ what: 'artists', serverId: other.id });
+    expect(props.browse).toHaveBeenCalledWith(expect.objectContaining({ what: 'library', serverId: other.id }));
   });
 });
 
@@ -310,9 +313,27 @@ describe('SourceServers library of a Plex server', () => {
     expect(props.browse).toHaveBeenLastCalledWith({ what: 'tracks', serverId: id, id: 'a1' });
   });
 
-  it('has no library tabs for a server of another kind', () => {
+  it('has only the sections that the kind lists: no songs for Subsonic', () => {
     setup({ servers: [server] });
 
+    expect(screen.getByRole('button', { name: 'Albums' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Artists' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Songs' })).toBeNull();
+  });
+
+  it('shows more while the last page is full when the server tells no total, and says no count', () => {
+    const full = Array.from({ length: 60 }, (_, index) => ({ id: `al${index}`, title: `Album ${index}`, artist: 'A', year: '' }));
+    const props = setup({ servers: [server], browsed: { [subsonicAlbums]: { result: { items: full } } } });
+
+    expect(screen.queryByText(/ of /)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+
+    expect(props.browse).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'albums', start: 60 }));
+  });
+
+  it('shows no more when the last page of a server without a total is not full', () => {
+    setup({ servers: [server], browsed: { [subsonicAlbums]: { result: { items: [{ id: 'al1', title: 'Album', artist: 'A', year: '' }] } } } });
+
+    expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull();
   });
 });

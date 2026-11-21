@@ -179,6 +179,52 @@ describe('the Subsonic client', () => {
     });
   });
 
+  describe('the library', () => {
+    it.each([
+      ['recent', 'newest'],
+      ['title', 'alphabeticalByName'],
+    ] as const)('asks for a page of albums in the %s order and tells no total', async (sort, type) => {
+      reply(ok({ albumList2: { album: [{ id: 'al1', name: 'Goldberg', artist: 'Bach', year: 1981, songCount: 32, coverArt: 'c1' }] } }));
+
+      const page = await client().library('albums', sort, 40, 20);
+
+      expect(page).toEqual({ items: [{ id: 'al1', title: 'Goldberg', artist: 'Bach', year: '1981', songCount: 32, coverArt: 'c1' }] });
+      expect(Object.fromEntries(sentUrl().searchParams)).toMatchObject({ type, offset: '40', size: '20' });
+      expect(sentUrl().pathname).toBe('/navidrome/rest/getAlbumList2.view');
+    });
+
+    it('has no albums on an empty page', async () => {
+      reply(ok({ albumList2: {} }));
+
+      expect(await client().library('albums', 'title', 0, 10)).toEqual({ items: [] });
+    });
+
+    it('cuts a page out of all the artists and counts them', async () => {
+      reply(
+        ok({
+          artists: {
+            index: [
+              {
+                artist: [
+                  { id: 'a', name: 'ABBA' },
+                  { id: 'b', name: 'Bach' },
+                  { id: 'c', name: 'Cher' },
+                ],
+              },
+            ],
+          },
+        })
+      );
+
+      expect(await client().library('artists', 'title', 1, 1)).toEqual({ total: 3, items: [{ id: 'b', name: 'Bach', albumCount: 0 }] });
+    });
+
+    it('has no list of songs', async () => {
+      await expect(client().library('tracks', 'title', 0, 10)).rejects.toThrow('no list of its songs');
+      expect(vi.mocked(openSource)).not.toHaveBeenCalled();
+    });
+  });
+
   describe('the audio and the cover', () => {
     const audio = (statusCode: number, headers: IncomingMessage['headers']) => reply(Object.assign(answer('audio-bytes', statusCode, headers)));
 

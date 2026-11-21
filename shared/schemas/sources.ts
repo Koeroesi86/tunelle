@@ -19,7 +19,8 @@ export interface SourceCapabilities {
 }
 
 export const sourceCapabilities: Record<SourceKind, SourceCapabilities> = {
-  subsonic: {},
+  // Subsonic has no call that lists all songs, and lists its artists by name only
+  subsonic: { library: { sections: ['albums', 'artists'], sorts: ['recent', 'title'] } },
   jellyfin: { library: { sections: ['albums', 'artists', 'tracks'], sorts: ['recent', 'title'] } },
   plex: { library: { sections: ['albums', 'artists', 'tracks'], sorts: ['recent', 'title'] } },
 };
@@ -106,8 +107,11 @@ export type SourceSearchResult = z.infer<typeof sourceSearchResultSchema>;
 
 export const sourceServerInfoSchema = sourceServerSchema.extend({ protected: z.boolean() });
 
-/** What the main process answers to a browse: the list of the request, which the request tells the kind of */
-const sourcePageSchema = z.object({ total: z.number().int(), items: z.union([z.array(sourceArtistSchema), z.array(sourceAlbumSchema), z.array(trackSchema)]) });
+/** What the main process answers to a browse: the list of the request, which the request tells the kind of; a server that does not count its items tells no total */
+const sourcePageSchema = z.object({
+  total: z.number().int().optional(),
+  items: z.union([z.array(sourceArtistSchema), z.array(sourceAlbumSchema), z.array(trackSchema)]),
+});
 export type SourcePage = z.infer<typeof sourcePageSchema>;
 
 const sourceBrowseResultSchema = z.union([
