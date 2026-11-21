@@ -1,5 +1,6 @@
 [
   "CSP_GLOBAL_CHECK protocols/tunelle-protocol.ts",
+  "OPEN_EXTERNAL_JS_CHECK listeners/register-plex-listeners.ts",
   "OPEN_EXTERNAL_JS_CHECK listeners/register-update-listeners.ts",
   "PRELOAD_JS_CHECK library/loudness/loudness-window.ts",
   "PRELOAD_JS_CHECK windows/create-window.ts"
