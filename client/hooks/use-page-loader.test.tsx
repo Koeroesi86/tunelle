@@ -24,4 +24,16 @@ describe('usePageLoader', () => {
     rerender({ current: markStale(storePage(storePage(cache, 1, items, 300), 2, items, 300)) });
     expect(loadPage.mock.calls).toEqual([[0], [1], [2]]);
   });
+
+  it('requests the pages ahead of the range as well, up to the end of the list', () => {
+    const loadPage = vi.fn();
+    const cache = storePage(createPageCache<number>(), 0, items, 450);
+    renderHook(() => usePageLoader(cache, 0, 50, loadPage, 2));
+
+    expect(loadPage.mock.calls).toEqual([[1], [2]]);
+
+    loadPage.mockClear();
+    renderHook(() => usePageLoader(cache, 0, 50, loadPage, 10));
+    expect(loadPage.mock.calls).toEqual([[1], [2], [3], [4]]);
+  });
 });

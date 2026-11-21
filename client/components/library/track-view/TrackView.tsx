@@ -32,6 +32,8 @@ interface TrackViewProps {
   search: string | undefined;
   playTracks: (tracks: Track[]) => void;
   loadPage: (page: number) => void;
+  /** The pages after the window that are fetched as well, so they are there before the scroll gets to them; none for the local library */
+  pagesAhead?: number;
   setSort: (sort: TrackSort | undefined) => void;
   /** The selected tracks by their path */
   selectedTracks: Record<string, Track>;
@@ -55,6 +57,7 @@ const TrackView = ({
   folders = noKnownFolders,
   search,
   loadPage,
+  pagesAhead,
   setSort,
   selectedTracks,
   toggleTrack,
@@ -83,7 +86,7 @@ const TrackView = ({
     },
     [listing, scrolled]
   );
-  usePageLoader(tracks, firstIndex, lastIndex, loadPage);
+  usePageLoader(tracks, firstIndex, lastIndex, loadPage, pagesAhead);
 
   const folderSelection = selectedFolders(selected, folders);
   const query = { sort, folders: folderSelection, search };

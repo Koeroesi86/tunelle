@@ -7,7 +7,7 @@ import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import { listKey } from '../../../redux/sources/lists';
 import TrackView from '../../../components/library/track-view/TrackView';
-import { loadSourcePage, unanswered } from '../source-list';
+import { loadSourcePage, pagesAhead, unanswered } from '../source-list';
 
 interface OwnProps {
   /** The first page of the list, which says the server and what is listed of it */
@@ -37,5 +37,6 @@ export default connect(mapState, mapDispatch, (state, dispatch, { request, setTi
   sort: request.what === 'library' && request.sort === 'title' ? { field: 'title' as const, direction: 'asc' as const } : undefined,
   setSort: (sort: TrackSort | undefined) => setTitleOrder?.(sort?.field === 'title'),
   // the pages that are not fetched yet are not in the cache, the selection is what is listed
+  pagesAhead,
   fetchAll: () => Promise.resolve(Object.values(state.tracks.pages).flat()),
 }))(TrackView);

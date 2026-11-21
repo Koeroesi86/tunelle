@@ -7,7 +7,7 @@ import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import { listKey } from '../../../redux/sources/lists';
 import AlbumView from '../../../components/library/album-view/AlbumView';
-import { loadSourcePage, unanswered } from '../source-list';
+import { loadSourcePage, pagesAhead, unanswered } from '../source-list';
 
 interface OwnProps {
   /** The first page of the list, which says the server and what is listed of it */
@@ -31,6 +31,7 @@ const mapDispatch = (dispatch: Dispatch<AppAction>, { request }: OwnProps) => ({
 export default connect(mapState, mapDispatch, (state, dispatch, { open, toolbar }: OwnProps) => ({
   ...state,
   ...dispatch,
+  pagesAhead,
   sort: undefined,
   toolbar,
   openAlbum: open,

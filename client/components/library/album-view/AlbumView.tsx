@@ -38,6 +38,8 @@ interface AlbumViewProps {
   openAlbum: (album: AlbumSummary) => void;
   playAlbum: (album: AlbumSummary) => void;
   loadPage: (page: number) => void;
+  /** The pages after the window that are fetched as well, so they are there before the scroll gets to them; none for the local library */
+  pagesAhead?: number;
   /** The least width of a cover in px, which the slider of the bar below the list sets */
   coverSize: number;
   setCoverSize: (size: number) => void;
@@ -56,6 +58,7 @@ const AlbumView = ({
   coverSize,
   setCoverSize,
   loadPage,
+  pagesAhead,
   toolbar,
 }: AlbumViewProps) => {
   const { t } = useTranslation();
@@ -66,7 +69,7 @@ const AlbumView = ({
     itemWidth: coverSize,
     gap: columnGap,
   });
-  usePageLoader(albums, firstIndex, lastIndex, loadPage);
+  usePageLoader(albums, firstIndex, lastIndex, loadPage, pagesAhead);
   const { tileProps } = useTileGrid({ listing, itemCount: albums.total ?? 0, columns, rowHeight, firstIndex, lastIndex });
 
   const queryKey = JSON.stringify([sort, selectedFolders(selected, folders), search]);

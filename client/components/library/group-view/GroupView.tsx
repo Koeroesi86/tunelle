@@ -57,6 +57,8 @@ interface GroupViewProps {
   /** The group whose albums are shown instead of the list */
   open: OpenGroup | undefined;
   loadPage: (page: number) => void;
+  /** The pages after the window that are fetched as well, so they are there before the scroll gets to them; none for the local library */
+  pagesAhead?: number;
   playTracks: (tracks: Track[]) => void;
   setCoverSize: (size: number) => void;
   openGroup: (group: OpenGroup) => void;
@@ -73,6 +75,7 @@ const GroupList = ({
   selected = noFolders,
   folders = noKnownFolders,
   loadPage,
+  pagesAhead,
   setCoverSize,
   openGroup,
 }: Omit<GroupViewProps, 'open' | 'closeGroup' | 'playTracks'>) => {
@@ -86,7 +89,7 @@ const GroupList = ({
     itemWidth: cards ? cardWidth : coverSize,
     gap: cards ? cardGap : tileGap,
   });
-  usePageLoader(groups, firstIndex, lastIndex, loadPage);
+  usePageLoader(groups, firstIndex, lastIndex, loadPage, pagesAhead);
   const { tileProps } = useTileGrid({ listing, itemCount: groups.total ?? 0, columns, rowHeight, firstIndex, lastIndex });
 
   const queryKey = JSON.stringify([sort, filter, selectedFolders(selected, folders)]);

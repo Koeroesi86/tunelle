@@ -6,7 +6,7 @@ import type { RootState } from '../../../redux/reducers';
 import type { AppAction, OpenGroup } from '../../../redux/types';
 import { listKey } from '../../../redux/sources/lists';
 import GroupView from '../../../components/library/group-view/GroupView';
-import { loadSourcePage, unanswered } from '../source-list';
+import { loadSourcePage, pagesAhead, unanswered } from '../source-list';
 
 interface OwnProps {
   /** The first page of the list, which says the server and what is listed of it */
@@ -30,6 +30,7 @@ export default connect(mapState, mapDispatch, (state, dispatch, { open }: OwnPro
   ...state,
   ...dispatch,
   kind: 'artist' as const,
+  pagesAhead,
   sort: undefined,
   filter: '',
   open: undefined,
