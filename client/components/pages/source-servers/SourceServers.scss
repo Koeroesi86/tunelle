@@ -90,6 +90,10 @@
     &.inline {
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
+
+      .submit {
+        grid-column: auto;
+      }
     }
   }
 
@@ -207,7 +211,27 @@
     flex-direction: column;
   }
 
+  // the page of a library fills the area as the local one does: no box, the tiles at the edge of the page
   .wide {
     max-width: none;
+    padding: 12px 16px 20px;
+  }
+
+  .library {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+
+    .form {
+      flex: 1 1 240px;
+    }
   }
 }

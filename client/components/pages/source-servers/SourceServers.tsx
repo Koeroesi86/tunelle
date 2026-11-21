@@ -319,25 +319,42 @@ const Browser = ({
   const hasMore = inLibrary && loaded.length === view.pages && (total === undefined ? (loaded.at(-1)?.items.length ?? 0) >= pageSize : items.length < total);
 
   return (
-    <div className={style.tile}>
+    <div className={style.library}>
       {named && (
         <div className={style.serverName}>
           <span className={style.sectionTitle}>{server.name}</span>
           <span className={style.meta}>{server.url}</span>
         </div>
       )}
-      <form className={classNames(style.form, style.inline)} role="search" onSubmit={search}>
-        <input
-          type="search"
-          aria-label={t('sources.search')}
-          placeholder={t('sources.search')}
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-        />
-        <button type="submit" className={classNames(style.action, style.submit)}>
-          {t('sources.search')}
-        </button>
-      </form>
+      <div className={style.toolbar}>
+        <form className={classNames(style.form, style.inline)} role="search" onSubmit={search}>
+          <input
+            type="search"
+            aria-label={t('sources.search')}
+            placeholder={t('sources.search')}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+          />
+          <button type="submit" className={classNames(style.action, style.submit)}>
+            {t('sources.search')}
+          </button>
+        </form>
+        {inLibrary && (library?.sorts.length ?? 0) > 1 && (
+          <label className={style.sort}>
+            <span className={style.meta}>{t('sources.sort')}</span>
+            <select
+              value={view.sort}
+              onChange={(event) => setView({ ...view, sort: library?.sorts.find((sort) => sort === event.target.value) ?? view.sort, pages: 1 })}
+            >
+              {library?.sorts.map((sort) => (
+                <option key={sort} value={sort}>
+                  {t(sortLabels[sort])}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
       <nav className={style.crumbs} aria-label={t('sources.location')}>
         <button type="button" className={style.action} onClick={() => setPosition({})}>
           {t(library ? 'sources.library' : 'sources.artists')}
@@ -350,25 +367,6 @@ const Browser = ({
         {position.album && <span className={style.meta}>{position.album.title}</span>}
         {position.query && <span className={style.meta}>{t('sources.resultsFor', { query: position.query })}</span>}
       </nav>
-      {inLibrary && (
-        <div className={style.libraryBar}>
-          {(library?.sorts.length ?? 0) > 1 && (
-            <label className={style.sort}>
-              <span className={style.meta}>{t('sources.sort')}</span>
-              <select
-                value={view.sort}
-                onChange={(event) => setView({ ...view, sort: library?.sorts.find((sort) => sort === event.target.value) ?? view.sort, pages: 1 })}
-              >
-                {library?.sorts.map((sort) => (
-                  <option key={sort} value={sort}>
-                    {t(sortLabels[sort])}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-        </div>
-      )}
       {!answer && (
         <div className={style.hint} role="status">
           {t('sources.loading')}
