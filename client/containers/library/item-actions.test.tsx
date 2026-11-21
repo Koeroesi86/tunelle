@@ -1,0 +1,28 @@
+import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import type { Track } from '@shared/types/library';
+import { serverTrackActions, trackActions } from './item-actions';
+
+vi.mock('../ui/favourite-button', () => ({ default: () => <div>favourite</div> }));
+vi.mock('./add-to-playlist', () => ({ default: () => <div>playlist</div> }));
+vi.mock('./add-to-queue', () => ({ default: ({ next }: { next?: boolean }) => <div>{next ? 'play next' : 'queue'}</div> }));
+
+const track = { path: 'source://plex/1', title: 'One' } as Track;
+const slot = { heartClass: 'heart', actionClass: 'action' };
+
+describe('the buttons of a row of tracks', () => {
+  it('has the favourite, the playlist and the queue for a track of the library', () => {
+    render(<>{trackActions(track, slot)}</>);
+
+    expect(screen.getAllByText(/favourite|playlist|queue|play next/)).toHaveLength(4);
+  });
+
+  it('has only the queue for a track of a server, as the library does not hold it', () => {
+    render(<>{serverTrackActions(track, slot)}</>);
+
+    expect(screen.getByText('queue')).toBeTruthy();
+    expect(screen.getByText('play next')).toBeTruthy();
+    expect(screen.queryByText('favourite')).toBeNull();
+    expect(screen.queryByText('playlist')).toBeNull();
+  });
+});

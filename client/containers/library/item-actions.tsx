@@ -26,6 +26,14 @@ export const trackActions = (track: Track, { heartClass, actionClass }: TrackAct
   </>
 );
 
+/** A track of a server is not in the library: a favourite or a playlist entry of it would be reported missing, so it can only be queued */
+export const serverTrackActions = (track: Track, { actionClass }: TrackActionSlot): ReactNode => (
+  <>
+    <AddToQueue getTracks={() => Promise.resolve([track])} className={actionClass} />
+    <AddToQueue next getTracks={() => Promise.resolve([track])} className={actionClass} />
+  </>
+);
+
 export const albumDetailsActions = (album: Album, { favouriteClass, playlistClass }: AlbumDetailsActionSlot): ReactNode => (
   <>
     <FavouriteButton item={albumFavourite(album)} className={favouriteClass} />
