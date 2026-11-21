@@ -1,6 +1,8 @@
 import type { Reducer } from 'redux';
-import type { DiscoveredServer, PlexAccount, SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
+import type { DiscoveredServer, PlexAccount, SourceBrowse, SourceServerInfo } from '@shared/schemas/sources';
 import { isAppAction } from '../types';
+import { markListsStale, noSourceLists, storeAnswer } from './lists';
+import type { SourceLists } from './lists';
 
 export interface SourcesState {
   servers: SourceServerInfo[];
@@ -13,11 +15,13 @@ export interface SourcesState {
   discovery?: { searching: boolean; servers: DiscoveredServer[]; error?: string };
   /** The sign in with plex.tv: the user approves it in the browser, then the servers of the account are there to add */
   plexAccount?: PlexAccount;
-  /** The answers of the browses by their request, a request without an answer is loading */
-  browsed: Record<string, { result?: SourceBrowseResult; error?: string }>;
+  /** The failures of the browses by their request */
+  browsed: Record<string, { error?: string }>;
+  /** The answers as the lists of the library views */
+  lists: SourceLists;
 }
 
-const initialState: SourcesState = { servers: [], saving: false, browsed: {} };
+const initialState: SourcesState = { servers: [], saving: false, browsed: {}, lists: noSourceLists };
 
 /** The key of a request in `browsed` */
 export const browseKey = (request: SourceBrowse) => JSON.stringify(request);
@@ -29,7 +33,15 @@ const reducer: Reducer<SourcesState> = (state = initialState, action) => {
 
   switch (action.type) {
     case 'SOURCE_SERVERS_LOADED':
-      return { ...state, servers: action.payload.servers, saving: false, plexAccount: undefined, failure: undefined, certificate: undefined };
+      return {
+        ...state,
+        servers: action.payload.servers,
+        lists: markListsStale(state.lists),
+        saving: false,
+        plexAccount: undefined,
+        failure: undefined,
+        certificate: undefined,
+      };
     case 'SAVE_SOURCE_SERVER':
       return { ...state, saving: true, failure: undefined };
     case 'SOURCE_SERVER_FAILED':
@@ -56,7 +68,7 @@ const reducer: Reducer<SourcesState> = (state = initialState, action) => {
       return { ...state, browsed: without(state.browsed, browseKey(action.payload.request)) };
     case 'SOURCE_BROWSED': {
       const { request, result, error } = action.payload;
-      return { ...state, browsed: { ...state.browsed, [browseKey(request)]: { result, error } } };
+      return { ...state, browsed: { ...state.browsed, [browseKey(request)]: { error } }, lists: storeAnswer(state.lists, state.servers, request, result) };
     }
     default:
       return state;

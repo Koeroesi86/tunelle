@@ -45,7 +45,19 @@ interface AlbumViewProps {
   toolbar?: ReactNode;
 }
 
-const AlbumView = ({ openAlbum, playAlbum, albums, sort, selected = noFolders, folders = noKnownFolders, search, coverSize, setCoverSize, loadPage, toolbar }: AlbumViewProps) => {
+const AlbumView = ({
+  openAlbum,
+  playAlbum,
+  albums,
+  sort,
+  selected = noFolders,
+  folders = noKnownFolders,
+  search,
+  coverSize,
+  setCoverSize,
+  loadPage,
+  toolbar,
+}: AlbumViewProps) => {
   const { t } = useTranslation();
   const { separator, listing: scrolled } = useScrollSeparator(style.scrolled);
   const { listing, columns, rowHeight, firstIndex, lastIndex, offsetTop, height } = useWindowedList({
