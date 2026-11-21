@@ -8,28 +8,22 @@ import SourceLibrary from './SourceLibrary';
 
 const album = { id: 'al1', title: 'Goldberg' } as AlbumSummary;
 
-// the views are tested with their containers; here they show the request they were given
-vi.mock('../../../containers/library/source-albums', () => ({
-  default: ({ request, open }: { request: SourceBrowse; open: (album: AlbumSummary) => void }) => (
-    <button type="button" data-testid="albums" onClick={() => open(album)}>
-      {JSON.stringify(request)}
-    </button>
-  ),
-}));
-vi.mock('../../../containers/library/source-artists', () => ({
-  default: ({ request, open }: { request: SourceBrowse; open: (artist: { id: string; name: string }) => void }) => (
-    <button type="button" data-testid="artists" onClick={() => open({ id: 'ar1', name: 'Bach' })}>
-      {JSON.stringify(request)}
-    </button>
-  ),
-}));
-vi.mock('../../../containers/library/source-tracks', () => ({
-  default: ({ request, setTitleOrder }: { request: SourceBrowse; setTitleOrder?: (title: boolean) => void }) => (
-    <button type="button" data-testid="tracks" onClick={() => setTitleOrder?.(true)}>
-      {JSON.stringify(request)}
-    </button>
-  ),
-}));
+// the lists are tested with their containers; here they show the request they were given
+const renderAlbums = (request: SourceBrowse, open: (album: AlbumSummary) => void) => (
+  <button type="button" data-testid="albums" onClick={() => open(album)}>
+    {JSON.stringify(request)}
+  </button>
+);
+const renderArtists = (request: SourceBrowse, open: (artist: { id: string; name: string }) => void) => (
+  <button type="button" data-testid="artists" onClick={() => open({ id: 'ar1', name: 'Bach' })}>
+    {JSON.stringify(request)}
+  </button>
+);
+const renderTracks = (request: SourceBrowse, setTitleOrder?: (title: boolean) => void) => (
+  <button type="button" data-testid="tracks" onClick={() => setTitleOrder?.(true)}>
+    {JSON.stringify(request)}
+  </button>
+);
 
 const home = {
   id: '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11',
@@ -43,7 +37,18 @@ const cabin = { ...home, id: '6f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b12', name: 'Cabi
 
 const setup = (section: 'albums' | 'artists' | 'tracks', servers: SourceServerInfo[] = [home], browsed = {}, kind: 'plex' | 'subsonic' = 'plex') => {
   const load = vi.fn();
-  render(<SourceLibrary kind={kind} section={section} servers={servers} browsed={browsed} load={load} />);
+  render(
+    <SourceLibrary
+      kind={kind}
+      section={section}
+      servers={servers}
+      browsed={browsed}
+      load={load}
+      renderAlbums={renderAlbums}
+      renderArtists={renderArtists}
+      renderTracks={renderTracks}
+    />
+  );
   return load;
 };
 

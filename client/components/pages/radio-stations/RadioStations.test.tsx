@@ -5,7 +5,7 @@ import type { RadioState } from '../../../redux/radio/reducer';
 import RadioStations from './RadioStations';
 
 // the heart is tested with its own component, it needs the store
-vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
+const renderFavourite = () => null;
 
 const jazz: RadioStation = { uuid: 'a', name: 'Jazz FM', country: 'Hungary', tags: ['jazz', 'lounge', 'swing', 'bebop'], codec: 'MP3', bitrate: 128 };
 const rock: RadioStation = { uuid: 'b', name: 'Rock Radio', country: '', tags: [], codec: 'flac', bitrate: 0 };
@@ -28,7 +28,7 @@ const radio = (state: Partial<RadioState> = {}): RadioState => ({
 
 const renderPanel = (state?: Partial<RadioState>, currentStation?: string) => {
   const handlers = { search: vi.fn(), loadTags: vi.fn(), loadOptions: vi.fn(), play: vi.fn() };
-  const view = render(<RadioStations radio={radio(state)} currentStation={currentStation} {...handlers} />);
+  const view = render(<RadioStations renderFavourite={renderFavourite} radio={radio(state)} currentStation={currentStation} {...handlers} />);
   return { ...handlers, ...view };
 };
 
@@ -53,7 +53,16 @@ describe('RadioStations', () => {
     const { rerender, search } = renderPanel();
     search.mockClear();
 
-    rerender(<RadioStations radio={radio({ query: { name: 'jazz' } })} loadTags={vi.fn()} loadOptions={vi.fn()} play={vi.fn()} search={search} />);
+    rerender(
+      <RadioStations
+        renderFavourite={renderFavourite}
+        radio={radio({ query: { name: 'jazz' } })}
+        loadTags={vi.fn()}
+        loadOptions={vi.fn()}
+        play={vi.fn()}
+        search={search}
+      />
+    );
 
     expect(screen.getByPlaceholderText('Search stations')).toHaveProperty('value', 'jazz');
     act(() => vi.advanceTimersByTime(1000));
@@ -216,7 +225,9 @@ describe('RadioStations', () => {
     const { search, rerender } = renderPanel({ query: { name: 'fm' } });
     fireEvent.click(screen.getByRole('button', { name: 'Clear 1 filter' }));
     // the store has the cleared query by then
-    rerender(<RadioStations radio={radio({ query: {} })} search={search} loadTags={vi.fn()} loadOptions={vi.fn()} play={vi.fn()} />);
+    rerender(
+      <RadioStations renderFavourite={renderFavourite} radio={radio({ query: {} })} search={search} loadTags={vi.fn()} loadOptions={vi.fn()} play={vi.fn()} />
+    );
     search.mockClear();
 
     act(() => {
@@ -301,7 +312,16 @@ describe('RadioStations', () => {
     const view = renderPanel({ hasMore: false });
     expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
 
-    view.rerender(<RadioStations radio={radio({ hasMore: true, loading: true })} search={vi.fn()} loadTags={vi.fn()} loadOptions={vi.fn()} play={vi.fn()} />);
+    view.rerender(
+      <RadioStations
+        renderFavourite={renderFavourite}
+        radio={radio({ hasMore: true, loading: true })}
+        search={vi.fn()}
+        loadTags={vi.fn()}
+        loadOptions={vi.fn()}
+        play={vi.fn()}
+      />
+    );
     expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
   });
 
@@ -309,10 +329,28 @@ describe('RadioStations', () => {
     const view = renderPanel({ stations: [], loading: true });
     expect(screen.getByText('Loading stations…')).toBeTruthy();
 
-    view.rerender(<RadioStations radio={radio({ stations: [] })} search={vi.fn()} loadTags={vi.fn()} loadOptions={vi.fn()} play={vi.fn()} />);
+    view.rerender(
+      <RadioStations
+        renderFavourite={renderFavourite}
+        radio={radio({ stations: [] })}
+        search={vi.fn()}
+        loadTags={vi.fn()}
+        loadOptions={vi.fn()}
+        play={vi.fn()}
+      />
+    );
     expect(screen.getByText('No stations found')).toBeTruthy();
 
-    view.rerender(<RadioStations radio={radio({ stations: [], error: 'offline' })} search={vi.fn()} loadTags={vi.fn()} loadOptions={vi.fn()} play={vi.fn()} />);
+    view.rerender(
+      <RadioStations
+        renderFavourite={renderFavourite}
+        radio={radio({ stations: [], error: 'offline' })}
+        search={vi.fn()}
+        loadTags={vi.fn()}
+        loadOptions={vi.fn()}
+        play={vi.fn()}
+      />
+    );
     expect(screen.getByText('The station directory could not be reached')).toBeTruthy();
     expect(screen.getByText('Radio stations need an internet connection. Your own library plays without one.')).toBeTruthy();
     expect(screen.getByText('The station directory is not available: offline')).toBeTruthy();
@@ -322,7 +360,14 @@ describe('RadioStations', () => {
   it('tries the search again from the page that failed', () => {
     const search = vi.fn();
     render(
-      <RadioStations radio={radio({ stations: [], error: 'offline', offset: 100 })} search={search} loadTags={vi.fn()} loadOptions={vi.fn()} play={vi.fn()} />
+      <RadioStations
+        renderFavourite={renderFavourite}
+        radio={radio({ stations: [], error: 'offline', offset: 100 })}
+        search={search}
+        loadTags={vi.fn()}
+        loadOptions={vi.fn()}
+        play={vi.fn()}
+      />
     );
     search.mockClear();
 

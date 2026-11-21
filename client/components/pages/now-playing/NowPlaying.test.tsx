@@ -3,14 +3,12 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { Track } from '@shared/types/library';
 import NowPlaying from './NowPlaying';
 
-vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
-vi.mock('../../../containers/ui/loudness-panel', () => ({
-  default: ({ path, duration, sampleRate }: { path?: string; duration?: number; sampleRate?: number }) => (
-    <div data-testid="loudness" data-duration={duration} data-rate={sampleRate}>
-      {path}
-    </div>
-  ),
-}));
+const renderFavourite = () => null;
+const renderLoudness = ({ path, duration, sampleRate }: { path?: string; duration?: number; sampleRate?: number }) => (
+  <div data-testid="loudness" data-duration={duration} data-rate={sampleRate}>
+    {path}
+  </div>
+);
 
 const flac: Track = {
   path: '/music/1.flac',
@@ -44,6 +42,8 @@ const mp3: Track = {
 const renderPage = (props: Partial<Parameters<typeof NowPlaying>[0]> = {}) =>
   render(
     <NowPlaying
+      renderFavourite={renderFavourite}
+      renderLoudness={renderLoudness}
       nowPlaying={[flac, mp3]}
       currentSong={flac}
       streamTitle={null}
@@ -115,6 +115,8 @@ describe('NowPlaying', () => {
 
     rerender(
       <NowPlaying
+        renderFavourite={renderFavourite}
+        renderLoudness={renderLoudness}
         nowPlaying={[flac, mp3]}
         currentSong={flac}
         streamTitle={null}
@@ -207,6 +209,8 @@ describe('NowPlaying', () => {
     fireEvent.keyDown(screen.getByTitle('#1 One'), { key: 'ArrowDown', altKey: true });
     rerender(
       <NowPlaying
+        renderFavourite={renderFavourite}
+        renderLoudness={renderLoudness}
         nowPlaying={[mp3, flac]}
         currentSong={flac}
         streamTitle={null}
@@ -232,6 +236,8 @@ describe('NowPlaying', () => {
     fireEvent.keyDown(screen.getByTitle('#2 Two'), { key: 'ArrowDown', altKey: true });
     rerender(
       <NowPlaying
+        renderFavourite={renderFavourite}
+        renderLoudness={renderLoudness}
         nowPlaying={[flac, mp3, { ...mp3, path: '/music/3.mp3', title: 'Three' }]}
         currentSong={flac}
         streamTitle={null}

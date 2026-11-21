@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import classNames from 'classnames';
 import slugify from 'slugify';
 import { MdClose as RemoveIcon, MdMusicNote as NoteIcon, MdPlayArrow as PlayIcon } from 'react-icons/md';
@@ -14,8 +14,7 @@ import { trackFavourite } from '../../../domain/favourites';
 import style from './NowPlaying.scss';
 import AudioFormatBadge from '../../ui/audio-format-badge';
 import CoverFade from '../../ui/cover-fade';
-import FavouriteButton from '../../../containers/ui/favourite-button';
-import LoudnessPanel from '../../../containers/ui/loudness-panel';
+import type { RenderFavourite } from '../../ui/favourite-button/FavouriteButton';
 import Time from '../../ui/time';
 
 interface NowPlayingProps {
@@ -33,6 +32,10 @@ interface NowPlayingProps {
   removeTrack: (index: number) => void;
   clearQueue: () => void;
   openLibrary: () => void;
+  /** The heart of an item, which belongs to where the favourites are kept */
+  renderFavourite: RenderFavourite;
+  /** The loudness of the song that plays, or of the stream, which is measured by the audio of the app */
+  renderLoudness: (of: { path?: string; duration?: number; sampleRate?: number }) => ReactNode;
 }
 
 /** How far Alt and the arrow keys move a row */
@@ -51,6 +54,8 @@ const NowPlaying = ({
   removeTrack,
   clearQueue,
   openLibrary,
+  renderFavourite,
+  renderLoudness,
 }: NowPlayingProps) => {
   const { t } = useTranslation();
   const shown = currentSong ? toNowPlaying(currentSong, streamTitle, streamArt) : undefined;
@@ -115,13 +120,11 @@ const NowPlaying = ({
               <div className={style.album}>{[shown.track.album, shown.track.year || undefined].filter(Boolean).join(' · ')}</div>
               <div className={style.actions}>
                 <AudioFormatBadge track={shown.track} />
-                <FavouriteButton item={trackFavourite(currentSong, station)} className={style.favourite} />
+                {renderFavourite(trackFavourite(currentSong, station), style.favourite)}
               </div>
-              {radioUuidOf(currentSong.path) === undefined && !isSourcePath(currentSong.path) ? (
-                <LoudnessPanel path={currentSong.path} duration={currentSong.duration ?? undefined} sampleRate={currentSong.sampleRate ?? undefined} />
-              ) : (
-                <LoudnessPanel sampleRate={streamSampleRate ?? undefined} />
-              )}
+              {radioUuidOf(currentSong.path) === undefined && !isSourcePath(currentSong.path)
+                ? renderLoudness({ path: currentSong.path, duration: currentSong.duration ?? undefined, sampleRate: currentSong.sampleRate ?? undefined })
+                : renderLoudness({ sampleRate: streamSampleRate ?? undefined })}
             </div>
           </div>
         )}

@@ -3,21 +3,35 @@ import { render, screen } from '@testing-library/react';
 import type { LibraryView } from '../../../redux/types';
 import LocalCollection from './LocalCollection';
 
-vi.mock('../../../containers/library/album-view', () => ({ default: () => null }));
-vi.mock('../../../containers/library/group-view', () => ({ default: () => null }));
-vi.mock('../../../containers/library/track-view', () => ({ default: () => null }));
-vi.mock('../../../containers/settings/folder-management', () => ({ default: () => null }));
-vi.mock('../../../containers/library/folder-filter', () => ({ default: () => <button>folders</button> }));
-vi.mock('../../../containers/library/library-search', () => ({ default: () => <input aria-label="search" /> }));
-vi.mock('../../../containers/library/group-filter', () => ({ default: ({ label }: { label: string }) => <input aria-label={label} /> }));
-vi.mock('../../../containers/library/group-sort', () => ({ default: () => <button>group sort</button> }));
-vi.mock('../../../containers/library/album-sort', () => ({ default: () => <button>album sort</button> }));
-vi.mock('../../../containers/library/rescan-button', () => ({ default: () => <button>Rescan</button> }));
+const panels = {
+  albums: 'albums list',
+  artists: 'artists list',
+  albumArtists: 'album artists list',
+  genres: 'genres list',
+  tracks: 'tracks list',
+  folders: 'folders list',
+};
+const controls = {
+  search: <input aria-label="search" />,
+  groupFilter: (label: string) => <input aria-label={label} />,
+  folderFilter: <button>folders</button>,
+  albumSort: <button>album sort</button>,
+  groupSort: <button>group sort</button>,
+  rescan: <button>Rescan</button>,
+};
 
 const renderPage = (view: LibraryView, props: Partial<Parameters<typeof LocalCollection>[0]> = {}) =>
-  render(<LocalCollection view={view} setView={vi.fn()} groupOpen={false} addFiles={vi.fn()} {...props} />);
+  render(<LocalCollection view={view} setView={vi.fn()} groupOpen={false} addFiles={vi.fn()} panels={panels} controls={controls} {...props} />);
 
 describe('LocalCollection', () => {
+  it('renders the list of the view that is shown, and the lists of names only while they are shown', () => {
+    renderPage('artists');
+
+    expect(screen.getByText('artists list')).toBeTruthy();
+    expect(screen.queryByText('genres list')).toBeNull();
+    expect(screen.queryByText('album artists list')).toBeNull();
+  });
+
   it('puts the search, the folders, the sort of the albums and the rescan in one row, without a title', () => {
     renderPage('albums');
 

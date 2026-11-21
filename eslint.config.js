@@ -58,15 +58,15 @@ module.exports = [
     rules: { 'no-restricted-imports': ['error', { paths: [{ name: 'react-redux', message: 'Read the store in client/containers and pass props.' }] }] },
   },
   {
-    // the views of the library take what belongs to where their items are from as props, the containers give it. See docs/development/containers.md
-    files: ['client/components/library/**/*.ts', 'client/components/library/**/*.tsx'],
-    ignores: ['**/*.test.ts', '**/*.test.tsx'],
+    // the views of the library and the pages take what is connected as props or slots, the containers give it; OnlineSources is the shell of its tabs. See docs/development/containers.md
+    files: ['client/components/library/**/*.ts', 'client/components/library/**/*.tsx', 'client/components/pages/**/*.ts', 'client/components/pages/**/*.tsx'],
+    ignores: ['**/*.test.ts', '**/*.test.tsx', 'client/components/pages/online-sources/**'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           paths: [{ name: 'react-redux', message: 'Read the store in client/containers and pass props.' }],
-          patterns: [{ group: ['**/containers/**'], message: 'A view of the library takes a slot (a render prop) that a container fills.' }],
+          patterns: [{ group: ['**/containers/**'], message: 'A view takes a slot (a render prop or a node) that a container fills.' }],
         },
       ],
     },

@@ -10,7 +10,7 @@ import { useDelayedValue } from '../../../hooks/use-delayed-value';
 import { useUpdateEffect } from '../../../hooks/use-update-effect';
 import { stationFavourite } from '../../../domain/favourites';
 import type { Translator } from '@shared/locales/translate';
-import FavouriteButton from '../../../containers/ui/favourite-button';
+import type { RenderFavourite } from '../../ui/favourite-button/FavouriteButton';
 import StationLogo from '../../ui/station-logo';
 import style from './RadioStations.scss';
 import { radioPageSize } from '@shared/constants/radio';
@@ -19,6 +19,8 @@ interface RadioStationsProps {
   radio: RadioState;
   currentStation?: string;
   search: (query: RadioQuery) => void;
+  /** The heart of an item, which belongs to where the favourites are kept */
+  renderFavourite: RenderFavourite;
   loadTags: () => void;
   loadOptions: () => void;
   play: (station: RadioStation) => void;
@@ -64,7 +66,7 @@ const FilterSelect = ({ label, allLabel, value, options, onChange, formatNumber 
   </select>
 );
 
-const RadioStations = ({ radio, currentStation, search, loadTags, loadOptions, play }: RadioStationsProps) => {
+const RadioStations = ({ radio, currentStation, search, loadTags, loadOptions, play, renderFavourite }: RadioStationsProps) => {
   const { t, formatNumber } = useTranslation();
   const { query, offset, hasMore, stations, tags, countries, languages, codecs, loading, error } = radio;
   const filterCount = countRadioFilters(query);
@@ -248,7 +250,7 @@ const RadioStations = ({ radio, currentStation, search, loadTags, loadOptions, p
             </span>
             <span className={style.right}>{station.bitrate || <span title={t('radio.bitrateUnknown')}>—</span>}</span>
             <span className={style.country}>{station.country}</span>
-            <FavouriteButton item={stationFavourite(station)} className={style.favourite} />
+            {renderFavourite(stationFavourite(station), style.favourite)}
           </div>
         ))}
         <div className={style.message}>{t('radio.source')}</div>

@@ -8,16 +8,9 @@ import { albumFavourite, stationFavourite, trackFavourite } from '../../../domai
 import type { FavouritesOrder, FavouritesSource } from '../../../redux/types';
 import FavouritesView from './FavouritesView';
 
-vi.mock('../../../containers/ui/favourite-button', () => ({ default: () => null }));
-const queued = vi.hoisted(() => vi.fn());
-vi.mock('../../../containers/library/add-to-queue', async () => {
-  const { createElement } = await import('react');
-
-  return {
-    default: ({ getTracks, next }: { getTracks: () => Promise<unknown[]>; next?: boolean }) =>
-      createElement('button', { 'aria-label': next ? 'Play next' : 'Add to the queue', onClick: () => void getTracks().then(queued) }),
-  };
-});
+const renderFavourite = () => null;
+const queued = vi.fn();
+const addToQueue = (tracks: Track[]) => queued(tracks);
 
 const track: Track = {
   path: '/music/a.flac',
@@ -37,10 +30,20 @@ const album = { id: '/music - Album', title: 'Album', path: '/music', artist: 'A
 type ViewProps = Parameters<typeof FavouritesView>[0];
 
 /** Keeps the choices the way the store does */
-const StatefulView = (props: Omit<ViewProps, 'source' | 'order' | 'setSource' | 'setOrder'>) => {
+const StatefulView = (props: Omit<ViewProps, 'renderFavourite' | 'addToQueue' | 'source' | 'order' | 'setSource' | 'setOrder'>) => {
   const [source, setSource] = useState<FavouritesSource>('local');
   const [order, setOrder] = useState<FavouritesOrder>('recent');
-  return <FavouritesView {...props} source={source} order={order} setSource={setSource} setOrder={setOrder} />;
+  return (
+    <FavouritesView
+      {...props}
+      renderFavourite={renderFavourite}
+      addToQueue={addToQueue}
+      source={source}
+      order={order}
+      setSource={setSource}
+      setOrder={setOrder}
+    />
+  );
 };
 
 const stored = (item: ReturnType<typeof trackFavourite>, available = true, addedAt = 1): Favourite => ({ ...item, addedAt, available });

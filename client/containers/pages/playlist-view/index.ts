@@ -10,6 +10,7 @@ const mapState = ({ playlists, uiState }: RootState) => ({
 });
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
+  addToQueue: (tracks: Track[], next: boolean) => dispatch({ type: next ? 'PLAY_NEXT' : 'ADD_TO_QUEUE', payload: { tracks } }),
   playTracks: (tracks: Track[]) => dispatch({ type: 'PLAY_TRACKS', payload: { tracks } }),
   rename: (id: number, name: string) => dispatch({ type: 'RENAME_PLAYLIST', payload: { id, name } }),
   remove: (id: number, deleteFile?: boolean) => dispatch({ type: 'DELETE_PLAYLIST', payload: { id, deleteFile } }),

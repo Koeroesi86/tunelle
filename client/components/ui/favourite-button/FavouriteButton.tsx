@@ -1,8 +1,12 @@
+import type { ReactNode } from 'react';
 import classNames from 'classnames';
 import { MdFavorite as FilledHeart, MdFavoriteBorder as OutlineHeart } from 'react-icons/md';
 import type { FavouriteKey, NewFavourite } from '@shared/types/favourites';
 import { useTranslation } from '../../../i18n';
 import style from './FavouriteButton.scss';
+
+/** A page that shows hearts takes this as a prop, and a container gives it the connected button */
+export type RenderFavourite = (item: NewFavourite, className?: string) => ReactNode;
 
 interface FavouriteButtonProps {
   item: NewFavourite;
