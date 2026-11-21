@@ -103,7 +103,6 @@ describe('SourceServers', () => {
       browsed: { [artists]: { result: [{ id: 'ar1', name: 'Artist', albumCount: 1 }] }, [request]: { result: [track] } },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Browse Home' }));
     expect(props.browse).toHaveBeenCalledWith({ what: 'artists', serverId: id });
     expect(screen.getByText('Artist')).toBeTruthy();
   });
@@ -126,7 +125,6 @@ describe('SourceServers', () => {
       play: vi.fn(),
     };
     const { unmount } = render(<SourceServers {...props} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Browse Home' }));
 
     expect(unmount).not.toThrow();
   });
@@ -135,10 +133,30 @@ describe('SourceServers', () => {
     const artists = JSON.stringify({ what: 'artists', serverId: id });
     setup({ servers: [server], browsed: { [artists]: { result: [{ id: 'ar1', name: 'Artist' }] } } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Browse Home' }));
-
     expect(screen.getByText('Artist')).toBeTruthy();
     expect(screen.queryByText(/album/i, { selector: 'span' })).toBeNull();
+  });
+});
+
+describe('SourceServers with one or more servers', () => {
+  const other = { ...server, id: '6f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b12', name: 'Cabin' };
+
+  it('browses the only server at once and offers just to add another', () => {
+    const props = setup({ servers: [server], browsed: {} });
+
+    expect(props.browse).toHaveBeenCalledWith({ what: 'artists', serverId: id });
+    expect(screen.queryByRole('button', { name: 'Browse Home' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add a server' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Remove Home' })).toBeTruthy();
+  });
+
+  it('lists several servers and browses the one that is chosen', () => {
+    const props = setup({ servers: [server, other], browsed: {} });
+
+    expect(props.browse).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Browse Cabin' }));
+
+    expect(props.browse).toHaveBeenCalledWith({ what: 'artists', serverId: other.id });
   });
 });
 
@@ -146,7 +164,7 @@ describe('SourceServers for Jellyfin', () => {
   it('lists only the servers of its kind', () => {
     setup({ servers: [server, { ...server, id: '6f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b12', kind: 'jellyfin', name: 'Film room' }] }, 'jellyfin');
 
-    expect(screen.getByText('Film room')).toBeTruthy();
+    expect(screen.getAllByText('Film room').length).toBeGreaterThan(0);
     expect(screen.queryByText('Home')).toBeNull();
   });
 
@@ -211,7 +229,7 @@ describe('SourceServers for Jellyfin', () => {
   it('lists only the Plex servers on the Plex page', () => {
     setup({ servers: [server, { ...server, id: '6f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b12', kind: 'plex', name: 'Den' }] }, 'plex');
 
-    expect(screen.getByText('Den')).toBeTruthy();
+    expect(screen.getAllByText('Den').length).toBeGreaterThan(0);
     expect(screen.queryByText('Home')).toBeNull();
   });
 
@@ -258,8 +276,6 @@ describe('SourceServers library of a Plex server', () => {
   it('starts with the albums, newest first, as covers', () => {
     const props = setup({ servers: [plexServer], browsed: { [page('albums', 'recent', 0)]: { result: { total: 1, items: albums } } } }, 'plex');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Browse Home' }));
-
     expect(props.browse).toHaveBeenCalledWith({ what: 'library', serverId: id, kind: 'albums', sort: 'recent', start: 0, size: 60 });
     expect(screen.getByText('First')).toBeTruthy();
     expect(screen.getByText('Band · 1999')).toBeTruthy();
@@ -268,7 +284,6 @@ describe('SourceServers library of a Plex server', () => {
 
   it('asks for the artists, the songs and another order from the first page', () => {
     const props = setup({ servers: [plexServer] }, 'plex');
-    fireEvent.click(screen.getByRole('button', { name: 'Browse Home' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Artists' }));
     expect(props.browse).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'artists', start: 0 }));
@@ -280,7 +295,6 @@ describe('SourceServers library of a Plex server', () => {
 
   it('shows more from the server while there is more', () => {
     const props = setup({ servers: [plexServer], browsed: { [page('albums', 'recent', 0)]: { result: { total: 120, items: albums } } } }, 'plex');
-    fireEvent.click(screen.getByRole('button', { name: 'Browse Home' }));
 
     expect(screen.getByText('1 of 120')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
@@ -290,7 +304,6 @@ describe('SourceServers library of a Plex server', () => {
 
   it('opens an album of the grid for its songs', () => {
     const props = setup({ servers: [plexServer], browsed: { [page('albums', 'recent', 0)]: { result: { total: 1, items: albums } } } }, 'plex');
-    fireEvent.click(screen.getByRole('button', { name: 'Browse Home' }));
 
     fireEvent.click(screen.getByRole('button', { name: /First/ }));
 
@@ -299,7 +312,6 @@ describe('SourceServers library of a Plex server', () => {
 
   it('has no library tabs for a server of another kind', () => {
     setup({ servers: [server] });
-    fireEvent.click(screen.getByRole('button', { name: 'Browse Home' }));
 
     expect(screen.queryByRole('button', { name: 'Songs' })).toBeNull();
   });

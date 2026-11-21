@@ -39,6 +39,7 @@ Online, "Subsonic servers" (`client/components/pages/source-servers/`, state in 
 - An address with `http` shows a warning: the token of a call travels with it.
 - After a failed add of an `https` address the page offers to read the certificate. It shows the code (`approvalCode`) to compare with the one the server shows, and "Approve and add" sends the server with that certificate, which every later call is pinned to.
 - A server with `protected: false` shows that its password is kept in plain text.
+- The only server of a kind is browsed at once and has no "Browse" button, "Add a server" stays; with two or more the page lists them and browses the one that is chosen.
 - The page keeps the answers of a browse by their request (`browseKey`), a request without an answer is loading.
 
 ## Not done yet

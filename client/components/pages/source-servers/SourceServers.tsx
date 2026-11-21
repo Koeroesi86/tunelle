@@ -458,7 +458,9 @@ const SourceServers = ({
   const [open, setOpen] = useState<string | undefined>(undefined);
   const [adding, setAdding] = useState(false);
   const servers = state.servers.filter((server) => server.kind === kind);
-  const opened = servers.find(({ id }) => id === open);
+  // the only server of a kind is shown at once, with nothing to pick: more than one are listed to browse one
+  const single = servers.length === 1;
+  const opened = single ? servers.at(0) : servers.find(({ id }) => id === open);
 
   useEffect(() => {
     load();
@@ -483,21 +485,23 @@ const SourceServers = ({
           </div>
           {servers.length === 0 && <div className={style.hint}>{t('sources.none')}</div>}
           {servers.map((server) => (
-            <div key={server.id} className={classNames(style.server, { [style.current]: server.id === open })}>
+            <div key={server.id} className={classNames(style.server, { [style.current]: !single && server.id === open })}>
               <div className={style.serverName}>
                 <span className={style.name}>{server.name}</span>
                 <span className={style.meta}>{server.url}</span>
               </div>
               <div className={style.buttons}>
-                <button
-                  type="button"
-                  className={style.action}
-                  aria-label={t('sources.browse', { name: server.name })}
-                  aria-pressed={server.id === open}
-                  onClick={() => setOpen(server.id === open ? undefined : server.id)}
-                >
-                  {t('sources.browseShort')}
-                </button>
+                {!single && (
+                  <button
+                    type="button"
+                    className={style.action}
+                    aria-label={t('sources.browse', { name: server.name })}
+                    aria-pressed={server.id === open}
+                    onClick={() => setOpen(server.id === open ? undefined : server.id)}
+                  >
+                    {t('sources.browseShort')}
+                  </button>
+                )}
                 <button type="button" className={style.action} aria-label={t('sources.remove', { name: server.name })} onClick={() => remove(server.id)}>
                   {t('sources.removeShort')}
                 </button>
