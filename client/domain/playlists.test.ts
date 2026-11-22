@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AlbumSummary, Track } from '@shared/types/library';
+import { describe, expect, it } from 'vitest';
+import type { Track } from '@shared/types/library';
 import type { Playlist } from '@shared/types/playlists';
-import { getPlaylistTracks, getSourceTracks, toPlaylist } from './playlists';
+import { getPlaylistTracks, toPlaylist } from './playlists';
 
 const track = (title: string): Track => ({
   path: `/music/${title}.flac`,
@@ -15,7 +15,6 @@ const track = (title: string): Track => ({
   picture: null,
   duration: 1,
 });
-const summary: AlbumSummary = { id: 'x', title: 'Album', path: '/music', artist: '', cover: null, duration: 2, year: 2020, trackCount: 2 };
 
 describe('toPlaylist', () => {
   it('keeps a playlist with its tracks', () => {
@@ -56,23 +55,5 @@ describe('getPlaylistTracks', () => {
     };
 
     expect(getPlaylistTracks(playlist).map(({ title }) => title)).toEqual(['a', 'a']);
-  });
-});
-
-describe('getSourceTracks', () => {
-  afterEach(() => vi.unstubAllGlobals());
-
-  it('gives a track as it is and the tracks of an album with its tracks', async () => {
-    expect(await getSourceTracks(track('a'))).toEqual([track('a')]);
-    expect(await getSourceTracks({ ...summary, tracks: [track('a'), track('b')] })).toHaveLength(2);
-  });
-
-  it('fetches the tracks of an album summary', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({ ok: true, json: async () => [track('a'), track('b')] }))
-    );
-
-    expect((await getSourceTracks(summary)).map(({ title }) => title)).toEqual(['a', 'b']);
   });
 });

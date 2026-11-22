@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AlbumSummary, Track } from '@shared/types/library';
 import { fetchGroupTracks } from './group-tracks';
-import { fetchAlbum, fetchAlbumPage } from '../services/library-api';
+import { fetchAlbum, fetchAlbumPage } from './library-api';
 
-vi.mock('../services/library-api', () => ({ fetchAlbum: vi.fn(), fetchAlbumPage: vi.fn() }));
+vi.mock('./library-api', () => ({ fetchAlbum: vi.fn(), fetchAlbumPage: vi.fn() }));
 
 const album = (title: string) => ({ title }) as AlbumSummary;
 const track = (path: string) => ({ path }) as Track;

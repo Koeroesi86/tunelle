@@ -6,7 +6,7 @@ import type { Playlist } from '@shared/types/playlists';
 import type { Track } from '@shared/types/library';
 import type { RadioStation } from '@shared/types/radio';
 import { stationFavourite, trackFavourite } from '../../../domain/favourites';
-import { getFavouriteTracks } from '../../../domain/favourite-tracks';
+import { getFavouriteTracks } from '../../../services/favourite-tracks';
 import { toRadioTrack } from '../../../domain/radio-track';
 import HomeView from './HomeView';
 
