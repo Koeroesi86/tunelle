@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Navigation from './Navigation';
 
+/** The sidebar starts folded, these are the props of one that is unfolded */
+const unfolded = { libraryOpen: true, onlineOpen: true, playlistsOpen: true, closedSources: [] };
+
 describe('Navigation', () => {
   it.each([
     ['Home', 'home'],
@@ -23,7 +26,7 @@ describe('Navigation', () => {
     ['Nearby Tunelles', 'nearby'],
   ])('opens the %s source of the online sources', (label, view) => {
     const openOnlineView = vi.fn();
-    render(<Navigation openOnlineView={openOnlineView} />);
+    render(<Navigation {...unfolded} openOnlineView={openOnlineView} />);
 
     fireEvent.click(screen.getByText(label));
 
@@ -31,7 +34,7 @@ describe('Navigation', () => {
   });
 
   it('shows the sections of the library of a kind of server that has a server, and only those it has', () => {
-    render(<Navigation sourceKinds={['plex', 'subsonic']} />);
+    render(<Navigation {...unfolded} sourceKinds={['plex', 'subsonic']} />);
 
     ['Plex: Albums', 'Plex: Artists', 'Plex: Songs', 'Subsonic: Albums', 'Subsonic: Artists'].forEach((name) =>
       expect(screen.getByRole('button', { name })).toBeTruthy()
@@ -42,32 +45,34 @@ describe('Navigation', () => {
 
   it('groups the servers pages and the sections under their provider, and folds a provider on click', () => {
     const setGroupOpen = vi.fn();
-    render(<Navigation sourceKinds={['plex']} setGroupOpen={setGroupOpen} />);
+    render(<Navigation {...unfolded} sourceKinds={['plex']} overviewGroup="plex" tab="overview" setGroupOpen={setGroupOpen} />);
 
-    ['Subsonic', 'Jellyfin', 'Plex'].forEach((name) => expect(screen.getByRole('button', { name }).getAttribute('aria-expanded')).toBe('true'));
+    ['Subsonic', 'Jellyfin', 'PlexA server is set up'].forEach((name) =>
+      expect(screen.getByRole('button', { name }).getAttribute('aria-expanded')).toBe('true')
+    );
     expect(screen.getByRole('button', { name: 'Plex servers' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Plex' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PlexA server is set up' }));
 
     expect(setGroupOpen).toHaveBeenCalledWith('plex', false);
   });
 
-  it('shows only the row of a folded provider, and opens it on click', () => {
-    const setGroupOpen = vi.fn();
-    render(<Navigation sourceKinds={['plex']} closedSources={['plex']} setGroupOpen={setGroupOpen} />);
+  it('shows only the row of a folded provider, and opens it with its welcome page on click', () => {
+    const openOverview = vi.fn();
+    render(<Navigation {...unfolded} sourceKinds={['plex']} closedSources={['plex']} openOverview={openOverview} />);
 
-    expect(screen.getByRole('button', { name: 'Plex' }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('button', { name: 'PlexA server is set up' }).getAttribute('aria-expanded')).toBe('false');
     expect(screen.queryByRole('button', { name: 'Plex servers' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Plex: Albums' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Subsonic servers' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Plex' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PlexA server is set up' }));
 
-    expect(setGroupOpen).toHaveBeenCalledWith('plex', true);
+    expect(openOverview).toHaveBeenCalledWith('plex');
   });
 
   it('marks a folded provider while one of its pages is shown', () => {
-    render(<Navigation sourceKinds={['plex']} closedSources={['plex']} tab="online-sources" onlineView="plex:albums" />);
+    render(<Navigation {...unfolded} sourceKinds={['plex']} closedSources={['plex']} tab="online-sources" onlineView="plex:albums" />);
 
-    expect(screen.getByRole('button', { name: 'Plex' }).closest('div')?.className).toContain('active');
+    expect(screen.getByRole('button', { name: 'PlexA server is set up' }).closest('div')?.className).toContain('active');
   });
 
   it('shows no section without a server, and loads the servers when it is shown', () => {
@@ -80,7 +85,7 @@ describe('Navigation', () => {
 
   it('opens a section and marks it as the page', () => {
     const openOnlineView = vi.fn();
-    render(<Navigation sourceKinds={['plex']} tab="online-sources" onlineView="plex:artists" openOnlineView={openOnlineView} />);
+    render(<Navigation {...unfolded} sourceKinds={['plex']} tab="online-sources" onlineView="plex:artists" openOnlineView={openOnlineView} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Plex: Albums' }));
 
@@ -89,7 +94,7 @@ describe('Navigation', () => {
   });
 
   it('marks the source that is shown, and only that one', () => {
-    render(<Navigation tab="online-sources" onlineView="nearby" />);
+    render(<Navigation {...unfolded} tab="online-sources" onlineView="nearby" />);
 
     const active = Array.from(document.querySelectorAll('.active')).map((item) => item.textContent);
     expect(active).toEqual(['Nearby Tunelles']);
@@ -150,15 +155,43 @@ describe('Navigation', () => {
       expect(screen.queryByText('Nearby Tunelles')).toBeNull();
     });
 
-    it('opens the group and the sources on click', () => {
+    it('opens the group with its welcome page on click, and folds it on the next one', () => {
+      const openOverview = vi.fn();
       const setGroupOpen = vi.fn();
-      const setTab = vi.fn();
-      render(<Navigation onlineOpen={false} setGroupOpen={setGroupOpen} setTab={setTab} />);
+      const { rerender } = render(<Navigation openOverview={openOverview} setGroupOpen={setGroupOpen} />);
+
+      fireEvent.click(screen.getByText('Online'));
+      rerender(<Navigation onlineOpen tab="overview" overviewGroup="online" openOverview={openOverview} setGroupOpen={setGroupOpen} />);
+      fireEvent.click(screen.getByText('Online'));
+
+      expect(openOverview.mock.calls).toEqual([['online']]);
+      expect(setGroupOpen.mock.calls).toEqual([['online', false]]);
+    });
+
+    it('shows the page of an open group again instead of folding it', () => {
+      const openOverview = vi.fn();
+      render(<Navigation onlineOpen tab="home" openOverview={openOverview} />);
 
       fireEvent.click(screen.getByText('Online'));
 
-      expect(setGroupOpen).toHaveBeenCalledWith('online', true);
-      expect(setTab).toHaveBeenCalledWith('online-sources');
+      expect(openOverview).toHaveBeenCalledWith('online');
+    });
+
+    it('marks the group of the welcome page that is shown', () => {
+      render(<Navigation onlineOpen tab="overview" overviewGroup="online" />);
+
+      expect(Array.from(document.querySelectorAll('.active')).map((item) => item.textContent)).toEqual(['Online']);
+    });
+
+    it('shows the indicator on the provider that has a server, and not on the group', () => {
+      const { rerender } = render(<Navigation sourceKinds={['plex']} />);
+
+      expect(screen.queryByRole('img', { name: 'A server is set up' })).toBeNull();
+      rerender(<Navigation onlineOpen sourceKinds={['plex']} closedSources={[]} />);
+      expect(screen.getAllByRole('img', { name: 'A server is set up' })).toHaveLength(1);
+      expect(screen.getByRole('button', { name: 'PlexA server is set up' })).toBeTruthy();
+      rerender(<Navigation onlineOpen closedSources={[]} />);
+      expect(screen.queryByRole('img', { name: 'A server is set up' })).toBeNull();
     });
   });
 
@@ -177,20 +210,17 @@ describe('Navigation', () => {
       expect(Array.from(document.querySelectorAll('.child')).map((item) => item.textContent)).toEqual(expect.arrayContaining(views));
     });
 
-    it('opens the group and the library on click, and closes the group on the next one', () => {
+    it('opens the group with its welcome page on click, and closes the group on the next one', () => {
+      const openOverview = vi.fn();
       const setGroupOpen = vi.fn();
-      const setTab = vi.fn();
-      const { rerender } = render(<Navigation setGroupOpen={setGroupOpen} setTab={setTab} />);
+      const { rerender } = render(<Navigation openOverview={openOverview} setGroupOpen={setGroupOpen} />);
 
       fireEvent.click(screen.getByText('Library'));
-      rerender(<Navigation libraryOpen setGroupOpen={setGroupOpen} setTab={setTab} />);
+      rerender(<Navigation libraryOpen tab="overview" overviewGroup="library" openOverview={openOverview} setGroupOpen={setGroupOpen} />);
       fireEvent.click(screen.getByText('Library'));
 
-      expect(setGroupOpen.mock.calls).toEqual([
-        ['library', true],
-        ['library', false],
-      ]);
-      expect(setTab.mock.calls).toEqual([['local']]);
+      expect(openOverview.mock.calls).toEqual([['library']]);
+      expect(setGroupOpen.mock.calls).toEqual([['library', false]]);
     });
 
     it('opens a view on click', () => {
@@ -228,7 +258,7 @@ describe('Navigation', () => {
     ];
 
     it('lists the playlists in a group', () => {
-      render(<Navigation playlists={playlists} />);
+      render(<Navigation playlistsOpen playlists={playlists} />);
 
       expect(Array.from(document.querySelectorAll('.playlists .item')).map((item) => item.textContent)).toEqual([
         'Road',
@@ -246,23 +276,22 @@ describe('Navigation', () => {
       expect(document.querySelector('.group .count')?.textContent).toBe('2');
     });
 
-    it('opens and closes the group on click', () => {
+    it('opens the group with its welcome page on click, and folds it on the next one', () => {
+      const openOverview = vi.fn();
       const setGroupOpen = vi.fn();
-      const { rerender } = render(<Navigation setGroupOpen={setGroupOpen} />);
+      const { rerender } = render(<Navigation openOverview={openOverview} setGroupOpen={setGroupOpen} />);
 
       fireEvent.click(screen.getByText('Playlists'));
-      rerender(<Navigation playlistsOpen={false} setGroupOpen={setGroupOpen} />);
+      rerender(<Navigation playlistsOpen tab="overview" overviewGroup="playlists" openOverview={openOverview} setGroupOpen={setGroupOpen} />);
       fireEvent.click(screen.getByText('Playlists'));
 
-      expect(setGroupOpen.mock.calls).toEqual([
-        ['playlists', false],
-        ['playlists', true],
-      ]);
+      expect(openOverview.mock.calls).toEqual([['playlists']]);
+      expect(setGroupOpen.mock.calls).toEqual([['playlists', false]]);
     });
 
     it('opens a playlist on click and marks only that one as active', () => {
       const openPlaylist = vi.fn();
-      render(<Navigation tab="playlist" playlistId={2} playlists={playlists} openPlaylist={openPlaylist} />);
+      render(<Navigation playlistsOpen tab="playlist" playlistId={2} playlists={playlists} openPlaylist={openPlaylist} />);
 
       fireEvent.click(screen.getByText('Road'));
 
@@ -272,7 +301,7 @@ describe('Navigation', () => {
 
     it('asks to import playlist files with the button next to the new one', () => {
       const importPlaylists = vi.fn();
-      render(<Navigation importPlaylists={importPlaylists} />);
+      render(<Navigation playlistsOpen importPlaylists={importPlaylists} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Import playlists' }));
 
@@ -281,7 +310,7 @@ describe('Navigation', () => {
 
     it('creates a playlist from the name that was typed, and not from an empty one', () => {
       const createPlaylist = vi.fn();
-      render(<Navigation createPlaylist={createPlaylist} />);
+      render(<Navigation playlistsOpen createPlaylist={createPlaylist} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'New playlist' }));
       fireEvent.submit(screen.getByLabelText('Playlist name'));
@@ -302,7 +331,7 @@ describe('Navigation', () => {
 
     it('gives up the new playlist on Escape', () => {
       const createPlaylist = vi.fn();
-      render(<Navigation createPlaylist={createPlaylist} />);
+      render(<Navigation playlistsOpen createPlaylist={createPlaylist} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'New playlist' }));
       fireEvent.keyDown(screen.getByLabelText('Playlist name'), { key: 'Escape' });
@@ -313,7 +342,7 @@ describe('Navigation', () => {
 
     it('moves a playlist to where it is dropped', () => {
       const movePlaylist = vi.fn();
-      render(<Navigation playlists={playlists} movePlaylist={movePlaylist} />);
+      render(<Navigation playlistsOpen playlists={playlists} movePlaylist={movePlaylist} />);
       const dataTransfer = { setData: vi.fn(), effectAllowed: '' };
 
       fireEvent.dragStart(screen.getByText('Night').closest('.item') as HTMLElement, { dataTransfer });
@@ -330,19 +359,20 @@ describe('Navigation', () => {
       ['a playlist', () => fireEvent.click(screen.getByText('Night'))],
     ])('reports that %s took the app somewhere', (_name, click) => {
       const onNavigate = vi.fn();
-      render(<Navigation libraryOpen playlists={[{ id: 1, name: 'Night' } as never]} onNavigate={onNavigate} />);
+      render(<Navigation libraryOpen playlistsOpen playlists={[{ id: 1, name: 'Night' } as never]} onNavigate={onNavigate} />);
 
       click();
 
       expect(onNavigate).toHaveBeenCalledTimes(1);
     });
 
-    it('does not report the opening of a group, so the drawer stays for the next choice', () => {
+    it('does not report the opening or the folding of a group, so the drawer stays for the next choice', () => {
       const onNavigate = vi.fn();
-      render(<Navigation onNavigate={onNavigate} />);
+      const { rerender } = render(<Navigation onNavigate={onNavigate} />);
 
       fireEvent.click(screen.getByText('Library'));
-      fireEvent.click(screen.getByText('Playlists'));
+      rerender(<Navigation libraryOpen tab="overview" overviewGroup="library" onNavigate={onNavigate} />);
+      fireEvent.click(screen.getByText('Library'));
 
       expect(onNavigate).not.toHaveBeenCalled();
     });

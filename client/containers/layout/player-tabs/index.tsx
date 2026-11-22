@@ -5,6 +5,7 @@ import AlbumDetails from '../../library/album-details';
 import About from '../../pages/about';
 import Equalizer from '../../pages/equalizer';
 import Favourites from '../../pages/favourites';
+import GroupOverview from '../../pages/group-overview';
 import Home from '../../pages/home';
 import LocalCollection from '../../pages/local-collection';
 import NowPlaying from '../../pages/now-playing';
@@ -29,6 +30,7 @@ import RadioSources from '../../../components/settings/radio-sources';
 const pages = {
   home: <Home />,
   'now-playing': <NowPlaying />,
+  overview: <GroupOverview />,
   'online-sources': <OnlineSources />,
   favourites: <Favourites />,
   playlist: <PlaylistView />,

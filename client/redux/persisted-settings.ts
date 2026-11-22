@@ -17,12 +17,6 @@ const albumSchema = z.custom<Album>(
 const persistedShape = {
   view: libraryViewSchema,
   onlineView: onlineViewSchema,
-  /** Whether the Library group of the sidebar shows its views, and whether the Playlists group shows the playlists, both start open */
-  libraryOpen: z.boolean(),
-  onlineOpen: z.boolean(),
-  playlistsOpen: z.boolean(),
-  /** The providers of the online group that are folded in the sidebar, all start open */
-  closedSources: z.array(z.enum(['subsonic', 'jellyfin', 'plex'])),
   nowPlaying: z.array(trackSchema),
   played: z.array(trackSchema),
   currentSong: trackSchema.nullable(),

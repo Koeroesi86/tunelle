@@ -17,7 +17,7 @@ import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import type { Control } from '@shared/constants/remote-controls';
 import type { PowerSavingMode } from '@shared/schemas/settings';
-import type { DiscoveredServer, PlexAccount, SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
+import type { DiscoveredServer, PlexAccount, SourceBrowse, SourceBrowseResult, SourceKind, SourceServerInfo } from '@shared/schemas/sources';
 import type { PersistedSettings } from './persisted-settings';
 import type { FavouritesOrder, FavouritesSource, LibraryView, NavigationGroup, OnlineView, OpenGroup, Tab } from '../domain/navigation';
 
@@ -62,6 +62,13 @@ export interface UiState extends PersistedSettings {
   notifyLibraryChanges: boolean;
   /** The app opens on the home screen, the tab is not saved */
   tab: Tab;
+  /** What the sidebar shows open: every group starts folded and this is not saved */
+  libraryOpen: boolean;
+  onlineOpen: boolean;
+  playlistsOpen: boolean;
+  closedSources: SourceKind[];
+  /** The group of the sidebar whose welcome page the overview tab shows, not saved */
+  overviewGroup: NavigationGroup;
   /** The side and the order of the favourites, and whether the equalizer shows its faders; they are kept while the app is open and not saved */
   favouritesSource: FavouritesSource;
   favouritesOrder: FavouritesOrder;
@@ -262,6 +269,7 @@ export type AppAction =
   | PayloadAction<'SET_VIEW', { view: LibraryView }>
   | PayloadAction<'SET_ONLINE_VIEW', { view: OnlineView }>
   | PayloadAction<'SET_TAB', { tab: Tab }>
+  | PayloadAction<'OPEN_GROUP_OVERVIEW', { group: NavigationGroup }>
   | PayloadAction<'SET_NAVIGATION_GROUP', { group: NavigationGroup; open: boolean }>
   | PayloadAction<'SET_NORMALIZATION', { mode: NormalizationMode }>
   | PayloadAction<'SET_OUTPUT_DEVICE', { device: OutputDevice | undefined }>

@@ -131,6 +131,14 @@
       cursor: pointer;
     }
 
+    .indicator {
+      flex: 0 0 auto;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--online);
+    }
+
     .count {
       margin-left: 6px;
       font-size: 11px;

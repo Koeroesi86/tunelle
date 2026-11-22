@@ -13,6 +13,7 @@ const mapState = (state: RootState) => ({
   onlineOpen: state.uiState.onlineOpen,
   closedSources: state.uiState.closedSources,
   sourceKinds: state.sources.servers.map(({ kind }) => kind),
+  overviewGroup: state.uiState.overviewGroup,
   playlistsOpen: state.uiState.playlistsOpen,
   playlists: state.playlists,
   playlistId: state.uiState.playlistId,
@@ -29,6 +30,7 @@ const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
     dispatch({ type: 'SET_ONLINE_VIEW', payload: { view } });
     dispatch({ type: 'SET_TAB', payload: { tab: 'online-sources' } });
   },
+  openOverview: (group: NavigationGroup) => dispatch({ type: 'OPEN_GROUP_OVERVIEW', payload: { group } }),
   setGroupOpen: (group: NavigationGroup, open: boolean) => dispatch({ type: 'SET_NAVIGATION_GROUP', payload: { group, open } }),
   openPlaylist: (id: number) => dispatch({ type: 'OPEN_PLAYLIST', payload: { id } }),
   importPlaylists: () => dispatch({ type: 'IMPORT_PLAYLISTS' }),
