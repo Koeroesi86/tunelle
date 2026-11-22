@@ -2,7 +2,7 @@ import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
-import { getSourceTracks } from '../../../domain/playlists';
+import { getSourceTracks } from '../../../services/source-tracks';
 import type { PlaylistSource } from '../../../domain/playlists';
 import AddToPlaylist from '../../../components/library/add-to-playlist/AddToPlaylist';
 

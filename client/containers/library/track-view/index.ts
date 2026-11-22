@@ -4,7 +4,7 @@ import type { Track } from '@shared/types/library';
 import type { TrackSort } from '@shared/types/library-query';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
-import { selectSearch } from '../../../domain/library-query';
+import { selectSearch } from '../../../redux/library-query';
 import { trackActions } from '../item-actions';
 import { fetchLibrary } from '../../../services/library-api';
 import TrackView from '../../../components/library/track-view/TrackView';

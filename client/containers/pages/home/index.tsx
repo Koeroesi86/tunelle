@@ -6,7 +6,7 @@ import type { RadioStation } from '@shared/types/radio';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import { Audio } from '../../../audio/context';
-import { getFavouriteTracks } from '../../../domain/favourite-tracks';
+import { getFavouriteTracks } from '../../../services/favourite-tracks';
 import { renderFavourite } from '../../ui/render-favourite';
 import HomeView from '../../../components/pages/home/HomeView';
 

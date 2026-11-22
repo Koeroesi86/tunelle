@@ -1,7 +1,13 @@
 import type { Track } from '@shared/types/library';
-import type { UiState } from '../redux/types';
 
-type QueueState = Pick<UiState, 'nowPlaying' | 'currentSong' | 'repeat' | 'shuffle' | 'played' | 'upNext'>;
+interface QueueState {
+  nowPlaying: Track[];
+  currentSong: Track | null;
+  repeat: boolean;
+  shuffle: boolean;
+  played: Track[];
+  upNext: Track | null;
+}
 
 const sequentialNext = ({ nowPlaying, currentSong, repeat }: QueueState): Track | undefined => {
   const index = nowPlaying.findIndex(({ path }) => path === currentSong?.path);

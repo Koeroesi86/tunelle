@@ -1,6 +1,5 @@
 import type { AlbumSummary, Album, Track } from '@shared/types/library';
 import type { Playlist } from '@shared/types/playlists';
-import { fetchAlbum } from '../services/library-api';
 import { z } from 'zod';
 import { storedPlaylistSchema } from '@shared/schemas/playlists';
 
@@ -38,12 +37,3 @@ export const getPlaylistTracks = ({ entries }: Playlist): Track[] => entries.fil
 
 /** What can be added to a playlist: a track, an album of the library or an album with its tracks */
 export type PlaylistSource = Track | AlbumSummary | Album;
-
-/** The tracks of what is added, an album gives all its tracks */
-export const getSourceTracks = (source: PlaylistSource): Promise<Track[]> => {
-  // an album has a path too, a cover and no picture
-  if ('picture' in source) return Promise.resolve([source]);
-  if ('tracks' in source) return Promise.resolve(source.tracks);
-
-  return fetchAlbum(source).then(({ tracks }) => tracks);
-};

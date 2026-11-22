@@ -1,6 +1,6 @@
 import type { Track } from '@shared/types/library';
 import type { AlbumGroup } from '@shared/types/library-query';
-import { fetchAlbum, fetchAlbumPage } from '../services/library-api';
+import { fetchAlbum, fetchAlbumPage } from './library-api';
 import { pageSize } from '../constants/library';
 
 /** Every track of an artist, album artist or genre in the folders given, album by album */

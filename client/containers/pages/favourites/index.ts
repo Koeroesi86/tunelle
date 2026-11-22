@@ -5,7 +5,7 @@ import type { RadioStation } from '@shared/types/radio';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import type { FavouritesOrder, FavouritesSource } from '../../../domain/navigation';
-import { getFavouriteTracks } from '../../../domain/favourite-tracks';
+import { getFavouriteTracks } from '../../../services/favourite-tracks';
 import { renderFavourite } from '../../ui/render-favourite';
 import FavouritesView from '../../../components/pages/favourites/FavouritesView';
 

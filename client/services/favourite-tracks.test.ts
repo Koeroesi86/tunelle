@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Favourite } from '@shared/types/favourites';
 import type { Track } from '@shared/types/library';
-import { albumFavourite, stationFavourite, trackFavourite } from './favourites';
+import { albumFavourite, stationFavourite, trackFavourite } from '../domain/favourites';
 import { getFavouriteTracks } from './favourite-tracks';
-import { toRadioTrack } from './radio-track';
+import { toRadioTrack } from '../domain/radio-track';
 
 const track: Track = {
   path: '/music/a.flac',
