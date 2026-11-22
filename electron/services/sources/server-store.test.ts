@@ -7,7 +7,7 @@ import { createSourceStore } from './server-store';
 vi.mock('fs', () => ({ ...memoryFs.sync, default: memoryFs.sync }));
 vi.mock('fs/promises', () => ({ ...memoryFs.promises, default: memoryFs.promises }));
 vi.mock('electron', () => ({
-  safeStorage: { isEncryptionAvailable: vi.fn(), getSelectedStorageBackend: vi.fn(), encryptString: vi.fn(), decryptString: vi.fn() },
+  safeStorage: { isEncryptionAvailable: vi.fn(), getSelectedStorageBackend: vi.fn(), encryptStringAsync: vi.fn(), decryptStringAsync: vi.fn() },
 }));
 
 const server = { id: '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11', kind: 'subsonic', name: 'Home', url: 'https://music.example.com', username: 'me' } as const;
@@ -19,12 +19,12 @@ describe('the store of the servers', () => {
     memoryFs.reset();
     vi.mocked(safeStorage.isEncryptionAvailable).mockReset().mockReturnValue(true);
     vi.mocked(safeStorage.getSelectedStorageBackend).mockReset().mockReturnValue('gnome_libsecret');
-    vi.mocked(safeStorage.encryptString)
+    vi.mocked(safeStorage.encryptStringAsync)
       .mockReset()
-      .mockImplementation((text) => Buffer.from(`sealed:${text}`));
-    vi.mocked(safeStorage.decryptString)
+      .mockImplementation(async (text) => Buffer.from(`sealed:${text}`));
+    vi.mocked(safeStorage.decryptStringAsync)
       .mockReset()
-      .mockImplementation((data) => data.toString().replace('sealed:', ''));
+      .mockImplementation(async (data) => ({ result: data.toString().replace('sealed:', ''), shouldReEncrypt: false }));
   });
 
   it('has no servers at first', async () => {
@@ -54,7 +54,7 @@ describe('the store of the servers', () => {
     vi.mocked(safeStorage.getSelectedStorageBackend).mockReturnValue('basic_text');
 
     expect(await createSourceStore(appData).save(server, 'secret')).toMatchObject({ protected: false });
-    expect(safeStorage.encryptString).not.toHaveBeenCalled();
+    expect(safeStorage.encryptStringAsync).not.toHaveBeenCalled();
   });
 
   it('replaces the server with the same id and removes one', async () => {
