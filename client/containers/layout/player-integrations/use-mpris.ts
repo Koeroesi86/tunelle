@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { getBackend } from '../backend/backend';
+import { getBackend } from '../../../backend/backend';
 
 interface MprisInfo {
   title: string;
