@@ -6,6 +6,7 @@ const slots = {
   pages: {
     home: <div>home page</div>,
     'now-playing': <div>now playing page</div>,
+    overview: <div>overview page</div>,
     'online-sources': <div>online page</div>,
     favourites: <div>favourites page</div>,
     playlist: <div>playlist page</div>,

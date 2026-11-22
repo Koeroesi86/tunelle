@@ -1,5 +1,6 @@
 import type { Reducer } from 'redux';
 import type { Track } from '@shared/types/library';
+import type { SourceKind } from '@shared/schemas/sources';
 import { restoreCoverSize } from '../../utils/cover-size';
 import { knownFolders, parseFolders } from '@shared/types/library-query';
 import { parseRadioQuery } from '@shared/types/radio-query';
@@ -15,23 +16,28 @@ import { clampGain, defaultGains, restoreGains } from '../../audio/equalizer';
 import { autoAccent } from '../../constants/theme';
 import { coverSizes } from '../../constants/cover-size';
 
-/** Opens or folds a group of the sidebar: a provider of the online group is kept in the list of the folded ones */
-const setGroupOpen = (state: UiState, group: NavigationGroup, open: boolean): UiState => {
-  if (group === 'library') return { ...state, libraryOpen: open };
-  if (group === 'online') return { ...state, onlineOpen: open };
-  if (group === 'playlists') return { ...state, playlistsOpen: open };
+const allSources: SourceKind[] = ['subsonic', 'jellyfin', 'plex'];
 
-  const others = state.closedSources.filter((kind) => kind !== group);
-  return { ...state, closedSources: open ? others : [...others, group] };
+/** Opens or folds a group of the sidebar as an accordion: opening one folds the others of its level, the providers of the online group being kept in the list of the folded ones */
+const setGroupOpen = (state: UiState, group: NavigationGroup, open: boolean): UiState => {
+  const topLevel = group === 'library' || group === 'online' || group === 'playlists';
+  if (topLevel && open) return { ...state, libraryOpen: group === 'library', onlineOpen: group === 'online', playlistsOpen: group === 'playlists' };
+  if (group === 'library') return { ...state, libraryOpen: false };
+  if (group === 'online') return { ...state, onlineOpen: false };
+  if (group === 'playlists') return { ...state, playlistsOpen: false };
+
+  const closed = open ? allSources.filter((kind) => kind !== group) : [...state.closedSources.filter((kind) => kind !== group), group];
+  return { ...state, closedSources: closed };
 };
 
 const initialState: UiState = {
   view: 'albums',
   onlineView: 'radio',
-  libraryOpen: true,
-  onlineOpen: true,
-  playlistsOpen: true,
-  closedSources: [],
+  libraryOpen: false,
+  onlineOpen: false,
+  playlistsOpen: false,
+  closedSources: ['subsonic', 'jellyfin', 'plex'],
+  overviewGroup: 'library',
   tab: 'home',
   favouritesSource: 'local',
   favouritesOrder: 'recent',
@@ -350,6 +356,8 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
       return { ...state, maximized: action.payload.maximized };
     case 'SET_TAB':
       return { ...state, tab: action.payload.tab, selectedAlbum: null };
+    case 'OPEN_GROUP_OVERVIEW':
+      return { ...setGroupOpen(state, action.payload.group, true), tab: 'overview', overviewGroup: action.payload.group, selectedAlbum: null };
     case 'SET_NAVIGATION_GROUP':
       return setGroupOpen(state, action.payload.group, action.payload.open);
     case 'PLAYLIST_IMPORT_REPORTED':
@@ -406,11 +414,6 @@ const reducer: Reducer<UiState> = (state = initialState, action) => {
         // a tab saved by an earlier version does not decide where the app opens
         tab: state.tab,
         ...(settings.onlineView && { onlineView: restoreOnlineView() }),
-        // the sidebar starts with the groups open, only a saved closed one closes it
-        ...('libraryOpen' in settings && { libraryOpen: settings.libraryOpen !== false }),
-        ...('onlineOpen' in settings && { onlineOpen: settings.onlineOpen !== false }),
-        ...('playlistsOpen' in settings && { playlistsOpen: settings.playlistsOpen !== false }),
-        ...(settings.closedSources && { closedSources: settings.closedSources }),
         ...(settings.equalizer && { equalizer: restoreGains(settings.equalizer) }),
         ...('outputDevice' in settings && { outputDevice: restoreOutputDevice(settings.outputDevice) }),
         ...(settings.theme && { theme: restoreTheme(settings.theme) }),

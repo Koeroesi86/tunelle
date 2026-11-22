@@ -177,10 +177,6 @@ const offlineRecheckInterval = 1000 * 30;
 const persistedKeys = [
   'view',
   'onlineView',
-  'libraryOpen',
-  'onlineOpen',
-  'playlistsOpen',
-  'closedSources',
   'nowPlaying',
   'played',
   'currentSong',
@@ -398,7 +394,6 @@ const handleActions = actionMiddleware((store) => [
   }),
   // the colour input fires while it is dragged, the main process does not need the accent before it is saved
   onAction('SET_ACCENT', () => saveLater(store)),
-  onAction('SET_NAVIGATION_GROUP', () => saveLater(store)),
   onAction('SAVE_SETTINGS', () => saveSettings(store.getState().uiState)),
 ]);
 

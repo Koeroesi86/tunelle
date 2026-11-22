@@ -192,23 +192,6 @@ describe('connection middleware', () => {
     }
   });
 
-  it('saves the open and closed groups of the sidebar once they stop changing', async () => {
-    vi.useFakeTimers();
-    try {
-      const { store, send } = await setup();
-
-      store.dispatch({ type: 'SET_NAVIGATION_GROUP', payload: { group: 'library', open: true } });
-      store.dispatch({ type: 'SET_NAVIGATION_GROUP', payload: { group: 'playlists', open: false } });
-      vi.advanceTimersByTime(500);
-
-      expect(send.mock.calls.filter(([channel]) => channel === 'SAVE_SETTINGS')).toEqual([
-        ['SAVE_SETTINGS', expect.objectContaining({ libraryOpen: true, playlistsOpen: false })],
-      ]);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
   it('asks the main process for the version when it starts and stores the update state it reports', async () => {
     const { store, send, listen } = await setup();
     const state = {

@@ -16,7 +16,7 @@ interface PlayerTabsProps {
   overlay?: ReactNode;
 }
 
-const laterPages: Page[] = ['now-playing', 'online-sources', 'favourites', 'playlist', 'equalizer'];
+const laterPages: Page[] = ['now-playing', 'overview', 'online-sources', 'favourites', 'playlist', 'equalizer'];
 
 function PlayerTabs({ tab = 'home', addFiles = () => {}, pages, renderLocal, settings, overlay }: PlayerTabsProps) {
   const shown = (name: Tab, content: ReactNode) => (

@@ -4,20 +4,14 @@ import type { IconType } from 'react-icons';
 import classNames from 'classnames';
 import {
   MdAdd as AddIcon,
-  MdAlbum as AlbumsIcon,
-  MdAudiotrack as TracksIcon,
   MdFavorite as FavouritesIcon,
   MdFileUpload as ImportIcon,
-  MdFolder as FoldersIcon,
   MdFormatListBulleted as PlaylistsIcon,
-  MdGroup as AlbumArtistsIcon,
   MdHome as HomeIcon,
   MdEqualizer as EQIcon,
   MdKeyboardArrowDown as ChevronIcon,
   MdLibraryMusic as LibraryIcon,
-  MdLocalOffer as GenresIcon,
   MdMusicNote as NowPlayingIcon,
-  MdPerson as ArtistsIcon,
   MdPlaylistPlay as PlaylistIcon,
   MdRadio as RadioIcon,
   MdDns as ServersIcon,
@@ -28,6 +22,7 @@ import {
 import type { NavigationGroup, LibraryView, OnlineView, Tab } from '../../../domain/navigation';
 import type { Playlist } from '@shared/types/playlists';
 import { sourceCapabilities, type SourceKind } from '@shared/schemas/sources';
+import { libraryViews, providers, sectionViews, sourceNames } from './navigation-items';
 import { useDragReorder } from '../../../hooks/use-drag-reorder';
 import style from './Navigation.scss';
 import NameField from '../../ui/name-field';
@@ -51,6 +46,9 @@ interface NavigationProps {
   /** The providers that are folded: they show only their row */
   closedSources?: SourceKind[];
   loadSources?: () => void;
+  /** The group whose welcome page is shown */
+  overviewGroup?: NavigationGroup;
+  openOverview?: (group: NavigationGroup) => void;
   playlistsOpen?: boolean;
   playlists?: Playlist[];
   playlistId?: number | null;
@@ -62,28 +60,6 @@ interface NavigationProps {
   importPlaylists?: () => void;
   movePlaylist?: (id: number, toIndex: number) => void;
 }
-
-const libraryViews = [
-  { view: 'albums', label: 'library.albums', Icon: AlbumsIcon },
-  { view: 'artists', label: 'library.artists', Icon: ArtistsIcon },
-  { view: 'albumArtists', label: 'library.albumArtists', Icon: AlbumArtistsIcon },
-  { view: 'genres', label: 'library.genres', Icon: GenresIcon },
-  { view: 'tracks', label: 'library.songs', Icon: TracksIcon },
-  { view: 'folders', label: 'library.folders', Icon: FoldersIcon },
-] as const;
-
-/** A provider is a group of the online part of the sidebar: the page where its servers are added, and the sections of its library once it has a server */
-const providers = [
-  { kind: 'subsonic', serversView: 'servers' },
-  { kind: 'jellyfin', serversView: 'jellyfin' },
-  { kind: 'plex', serversView: 'plex' },
-] as const;
-const sourceNames: Record<SourceKind, string> = { subsonic: 'Subsonic', jellyfin: 'Jellyfin', plex: 'Plex' };
-const sectionViews = [
-  { section: 'albums', label: 'library.albums', Icon: AlbumsIcon },
-  { section: 'artists', label: 'library.artists', Icon: ArtistsIcon },
-  { section: 'tracks', label: 'library.songs', Icon: TracksIcon },
-] as const;
 
 interface ItemProps {
   label: string;
@@ -136,17 +112,20 @@ interface GroupProps {
   open: boolean;
   active?: boolean;
   count?: number;
+  /** At least one server is set up in the group */
+  indicator?: string;
   /** A group inside the online group: one level in, as the views are */
   nested?: boolean;
   onClick: () => void;
 }
 
 /** The row of a group that opens and closes, with the number of what is in it while it is closed, */
-const Group = ({ label, icon, open, active = false, count, nested = false, onClick }: GroupProps) => (
+const Group = ({ label, icon, open, active = false, count, indicator, nested = false, onClick }: GroupProps) => (
   <div className={classNames(style.item, style.group, { [style.active]: active, [style.child]: nested })}>
     <button type="button" onClick={onClick} title={label} aria-expanded={open} className={style.groupToggle}>
       {icon}
       <span className={style.label}>{label}</span>
+      {indicator && <span role="img" aria-label={indicator} title={indicator} className={style.indicator} />}
       {!open && count !== undefined && <span className={style.count}>{count}</span>}
       <ChevronIcon size={'16px'} className={classNames(style.chevron, { [style.closed]: !open })} />
     </button>
@@ -162,11 +141,13 @@ function Navigation({
   view = 'albums',
   onlineView = 'radio',
   libraryOpen = false,
-  onlineOpen = true,
+  onlineOpen = false,
   sourceKinds = [],
-  closedSources = [],
+  closedSources = ['subsonic', 'jellyfin', 'plex'],
   loadSources = () => {},
-  playlistsOpen = true,
+  overviewGroup = 'library',
+  openOverview: openOverviewOf = () => {},
+  playlistsOpen = false,
   playlists = [],
   playlistId = null,
   openLibraryView: openLibraryViewOf = () => {},
@@ -191,6 +172,13 @@ function Navigation({
     setTabOf(next);
     onNavigate();
   };
+  const overviewShown = (group: NavigationGroup) => tab === 'overview' && overviewGroup === group;
+  /** A folded group opens with its welcome page, an open one shows the page first and folds when the page is already shown */
+  const clickGroup = (group: NavigationGroup, open: boolean) => {
+    if (open && overviewShown(group)) return setGroupOpen(group, false);
+    openOverviewOf(group);
+    onNavigate();
+  };
   const isOnline = (view: OnlineView) => tab === 'online-sources' && onlineView === view;
 
   /** The row of a provider that folds, the page of its servers, and the sections of its library once it has a server */
@@ -206,8 +194,9 @@ function Navigation({
           label={sourceNames[kind]}
           icon={<ServersIcon size={'12px'} />}
           open={open}
-          active={!open && inside}
-          onClick={() => setGroupOpen(kind, !open)}
+          active={overviewShown(kind) || (!open && inside)}
+          indicator={sourceKinds.includes(kind) ? t('nav.serverConfigured') : undefined}
+          onClick={() => clickGroup(kind, open)}
         />
         {open && (
           <OnlineItem
@@ -243,10 +232,6 @@ function Navigation({
     openOnlineViewOf(next);
     onNavigate();
   };
-  const toggleOnline = () => {
-    setGroupOpen('online', !onlineOpen);
-    if (!onlineOpen) setTabOf('online-sources');
-  };
   const openPlaylist = (id: number) => {
     openPlaylistOf(id);
     onNavigate();
@@ -255,12 +240,6 @@ function Navigation({
   const submit = () => {
     if (name?.trim()) createPlaylist(name.trim());
     setName(undefined);
-  };
-
-  // opening the group shows the library as well, closing it keeps where the app is
-  const toggleLibrary = () => {
-    setGroupOpen('library', !libraryOpen);
-    if (!libraryOpen) setTabOf('local');
   };
 
   const startPlaylist = () => {
@@ -277,8 +256,8 @@ function Navigation({
           label={t('nav.library')}
           icon={<LibraryIcon size={'14px'} />}
           open={libraryOpen}
-          active={tab === 'local' && !libraryOpen}
-          onClick={toggleLibrary}
+          active={overviewShown('library') || (tab === 'local' && !libraryOpen)}
+          onClick={() => clickGroup('library', libraryOpen)}
         />
         {libraryOpen &&
           libraryViews.map(({ view: libraryView, label, Icon }) => (
@@ -298,8 +277,8 @@ function Navigation({
           label={t('nav.online')}
           icon={<OnlineIcon size={'14px'} />}
           open={onlineOpen}
-          active={tab === 'online-sources' && !onlineOpen}
-          onClick={toggleOnline}
+          active={overviewShown('online') || (tab === 'online-sources' && !onlineOpen)}
+          onClick={() => clickGroup('online', onlineOpen)}
         />
         {onlineOpen && (
           <>
@@ -314,7 +293,8 @@ function Navigation({
           icon={<PlaylistsIcon size={'14px'} />}
           open={playlistsOpen}
           count={playlists.length}
-          onClick={() => setGroupOpen('playlists', !playlistsOpen)}
+          active={overviewShown('playlists')}
+          onClick={() => clickGroup('playlists', playlistsOpen)}
         />
       </div>
       <div className={style.playlists}>

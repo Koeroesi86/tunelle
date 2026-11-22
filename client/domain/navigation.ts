@@ -28,4 +28,4 @@ export type FavouritesOrder = 'recent' | 'name' | 'details';
 
 /** The groups of the sidebar that open and close */
 export type NavigationGroup = 'library' | 'online' | 'playlists' | SourceKind;
-export type Tab = 'home' | 'now-playing' | 'local' | 'online-sources' | 'favourites' | 'playlist' | 'equalizer' | 'settings';
+export type Tab = 'home' | 'now-playing' | 'overview' | 'local' | 'online-sources' | 'favourites' | 'playlist' | 'equalizer' | 'settings';
