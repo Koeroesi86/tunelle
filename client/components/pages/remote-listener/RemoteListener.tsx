@@ -4,7 +4,6 @@ import style from './RemoteListener.scss';
 import { useTranslation } from '../../../i18n';
 import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NowPlaying as NowPlayingSnapshot } from '@shared/schemas/now-playing';
-import { localUrl } from '../../../services/local-url';
 import type { RemoteHostState } from '@shared/schemas/remote-host';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import type { ControlCommand } from '@shared/schemas/remote-control';
@@ -21,6 +20,8 @@ interface RemoteListenerProps {
   browse: (active: boolean) => void;
   control: (command: ControlCommand) => void;
   listenAlong: (snapshot: Exclude<NowPlayingSnapshot, { state: 'idle' }>) => void;
+  /** The address of what the main process serves, which the cover of the host is one of */
+  resolveUrl: (route: string) => string;
 }
 
 const isPort = (port: number) => Number.isInteger(port) && port >= 1024 && port <= 65535;
@@ -269,7 +270,11 @@ const HostControls = ({
   );
 };
 
-const NowPlaying = ({ snapshot, listenAlong }: { snapshot: RemoteListenerState['nowPlaying'] } & Pick<RemoteListenerProps, 'listenAlong'>) => {
+const NowPlaying = ({
+  snapshot,
+  listenAlong,
+  resolveUrl,
+}: { snapshot: RemoteListenerState['nowPlaying'] } & Pick<RemoteListenerProps, 'listenAlong' | 'resolveUrl'>) => {
   const { t } = useTranslation();
   if (!snapshot) return null;
   if (snapshot.state === 'idle') return <div className={style.hint}>{t('remote.listen.idle')}</div>;
@@ -279,7 +284,7 @@ const NowPlaying = ({ snapshot, listenAlong }: { snapshot: RemoteListenerState['
       {snapshot.cover && (
         <img
           className={style.cover}
-          src={localUrl(`/remote/cover?t=${encodeURIComponent([snapshot.title, snapshot.artist, snapshot.album].join('|'))}`)}
+          src={resolveUrl(`/remote/cover?t=${encodeURIComponent([snapshot.title, snapshot.artist, snapshot.album].join('|'))}`)}
           alt=""
         />
       )}
@@ -295,7 +300,7 @@ const NowPlaying = ({ snapshot, listenAlong }: { snapshot: RemoteListenerState['
 };
 
 /** Pairs this app with another Tunelle that plays: the address, the code to compare, the request and what the host plays. See docs/app/remote-access-discovery.md */
-const RemoteListener = ({ state, host, connect, confirm, leave, control, listenAlong, nearby, browse }: RemoteListenerProps) => {
+const RemoteListener = ({ state, host, connect, confirm, leave, control, listenAlong, nearby, browse, resolveUrl }: RemoteListenerProps) => {
   const { t } = useTranslation();
 
   if (!state) return null;
@@ -341,7 +346,7 @@ const RemoteListener = ({ state, host, connect, confirm, leave, control, listenA
               <>
                 <div className={style.hint}>{t('remote.listen.listening', { address })}</div>
                 {state.error && <div className={style.error}>{t('remote.listen.error', { error: state.error })}</div>}
-                <NowPlaying snapshot={state.nowPlaying} listenAlong={listenAlong} />
+                <NowPlaying snapshot={state.nowPlaying} listenAlong={listenAlong} resolveUrl={resolveUrl} />
                 <HostControls controls={state.controls ?? []} snapshot={state.nowPlaying} control={control} />
                 <button type="button" className={style.action} onClick={leave}>
                   {t('remote.listen.leave')}

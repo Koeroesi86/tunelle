@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import type { LoudnessAnalysis, LoudnessProgress } from '@shared/types/loudness';
 import { useTranslation } from '../../../i18n';
-import { fetchLoudnessAnalysis } from '../../../services/library-api';
 import { toHistogramBars } from './histogram-bars';
 import style from './LoudnessPanel.scss';
 
@@ -20,9 +19,11 @@ interface LoudnessPanelProps {
   /** The rate of the file and the rate the audio context outputs at, in Hz: the panel tells whether the sound is resampled in between; nothing when the file's is not known */
   sampleRate?: number;
   outputRate?: number;
+  /** Asks for the measurement of a file; nothing while it is not measured */
+  fetchAnalysis: (path: string) => Promise<LoudnessAnalysis | undefined>;
 }
 
-const LoudnessPanel = ({ path, duration, currentTime, status, sampleRate, outputRate }: LoudnessPanelProps) => {
+const LoudnessPanel = ({ path, duration, currentTime, status, sampleRate, outputRate, fetchAnalysis }: LoudnessPanelProps) => {
   const { t, formatNumber } = useTranslation();
   const [found, setFound] = useState<{ path: string; analysis: LoudnessAnalysis } | undefined>(undefined);
   const analysis = path !== undefined && found?.path === path ? found.analysis : undefined;
@@ -32,7 +33,7 @@ const LoudnessPanel = ({ path, duration, currentTime, status, sampleRate, output
     if (analysis || !path) return undefined;
 
     let current = true;
-    fetchLoudnessAnalysis(path).then((answer) => current && answer && setFound({ path, analysis: answer }));
+    fetchAnalysis(path).then((answer) => current && answer && setFound({ path, analysis: answer }));
     return () => {
       current = false;
     };
