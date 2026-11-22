@@ -6,10 +6,11 @@ import { isOffline } from '../../../domain/offline-folders';
 import type { TileProps } from '../../../hooks/use-tile-grid';
 import { useTranslation } from '../../../i18n';
 import style from './AlbumViewThumbnail.scss';
-import { getCoverUrl } from '../../../utils/cover-url';
+import { coverRouteOf } from '../../../utils/cover-url';
 import { tileAccent } from '../../../utils/tile-accent';
 import { albumFormatLabel } from '../../../utils/audio-format-label';
 import { formatLength } from '../../../utils/format-length';
+import { useResolveUrl } from '../../../hooks/use-resolve-url';
 
 /** What a button of the cover needs to sit on it: the classes that place the buttons on the corners, and the tab stop of the tile */
 export interface AlbumActionSlot {
@@ -33,8 +34,9 @@ const noFolders: string[] = [];
 
 const AlbumViewThumbnail = ({ album, offlineFolders = noFolders, renderActions, selectAlbum, playAlbum, tile }: AlbumViewThumbnailProps) => {
   const { t } = useTranslation();
+  const resolveUrl = useResolveUrl();
   const offline = isOffline(`${album.path}/`, offlineFolders);
-  const cover = album.cover ? { backgroundImage: `url("${getCoverUrl(album.cover)}")` } : undefined;
+  const cover = album.cover ? { backgroundImage: `url("${resolveUrl(coverRouteOf(album.cover))}")` } : undefined;
   const format = albumFormatLabel(album);
   // the year is missing on a track that has none
   const year = Number(album.year) > 0 ? `${Number(album.year)}` : undefined;

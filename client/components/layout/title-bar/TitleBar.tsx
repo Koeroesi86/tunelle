@@ -8,6 +8,7 @@ import style from './TitleBar.scss';
 import AudioSpectrum from '../audio-spectrum';
 import Wordmark from '../wordmark/Wordmark';
 import CoverFade from '../../ui/cover-fade';
+import { useResolveUrl } from '../../../hooks/use-resolve-url';
 
 interface TitleBarProps {
   currentSong?: Track | null;
@@ -24,6 +25,7 @@ interface TitleBarProps {
 /** The bar across the top of the window: the app, the track that plays in the middle, and the window buttons; the empty part of it drags the window */
 function TitleBar({ currentSong = null, streamTitle = null, streamArt = null, openNowPlaying = () => {}, onMenu, menuOpen = false, actions }: TitleBarProps) {
   const { t } = useTranslation();
+  const resolveUrl = useResolveUrl();
   const shown = currentSong ? toNowPlaying(currentSong, streamTitle, streamArt) : undefined;
 
   return (
@@ -39,7 +41,7 @@ function TitleBar({ currentSong = null, streamTitle = null, streamArt = null, op
       </div>
       {shown ? (
         <button type="button" className={style.track} title={t('nowPlaying.title')} onClick={openNowPlaying}>
-          <CoverFade className={style.cover} src={shown.cover} />
+          <CoverFade className={style.cover} src={shown.cover && resolveUrl(shown.cover)} />
           <span className={style.name}>{shown.track.title}</span>
           {shown.track.artist && <span className={style.artist}>{shown.track.artist}</span>}
           <span className={style.spectrum}>

@@ -1,9 +1,10 @@
 import type { GroupSummary } from '@shared/types/library';
-import { getCoverUrl } from '../../../utils/cover-url';
+import { coverRouteOf } from '../../../utils/cover-url';
 import { tileAccent } from '../../../utils/tile-accent';
 import type { TileProps } from '../../../hooks/use-tile-grid';
 import { useTranslation } from '../../../i18n';
 import style from './GroupTile.scss';
+import { useResolveUrl } from '../../../hooks/use-resolve-url';
 
 interface GroupTileProps {
   group: GroupSummary;
@@ -17,8 +18,9 @@ interface GroupTileProps {
 /** An artist or album artist as a tile: the photo or cover, the name and how many albums and tracks it has, when it is known */
 const GroupTile = ({ group, unknownName, open, tile }: GroupTileProps) => {
   const { t } = useTranslation();
+  const resolveUrl = useResolveUrl();
   const name = group.name || unknownName;
-  const image = group.cover ? `url("${getCoverUrl(group.cover)}")` : undefined;
+  const image = group.cover ? `url("${resolveUrl(coverRouteOf(group.cover))}")` : undefined;
 
   return (
     <button type="button" className={style.groupTile} onClick={() => open(group)} {...tile}>

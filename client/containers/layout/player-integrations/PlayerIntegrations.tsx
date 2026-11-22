@@ -4,6 +4,7 @@ import { radioUuidOf } from '../../../domain/radio-track';
 import { isRemoteTrack } from '../../../domain/remote-track';
 import { isSourcePath } from '../../../domain/source-track';
 import { optimizedCoverOf } from '../../../utils/cover-url';
+import { localUrl } from '../../../services/local-url';
 import { useMediaSession, useMediaSessionActions } from '../../../hooks/use-media-session';
 import { useMpris, useMprisCommands } from '../../../hooks/use-mpris';
 import { useRemoteHost } from '../../../hooks/use-remote-host';
@@ -41,14 +42,15 @@ const PlayerIntegrations = ({
   nextSong,
 }: PlayerIntegrationsProps) => {
   const shown = currentSong ? toNowPlaying(currentSong, streamTitle, streamArt) : undefined;
+  const cover = shown?.cover && localUrl(shown.cover);
   const duration = shown && !radioUuidOf(shown.track.path) ? (shown.track.duration ?? 0) : 0;
   // a station, a track of another host and a track of a server of the user are not files of this library, so a listener is not given a path to ask for
   const hostedFile = shown !== undefined && !radioUuidOf(shown.track.path) && !isRemoteTrack(shown.track.path) && !isSourcePath(shown.track.path);
 
-  useMediaSession(shown && { title: shown.track.title, artist: shown.track.artist, album: shown.track.album, cover: shown.cover });
+  useMediaSession(shown && { title: shown.track.title, artist: shown.track.artist, album: shown.track.album, cover });
   useMediaSessionActions({ play, pause, previousSong, nextSong });
   useMprisCommands({ play, pause, isPlaying, previousSong, nextSong, setCurrentTime });
-  useMpris(shown && { title: shown.track.title, artist: shown.track.artist, album: shown.track.album, cover: shown.cover, duration }, {
+  useMpris(shown && { title: shown.track.title, artist: shown.track.artist, album: shown.track.album, cover, duration }, {
     isPlaying,
     currentTime,
   });

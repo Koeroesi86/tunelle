@@ -6,6 +6,8 @@ import LanguageProvider from './containers/layout/language-provider';
 import { createAppStore } from './redux/store';
 import { setBackend } from './backend/backend';
 import { createElectronBackend } from './backend/electron-backend';
+import { ResolveUrl } from './hooks/use-resolve-url';
+import { localUrl } from './services/local-url';
 import { onAppStarted } from './startup';
 
 const mount = () => {
@@ -19,7 +21,9 @@ const mount = () => {
     <Provider store={store}>
       <ThemeProvider>
         <LanguageProvider>
-          <PlayerHome />
+          <ResolveUrl.Provider value={localUrl}>
+            <PlayerHome />
+          </ResolveUrl.Provider>
         </LanguageProvider>
       </ThemeProvider>
     </Provider>

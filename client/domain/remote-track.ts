@@ -1,6 +1,5 @@
 import type { Track } from '@shared/types/library';
-import { localUrl } from '../services/local-url';
-import { getCoverUrl } from '../utils/cover-url';
+import { coverRouteOf } from '../utils/cover-url';
 import { isSourcePath } from './source-track';
 import type { NowPlaying } from '@shared/schemas/now-playing';
 
@@ -40,13 +39,13 @@ export const remoteKeyOf = (path: string) => (isRemoteTrack(path) ? path.slice(r
 /** True when the snapshot is the track that is loaded */
 export const isSameRemoteTrack = (snapshot: PlayingSnapshot, path: string | undefined) => path === `${remotePrefix}${keyOf(snapshot)}`;
 
-/** The address of the cover of the loaded track of the host, a new one for each track */
-const remoteCoverUrl = (path: string) => localUrl(`/remote/cover?t=${remoteKeyOf(path) ?? ''}`);
+/** The route of the cover of the loaded track of the host, a new one for each track */
+const remoteCoverRoute = (path: string) => `/remote/cover?t=${remoteKeyOf(path) ?? ''}`;
 
-/** The address of the cover of a track, from the host while it follows one, undefined without a picture */
-export const trackCoverUrl = ({ path, picture }: { path: string; picture: string | null }) => {
+/** The route of the cover of a track, from the host while it follows one, undefined without a picture */
+export const trackCoverRoute = ({ path, picture }: { path: string; picture: string | null }) => {
   // a track of a server of the user has no file of the library, its server is asked for the picture through the protocol
-  if (isSourcePath(path)) return localUrl(`/source/cover?path=${encodeURIComponent(path)}`);
+  if (isSourcePath(path)) return `/source/cover?path=${encodeURIComponent(path)}`;
 
-  return picture ? (isRemoteTrack(path) ? remoteCoverUrl(path) : getCoverUrl(picture)) : undefined;
+  return picture ? (isRemoteTrack(path) ? remoteCoverRoute(path) : coverRouteOf(picture)) : undefined;
 };

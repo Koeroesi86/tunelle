@@ -23,11 +23,11 @@ describe('now playing', () => {
     const { track, cover } = toNowPlaying(station, 'Artist - Song', 'abcd');
 
     expect(track).toMatchObject({ title: 'Song', artist: 'Artist', album: 'Jazz FM', picture: null });
-    expect(cover).toBe('tunelle://app/radio-art/abcd');
+    expect(cover).toBe('/radio-art/abcd');
   });
 
   it('shows the logo of the station while no art is found for the song', () => {
-    expect(toNowPlaying(station, 'Artist - Song', null).cover).toBe('tunelle://app/radio-logo/abc');
+    expect(toNowPlaying(station, 'Artist - Song', null).cover).toBe('/radio-logo/abc');
   });
 
   it('shows the station without a cover when the stream sends no title', () => {
@@ -41,14 +41,14 @@ describe('now playing', () => {
   it('shows a library track as it is, whatever title is left', () => {
     const track = { ...station, path: '/music/a.flac', picture: '/art/x.png' };
 
-    expect(toNowPlaying(track, 'Artist - Song', null)).toEqual({ track, cover: 'tunelle://app/albumart/x-optimized.png' });
+    expect(toNowPlaying(track, 'Artist - Song', null)).toEqual({ track, cover: '/albumart/x-optimized.png' });
   });
 
   it('shows the cover of the host for a track of the host that has one, and none for one that has not', () => {
     const base = toRemoteTrack({ state: 'playing', title: 'Song', position: 0, at: 1 });
     const withCover = toRemoteTrack({ state: 'playing', title: 'Song', position: 0, at: 1, cover: true });
 
-    expect(toNowPlaying(withCover, null, null).cover).toBe(`tunelle://app/remote/cover?t=${remoteKeyOf(withCover.path)}`);
+    expect(toNowPlaying(withCover, null, null).cover).toBe(`/remote/cover?t=${remoteKeyOf(withCover.path)}`);
     expect(toNowPlaying(base, null, null).cover).toBeUndefined();
   });
 });

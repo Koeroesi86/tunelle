@@ -26,6 +26,7 @@ import LiveShimmer from '../../ui/live-shimmer';
 import AudioFormatBadge from '../../ui/audio-format-badge';
 import Time from '../../ui/time';
 import CoverFade from '../../ui/cover-fade';
+import { useResolveUrl } from '../../../hooks/use-resolve-url';
 
 interface PlayerControlsProps {
   currentSong: Track | null;
@@ -92,11 +93,12 @@ const TrackDetails = ({
 }: Pick<PlayerControlsProps, 'currentSong' | 'streamTitle' | 'streamArt' | 'openNowPlaying'>) => {
   const { t } = useTranslation();
   const shown = currentSong ? toNowPlaying(currentSong, streamTitle, streamArt) : undefined;
+  const resolveUrl = useResolveUrl();
 
   return (
     <button type="button" className={style.meta} title={t('player.openNowPlaying')} onClick={openNowPlaying}>
       <span className={style.visuallyHidden}>{t('player.openNowPlaying')}</span>
-      <CoverFade className={style.picture} src={shown?.cover} />
+      <CoverFade className={style.picture} src={shown?.cover && resolveUrl(shown.cover)} />
       <div className={style.details}>
         <div className={style.title}>{shown ? shown.track.title : t('player.none')}</div>
         <div className={style.album}>{shown ? shown.track.album : t('player.none')}</div>
