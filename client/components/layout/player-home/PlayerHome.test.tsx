@@ -1,33 +1,30 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import PlayerHome from './PlayerHome';
+import type { NavigationSlot, TitleBarSlot } from './PlayerHome';
 
 // the parts of the window are replaced: the test is about what the window does when the page is left
 vi.mock('../../ui/confirm', () => ({ default: () => null }));
-vi.mock('../../../containers/layout/player-controls', () => ({ default: () => null }));
-vi.mock('../../../containers/layout/audio-component', () => ({ default: () => null }));
-vi.mock('../../../containers/layout/title-bar', () => ({
-  default: ({ onMenu, menuOpen }: { onMenu?: () => void; menuOpen?: boolean }) =>
+vi.mock('../audio-spectrum', () => ({ default: () => null }));
+
+const slots = {
+  renderTitleBar: ({ onMenu, menuOpen }: TitleBarSlot) =>
     onMenu ? (
       <button type="button" onClick={onMenu}>
         menu {String(menuOpen)}
       </button>
     ) : null,
-}));
-vi.mock('../../../containers/layout/navigation', () => ({
-  default: ({ rail, onNavigate }: { rail?: boolean; onNavigate?: () => void }) => (
+  renderNavigation: ({ rail, onNavigate }: NavigationSlot) => (
     <button type="button" onClick={onNavigate}>
       navigation {String(rail)}
     </button>
   ),
-}));
-vi.mock('../audio-spectrum', () => ({ default: () => null }));
-vi.mock('../../../containers/layout/player-tabs', () => ({ default: () => null }));
-vi.mock('../../../containers/layout/launcher-offer', () => ({ default: () => null }));
-vi.mock('../../../containers/layout/remote-request', () => ({ default: () => null }));
-vi.mock('../../../containers/layout/playlist-import-report', () => ({ default: () => null }));
+  renderTabs: () => null,
+  controls: null,
+  overlays: null,
+};
 
-const window = (onUnload: () => void) => <PlayerHome maximized={false} blurred={false} loaded folders={[]} addFiles={vi.fn()} onUnload={onUnload} />;
+const window = (onUnload: () => void) => <PlayerHome maximized={false} blurred={false} loaded folders={[]} addFiles={vi.fn()} onUnload={onUnload} {...slots} />;
 
 describe('PlayerHome', () => {
   it('has a skip link that moves the focus to the player controls', () => {
