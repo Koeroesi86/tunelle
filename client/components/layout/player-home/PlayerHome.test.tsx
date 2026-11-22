@@ -24,9 +24,53 @@ const slots = {
   overlays: null,
 };
 
-const window = (onUnload: () => void) => <PlayerHome maximized={false} blurred={false} loaded folders={[]} addFiles={vi.fn()} onUnload={onUnload} {...slots} />;
+const pathForFile = ({ name }: File) => `/music/${name}`;
+const window = (onUnload: () => void) => (
+  <PlayerHome maximized={false} blurred={false} loaded folders={[]} addFiles={vi.fn()} pathForFile={pathForFile} onUnload={onUnload} {...slots} />
+);
+
+const dropped = (...names: string[]) =>
+  Object.assign(
+    names.map((name) => new File([''], name)),
+    { item: () => null }
+  ) as unknown as FileList;
 
 describe('PlayerHome', () => {
+  describe('files that are dropped on the window', () => {
+    const drop = (folders: { path: string }[], files: FileList) => {
+      const addFiles = vi.fn();
+      let addDropped: (files: FileList) => void = () => {};
+      render(
+        <PlayerHome
+          maximized={false}
+          blurred={false}
+          loaded
+          folders={folders.map((folder) => ({ ...folder, lastModified: 0 }))}
+          addFiles={addFiles}
+          pathForFile={pathForFile}
+          onUnload={vi.fn()}
+          {...slots}
+          renderTabs={(add) => {
+            addDropped = add;
+            return null;
+          }}
+        />
+      );
+      act(() => addDropped(files));
+      return addFiles;
+    };
+
+    it('adds them at once when no folder of the library holds them', () => {
+      const files = dropped('a.flac');
+
+      expect(drop([{ path: '/other' }], files)).toHaveBeenCalledWith(files);
+    });
+
+    it('waits for the answer of the dialog when a path of them is in a folder of the library', () => {
+      expect(drop([{ path: '/music/a.flac' }], dropped('a.flac'))).not.toHaveBeenCalled();
+    });
+  });
+
   it('has a skip link that moves the focus to the player controls', () => {
     const player = document.createElement('div');
     player.id = 'player-controls';

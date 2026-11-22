@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { FaSyncAlt } from 'react-icons/fa';
-import { getBackend } from '../../../backend/backend';
 import { displayFolderPath } from '../../../utils/folder-name';
 import { useTranslation } from '../../../i18n';
 import style from './RescanButton.scss';
@@ -12,6 +11,8 @@ interface RescanButtonProps {
   total: number;
   scanningFolder: string | null;
   onRescan: () => void;
+  /** Shows the folder that is scanned in the file manager */
+  openFolder: (folder: string) => void;
 }
 
 const ringSize = 30;
@@ -20,7 +21,7 @@ const ringRadius = (ringSize - ringStroke) / 2;
 const ringLength = 2 * Math.PI * ringRadius;
 
 /** The rescan of the library, which shows the progress of a scan as a ring around it, and the folder and the count in a popover */
-const RescanButton = ({ current, total, scanningFolder, onRescan }: RescanButtonProps) => {
+const RescanButton = ({ current, total, scanningFolder, onRescan, openFolder }: RescanButtonProps) => {
   const { t, formatNumber } = useTranslation();
   const fraction = total === 0 ? 0 : Math.min(1, current / total);
   const wasScanning = useRef(false);
@@ -81,7 +82,7 @@ const RescanButton = ({ current, total, scanningFolder, onRescan }: RescanButton
             type="button"
             className={style.folder}
             title={t('scan.open', { folder: displayFolderPath(scanningFolder) })}
-            onClick={() => getBackend().send('OPEN_LIBRARY_PATH', scanningFolder)}
+            onClick={() => openFolder(scanningFolder)}
           >
             {displayFolderPath(scanningFolder)}
           </button>

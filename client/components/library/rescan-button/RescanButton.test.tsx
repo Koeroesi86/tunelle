@@ -2,17 +2,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import RescanButton from './RescanButton';
 
-const send = vi.fn();
-vi.mock('../../../backend/backend', () => ({ getBackend: () => ({ send: (...args: unknown[]) => send(...args) }) }));
+const openFolder = vi.fn();
 
 const renderButton = (props: Partial<Parameters<typeof RescanButton>[0]> = {}) =>
-  render(<RescanButton current={0} total={0} scanningFolder={null} onRescan={vi.fn()} {...props} />);
+  render(<RescanButton current={0} total={0} scanningFolder={null} onRescan={vi.fn()} openFolder={openFolder} {...props} />);
 
 const rescan = () => screen.getByRole<HTMLButtonElement>('button', { name: 'Rescan' });
 
 describe('RescanButton', () => {
   afterEach(() => {
-    send.mockReset();
+    openFolder.mockReset();
   });
 
   it('rescans from the button, with no ring or popover while nothing is scanned', () => {
@@ -67,7 +66,7 @@ describe('RescanButton', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '/music/jazz' }));
 
-    expect(send).toHaveBeenCalledWith('OPEN_LIBRARY_PATH', '/music/jazz');
+    expect(openFolder).toHaveBeenCalledWith('/music/jazz');
   });
 
   it('shows the folder that was picked instead of the path of the Flatpak document portal', () => {
@@ -89,7 +88,7 @@ describe('RescanButton', () => {
     expect(screen.getByRole('status').textContent).toBe('Scanning library');
     expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('25');
 
-    rerender(<RescanButton current={4} total={4} scanningFolder={null} onRescan={vi.fn()} />);
+    rerender(<RescanButton current={4} total={4} scanningFolder={null} onRescan={vi.fn()} openFolder={openFolder} />);
 
     expect(screen.getByRole('status').textContent).toBe('Library scan finished');
   });
