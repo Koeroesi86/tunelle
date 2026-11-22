@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { GroupKind } from '@shared/types/library-query';
-import type { OpenGroup } from '../../redux/types';
+import type { OpenGroup } from '../../domain/navigation';
 import type { OpenGroupParts } from '../../components/library/group-view/GroupView';
 import AlbumSort from './album-sort';
 import ArtistPhoto from './artist-photo';

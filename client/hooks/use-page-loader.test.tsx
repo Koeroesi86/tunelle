@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { usePageLoader } from './use-page-loader';
-import { createPageCache, markStale, storePage } from '../redux/library/pages';
+import { createPageCache, markStale, storePage } from '../domain/page-cache';
 import { pageSize } from '../constants/library';
 
 describe('usePageLoader', () => {

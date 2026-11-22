@@ -3,7 +3,7 @@ import { MdAlbum, MdFavorite, MdMusicNote, MdPlayArrow as PlayIcon, MdRadio, MdS
 import type { Favourite } from '@shared/types/favourites';
 import type { Track } from '@shared/types/library';
 import type { RadioStation } from '@shared/types/radio';
-import type { FavouritesOrder as Order, FavouritesSource as Source } from '../../../redux/types';
+import type { FavouritesOrder as Order, FavouritesSource as Source } from '../../../domain/navigation';
 import { toRadioTrack } from '../../../domain/radio-track';
 import type { GetFavouriteTracks } from '../../../domain/favourite-tracks';
 import { shuffled } from '../../../domain/shuffled';

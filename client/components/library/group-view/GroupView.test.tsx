@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import type { GroupSummary, Track } from '@shared/types/library';
-import { createPageCache, storePage } from '../../../redux/library/pages';
+import { createPageCache, storePage } from '../../../domain/page-cache';
 import GroupView from './GroupView';
 
 vi.mock('../group-tile', () => ({

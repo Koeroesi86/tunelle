@@ -25,7 +25,7 @@ import {
   MdPublic as OnlineIcon,
   MdSettings as SettingsIcon,
 } from 'react-icons/md';
-import type { NavigationGroup, LibraryView, OnlineView, Tab } from '../../../redux/types';
+import type { NavigationGroup, LibraryView, OnlineView, Tab } from '../../../domain/navigation';
 import type { Playlist } from '@shared/types/playlists';
 import { sourceCapabilities, type SourceKind } from '@shared/schemas/sources';
 import { useDragReorder } from '../../../hooks/use-drag-reorder';

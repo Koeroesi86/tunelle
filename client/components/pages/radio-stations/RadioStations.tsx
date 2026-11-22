@@ -4,7 +4,7 @@ import { MdArrowDownward as DescendingIcon, MdArrowUpward as AscendingIcon, MdPl
 import type { RadioOption, RadioQuery, RadioStation } from '@shared/types/radio';
 import { countRadioFilters, parseRadioQuery, radioBitrates, radioSortFields } from '@shared/types/radio-query';
 import type { RadioSortField } from '@shared/types/radio-query';
-import type { RadioState } from '../../../redux/radio/reducer';
+import type { RadioState } from '../../../domain/radio-state';
 import { useTranslation } from '../../../i18n';
 import { useDelayedValue } from '../../../hooks/use-delayed-value';
 import { useUpdateEffect } from '../../../hooks/use-update-effect';

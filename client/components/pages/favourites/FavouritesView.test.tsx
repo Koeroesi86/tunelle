@@ -6,7 +6,7 @@ import type { Track } from '@shared/types/library';
 import type { RadioStation } from '@shared/types/radio';
 import { albumFavourite, stationFavourite, trackFavourite } from '../../../domain/favourites';
 import { getFavouriteTracks } from '../../../domain/favourite-tracks';
-import type { FavouritesOrder, FavouritesSource } from '../../../redux/types';
+import type { FavouritesOrder, FavouritesSource } from '../../../domain/navigation';
 import FavouritesView from './FavouritesView';
 
 const renderFavourite = () => null;

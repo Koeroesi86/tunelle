@@ -1,9 +1,9 @@
 import type { AlbumSummary, GroupSummary, Track } from '@shared/types/library';
 import type { LibraryKind, SourceAlbum, SourceArtist, SourceBrowse, SourceBrowseResult, SourceSearchResult, SourceServerInfo } from '@shared/schemas/sources';
 import { pageSize } from '../../constants/library';
-import { toAlbumSummary, toGroupSummary } from '../../domain/source-library';
-import { createPageCache, markStale, storePage } from '../library/pages';
-import type { PageCache } from '../library/pages';
+import { pageRequest, toAlbumSummary, toGroupSummary } from '../../domain/source-library';
+import { createPageCache, markStale, storePage } from '../../domain/page-cache';
+import type { PageCache } from '../../domain/page-cache';
 
 /** What the servers answered as the lists the library views show, by the request of the list */
 export interface SourceLists {
@@ -16,10 +16,6 @@ export const noSourceLists: SourceLists = { albums: {}, artists: {}, tracks: {} 
 
 /** The key of a list: the pages of a library list are one list, so it is the request of its first page */
 export const listKey = (request: SourceBrowse) => JSON.stringify(pageRequest(request, 0));
-
-/** The request of a page of a list: only a library list is in pages, the others are one answer */
-export const pageRequest = (request: SourceBrowse, page: number): SourceBrowse =>
-  request.what === 'library' ? { ...request, start: page * pageSize, size: pageSize } : request;
 
 const isObject = (result: unknown): result is object => typeof result === 'object' && result !== null && !Array.isArray(result);
 const isSearch = (result: unknown): result is SourceSearchResult => isObject(result) && 'artists' in result;

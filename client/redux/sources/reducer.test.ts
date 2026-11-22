@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SourceBrowse } from '@shared/schemas/sources';
-import reducer, { browseKey } from './reducer';
+import { browseKey } from '../../domain/source-library';
+import reducer from './reducer';
 import { listKey } from './lists';
 
 const serverId = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';

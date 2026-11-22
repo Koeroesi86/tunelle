@@ -17,30 +17,14 @@ import type { RemoteListenerState } from '@shared/schemas/remote-listener';
 import type { NearbyHost } from '@shared/schemas/remote-nearby';
 import type { Control } from '@shared/constants/remote-controls';
 import type { PowerSavingMode } from '@shared/schemas/settings';
-import type { DiscoveredServer, PlexAccount, SourceBrowse, SourceBrowseResult, SourceKind, SourceServerInfo } from '@shared/schemas/sources';
-import type { LibraryView, OnlineView, PersistedSettings } from './persisted-settings';
+import type { DiscoveredServer, PlexAccount, SourceBrowse, SourceBrowseResult, SourceServerInfo } from '@shared/schemas/sources';
+import type { PersistedSettings } from './persisted-settings';
+import type { FavouritesOrder, FavouritesSource, LibraryView, NavigationGroup, OnlineView, OpenGroup, Tab } from '../domain/navigation';
 
-export type { LibraryView, OnlineView, PersistedSettings };
+export type { PersistedSettings };
 
 /** The lists of the library that are fetched a page at a time: the tracks, the albums, the artists, album artists or genres, and the albums of the open one of those */
 export type PageKind = 'tracks' | 'albums' | 'groupAlbums' | GroupKind;
-
-/** The artist, album artist or genre the library view has opened, to show its albums */
-export interface OpenGroup {
-  kind: GroupKind;
-  /** The name as the library compares it, empty for the tracks that have none */
-  key: string;
-  /** The name as it is written, empty for the tracks that have none */
-  name: string;
-}
-
-/** The side of the favourites that is shown, and the order it is listed in */
-export type FavouritesSource = 'local' | 'online';
-export type FavouritesOrder = 'recent' | 'name' | 'details';
-
-/** The groups of the sidebar that open and close */
-export type NavigationGroup = 'library' | 'online' | 'playlists' | SourceKind;
-export type Tab = 'home' | 'now-playing' | 'local' | 'online-sources' | 'favourites' | 'playlist' | 'equalizer' | 'settings';
 
 export interface PlaylistItem {
   file: string;

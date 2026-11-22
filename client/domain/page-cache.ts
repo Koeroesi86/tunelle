@@ -1,4 +1,4 @@
-import { pageSize } from '../../constants/library';
+import { pageSize } from '../constants/library';
 
 /** The pages kept in a cache, so scrolling through a very large library does not grow the memory */
 export const maxCachedPages = 30;

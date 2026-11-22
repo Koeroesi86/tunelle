@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import type { LibraryView } from '../../../redux/types';
+import type { LibraryView } from '../../../domain/navigation';
 import LocalCollection from './LocalCollection';
 
 const panels = {

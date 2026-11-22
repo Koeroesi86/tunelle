@@ -1,8 +1,9 @@
 import type { Dispatch } from 'redux';
 import type { SourceBrowse } from '@shared/schemas/sources';
 import type { AppAction } from '../../redux/types';
-import { createPageCache } from '../../redux/library/pages';
-import { listKey, pageRequest } from '../../redux/sources/lists';
+import { createPageCache } from '../../domain/page-cache';
+import { pageRequest } from '../../domain/source-library';
+import { listKey } from '../../redux/sources/lists';
 
 /** The pages after the window that are fetched ahead: a server answers late, and a scroll is fast */
 export const pagesAhead = 2;

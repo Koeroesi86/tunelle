@@ -4,7 +4,7 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import type { SourceBrowse } from '@shared/schemas/sources';
 import reducers from '../../redux/reducers';
-import { pageRequest } from '../../redux/sources/lists';
+import { pageRequest } from '../../domain/source-library';
 import SourceAlbums from './source-albums';
 import SourceArtists from './source-artists';
 import SourceTracks from './source-tracks';

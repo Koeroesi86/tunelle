@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { RadioStation } from '@shared/types/radio';
-import type { RadioState } from '../../../redux/radio/reducer';
+import type { RadioState } from '../../../domain/radio-state';
 import RadioStations from './RadioStations';
 
 // the heart is tested with its own component, it needs the store

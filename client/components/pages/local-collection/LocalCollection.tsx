@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import type { DragEvent, ReactNode } from 'react';
-import type { LibraryView } from '../../../redux/types';
+import type { LibraryView } from '../../../domain/navigation';
 import style from './LocalCollection.scss';
 import ViewSwitcher from '../../ui/view-switcher/ViewSwitcher';
 import type { ViewItem } from '../../ui/view-switcher/ViewSwitcher';

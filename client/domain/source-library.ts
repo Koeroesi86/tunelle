@@ -1,5 +1,6 @@
 import type { AlbumSummary, GroupSummary } from '@shared/types/library';
-import { toSourcePath, type SourceAlbum, type SourceArtist, type SourceKind } from '@shared/schemas/sources';
+import { toSourcePath, type SourceAlbum, type SourceArtist, type SourceBrowse, type SourceKind } from '@shared/schemas/sources';
+import { pageSize } from '../constants/library';
 
 const coverOf = (source: SourceKind, serverId: string, coverArt: string | undefined) => (coverArt ? toSourcePath({ source, serverId, id: coverArt }) : null);
 
@@ -24,3 +25,10 @@ export const toGroupSummary = (source: SourceKind, serverId: string, artist: Sou
   cover: coverOf(source, serverId, artist.coverArt),
   covers: [],
 });
+
+/** The request of a page of a list: only a library list is in pages, the others are one answer */
+export const pageRequest = (request: SourceBrowse, page: number): SourceBrowse =>
+  request.what === 'library' ? { ...request, start: page * pageSize, size: pageSize } : request;
+
+/** The key of a request in the failures of the browses */
+export const browseKey = (request: SourceBrowse) => JSON.stringify(request);
