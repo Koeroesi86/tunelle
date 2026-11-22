@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import classNames from 'classnames';
-import { FaChevronLeft } from 'react-icons/fa';
 import { MdPlayArrow as PlayIcon, MdShuffle as ShuffleIcon } from 'react-icons/md';
 import type { Folder, GroupSummary, Track } from '@shared/types/library';
 import type { GroupKind, GroupSort } from '@shared/types/library-query';
@@ -16,6 +15,7 @@ import { shuffled } from '../../../domain/shuffled';
 import { getCachedItem } from '../../../redux/library/pages';
 import type { PageCache } from '../../../redux/library/pages';
 import type { OpenGroup } from '../../../redux/types';
+import BackButton from '../../ui/back-button';
 import CoverSizeSlider from '../../ui/cover-size-slider';
 import GenreCard from '../genre-card';
 import GroupTile from '../group-tile';
@@ -170,9 +170,7 @@ const GroupView = ({ open, closeGroup, playTracks, renderAlbums, renderOpenParts
   return open && renderAlbums ? (
     renderAlbums(
       <div className={style.albumsBar}>
-        <button type="button" className={style.back} onClick={closeGroup} aria-label={t('groups.back')} title={t('groups.back')}>
-          <FaChevronLeft aria-hidden />
-        </button>
+        <BackButton onClick={closeGroup} />
         {parts?.photo}
         <span className={style.openName} title={openName}>
           {openName}

@@ -1,6 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { FaChevronLeft } from 'react-icons/fa';
 import type { AlbumSummary } from '@shared/types/library';
 import { sourceBrowseSchema, sourceCapabilities } from '@shared/schemas/sources';
 import type { LibraryKind, LibrarySort, SourceBrowse, SourceKind, SourceServerInfo } from '@shared/schemas/sources';
@@ -9,6 +8,7 @@ import type { SourcesState } from '../../../redux/sources/reducer';
 import { browseKey } from '../../../redux/sources/reducer';
 import { pageRequest } from '../../../redux/sources/lists';
 import LibrarySearch from '../../library/library-search/LibrarySearch';
+import BackButton from '../../ui/back-button';
 import SortSelect from '../../ui/sort-select/SortSelect';
 import style from './SourceLibrary.scss';
 
@@ -97,9 +97,7 @@ const SourceLibrary = ({ kind, section, servers, browsed, load, renderAlbums, re
       )}
       {title ? (
         <>
-          <button type="button" className={style.back} onClick={back} aria-label={t('groups.back')} title={t('groups.back')}>
-            <FaChevronLeft aria-hidden />
-          </button>
+          <BackButton onClick={back} />
           <span className={style.title} title={title}>
             {title}
           </span>

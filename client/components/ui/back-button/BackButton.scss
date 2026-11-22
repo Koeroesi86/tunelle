@@ -1,0 +1,21 @@
+.back {
+  -webkit-app-region: no-drag;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--text-soft);
+  background-color: var(--overlay);
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+    background-color: var(--overlay-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+  }
+}

@@ -92,27 +92,6 @@
   box-sizing: border-box;
   padding: 5px 0 5px 12px;
 
-  .back {
-    -webkit-app-region: no-drag;
-    width: 30px;
-    height: 30px;
-    padding: 0;
-    color: var(--text-soft);
-    background-color: var(--overlay);
-    border: 0;
-    border-radius: 3px;
-    cursor: pointer;
-
-    &:hover {
-      color: var(--text);
-      background-color: var(--overlay-strong);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--accent);
-    }
-  }
-
   .action {
     -webkit-app-region: no-drag;
     display: inline-flex;
