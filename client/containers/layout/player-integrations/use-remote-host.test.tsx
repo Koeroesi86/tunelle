@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { setBackend } from '../backend/backend';
+import { setBackend } from '../../../backend/backend';
 import { useRemoteHost } from './use-remote-host';
 
 const send = vi.fn();

@@ -5,9 +5,9 @@ import { isRemoteTrack } from '../../../domain/remote-track';
 import { isSourcePath } from '../../../domain/source-track';
 import { optimizedCoverOf } from '../../../utils/cover-url';
 import { localUrl } from '../../../services/local-url';
-import { useMediaSession, useMediaSessionActions } from '../../../hooks/use-media-session';
-import { useMpris, useMprisCommands } from '../../../hooks/use-mpris';
-import { useRemoteHost } from '../../../hooks/use-remote-host';
+import { useMediaSession, useMediaSessionActions } from './use-media-session';
+import { useMpris, useMprisCommands } from './use-mpris';
+import { useRemoteHost } from './use-remote-host';
 
 export interface PlayerIntegrationsProps {
   currentSong: Track | null;
