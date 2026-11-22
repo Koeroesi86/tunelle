@@ -3,9 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import type { Track } from '@shared/types/library';
 import { toRadioTrack } from '../../../domain/radio-track';
 import type { NormalizationMode } from '../../../audio/loudness';
-import { fetchTrackFormat } from '../../../services/library-api';
 import AudioComponent from './AudioComponent';
 
+import type { ReadFormat } from '../../../hooks/use-track-loudness';
 const noFormat = () => Promise.resolve(undefined);
 
 const station = toRadioTrack({ uuid: 'abc-1', name: 'Jazz FM', country: 'UK', tags: ['jazz'], codec: 'MP3', bitrate: 128 });
@@ -630,9 +630,15 @@ describe('AudioComponent gapless', () => {
 
   const setNormalization = vi.fn();
 
-  const props = (currentSong: Track | null, upNext: Track | null, isPlaying = true, normalization: NormalizationMode = 'album') => (
+  const props = (
+    currentSong: Track | null,
+    upNext: Track | null,
+    isPlaying = true,
+    normalization: NormalizationMode = 'album',
+    readFormat: ReadFormat = noFormat
+  ) => (
     <AudioComponent
-      readFormat={fetchTrackFormat}
+      readFormat={readFormat}
       devices={[]}
       currentSong={currentSong}
       isPlaying={isPlaying}
@@ -853,36 +859,16 @@ describe('AudioComponent gapless', () => {
     });
 
     it('levels a track from the loudness the library gives, as the lists do not carry it', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({
-          ok: true,
-          status: 200,
-          json: () =>
-            Promise.resolve({
-              codec: 'FLAC',
-              bitDepth: 16,
-              sampleRate: 44100,
-              bitrate: null,
-              vbr: null,
-              lossless: 1,
-              trackGain: -6,
-              albumGain: -6,
-              trackPeak: 0.5,
-              albumPeak: 0.5,
-            }),
-        })
-      );
-      const view = render(props(null, null));
-      view.rerender(props(first, null));
+      const readFormat = vi.fn(() => Promise.resolve({ trackGain: -6, albumGain: -6, trackPeak: 0.5, albumPeak: 0.5 }));
+      const view = render(props(null, null, true, 'album', readFormat));
+      view.rerender(props(first, null, true, 'album', readFormat));
 
       // the timers are fake here, so the answer is let through by hand
       await act(() => vi.advanceTimersByTimeAsync(0));
 
       expect(setNormalization).toHaveBeenCalledWith(view.container.querySelectorAll('audio')[0], expect.closeTo(half));
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/library/track?path='));
+      expect(readFormat).toHaveBeenCalledWith(first.path);
       view.unmount();
-      vi.unstubAllGlobals();
     });
 
     it('follows a change of the mode in both elements', () => {

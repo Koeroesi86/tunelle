@@ -94,6 +94,21 @@ module.exports = [
     },
   },
   {
+    // a component is tested with props, not with the store or the backend; a connected one is tested in client/containers. See docs/development/containers.md
+    files: ['client/components/**/*.test.ts', 'client/components/**/*.test.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [{ name: 'react-redux', message: 'Test the connected component in client/containers.' }],
+          patterns: [
+            { group: ['**/containers/**', '**/services/**', '**/backend/**', '**/redux/**'], message: 'Pass a stub as a prop, or move the test to client/containers.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // tests may cast to build partial fixtures; production code may not
     files: ['**/*.ts', '**/*.tsx'],
     ignores: ['**/*.test.ts', '**/*.test.tsx', 'electron/test-*.ts'],

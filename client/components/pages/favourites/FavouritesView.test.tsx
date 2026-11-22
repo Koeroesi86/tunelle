@@ -5,7 +5,8 @@ import type { Favourite } from '@shared/types/favourites';
 import type { Track } from '@shared/types/library';
 import type { RadioStation } from '@shared/types/radio';
 import { albumFavourite, stationFavourite, trackFavourite } from '../../../domain/favourites';
-import { getFavouriteTracks } from '../../../services/favourite-tracks';
+import { toRadioTrack } from '../../../domain/radio-track';
+import type { GetFavouriteTracks } from '../../../domain/favourite-tracks';
 import type { FavouritesOrder, FavouritesSource } from '../../../domain/navigation';
 import FavouritesView from './FavouritesView';
 
@@ -50,6 +51,17 @@ const StatefulView = (props: Omit<ViewProps, 'renderFavourite' | 'addToQueue' | 
 const stored = (item: ReturnType<typeof trackFavourite>, available = true, addedAt = 1): Favourite => ({ ...item, addedAt, available });
 const openOnline = () => fireEvent.click(screen.getByRole('button', { name: /Online/ }));
 
+const albumTracks = [
+  { ...track, path: '/music/b.flac' },
+  { ...track, path: '/music/c.flac' },
+];
+const tracksOf: GetFavouriteTracks = (items) =>
+  Promise.resolve(
+    items
+      .filter(({ available }) => available)
+      .flatMap((item) => (item.kind === 'track' ? [item.snapshot] : item.kind === 'album' ? albumTracks : [toRadioTrack(item.snapshot)]))
+  );
+
 describe('FavouritesView', () => {
   afterEach(() => {
     queued.mockReset();
@@ -57,7 +69,7 @@ describe('FavouritesView', () => {
   });
 
   const renderView = (favourites: Favourite[], playTracks = vi.fn(), playStation = vi.fn()) => {
-    render(<StatefulView getFavouriteTracks={getFavouriteTracks} favourites={favourites} playTracks={playTracks} playStation={playStation} />);
+    render(<StatefulView getFavouriteTracks={tracksOf} favourites={favourites} playTracks={playTracks} playStation={playStation} />);
     return { playTracks, playStation };
   };
 
@@ -126,11 +138,6 @@ describe('FavouritesView', () => {
   });
 
   it('plays all the local favourites, the tracks of an album among them, in the order of the list', async () => {
-    const albumTracks = [
-      { ...track, path: '/music/b.flac' },
-      { ...track, path: '/music/c.flac' },
-    ];
-    vi.stubGlobal('fetch', async () => new Response(JSON.stringify(albumTracks)));
     const { playTracks } = renderView([stored(trackFavourite(track), true, 3), stored(albumFavourite(album), true, 2), stored(stationFavourite(station))]);
 
     fireEvent.click(screen.getByRole('button', { name: 'Play all local' }));

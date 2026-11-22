@@ -1,15 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { SourcesState } from '../../../redux/sources/reducer';
-import { Provider } from 'react-redux';
-import { createStore } from 'redux';
-import reducers from '../../../redux/reducers';
+import type { SourceServersState } from '../../../domain/source-servers-state';
 import SourceServers from './SourceServers';
 
 const id = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';
 const server = { id, kind: 'subsonic' as const, name: 'Home', url: 'https://music.example.com', username: 'me', protected: true };
 
-const setup = (state: Partial<SourcesState> = {}, kind: 'subsonic' | 'jellyfin' | 'plex' = 'subsonic') => {
+const setup = (state: Partial<SourceServersState> = {}, kind: 'subsonic' | 'jellyfin' | 'plex' = 'subsonic') => {
   const props = {
     kind,
     state: { servers: [], saving: false, ...state },
@@ -24,11 +21,7 @@ const setup = (state: Partial<SourcesState> = {}, kind: 'subsonic' | 'jellyfin' 
     clearCertificate: vi.fn(),
     openSection: vi.fn(),
   };
-  render(
-    <Provider store={createStore(reducers)}>
-      <SourceServers {...props} />
-    </Provider>
-  );
+  render(<SourceServers {...props} />);
   return props;
 };
 
@@ -89,7 +82,7 @@ describe('SourceServers', () => {
 
 describe('SourceServers with one or more servers', () => {
   it('is the page to add and remove servers, with no library, without a section', () => {
-    setup({ servers: [server], browsed: {} });
+    setup({ servers: [server] });
 
     expect(screen.getByText('Home')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Add a server' })).toBeTruthy();
