@@ -5,7 +5,7 @@ import type { Track } from '@shared/types/library';
 import type { RadioStation } from '@shared/types/radio';
 import type { FavouritesOrder as Order, FavouritesSource as Source } from '../../../redux/types';
 import { toRadioTrack } from '../../../domain/radio-track';
-import { getFavouriteTracks } from '../../../domain/favourite-tracks';
+import type { GetFavouriteTracks } from '../../../domain/favourite-tracks';
 import { shuffled } from '../../../domain/shuffled';
 import { useTranslation } from '../../../i18n';
 import type { MessageKey, Translator } from '@shared/locales/translate';
@@ -98,9 +98,10 @@ interface RowProps {
   play: (favourites: Favourite[]) => void;
   renderFavourite: RenderFavourite;
   addToQueue: (tracks: Track[], next: boolean) => void;
+  getFavouriteTracks: GetFavouriteTracks;
 }
 
-const Row = ({ favourite, play, renderFavourite, addToQueue }: RowProps) => {
+const Row = ({ favourite, play, renderFavourite, addToQueue, getFavouriteTracks }: RowProps) => {
   const translator = useTranslation();
   const { t, language } = translator;
   const KindIcon = kindIcons[favourite.kind];
@@ -144,9 +145,22 @@ interface FavouritesViewProps {
   favourites: Favourite[];
   playTracks: (tracks: Track[]) => void;
   playStation: (station: RadioStation) => void;
+  /** The tracks a favourite plays, which the library of the source holds */
+  getFavouriteTracks: GetFavouriteTracks;
 }
 
-const FavouritesView = ({ favourites, playTracks, playStation, source, order, setSource, setOrder, renderFavourite, addToQueue }: FavouritesViewProps) => {
+const FavouritesView = ({
+  favourites,
+  playTracks,
+  playStation,
+  source,
+  order,
+  setSource,
+  setOrder,
+  renderFavourite,
+  addToQueue,
+  getFavouriteTracks,
+}: FavouritesViewProps) => {
   const translator = useTranslation();
   const { t } = translator;
 
@@ -249,6 +263,7 @@ const FavouritesView = ({ favourites, playTracks, playStation, source, order, se
               play={play}
               renderFavourite={renderFavourite}
               addToQueue={addToQueue}
+              getFavouriteTracks={getFavouriteTracks}
             />
           ))}
         {gone.length > 0 && (
@@ -265,6 +280,7 @@ const FavouritesView = ({ favourites, playTracks, playStation, source, order, se
             play={play}
             renderFavourite={renderFavourite}
             addToQueue={addToQueue}
+            getFavouriteTracks={getFavouriteTracks}
           />
         ))}
       </div>

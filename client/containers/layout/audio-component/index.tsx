@@ -3,6 +3,7 @@ import type { ConnectedProps } from 'react-redux';
 import type { Dispatch } from 'redux';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
+import { fetchTrackFormat } from '../../../services/library-api';
 import AudioComponent from '../../../components/layout/audio-component/AudioComponent';
 import { Audio } from '../../../audio/context';
 
@@ -19,6 +20,7 @@ const mapState = (state: RootState) => ({
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   trackEnded: () => dispatch({ type: 'TRACK_ENDED', payload: {} }),
+  readFormat: fetchTrackFormat,
 });
 
 const connector = connect(mapState, mapDispatch);

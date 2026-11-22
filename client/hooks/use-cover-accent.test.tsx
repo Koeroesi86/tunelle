@@ -4,8 +4,6 @@ import { useCoverAccent } from './use-cover-accent';
 
 const coverAccent = vi.hoisted(() => vi.fn());
 
-vi.mock('../services/cover-accent', () => ({ coverAccent }));
-
 const deferred = () => {
   let resolve: (accent: string | undefined) => void = () => undefined;
   const promise = new Promise<string | undefined>((done) => {
@@ -19,7 +17,7 @@ describe('useCoverAccent', () => {
 
   it('gives the accent of the cover once it is read', async () => {
     coverAccent.mockResolvedValue('#112233');
-    const { result } = renderHook(() => useCoverAccent('cover-a', true));
+    const { result } = renderHook(() => useCoverAccent('cover-a', true, coverAccent));
 
     expect(result.current).toBeUndefined();
     await waitFor(() => expect(result.current).toBe('#112233'));
@@ -27,7 +25,7 @@ describe('useCoverAccent', () => {
 
   it('reads nothing while disabled or without a cover, and drops the accent', async () => {
     coverAccent.mockResolvedValue('#112233');
-    const { result, rerender } = renderHook(({ cover, enabled }) => useCoverAccent(cover, enabled), {
+    const { result, rerender } = renderHook(({ cover, enabled }) => useCoverAccent(cover, enabled, coverAccent), {
       initialProps: { cover: 'cover-a' as string | undefined, enabled: true },
     });
     await waitFor(() => expect(result.current).toBe('#112233'));
@@ -44,7 +42,7 @@ describe('useCoverAccent', () => {
     const first = deferred();
     const second = deferred();
     coverAccent.mockImplementation(async (cover: string) => (cover === 'cover-a' ? '#111111' : cover === 'cover-b' ? first.promise : second.promise));
-    const { result, rerender } = renderHook(({ cover }) => useCoverAccent(cover, true), { initialProps: { cover: 'cover-a' } });
+    const { result, rerender } = renderHook(({ cover }) => useCoverAccent(cover, true, coverAccent), { initialProps: { cover: 'cover-a' } });
     await waitFor(() => expect(result.current).toBe('#111111'));
 
     rerender({ cover: 'cover-b' });

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ThemeSettings } from '@shared/types/theme';
 import { accentTokens, resolveTheme } from '../../../theme';
+import type { ReadAccent } from '../../../hooks/use-cover-accent';
 import { useCoverAccent } from '../../../hooks/use-cover-accent';
 import { autoAccent } from '../../../constants/theme';
 import './ThemeProvider.scss';
@@ -12,6 +13,8 @@ interface ThemeProviderProps {
   reduceMotion: boolean;
   /** The cover of what plays, the accent follows it in the automatic setting */
   cover?: string;
+  /** The colour of a cover, which the app reads from the image */
+  readAccent: ReadAccent;
   children: ReactNode;
 }
 
@@ -34,9 +37,9 @@ const useSystemDark = () => {
 };
 
 /** Puts the theme on the root element for the stylesheets (data-theme and the accent properties) and the canvases (the computed style), before the page is painted */
-const ThemeProvider = ({ theme: { mode, accent: picked }, reduceMotion, cover, children }: ThemeProviderProps) => {
+const ThemeProvider = ({ theme: { mode, accent: picked }, reduceMotion, cover, readAccent, children }: ThemeProviderProps) => {
   const resolved = resolveTheme(mode, useSystemDark());
-  const fromCover = useCoverAccent(cover, picked === autoAccent);
+  const fromCover = useCoverAccent(cover, picked === autoAccent, readAccent);
   const accent = picked === autoAccent ? fromCover : picked;
 
   useLayoutEffect(() => {

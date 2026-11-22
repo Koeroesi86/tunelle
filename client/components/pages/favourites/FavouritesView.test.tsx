@@ -5,6 +5,7 @@ import type { Favourite } from '@shared/types/favourites';
 import type { Track } from '@shared/types/library';
 import type { RadioStation } from '@shared/types/radio';
 import { albumFavourite, stationFavourite, trackFavourite } from '../../../domain/favourites';
+import { getFavouriteTracks } from '../../../domain/favourite-tracks';
 import type { FavouritesOrder, FavouritesSource } from '../../../redux/types';
 import FavouritesView from './FavouritesView';
 
@@ -56,7 +57,7 @@ describe('FavouritesView', () => {
   });
 
   const renderView = (favourites: Favourite[], playTracks = vi.fn(), playStation = vi.fn()) => {
-    render(<StatefulView favourites={favourites} playTracks={playTracks} playStation={playStation} />);
+    render(<StatefulView getFavouriteTracks={getFavouriteTracks} favourites={favourites} playTracks={playTracks} playStation={playStation} />);
     return { playTracks, playStation };
   };
 

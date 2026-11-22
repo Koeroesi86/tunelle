@@ -3,13 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import type { Track } from '@shared/types/library';
 import { toRadioTrack } from '../../../domain/radio-track';
 import type { NormalizationMode } from '../../../audio/loudness';
+import { fetchTrackFormat } from '../../../services/library-api';
 import AudioComponent from './AudioComponent';
+
+const noFormat = () => Promise.resolve(undefined);
 
 const station = toRadioTrack({ uuid: 'abc-1', name: 'Jazz FM', country: 'UK', tags: ['jazz'], codec: 'MP3', bitrate: 128 });
 
 const renderAudio = (currentSong: Track | null, isPlaying = false) =>
   render(
     <AudioComponent
+      readFormat={noFormat}
       devices={[]}
       currentSong={currentSong}
       isPlaying={isPlaying}
@@ -44,6 +48,7 @@ describe('AudioComponent', () => {
     const view = renderAudio(null);
     view.rerender(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={station}
         isPlaying={false}
@@ -69,6 +74,7 @@ describe('AudioComponent', () => {
     const view = renderAudio(null);
     view.rerender(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={station}
         isPlaying
@@ -95,6 +101,7 @@ describe('AudioComponent', () => {
     const element = view.container.querySelector('audio');
     const props = (isPlaying: boolean) => (
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={station}
         isPlaying={isPlaying}
@@ -130,6 +137,7 @@ describe('AudioComponent', () => {
     const element = view.container.querySelector('audio');
     const props = (isPlaying: boolean) => (
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={file}
         isPlaying={isPlaying}
@@ -157,6 +165,7 @@ describe('AudioComponent', () => {
     const view = renderAudio(null);
     const props = (isPlaying: boolean) => (
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={station}
         isPlaying={isPlaying}
@@ -187,6 +196,7 @@ describe('AudioComponent', () => {
     const view = renderAudio(null);
     const props = (isPlaying: boolean) => (
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={station}
         isPlaying={isPlaying}
@@ -217,6 +227,7 @@ describe('AudioComponent', () => {
     const view = renderAudio(null);
     view.rerender(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={station}
         isPlaying={false}
@@ -242,6 +253,7 @@ describe('AudioComponent', () => {
 describe('AudioComponent without a track', () => {
   const props = (currentSong: Track | null) => (
     <AudioComponent
+      readFormat={noFormat}
       devices={[]}
       currentSong={currentSong}
       isPlaying={false}
@@ -284,6 +296,7 @@ describe('AudioComponent end of a track', () => {
   const renderTrack = (song: Track) =>
     render(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={song}
         isPlaying={false}
@@ -318,6 +331,7 @@ describe('AudioComponent end of a track', () => {
     fireEvent.ended(element(view));
     view.rerender(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={other}
         isPlaying={false}
@@ -368,6 +382,7 @@ describe('AudioComponent radio reconnect', () => {
     const view = renderAudio(null);
     view.rerender(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={station}
         isPlaying
@@ -442,6 +457,7 @@ describe('AudioComponent radio reconnect', () => {
     const view = renderAudio(null);
     view.rerender(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={station}
         isPlaying
@@ -462,6 +478,7 @@ describe('AudioComponent radio reconnect', () => {
     play.mockClear();
     view.rerender(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={station}
         isPlaying={false}
@@ -491,6 +508,7 @@ describe('AudioComponent radio reconnect', () => {
     const file = { ...station, path: '/music/a.flac' };
     const view = render(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={file}
         isPlaying
@@ -519,6 +537,7 @@ describe('AudioComponent radio reconnect', () => {
     const file = { ...station, path: '/mnt/usb/a.flac' };
     const view = render(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={file}
         isPlaying
@@ -547,6 +566,7 @@ describe('AudioComponent radio reconnect', () => {
     const file = { ...station, path: '/mnt/usb/a.flac' };
     const view = render(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={file}
         isPlaying={false}
@@ -575,6 +595,7 @@ describe('AudioComponent radio reconnect', () => {
     const file = { ...station, path: '/mnt/usb/a.flac' };
     const view = render(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={file}
         isPlaying
@@ -611,6 +632,7 @@ describe('AudioComponent gapless', () => {
 
   const props = (currentSong: Track | null, upNext: Track | null, isPlaying = true, normalization: NormalizationMode = 'album') => (
     <AudioComponent
+      readFormat={fetchTrackFormat}
       devices={[]}
       currentSong={currentSong}
       isPlaying={isPlaying}
@@ -879,6 +901,7 @@ describe('AudioComponent output device', () => {
   const dac = { id: 'a1', label: 'USB DAC' };
   const outputProps = (setOutputDevice: (id: string) => Promise<void>, devices: { id: string; label: string }[] = []) => (
     <AudioComponent
+      readFormat={noFormat}
       devices={devices}
       currentSong={null}
       isPlaying={false}
@@ -925,6 +948,7 @@ describe('AudioComponent audio context replaced', () => {
     const connectStandbyNode = vi.fn();
     const view = render(
       <AudioComponent
+        readFormat={noFormat}
         devices={[]}
         currentSong={currentSong}
         isPlaying={isPlaying}

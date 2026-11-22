@@ -6,6 +6,7 @@ import type { RadioStation } from '@shared/types/radio';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import { Audio } from '../../../audio/context';
+import { getFavouriteTracks } from '../../../domain/favourite-tracks';
 import { renderFavourite } from '../../ui/render-favourite';
 import HomeView from '../../../components/pages/home/HomeView';
 
@@ -23,6 +24,7 @@ const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   playTracks: (tracks: Track[]) => dispatch({ type: 'PLAY_TRACKS', payload: { tracks } }),
   playStation: (station: RadioStation) => dispatch({ type: 'PLAY_RADIO_STATION', payload: { station } }),
   renderFavourite,
+  getFavouriteTracks,
   clearHistory: () => dispatch({ type: 'CLEAR_HISTORY' }),
   openNowPlaying: () => dispatch({ type: 'SET_TAB', payload: { tab: 'now-playing' } }),
   // the folders are added in the library, where they are listed
