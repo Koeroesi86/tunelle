@@ -15,12 +15,6 @@ import Slider from '../../ui/slider/Slider';
 import type { Track } from '@shared/types/library';
 import { toNowPlaying } from '../../../domain/now-playing';
 import { radioUuidOf } from '../../../domain/radio-track';
-import { optimizedCoverOf } from '../../../utils/cover-url';
-import { isSourcePath } from '../../../domain/source-track';
-import { isRemoteTrack } from '../../../domain/remote-track';
-import { useMediaSession, useMediaSessionActions } from '../../../hooks/use-media-session';
-import { useMpris, useMprisCommands } from '../../../hooks/use-mpris';
-import { useRemoteHost } from '../../../hooks/use-remote-host';
 import { useRemoteFollow } from '../../../hooks/use-remote-follow';
 import type { NowPlaying } from '@shared/schemas/now-playing';
 import { usePlayerShortcuts } from '../../../hooks/use-player-shortcuts';
@@ -98,8 +92,6 @@ const TrackDetails = ({
 }: Pick<PlayerControlsProps, 'currentSong' | 'streamTitle' | 'streamArt' | 'openNowPlaying'>) => {
   const { t } = useTranslation();
   const shown = currentSong ? toNowPlaying(currentSong, streamTitle, streamArt) : undefined;
-
-  useMediaSession(shown && { title: shown.track.title, artist: shown.track.artist, album: shown.track.album, cover: shown.cover });
 
   return (
     <button type="button" className={style.meta} title={t('player.openNowPlaying')} onClick={openNowPlaying}>
@@ -294,35 +286,7 @@ const PlayerControls = (props: PlayerControlsProps) => {
 
   const { t } = useTranslation();
 
-  useMediaSessionActions({ play, pause, previousSong: props.previousSong, nextSong: props.nextSong });
-  useMprisCommands({ play, pause, isPlaying, previousSong: props.previousSong, nextSong: props.nextSong, setCurrentTime });
   const shown = currentSong ? toNowPlaying(currentSong, props.streamTitle, props.streamArt) : undefined;
-  useMpris(
-    shown && {
-      title: shown.track.title,
-      artist: shown.track.artist,
-      album: shown.track.album,
-      cover: shown.cover,
-      duration: radioUuidOf(shown.track.path) ? 0 : (shown.track.duration ?? 0),
-    },
-    { isPlaying, currentTime }
-  );
-  // a station, a track of another host and a track of a server of the user are not files of this library, so a listener is not given a path to ask for
-  const hostedFile = shown !== undefined && !radioUuidOf(shown.track.path) && !isRemoteTrack(shown.track.path) && !isSourcePath(shown.track.path);
-  useRemoteHost(
-    shown && {
-      title: shown.track.title,
-      artist: shown.track.artist,
-      album: shown.track.album,
-      duration: radioUuidOf(shown.track.path) ? 0 : (shown.track.duration ?? 0),
-      path: hostedFile ? shown.track.path : undefined,
-      station: radioUuidOf(shown.track.path),
-      coverKey: hostedFile && shown.track.picture ? optimizedCoverOf(shown.track.picture) : undefined,
-      next: props.upNext ? { title: props.upNext.title, artist: props.upNext.artist || undefined } : undefined,
-    },
-    { isPlaying, currentTime, volume: props.volume },
-    { play, pause, isPlaying, previousSong: props.previousSong, nextSong: props.nextSong, setCurrentTime, setVolume: props.setVolume }
-  );
 
   useRemoteFollow(props.hostNowPlaying, {
     currentSong,
