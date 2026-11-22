@@ -3,7 +3,6 @@ import { render, waitFor } from '@testing-library/react';
 import ArtistPhoto from './ArtistPhoto';
 
 const fetchGroupCover = vi.fn();
-vi.mock('../../../services/local-url', () => ({ localUrl: (route: string) => `http://local${route}` }));
 
 describe('ArtistPhoto', () => {
   beforeEach(() => {

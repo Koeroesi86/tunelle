@@ -52,51 +52,17 @@ module.exports = [
     },
   },
   {
-    // a component takes what is connected as props or slots, the containers give it. See docs/development/containers.md
-    files: ['client/components/**/*.ts', 'client/components/**/*.tsx'],
-    ignores: ['**/*.test.ts', '**/*.test.tsx'],
+    // components, and what they import (hooks, domain, utils), and their tests take what is connected as props, slots or arguments; the containers give it. See docs/development/containers.md
+    files: ['client/components/**/*.{ts,tsx}', 'client/hooks/**/*.{ts,tsx}', 'client/domain/**/*.ts', 'client/utils/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           paths: [{ name: 'react-redux', message: 'Read the store in client/containers and pass props.' }],
           patterns: [
-            { group: ['**/containers/**'], message: 'A view takes a slot (a render prop or a node) that a container fills.' },
-            { group: ['**/services/**', '**/backend/**'], message: 'The backend is reached in client/containers, which pass the function as a prop.' },
+            { group: ['**/containers/**'], message: 'Take a slot (a render prop or a node) that a container fills.' },
+            { group: ['**/services/**', '**/backend/**'], message: 'Take the function that reaches the backend as a prop or an argument; a container passes it.' },
             { group: ['**/redux/**'], message: 'The store is read in client/containers; the types and helpers a view needs are in client/domain.' },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    // what a component imports (hooks, domain, utils) stays free of the store and the backend, so the components are free of them too. See docs/development/containers.md
-    files: ['client/hooks/**/*.ts', 'client/hooks/**/*.tsx', 'client/domain/**/*.ts', 'client/utils/**/*.ts'],
-    ignores: ['**/*.test.ts', '**/*.test.tsx'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [{ name: 'react-redux', message: 'Read the store in client/containers and pass props.' }],
-          patterns: [
-            { group: ['**/containers/**'], message: 'Containers use hooks and domain, not the other way round.' },
-            { group: ['**/services/**', '**/backend/**'], message: 'A hook takes the function that reaches the backend as an argument; a container passes it.' },
-            { group: ['**/redux/**'], message: 'The types and helpers of the store that a view needs are in client/domain.' },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    // a component is tested with props, not with the store or the backend; a connected one is tested in client/containers. See docs/development/containers.md
-    files: ['client/components/**/*.test.ts', 'client/components/**/*.test.tsx'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [{ name: 'react-redux', message: 'Test the connected component in client/containers.' }],
-          patterns: [
-            { group: ['**/containers/**', '**/services/**', '**/backend/**', '**/redux/**'], message: 'Pass a stub as a prop, or move the test to client/containers.' },
           ],
         },
       ],
