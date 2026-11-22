@@ -1,9 +1,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Track } from '@shared/types/library';
 import { toRadioTrack } from '../domain/radio-track';
-import { fetchTrackFormat } from '../services/library-api';
-import { useTrackLoudness } from './use-track-loudness';
+import { useTrackLoudness, type ReadFormat } from './use-track-loudness';
 
 const track = (path: string, extra: Partial<Track> = {}): Track => ({
   path,
@@ -34,22 +33,22 @@ const loudness = (trackGain: number | null) => ({
   albumPeak: null,
 });
 
-const answers = (byPath: Record<string, unknown>) =>
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string) => {
-      const found = byPath[decodeURIComponent(url.split('path=')[1])];
-      return Promise.resolve({ ok: found !== undefined, status: found ? 200 : 404, json: () => Promise.resolve(found) });
-    })
-  );
+let known: Record<string, ReturnType<typeof loudness>> = {};
+const readFormat = vi.fn<ReadFormat>((path) => Promise.resolve(known[path]));
+const answers = (byPath: typeof known) => {
+  known = byPath;
+};
 
 describe('useTrackLoudness', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => {
+    readFormat.mockClear();
+    known = {};
+  });
 
   it('gives a track the loudness the library has of it, and the track as it is until then', async () => {
     answers({ '/m/a.flac': loudness(-6) });
     const a = track('/m/a.flac');
-    const { result } = renderHook(() => useTrackLoudness([a, null], fetchTrackFormat));
+    const { result } = renderHook(() => useTrackLoudness([a, null], readFormat));
 
     expect(result.current(a)).toEqual(a);
     await waitFor(() => expect(result.current(a)?.trackGain).toBe(-6));
@@ -60,9 +59,9 @@ describe('useTrackLoudness', () => {
   it('keeps the track as it was given for a track the library does not have, and asks nothing for a station', async () => {
     answers({});
     const gone = track('/m/gone.flac', { trackGain: -2 });
-    const { result } = renderHook(() => useTrackLoudness([gone, station], fetchTrackFormat));
+    const { result } = renderHook(() => useTrackLoudness([gone, station], readFormat));
 
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(readFormat).toHaveBeenCalledTimes(1));
     expect(result.current(gone)).toEqual(gone);
     expect(result.current(station)).toEqual(station);
   });
@@ -70,7 +69,7 @@ describe('useTrackLoudness', () => {
   it('keeps what is known of the track that stays when the next one changes, while it is read again', async () => {
     answers({ '/m/a.flac': loudness(-6), '/m/b.flac': loudness(-3), '/m/c.flac': loudness(-1) });
     const [a, b, c] = ['a', 'b', 'c'].map((name) => track(`/m/${name}.flac`));
-    const { result, rerender } = renderHook(({ tracks }) => useTrackLoudness(tracks, fetchTrackFormat), { initialProps: { tracks: [a, b] } });
+    const { result, rerender } = renderHook(({ tracks }) => useTrackLoudness(tracks, readFormat), { initialProps: { tracks: [a, b] } });
     await waitFor(() => expect(result.current(b)?.trackGain).toBe(-3));
 
     act(() => rerender({ tracks: [b, c] }));
@@ -83,7 +82,7 @@ describe('useTrackLoudness', () => {
   it('reads the tracks again when what it is told to refresh on changes, so a song that was measured while it plays gets its level', async () => {
     const a = track('/m/a.flac');
     answers({ '/m/a.flac': loudness(null) });
-    const { result, rerender } = renderHook(({ status }) => useTrackLoudness([a], fetchTrackFormat, status), {
+    const { result, rerender } = renderHook(({ status }) => useTrackLoudness([a], readFormat, status), {
       initialProps: { status: { total: 1, measured: 0, failed: 0 } },
     });
     await waitFor(() => expect(result.current(a)?.trackGain).toBeNull());
@@ -98,15 +97,15 @@ describe('useTrackLoudness', () => {
     const a = track('/m/a.flac');
     answers({ '/m/a.flac': loudness(-6) });
     const status = { total: 1, measured: 1, failed: 0 };
-    const { result, rerender } = renderHook(({ progress }) => useTrackLoudness([a], fetchTrackFormat, progress), { initialProps: { progress: status } });
+    const { result, rerender } = renderHook(({ progress }) => useTrackLoudness([a], readFormat, progress), { initialProps: { progress: status } });
     await waitFor(() => expect(result.current(a)?.trackGain).toBe(-6));
     const before = result.current;
 
     rerender({ progress: status });
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(readFormat).toHaveBeenCalledTimes(1);
 
     rerender({ progress: { ...status } });
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(readFormat).toHaveBeenCalledTimes(2));
     expect(result.current).toBe(before);
   });
 });

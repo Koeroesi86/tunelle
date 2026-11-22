@@ -88,8 +88,8 @@ module.exports = [
     },
   },
   {
-    // a component is tested with props, not with the store or the backend; a connected one is tested in client/containers. See docs/development/containers.md
-    files: ['client/components/**/*.test.ts', 'client/components/**/*.test.tsx'],
+    // a component, hook, domain module or util is tested with props and stubs, not with the store or the backend; a connected one is tested in client/containers. See docs/development/containers.md
+    files: ['client/components/**/*.test.ts', 'client/components/**/*.test.tsx', 'client/hooks/**/*.test.ts', 'client/hooks/**/*.test.tsx', 'client/domain/**/*.test.ts', 'client/utils/**/*.test.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
