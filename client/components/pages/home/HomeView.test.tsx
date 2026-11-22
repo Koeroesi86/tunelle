@@ -6,7 +6,7 @@ import type { Playlist } from '@shared/types/playlists';
 import type { Track } from '@shared/types/library';
 import type { RadioStation } from '@shared/types/radio';
 import { stationFavourite, trackFavourite } from '../../../domain/favourites';
-import { getFavouriteTracks } from '../../../services/favourite-tracks';
+import type { GetFavouriteTracks } from '../../../domain/favourite-tracks';
 import { toRadioTrack } from '../../../domain/radio-track';
 import HomeView from './HomeView';
 
@@ -40,10 +40,18 @@ const playlistOf = (id: number, name: string, tracks: Track[]): Playlist => ({
 
 const played = (item: ReturnType<typeof trackFavourite>, available = true): HistoryItem => ({ ...item, playedAt: 1, available });
 
+const albumTracks: Track[] = [];
+const tracksOf: GetFavouriteTracks = (items) =>
+  Promise.resolve(
+    items
+      .filter(({ available }) => available)
+      .flatMap((item) => (item.kind === 'track' ? [item.snapshot] : item.kind === 'album' ? albumTracks : [toRadioTrack(item.snapshot)]))
+  );
+
 describe('HomeView', () => {
   const renderView = (history: HistoryItem[], currentSong: Track | null = null, extra: Partial<ComponentProps<typeof HomeView>> = {}) => {
     const props = {
-      getFavouriteTracks,
+      getFavouriteTracks: tracksOf,
       playTracks: vi.fn(),
       playStation: vi.fn(),
       renderFavourite,

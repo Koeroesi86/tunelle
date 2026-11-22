@@ -52,12 +52,6 @@ module.exports = [
     },
   },
   {
-    // components take props; react-redux is used in client/containers only. See docs/development/containers.md
-    files: ['client/components/**/*.ts', 'client/components/**/*.tsx'],
-    ignores: ['**/*.test.ts', '**/*.test.tsx'],
-    rules: { 'no-restricted-imports': ['error', { paths: [{ name: 'react-redux', message: 'Read the store in client/containers and pass props.' }] }] },
-  },
-  {
     // a component takes what is connected as props or slots, the containers give it. See docs/development/containers.md
     files: ['client/components/**/*.ts', 'client/components/**/*.tsx'],
     ignores: ['**/*.test.ts', '**/*.test.tsx'],
@@ -88,6 +82,21 @@ module.exports = [
             { group: ['**/containers/**'], message: 'Containers use hooks and domain, not the other way round.' },
             { group: ['**/services/**', '**/backend/**'], message: 'A hook takes the function that reaches the backend as an argument; a container passes it.' },
             { group: ['**/redux/**'], message: 'The types and helpers of the store that a view needs are in client/domain.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // a component is tested with props, not with the store or the backend; a connected one is tested in client/containers. See docs/development/containers.md
+    files: ['client/components/**/*.test.ts', 'client/components/**/*.test.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [{ name: 'react-redux', message: 'Test the connected component in client/containers.' }],
+          patterns: [
+            { group: ['**/containers/**', '**/services/**', '**/backend/**', '**/redux/**'], message: 'Pass a stub as a prop, or move the test to client/containers.' },
           ],
         },
       ],
