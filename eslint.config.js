@@ -52,12 +52,6 @@ module.exports = [
     },
   },
   {
-    // components take props; react-redux is used in client/containers only. See docs/development/containers.md
-    files: ['client/components/**/*.ts', 'client/components/**/*.tsx'],
-    ignores: ['**/*.test.ts', '**/*.test.tsx'],
-    rules: { 'no-restricted-imports': ['error', { paths: [{ name: 'react-redux', message: 'Read the store in client/containers and pass props.' }] }] },
-  },
-  {
     // a component takes what is connected as props or slots, the containers give it. See docs/development/containers.md
     files: ['client/components/**/*.ts', 'client/components/**/*.tsx'],
     ignores: ['**/*.test.ts', '**/*.test.tsx'],
