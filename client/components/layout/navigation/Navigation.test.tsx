@@ -366,16 +366,15 @@ describe('Navigation', () => {
       expect(onNavigate).toHaveBeenCalledTimes(1);
     });
 
-    it('reports the welcome page of a group, and not the folding of one, so the drawer stays for the next choice', () => {
+    it('does not report the opening or the folding of a group, so the drawer stays for the next choice', () => {
       const onNavigate = vi.fn();
       const { rerender } = render(<Navigation onNavigate={onNavigate} />);
 
       fireEvent.click(screen.getByText('Library'));
-      expect(onNavigate).toHaveBeenCalledTimes(1);
       rerender(<Navigation libraryOpen tab="overview" overviewGroup="library" onNavigate={onNavigate} />);
       fireEvent.click(screen.getByText('Library'));
 
-      expect(onNavigate).toHaveBeenCalledTimes(1);
+      expect(onNavigate).not.toHaveBeenCalled();
     });
 
     it('marks the column of icons, and gives each item its label as a title for a pointer and a screen reader', () => {

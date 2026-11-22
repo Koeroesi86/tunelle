@@ -9,10 +9,13 @@ test('keeps a playlist of an album, and plays it', async ({ start, session }) =>
   await page.getByRole('button', { name: 'Add to a playlist' }).first().click();
   await page.getByRole('menu').getByPlaceholder('Playlist name').fill('Evening');
   await page.getByRole('menu').getByRole('button', { name: 'Create' }).click();
+  await navigate(page, 'Playlists');
   await expect(page.getByText('Evening', { exact: true }).first()).toBeVisible();
   await quit(session.app);
 
   const restarted = await start();
+  // the sidebar starts folded
+  await navigate(restarted.page, 'Playlists');
   await restarted.page.getByText('Evening', { exact: true }).first().click();
   await expect(restarted.page.locator('[class*="PlaylistView__count"]')).toHaveText('3 tracks');
   await restarted.page.getByRole('button', { name: 'Play all' }).click();

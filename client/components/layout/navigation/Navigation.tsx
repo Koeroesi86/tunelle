@@ -177,7 +177,6 @@ function Navigation({
   const clickGroup = (group: NavigationGroup, open: boolean) => {
     if (open && overviewShown(group)) return setGroupOpen(group, false);
     openOverviewOf(group);
-    onNavigate();
   };
   const isOnline = (view: OnlineView) => tab === 'online-sources' && onlineView === view;
 

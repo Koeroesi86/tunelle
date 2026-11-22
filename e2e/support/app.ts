@@ -240,5 +240,22 @@ export const addFolder = async (page: Page, folder: string, tracks: number, time
 export const libraryTracks = (page: Page): Promise<{ path: string; title?: string }[]> =>
   page.evaluate(() => fetch('tunelle://app/library').then((response) => response.json()));
 
+/** The group of the sidebar that holds a page: the sidebar starts folded, so the group is opened first */
+const groupOf: Record<string, string> = {
+  Albums: 'Library',
+  Artists: 'Library',
+  'Album artists': 'Library',
+  Genres: 'Library',
+  Songs: 'Library',
+  Folders: 'Library',
+  'Radio stations': 'Online',
+  'Nearby Tunelles': 'Online',
+};
+
 /** Opens a page from the navigation (the same words are headings of the pages themselves) */
-export const navigate = (page: Page, label: string) => page.locator('[class*="Navigation__label"]').getByText(ui(label), { exact: true }).click();
+export const navigate = async (page: Page, label: string) => {
+  const item = page.locator('[class*="Navigation__label"]').getByText(ui(label), { exact: true });
+  const group = groupOf[label];
+  if (group && (await item.count()) === 0) await navigate(page, group);
+  await item.click();
+};
