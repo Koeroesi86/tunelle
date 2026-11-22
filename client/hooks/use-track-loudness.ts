@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Loudness, Track } from '@shared/types/library';
 import { isSourcePath } from '../domain/source-track';
 import { radioUuidOf } from '../domain/radio-track';
-import { fetchTrackFormat } from '../services/library-api';
+
+export type ReadFormat = (path: string) => Promise<Loudness | undefined>;
 
 const toLoudness = ({ trackGain, albumGain, trackPeak, albumPeak }: Loudness): Loudness => ({ trackGain, albumGain, trackPeak, albumPeak });
 
@@ -11,9 +12,9 @@ const isSame = (known: Loudness | undefined, next: Loudness) =>
 
 /**
  * The loudness of the tracks that play and load next, which the lists do not carry; the track is as it was given until it is read or when the library has none.
- * `refresh` changes when the library may have stored something new (the progress of the measurement): the tracks are read again
+ * `readFormat` asks the library for a track; `refresh` changes when the library may have stored something new (the progress of the measurement): the tracks are read again
  */
-export const useTrackLoudness = (tracks: (Track | null)[], refresh?: unknown) => {
+export const useTrackLoudness = (tracks: (Track | null)[], readFormat: ReadFormat, refresh?: unknown) => {
   const [loudness, setLoudness] = useState<Record<string, Loudness>>({});
   const paths = tracks.flatMap((track) => (track && radioUuidOf(track.path) === undefined && !isSourcePath(track.path) ? [track.path] : []));
   const key = paths.join('\n');
@@ -26,7 +27,7 @@ export const useTrackLoudness = (tracks: (Track | null)[], refresh?: unknown) =>
       return kept.length === Object.keys(known).length ? known : Object.fromEntries(kept);
     });
     paths.forEach((path) =>
-      fetchTrackFormat(path).then((found) => {
+      readFormat(path).then((found) => {
         if (current && found) setLoudness((known) => (isSame(known[path], toLoudness(found)) ? known : { ...known, [path]: toLoudness(found) }));
       })
     );

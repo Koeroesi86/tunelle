@@ -7,7 +7,7 @@ import type { Playlist } from '@shared/types/playlists';
 import type { RadioStation } from '@shared/types/radio';
 import { coverRouteOf } from '../../../utils/cover-url';
 import { trackCoverRoute } from '../../../domain/remote-track';
-import { getFavouriteTracks } from '../../../domain/favourite-tracks';
+import type { GetFavouriteTracks } from '../../../domain/favourite-tracks';
 import { isPlayingItem } from '../../../domain/history';
 import { useTranslation } from '../../../i18n';
 import { getPlaylistTracks } from '../../../domain/playlists';
@@ -30,6 +30,8 @@ interface HomeViewProps {
   hasFolders?: boolean;
   playTracks: (tracks: Track[]) => void;
   playStation: (station: RadioStation) => void;
+  /** The tracks a favourite or an item of the history plays, which the library of the source holds */
+  getFavouriteTracks: GetFavouriteTracks;
   /** The heart of an item, which belongs to where the favourites are kept */
   renderFavourite: RenderFavourite;
   clearHistory: () => void;
@@ -53,7 +55,7 @@ interface StartTile {
 }
 
 /** Liked first, then the playlists that have something to play, as many as the row has room for */
-const startTilesOf = (favourites: Favourite[], playlists: Playlist[], likedName: string): StartTile[] => {
+const startTilesOf = (favourites: Favourite[], playlists: Playlist[], likedName: string, getFavouriteTracks: GetFavouriteTracks): StartTile[] => {
   const likedTracks = favourites.filter(({ kind, available }) => kind === 'track' && available);
   const liked: StartTile[] = likedTracks.length
     ? [{ key: 'liked', name: likedName, count: likedTracks.length, covers: [], liked: true, tracks: () => getFavouriteTracks(likedTracks) }]
@@ -89,6 +91,7 @@ const HomeView = ({
   hasFolders = true,
   playTracks,
   playStation,
+  getFavouriteTracks,
   renderFavourite,
   clearHistory,
   resume = () => {},
@@ -98,7 +101,7 @@ const HomeView = ({
   const resolveUrl = useResolveUrl();
   const continueCover = currentSong && trackCoverRoute(currentSong);
   const [confirming, setConfirming] = useState(false);
-  const startTiles = startTilesOf(favourites, playlists, t('home.liked'));
+  const startTiles = startTilesOf(favourites, playlists, t('home.liked'), getFavouriteTracks);
   const stations = stationsOf(favourites, history);
 
   const play = (item: HistoryItem) => (item.kind === 'station' ? playStation(item.snapshot) : getFavouriteTracks([item]).then(playTracks).catch(console.error));

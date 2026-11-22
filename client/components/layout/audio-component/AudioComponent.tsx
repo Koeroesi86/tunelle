@@ -5,6 +5,7 @@ import { useUpdateEffect } from '../../../hooks/use-update-effect';
 import { radioUuidOf } from '../../../domain/radio-track';
 import { sourceOf } from '../../../audio/track-source';
 import { useGaplessAudio } from '../../../hooks/use-gapless-audio';
+import type { ReadFormat } from '../../../hooks/use-track-loudness';
 import { useTrackLoudness } from '../../../hooks/use-track-loudness';
 import { liveEdgeTarget } from '../../../audio/gapless';
 import { normalizationGain } from '../../../audio/loudness';
@@ -14,6 +15,8 @@ import { resolveOutputId } from '../../../audio/output-device';
 import type { OutputDevice } from '../../../audio/output-device';
 
 interface AudioComponentProps {
+  /** The loudness the library holds of a track, which the lists do not carry */
+  readFormat: ReadFormat;
   currentSong: Track | null;
   isPlaying: boolean;
   volume: number;
@@ -53,6 +56,7 @@ const AudioComponent = ({
   devices,
   upNext,
   loudnessStatus,
+  readFormat,
   trackEnded,
   connectNode,
   connectStandbyNode,
@@ -203,7 +207,7 @@ const AudioComponent = ({
       .catch((err) => console.error(err));
   }, [isPlaying]);
 
-  const withLoudness = useTrackLoudness([currentSong, upNext], loudnessStatus);
+  const withLoudness = useTrackLoudness([currentSong, upNext], readFormat, loudnessStatus);
 
   // each element is levelled for the track it holds, the one that loads the next track too, so the hand-off needs no change; a station has no tags and plays as it is
   useEffect(

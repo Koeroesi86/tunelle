@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { coverAccent } from '../services/cover-accent';
+
+export type ReadAccent = (url: string) => Promise<string | undefined>;
 
 /** The accent of the cover at the URL while `enabled`, undefined without a cover, while it is read and when it has no colour */
-export const useCoverAccent = (cover: string | undefined, enabled: boolean) => {
+export const useCoverAccent = (cover: string | undefined, enabled: boolean, readAccent: ReadAccent) => {
   const [accent, setAccent] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -13,7 +14,7 @@ export const useCoverAccent = (cover: string | undefined, enabled: boolean) => {
     }
 
     let current = true;
-    coverAccent(cover).then((picked) => current && setAccent(picked));
+    readAccent(cover).then((picked) => current && setAccent(picked));
     return () => {
       current = false;
     };

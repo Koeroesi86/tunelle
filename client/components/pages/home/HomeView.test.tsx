@@ -6,6 +6,7 @@ import type { Playlist } from '@shared/types/playlists';
 import type { Track } from '@shared/types/library';
 import type { RadioStation } from '@shared/types/radio';
 import { stationFavourite, trackFavourite } from '../../../domain/favourites';
+import { getFavouriteTracks } from '../../../domain/favourite-tracks';
 import { toRadioTrack } from '../../../domain/radio-track';
 import HomeView from './HomeView';
 
@@ -41,7 +42,15 @@ const played = (item: ReturnType<typeof trackFavourite>, available = true): Hist
 
 describe('HomeView', () => {
   const renderView = (history: HistoryItem[], currentSong: Track | null = null, extra: Partial<ComponentProps<typeof HomeView>> = {}) => {
-    const props = { playTracks: vi.fn(), playStation: vi.fn(), renderFavourite, clearHistory: vi.fn(), resume: vi.fn(), addFolder: vi.fn() };
+    const props = {
+      getFavouriteTracks,
+      playTracks: vi.fn(),
+      playStation: vi.fn(),
+      renderFavourite,
+      clearHistory: vi.fn(),
+      resume: vi.fn(),
+      addFolder: vi.fn(),
+    };
     render(<HomeView history={history} currentSong={currentSong} {...props} {...extra} />);
     return props;
   };

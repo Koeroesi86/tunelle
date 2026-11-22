@@ -7,6 +7,8 @@ import { toRadioTrack } from './radio-track';
 /** What a favourite or an item of the history needs to be played */
 type Playable = NewFavourite & { available: boolean };
 
+export type GetFavouriteTracks = (favourites: Playable[]) => Promise<Track[]>;
+
 const tracksOf = (favourite: Playable): Promise<Track[]> => {
   if (!favourite.available) return Promise.resolve([]);
 
@@ -21,5 +23,5 @@ const tracksOf = (favourite: Playable): Promise<Track[]> => {
 };
 
 /** The tracks of the favourites in their order, the ones that are not available are left out */
-export const getFavouriteTracks = (favourites: Playable[]): Promise<Track[]> =>
+export const getFavouriteTracks: GetFavouriteTracks = (favourites) =>
   Promise.all(favourites.map((favourite) => tracksOf(favourite))).then((tracks) => tracks.flat());
