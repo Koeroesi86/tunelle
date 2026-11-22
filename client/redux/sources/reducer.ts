@@ -1,30 +1,18 @@
 import type { Reducer } from 'redux';
-import type { DiscoveredServer, PlexAccount, SourceBrowse, SourceServerInfo } from '@shared/schemas/sources';
+import { browseKey } from '../../domain/source-library';
+import type { SourceBrowsed, SourceServersState } from '../../domain/source-servers-state';
 import { isAppAction } from '../types';
 import { markListsStale, noSourceLists, storeAnswer } from './lists';
 import type { SourceLists } from './lists';
 
-export interface SourcesState {
-  servers: SourceServerInfo[];
-  /** A server is being checked and kept */
-  saving: boolean;
-  failure?: { id?: string; error: string; code?: number };
-  /** The certificate of a server that the user is asked to approve */
-  certificate?: { url: string; certificate: string; code: string };
-  /** The Jellyfin servers that answered on the network: `searching` until they did */
-  discovery?: { searching: boolean; servers: DiscoveredServer[]; error?: string };
-  /** The sign in with plex.tv: the user approves it in the browser, then the servers of the account are there to add */
-  plexAccount?: PlexAccount;
+export interface SourcesState extends SourceServersState {
   /** The failures of the browses by their request */
-  browsed: Record<string, { error?: string }>;
+  browsed: SourceBrowsed;
   /** The answers as the lists of the library views */
   lists: SourceLists;
 }
 
 const initialState: SourcesState = { servers: [], saving: false, browsed: {}, lists: noSourceLists };
-
-/** The key of a request in `browsed` */
-export const browseKey = (request: SourceBrowse) => JSON.stringify(request);
 
 const without = (browsed: SourcesState['browsed'], key: string) => Object.fromEntries(Object.entries(browsed).filter(([known]) => known !== key));
 

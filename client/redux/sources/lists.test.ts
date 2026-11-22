@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SourceBrowse, SourceServerInfo } from '@shared/schemas/sources';
 import { pageSize } from '../../constants/library';
-import { listKey, markListsStale, noSourceLists, pageRequest, storeAnswer } from './lists';
+import { listKey, markListsStale, noSourceLists, storeAnswer } from './lists';
 
 const serverId = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';
 const servers: SourceServerInfo[] = [{ id: serverId, kind: 'jellyfin', name: 'Home', url: 'http://home', username: 'a', protected: true }];
@@ -13,11 +13,6 @@ describe('the lists of a source', () => {
   it('has one key for every page of a library list and one for each other request', () => {
     expect(listKey(library(0))).toBe(listKey(library(pageSize)));
     expect(listKey({ what: 'albums', serverId, id: 'x' })).not.toBe(listKey({ what: 'albums', serverId, id: 'y' }));
-  });
-
-  it('asks for the page of a library list by its position and for the others as they are', () => {
-    expect(pageRequest(library(0), 2)).toMatchObject({ start: 2 * pageSize, size: pageSize });
-    expect(pageRequest({ what: 'tracks', serverId, id: 'x' }, 2)).toEqual({ what: 'tracks', serverId, id: 'x' });
   });
 
   it('puts a page with its total into the albums, as the tiles show them', () => {

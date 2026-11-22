@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { RadioStation } from '@shared/types/radio';
 import type { AppAction } from '../types';
 import reducer from './reducer';
-import type { RadioState } from './reducer';
+import type { RadioState } from '../../domain/radio-state';
 
 const station: RadioStation = { uuid: 'abc', name: 'Jazz FM', country: 'Hungary', tags: ['jazz'], codec: 'MP3', bitrate: 128 };
 

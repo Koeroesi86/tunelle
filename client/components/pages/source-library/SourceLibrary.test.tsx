@@ -2,8 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { AlbumSummary } from '@shared/types/library';
 import type { SourceBrowse, SourceServerInfo } from '@shared/schemas/sources';
-import { browseKey } from '../../../redux/sources/reducer';
-import { pageRequest } from '../../../redux/sources/lists';
+import { browseKey, pageRequest } from '../../../domain/source-library';
 import SourceLibrary from './SourceLibrary';
 
 const album = { id: 'al1', title: 'Goldberg' } as AlbumSummary;

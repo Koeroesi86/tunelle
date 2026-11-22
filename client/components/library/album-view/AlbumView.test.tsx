@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { AlbumSummary } from '@shared/types/library';
-import { createPageCache, storePage } from '../../../redux/library/pages';
+import { createPageCache, storePage } from '../../../domain/page-cache';
 import AlbumView from './AlbumView';
 
 const album = (index: number): AlbumSummary => ({

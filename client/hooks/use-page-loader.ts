@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { pagesIn, pagesToLoad } from '../redux/library/pages';
+import { pagesIn, pagesToLoad } from '../domain/page-cache';
 import { pageSize } from '../constants/library';
-import type { PageCache } from '../redux/library/pages';
+import type { PageCache } from '../domain/page-cache';
 
 /** Request the pages of the cache that the items from start to end (exclusive), and the pages ahead of them, need and that are missing or stale; keepPages says which pages are wanted, for the requests of the others to be dropped */
 export const usePageLoader = <T>(

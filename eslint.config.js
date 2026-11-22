@@ -66,7 +66,11 @@ module.exports = [
         'error',
         {
           paths: [{ name: 'react-redux', message: 'Read the store in client/containers and pass props.' }],
-          patterns: [{ group: ['**/containers/**'], message: 'A view takes a slot (a render prop or a node) that a container fills.' }],
+          patterns: [
+            { group: ['**/containers/**'], message: 'A view takes a slot (a render prop or a node) that a container fills.' },
+            { group: ['**/services/**', '**/backend/**'], message: 'The backend is reached in client/containers, which pass the function as a prop.' },
+            { group: ['**/redux/**'], message: 'The store is read in client/containers; the types and helpers a view needs are in client/domain.' },
+          ],
         },
       ],
     },

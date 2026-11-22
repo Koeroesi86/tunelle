@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from '../../../i18n';
 import type { LibraryKind, SourceKind } from '@shared/schemas/sources';
-import type { OnlineView } from '../../../redux/types';
+import type { OnlineView } from '../../../domain/navigation';
 import ViewSwitcher from '../../ui/view-switcher/ViewSwitcher';
 import type { ViewItem } from '../../ui/view-switcher/ViewSwitcher';
 

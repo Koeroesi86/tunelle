@@ -1,7 +1,8 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
 import type { RootState } from '../../../redux/reducers';
-import type { AppAction, LibraryView, OnlineView, NavigationGroup, Tab } from '../../../redux/types';
+import type { AppAction } from '../../../redux/types';
+import type { LibraryView, OnlineView, NavigationGroup, Tab } from '../../../domain/navigation';
 import Navigation from '../../../components/layout/navigation/Navigation';
 
 const mapState = (state: RootState) => ({

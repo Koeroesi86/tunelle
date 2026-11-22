@@ -4,9 +4,8 @@ import type { AlbumSummary } from '@shared/types/library';
 import { sourceBrowseSchema, sourceCapabilities } from '@shared/schemas/sources';
 import type { LibraryKind, LibrarySort, SourceBrowse, SourceKind, SourceServerInfo } from '@shared/schemas/sources';
 import { useTranslation } from '../../../i18n';
-import type { SourcesState } from '../../../redux/sources/reducer';
-import { browseKey } from '../../../redux/sources/reducer';
-import { pageRequest } from '../../../redux/sources/lists';
+import type { SourceBrowsed } from '../../../domain/source-servers-state';
+import { browseKey, pageRequest } from '../../../domain/source-library';
 import LibrarySearch from '../../library/library-search/LibrarySearch';
 import BackButton from '../../ui/back-button';
 import SortSelect from '../../ui/sort-select/SortSelect';
@@ -17,7 +16,7 @@ interface SourceLibraryProps {
   section: LibraryKind;
   servers: SourceServerInfo[];
   /** What the servers answered to the requests, by the key of the request */
-  browsed: SourcesState['browsed'];
+  browsed: SourceBrowsed;
   load: () => void;
   /** The lists of a server, which are connected to the store: the request is the first page of the list, and what is opened in it is told back */
   renderAlbums: (request: SourceBrowse, open: (album: AlbumSummary) => void) => ReactNode;

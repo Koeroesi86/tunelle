@@ -4,7 +4,6 @@ import type { SourcesState } from '../../../redux/sources/reducer';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import reducers from '../../../redux/reducers';
-import { noSourceLists } from '../../../redux/sources/lists';
 import SourceServers from './SourceServers';
 
 const id = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';
@@ -13,7 +12,7 @@ const server = { id, kind: 'subsonic' as const, name: 'Home', url: 'https://musi
 const setup = (state: Partial<SourcesState> = {}, kind: 'subsonic' | 'jellyfin' | 'plex' = 'subsonic') => {
   const props = {
     kind,
-    state: { servers: [], saving: false, browsed: {}, lists: noSourceLists, ...state },
+    state: { servers: [], saving: false, ...state },
     load: vi.fn(),
     save: vi.fn(),
     remove: vi.fn(),

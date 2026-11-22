@@ -1,7 +1,8 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
 import type { RootState } from '../../../redux/reducers';
-import type { AppAction, LibraryView } from '../../../redux/types';
+import type { AppAction } from '../../../redux/types';
+import type { LibraryView } from '../../../domain/navigation';
 import type { LocalCollectionControls } from '../../../components/pages/local-collection/LocalCollection';
 import LocalCollection from '../../../components/pages/local-collection/LocalCollection';
 import AlbumSort from '../../library/album-sort';

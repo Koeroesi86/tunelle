@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createPageCache, getCachedItem, markStale, maxCachedPages, pagesToLoad, storePage } from './pages';
-import { pageSize } from '../../constants/library';
+import { createPageCache, getCachedItem, markStale, maxCachedPages, pagesToLoad, storePage } from './page-cache';
+import { pageSize } from '../constants/library';
 
 const page = (start: number) => Array.from({ length: pageSize }, (_, offset) => start + offset);
 

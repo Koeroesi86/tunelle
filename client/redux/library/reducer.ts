@@ -3,8 +3,8 @@ import type { AlbumSummary, GroupSummary, Track } from '@shared/types/library';
 import { groupKinds } from '@shared/types/library-query';
 import type { GroupKind } from '@shared/types/library-query';
 import { isAppAction } from '../types';
-import { createPageCache, markStale, storePage } from './pages';
-import type { PageCache } from './pages';
+import { createPageCache, markStale, storePage } from '../../domain/page-cache';
+import type { PageCache } from '../../domain/page-cache';
 
 export interface LibraryState {
   tracks: PageCache<Track>;

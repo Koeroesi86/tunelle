@@ -3,14 +3,14 @@ import type { FormEvent } from 'react';
 import classNames from 'classnames';
 import { sourceCapabilities } from '@shared/schemas/sources';
 import type { LibraryKind, SourceKind } from '@shared/schemas/sources';
-import type { SourcesState } from '../../../redux/sources/reducer';
+import type { SourceServersState } from '../../../domain/source-servers-state';
 import { useTranslation } from '../../../i18n';
 import style from './SourceServers.scss';
 
 interface SourceServersProps {
   /** The kind of server this page is for: each has its own page, as its own API */
   kind: SourceKind;
-  state: SourcesState;
+  state: SourceServersState;
   load: () => void;
   save: (server: Record<string, unknown>) => void;
   remove: (id: string) => void;

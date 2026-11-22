@@ -4,6 +4,7 @@ import { albumSortSchema, groupSortSchema, trackSortSchema } from '@shared/types
 import { radioQuerySchema } from '@shared/types/radio-query';
 import { powerSavingModeSchema } from '@shared/schemas/settings';
 import { normalizationModes } from '../audio/loudness';
+import { libraryViewSchema, onlineViewSchema } from '../domain/navigation';
 
 /** A track the player can show; the rest of what a track from an older version carries is not needed, so only these are checked */
 const trackSchema = z.custom<Track>((value) => z.looseObject({ path: z.string(), title: z.string() }).safeParse(value).success);
@@ -11,14 +12,6 @@ const trackSchema = z.custom<Track>((value) => z.looseObject({ path: z.string(),
 const albumSchema = z.custom<Album>(
   (value) => z.looseObject({ id: z.string(), title: z.string(), path: z.string(), tracks: z.array(trackSchema) }).safeParse(value).success
 );
-
-const libraryViewSchema = z.enum(['albums', 'artists', 'albumArtists', 'genres', 'tracks', 'folders']);
-
-/** A page of the online group: the radio, the page of a kind of server to add and remove them, the nearby devices, or one section of the library of a kind (`plex:albums`) */
-const onlineViewSchema = z.union([
-  z.enum(['radio', 'servers', 'jellyfin', 'plex', 'nearby']),
-  z.templateLiteral([z.enum(['subsonic', 'jellyfin', 'plex']), ':', z.enum(['albums', 'artists', 'tracks'])]),
-]);
 
 /** The part of the UI state that is persisted between sessions, by key (the keys are saved by client/redux/connection/middleware.ts) */
 const persistedShape = {
@@ -76,8 +69,6 @@ const persistedShape = {
 };
 
 export type PersistedSettings = z.infer<z.ZodObject<typeof persistedShape>>;
-export type LibraryView = z.infer<typeof libraryViewSchema>;
-export type OnlineView = z.infer<typeof onlineViewSchema>;
 
 /** The keys of the saved settings that are valid: a key of the wrong type (a hand edit, a newer version) is left out and keeps its default, the others are restored */
 const keepValidKeys = (saved: unknown) =>

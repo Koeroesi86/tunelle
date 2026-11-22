@@ -1,25 +1,8 @@
 import type { Reducer } from 'redux';
-import type { RadioOption, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
+import type { RadioQuery, RadioStation } from '@shared/types/radio';
 import { isSameRadioQuery, parseRadioQuery } from '@shared/types/radio-query';
+import type { RadioState } from '../../domain/radio-state';
 import { isAppAction } from '../types';
-
-export interface RadioState {
-  /** The filters and the sort of the list, the page is apart */
-  query: RadioQuery;
-  /** Where the loaded page of the stations starts */
-  offset: number;
-  /** Whether the directory may have stations after the loaded page */
-  hasMore: boolean;
-  stations: RadioStation[];
-  tags: RadioTag[];
-  countries: RadioOption[];
-  languages: RadioOption[];
-  codecs: RadioOption[];
-  loading: boolean;
-  /** The station that was played last, for what needs more than the radio track knows of it */
-  playing?: RadioStation;
-  error?: string;
-}
 
 const initialState: RadioState = { query: {}, offset: 0, hasMore: false, stations: [], tags: [], countries: [], languages: [], codecs: [], loading: false };
 

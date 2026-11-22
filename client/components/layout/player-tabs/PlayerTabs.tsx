@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import classNames from 'classnames';
-import type { Tab } from '../../../redux/types';
+import type { Tab } from '../../../domain/navigation';
 import style from './PlayerTabs.scss';
 
 /** The pages that need nothing of the window; the local library takes the files that are dropped on the window, the settings are a column of their own */
