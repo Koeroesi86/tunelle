@@ -23,7 +23,7 @@ import { radioUuidOf } from '../../domain/radio-track';
 import { isSourcePath } from '../../domain/source-track';
 import { isRemoteTrack } from '../../domain/remote-track';
 import { fetchAlbumPage, fetchGroupPage, fetchTrackPage } from '../../services/library-api';
-import { selectAlbumQuery, selectGroupAlbumQuery, selectGroupQuery, selectTrackQuery } from '../../domain/library-query';
+import { selectAlbumQuery, selectGroupAlbumQuery, selectGroupQuery, selectTrackQuery } from '../library-query';
 import { hideSplash } from '../../startup';
 import { actionMiddleware, onAction } from '../on-action';
 

@@ -2,7 +2,7 @@ import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
 import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
-import { selectSearch } from '../../../domain/library-query';
+import { selectSearch } from '../../../redux/library-query';
 import { localAlbumActions } from '../local-album';
 import { albumCornerActions } from '../item-actions';
 import AlbumView from '../../../components/library/album-view/AlbumView';

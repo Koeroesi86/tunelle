@@ -6,7 +6,7 @@ import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import type { OpenGroup } from '../../../domain/navigation';
 import { localGroupParts, renderGroupAlbums } from '../local-group';
-import { fetchGroupTracks } from '../../../domain/group-tracks';
+import { fetchGroupTracks } from '../../../services/group-tracks';
 import GroupView from '../../../components/library/group-view/GroupView';
 
 interface OwnProps {
