@@ -13,7 +13,13 @@ const setup = async (
   const fetchMock = vi.fn(fetchImpl);
   vi.stubGlobal('fetch', fetchMock);
   const { setBackend } = await import('../../backend/backend');
-  setBackend({ send, on, resolveUrl: (route: string) => `tunelle://app${route}`, pathForFile: () => '', capabilities: { blur: false, mpris: false } });
+  setBackend({
+    send,
+    on,
+    resolveUrl: (route: string) => `tunelle://app${route}`,
+    pathForFile: () => '',
+    capabilities: { blur: false, opaque: false, mpris: false },
+  });
 
   const { default: reducers } = await import('../reducers');
   const { default: middleware } = await import('./middleware');

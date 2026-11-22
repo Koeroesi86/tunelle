@@ -9,6 +9,8 @@ export interface Backend {
   capabilities: {
     /** Something blurs behind the translucent parts of the window */
     blur: boolean;
+    /** The window cannot be transparent (Windows 10, see docs/app/window-snap.md), so the page offers no translucent panels */
+    opaque: boolean;
     /** The host shows the player in the media controls of the desktop, so the page does not use navigator.mediaSession */
     mpris: boolean;
   };
@@ -20,7 +22,7 @@ const detachedBackend: Backend = {
   on: () => undefined,
   resolveUrl: (route) => `tunelle://app${route}`,
   pathForFile: () => '',
-  capabilities: { blur: false, mpris: false },
+  capabilities: { blur: false, opaque: false, mpris: false },
 };
 
 let current: Backend = detachedBackend;

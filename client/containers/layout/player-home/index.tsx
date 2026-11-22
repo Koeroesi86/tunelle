@@ -32,7 +32,7 @@ const overlays = (
 const mapState = (state: RootState) => ({
   loaded: state.library.loaded,
   maximized: state.uiState.maximized,
-  blurred: !state.uiState.softwareRendering && (getBackend().capabilities.blur || state.uiState.desktopBlur),
+  blurred: !state.uiState.softwareRendering && (getBackend().capabilities.blur || (!getBackend().capabilities.opaque && state.uiState.desktopBlur)),
   folders: state.folders,
 });
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({

@@ -5,9 +5,9 @@ import type { RootState } from '../../../redux/reducers';
 import type { AppAction } from '../../../redux/types';
 import WindowBlur from '../../../components/settings/window-blur/WindowBlur';
 
-// macOS blurs the window itself, there is nothing to choose
+// macOS and Windows 11 blur the window itself and Windows 10 has no transparent window, there is nothing to choose
 const mapState = ({ uiState: { desktopBlur, softwareRendering } }: RootState) => ({
-  available: !getBackend().capabilities.blur && !softwareRendering,
+  available: !getBackend().capabilities.blur && !getBackend().capabilities.opaque && !softwareRendering,
   enabled: desktopBlur,
 });
 

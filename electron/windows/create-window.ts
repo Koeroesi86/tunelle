@@ -5,7 +5,7 @@ import lockNavigation from './lock-navigation';
 import registerWindowZoom from './window-zoom';
 import { correctWindowBounds, minWindowSize } from './window-bounds';
 import { isDarkTheme } from '../theme';
-import { applyWindowBackdrop, getBackdropArguments, getWindowBackdrop } from './window-backdrop';
+import { applyWindowBackdrop, getBackdropArguments, getWindowBackdrop, getWindowBackground, isWindowTransparent } from './window-backdrop';
 
 const createWindow = () => {
   const backdrop = getWindowBackdrop(process.platform);
@@ -19,7 +19,9 @@ const createWindow = () => {
     minWidth: minWindowSize.width,
     minHeight: minWindowSize.height,
     frame: false,
-    transparent: true,
+    transparent: isWindowTransparent(process.platform),
+    // the material of Windows 11 shows through a clear background, Windows 10 gets the solid one of the theme (the page tint is translucent); See docs/app/window-snap.md
+    ...getWindowBackground(backdrop, process.platform),
     // the mode is on the native theme before the window opens (index.ts), so the first paint has the right theme; the window is transparent, so it has no background of its own
     darkTheme: isDarkTheme(),
     show: false,
@@ -31,7 +33,7 @@ const createWindow = () => {
       sandbox: true,
       nodeIntegration: false,
       disableBlinkFeatures: 'Auxclick',
-      additionalArguments: getBackdropArguments(backdrop),
+      additionalArguments: getBackdropArguments(backdrop, process.platform),
     },
   });
   applyWindowBackdrop(mainWindow, backdrop);
