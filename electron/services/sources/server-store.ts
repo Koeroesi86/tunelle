@@ -19,10 +19,10 @@ const fileSchema = z.object({
 /** The Linux backend `basic_text` encrypts with a fixed password, which protects nothing. See docs/app/sources.md */
 const hasKeyring = () => safeStorage.isEncryptionAvailable() && (process.platform !== 'linux' || safeStorage.getSelectedStorageBackend() !== 'basic_text');
 
-const seal = (password: string) =>
-  hasKeyring() ? { password: safeStorage.encryptString(password).toString('base64'), encrypted: true } : { password, encrypted: false };
+const seal = async (password: string) =>
+  hasKeyring() ? { password: (await safeStorage.encryptStringAsync(password)).toString('base64'), encrypted: true } : { password, encrypted: false };
 
-const open = ({ password, encrypted }: Stored) => (encrypted ? safeStorage.decryptString(Buffer.from(password, 'base64')) : password);
+const open = async ({ password, encrypted }: Stored) => (encrypted ? (await safeStorage.decryptStringAsync(Buffer.from(password, 'base64'))).result : password);
 
 // the schema of the server leaves out the password
 const toServer = (stored: Stored): SourceServer => sourceServerSchema.parse(stored);
@@ -45,15 +45,14 @@ export const createSourceStore = (appData: string) => {
     list: () => read().then((servers) => servers.map(toInfo)),
     /** The server with its password, for the main process only */
     get: (id: string) =>
-      read().then((servers) =>
-        servers
-          .filter((stored) => stored.id === id)
-          .map((stored) => ({ server: toServer(stored), password: open(stored) }))
-          .at(0)
-      ),
+      read()
+        .then((servers) =>
+          Promise.all(servers.filter((stored) => stored.id === id).map(async (stored) => ({ server: toServer(stored), password: await open(stored) })))
+        )
+        .then((found) => found.at(0)),
     /** Adds the server or replaces the one with its id */
     save: async (server: SourceServer, password: string) => {
-      const stored: Stored = { ...server, ...seal(password) };
+      const stored: Stored = { ...server, ...(await seal(password)) };
       await write([...(await read()).filter(({ id }) => id !== server.id), stored]);
       return toInfo(stored);
     },
