@@ -76,6 +76,24 @@ module.exports = [
     },
   },
   {
+    // what a component imports (hooks, domain, utils) stays free of the store and the backend, so the components are free of them too. See docs/development/containers.md
+    files: ['client/hooks/**/*.ts', 'client/hooks/**/*.tsx', 'client/domain/**/*.ts', 'client/utils/**/*.ts'],
+    ignores: ['**/*.test.ts', '**/*.test.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [{ name: 'react-redux', message: 'Read the store in client/containers and pass props.' }],
+          patterns: [
+            { group: ['**/containers/**'], message: 'Containers use hooks and domain, not the other way round.' },
+            { group: ['**/services/**', '**/backend/**'], message: 'A hook takes the function that reaches the backend as an argument; a container passes it.' },
+            { group: ['**/redux/**'], message: 'The types and helpers of the store that a view needs are in client/domain.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // tests may cast to build partial fixtures; production code may not
     files: ['**/*.ts', '**/*.tsx'],
     ignores: ['**/*.test.ts', '**/*.test.tsx', 'electron/test-*.ts'],

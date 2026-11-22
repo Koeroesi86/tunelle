@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { getBackend } from '../backend/backend';
+import { getBackend } from '../../../backend/backend';
 
 interface MediaSessionInfo {
   title: string;

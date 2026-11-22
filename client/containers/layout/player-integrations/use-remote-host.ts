@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { getBackend } from '../backend/backend';
+import { getBackend } from '../../../backend/backend';
 import { controlCommandSchema, type ControlCommand } from '@shared/schemas/remote-control';
 
 interface RemoteHostInfo {

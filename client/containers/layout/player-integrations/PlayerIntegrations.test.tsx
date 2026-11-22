@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import type { Track } from '@shared/types/library';
 import { toRadioTrack } from '../../../domain/radio-track';
-import { useMediaSession } from '../../../hooks/use-media-session';
-import { useMpris } from '../../../hooks/use-mpris';
-import { useRemoteHost } from '../../../hooks/use-remote-host';
+import { useMediaSession } from './use-media-session';
+import { useMpris } from './use-mpris';
+import { useRemoteHost } from './use-remote-host';
 import PlayerIntegrations from './PlayerIntegrations';
 
-vi.mock('../../../hooks/use-media-session', () => ({ useMediaSession: vi.fn(), useMediaSessionActions: vi.fn() }));
-vi.mock('../../../hooks/use-mpris', () => ({ useMpris: vi.fn(), useMprisCommands: vi.fn() }));
-vi.mock('../../../hooks/use-remote-host', () => ({ useRemoteHost: vi.fn() }));
+vi.mock('./use-media-session', () => ({ useMediaSession: vi.fn(), useMediaSessionActions: vi.fn() }));
+vi.mock('./use-mpris', () => ({ useMpris: vi.fn(), useMprisCommands: vi.fn() }));
+vi.mock('./use-remote-host', () => ({ useRemoteHost: vi.fn() }));
 
 const song = (path: string): Track => ({ ...toRadioTrack({ uuid: 'u6', name: 'A', country: '', tags: [], codec: 'FLAC', bitrate: 0 }), path, duration: 100 });
 

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { setBackend } from '../backend/backend';
+import { setBackend } from '../../../backend/backend';
 import { useMpris, useMprisCommands } from './use-mpris';
 
 const send = vi.fn();
