@@ -8,6 +8,8 @@ export interface ElectronApi {
   getPathForFile: (file: File) => string;
   /** Something blurs behind the translucent parts of the window (see window-backdrop.ts) */
   blurred: boolean;
+  /** The window is not transparent, so there is nothing to blur behind it (Windows 10) */
+  opaque: boolean;
   /** The main process shows the player in the media controls of the desktop (MPRIS, Linux), so the page does not use navigator.mediaSession */
   mpris: boolean;
 }

@@ -5,7 +5,8 @@ The parts of the window that are translucent show a blurred backdrop where the s
 | System | Blur behind the window |
 | :----- | :--------------------- |
 | macOS | Built in (vibrancy), nothing to set up. |
-| Windows | Not available yet; the window gets a darker, more opaque tint. |
+| Windows 11 (22H2, build 22621, and later) | Built in (the acrylic material of `setBackgroundMaterial`), nothing to set up. |
+| Windows 10 | None: the window is opaque with the background of the theme and the translucent panels are not offered. |
 | GNOME on Linux | Through the [Blur my Shell](https://extensions.gnome.org/extension/3193/blur-my-shell/) extension, see below. |
 | Other Linux desktops | Only if the desktop blurs windows itself (for example a KDE Plasma blur rule); the app cannot ask for it. |
 

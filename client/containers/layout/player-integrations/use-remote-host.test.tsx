@@ -30,7 +30,13 @@ describe('useRemoteHost', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(1_000);
-    setBackend({ send, on, resolveUrl: (route: string) => `tunelle://app${route}`, pathForFile: () => '', capabilities: { blur: false, mpris: false } });
+    setBackend({
+      send,
+      on,
+      resolveUrl: (route: string) => `tunelle://app${route}`,
+      pathForFile: () => '',
+      capabilities: { blur: false, opaque: false, mpris: false },
+    });
   });
 
   it('sends the track with its path and where it is', () => {

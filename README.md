@@ -10,6 +10,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 
 - [Install](docs/install.md)
 - [Window blur](docs/app/window-blur.md)
+- [Window snap on Windows](docs/app/window-snap.md)
 - [Developing and building](docs/development/building.md)
 - [Releases](docs/release/releases.md)
 - [Release notes](docs/release/release-notes.md)

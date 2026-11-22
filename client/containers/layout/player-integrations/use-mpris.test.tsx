@@ -9,7 +9,13 @@ const info = { title: 'Song', artist: 'Artist', album: 'Album', cover: 'tunelle:
 const track = { title: 'Song', artist: 'Artist', album: 'Album', duration: 200, coverUrl: undefined };
 
 const enable = (mpris: boolean) => {
-  setBackend({ send, on, resolveUrl: (route: string) => `tunelle://app${route}`, pathForFile: () => '', capabilities: { blur: false, mpris: mpris } });
+  setBackend({
+    send,
+    on,
+    resolveUrl: (route: string) => `tunelle://app${route}`,
+    pathForFile: () => '',
+    capabilities: { blur: false, opaque: false, mpris: mpris },
+  });
 };
 
 describe('useMpris', () => {
