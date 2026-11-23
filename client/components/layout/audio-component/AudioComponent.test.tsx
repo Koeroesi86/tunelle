@@ -453,6 +453,61 @@ describe('AudioComponent radio reconnect', () => {
     expect(play).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps the growing pause for a station that drops soon after it played', () => {
+    const audio = playStation();
+
+    fireEvent.playing(audio);
+    vi.advanceTimersByTime(3000);
+    fireEvent.error(audio);
+    vi.advanceTimersByTime(1000);
+    fireEvent.playing(audio);
+    vi.advanceTimersByTime(3000);
+    fireEvent.error(audio);
+    vi.advanceTimersByTime(1000);
+
+    expect(play).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(1000);
+
+    expect(play).toHaveBeenCalledTimes(2);
+  });
+
+  it('starts with the short pause again for a station that played steadily', () => {
+    const audio = playStation();
+
+    fireEvent.error(audio);
+    vi.advanceTimersByTime(1000);
+    fireEvent.playing(audio);
+    vi.advanceTimersByTime(30_000);
+    fireEvent.error(audio);
+    vi.advanceTimersByTime(1000);
+
+    expect(play).toHaveBeenCalledTimes(2);
+  });
+
+  it('asks a station again that sends nothing while its connection stays open', () => {
+    const audio = playStation();
+    Object.defineProperty(audio, 'readyState', { configurable: true, value: 0 });
+
+    fireEvent.waiting(audio);
+    vi.advanceTimersByTime(15_000);
+    vi.advanceTimersByTime(1000);
+
+    expect(play).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a station alone that recovers from a short wait', () => {
+    const audio = playStation();
+    Object.defineProperty(audio, 'readyState', { configurable: true, value: 0 });
+
+    fireEvent.waiting(audio);
+    vi.advanceTimersByTime(5000);
+    fireEvent.playing(audio);
+    vi.advanceTimersByTime(30_000);
+
+    expect(play).not.toHaveBeenCalled();
+  });
+
   it('does not ask a station again once it was paused', () => {
     const view = renderAudio(null);
     view.rerender(
