@@ -38,7 +38,21 @@ describe('openRadioStream', () => {
 
     expect(contentType).toBe('audio/aac');
     expect(await read(audio)).toBe('sound');
-    expect(vi.mocked(http.get).mock.calls[0][1]).toMatchObject({ headers: { 'Icy-MetaData': '1' } });
+    expect(vi.mocked(http.get).mock.calls[0][1]).toMatchObject({ headers: { 'Icy-MetaData': '1', 'User-Agent': 'Tunelle' } });
+  });
+
+  it('cuts off a station that sends nothing, so the stream ends instead of hanging', async () => {
+    const request = Object.assign(new EventEmitter(), { destroy: vi.fn() });
+    vi.mocked(http.get).mockImplementation(() => {
+      queueMicrotask(() => request.emit('response', respond(200, {})));
+      return request as never;
+    });
+
+    await openRadioStream('abc', new AbortController().signal, deps());
+    request.emit('timeout');
+
+    expect(vi.mocked(http.get).mock.calls[0][1]).toMatchObject({ timeout: 20_000 });
+    expect(request.destroy).toHaveBeenCalledWith(expect.objectContaining({ message: 'The stream sent nothing' }));
   });
 
   it('takes audio/mpeg for a station that does not say, and uses https for an https address', async () => {

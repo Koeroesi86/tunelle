@@ -13,6 +13,8 @@ export interface RadioStreamDeps {
 }
 
 const maxRedirects = 5;
+/** A station that sends nothing for this long, while connecting or while playing, is cut off, so the player asks it again instead of waiting on a stream that hangs */
+const idleTimeout = 20_000;
 
 /** Not `fetch`: the undici of Node asserts in its parser when a station closes the socket while the body is paused, and that error is thrown from the socket where nothing can catch it */
 const openUpstream = (address: string, signal: AbortSignal, redirects = maxRedirects): Promise<http.IncomingMessage> =>
@@ -22,7 +24,12 @@ const openUpstream = (address: string, signal: AbortSignal, redirects = maxRedir
       reject(new Error('The stream is not an http address'));
       return;
     }
-    const request = (url.protocol === 'https:' ? https : http).get(url, { headers: { 'Icy-MetaData': '1' }, signal });
+    const request = (url.protocol === 'https:' ? https : http).get(url, {
+      headers: { 'Icy-MetaData': '1', 'User-Agent': 'Tunelle' },
+      signal,
+      timeout: idleTimeout,
+    });
+    request.on('timeout', () => request.destroy(new Error('The stream sent nothing')));
     // an error after the answer ends the audio through the pipeline, and never reaches the main process unhandled
     request.on('error', reject);
     request.on('response', (response) => {

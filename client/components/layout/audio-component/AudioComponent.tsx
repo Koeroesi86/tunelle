@@ -44,6 +44,10 @@ interface AudioComponentProps {
 const maxSkippedFiles = 10;
 const maxReconnectDelay = 30_000;
 const reconnectDelay = (attempt: number) => Math.min(1000 * 2 ** attempt, maxReconnectDelay);
+/** A station that plays this long without a break is healthy again: one that drops sooner keeps its growing pause, as a reconnect replays the burst it sends on connect */
+const stableAfter = 20_000;
+/** A station that sends nothing for this long, with its connection still open, is asked again */
+const stallTimeout = 15_000;
 
 const elementIndexes = [0, 1];
 
@@ -71,20 +75,31 @@ const AudioComponent = ({
   const resume = useRef<ContextResume | undefined>(undefined);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const attempts = useRef(0);
+  const playingSince = useRef<number | undefined>(undefined);
+  const stallTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const skipped = useRef(0);
   const ended = useRef(false);
   const isRadio = currentSong !== null && radioUuidOf(currentSong.path) !== undefined;
   const shouldReconnect = isRadio && isPlaying;
 
+  const stopStallWatch = () => {
+    clearTimeout(stallTimer.current);
+    stallTimer.current = undefined;
+  };
+
   const stopReconnecting = () => {
     clearTimeout(reconnectTimer.current);
     reconnectTimer.current = undefined;
+    stopStallWatch();
   };
 
   // a station has no end: when its stream stops, the same address is asked again, with a growing pause between the attempts
   const reconnect = () => {
     if (!shouldReconnect || reconnectTimer.current) return;
 
+    if (playingSince.current !== undefined && Date.now() - playingSince.current >= stableAfter) attempts.current = 0;
+    playingSince.current = undefined;
+    stopStallWatch();
     reconnectTimer.current = setTimeout(() => {
       reconnectTimer.current = undefined;
       attempts.current += 1;
@@ -132,8 +147,21 @@ const AudioComponent = ({
   const handlePlaying = (index: number) => {
     if (!gapless.handlePlaying(index)) return;
 
-    attempts.current = 0;
+    stopStallWatch();
+    playingSince.current ??= Date.now();
     skipped.current = 0;
+    if (!isRadio) attempts.current = 0;
+  };
+
+  // a station whose connection stays open but sends nothing never ends or fails, so it is asked again after a while
+  const handleStall = (index: number) => {
+    if (!isRadio || !gapless.isActive(index) || stallTimer.current) return;
+
+    stallTimer.current = setTimeout(() => {
+      stallTimer.current = undefined;
+      const node = gapless.activeElement();
+      if (node && node.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) reconnect();
+    }, stallTimeout);
   };
 
   // a station that is read slower than it sends (a throttled window, a stall) plays old audio, so it continues with the newest audio it holds
@@ -237,6 +265,7 @@ const AudioComponent = ({
           onPause={(event) => gapless.handlePause(index, event)}
           onError={() => handleError(index)}
           onPlaying={() => handlePlaying(index)}
+          onWaiting={() => handleStall(index)}
           onTimeUpdate={(event) => {
             gapless.handleTimeUpdate(index);
             if (gapless.isActive(index)) catchUpToLive(event.currentTarget);
