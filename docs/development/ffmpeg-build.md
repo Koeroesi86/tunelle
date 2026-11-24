@@ -1,6 +1,6 @@
 # The ffmpeg build
 
-Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302): a decoder proxy plays the formats that Chromium cannot (FLAC, ALAC, APE, WavPack, AIFF, DSD and others) by decoding them to PCM with ffmpeg. This page is about the build of that ffmpeg and how it is packaged. FLAC, Ogg Vorbis, ALAC, APE, WavPack, AIFF, DSD and WMA play through it ([decoder-proxy.md](../app/decoder-proxy.md)); the other formats follow.
+Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302): a decoder proxy plays the formats that Chromium cannot (FLAC, ALAC, APE, WavPack, AIFF, DSD and others) by decoding them to PCM with ffmpeg. This page is about the build of that ffmpeg and how it is packaged. WAV, FLAC, Ogg Vorbis, ALAC, APE, WavPack, AIFF, DSD and WMA play through it ([decoder-proxy.md](../app/decoder-proxy.md)); the other formats follow.
 
 ## What is built
 
@@ -41,6 +41,17 @@ Flathub builds everything from source and accepts no binary, so the CI binary ca
 ## Patents
 
 WMA is in the build ([#347](https://github.com/Koeroesi86/tunelle/issues/347)): the patent that describes the codec, [US 7,158,539 B2](https://patents.google.com/patent/US7158539B2/en), has expired, and the notice shipped with the app (`packaging/ffmpeg/NOTICE.txt`) refers to it. This is the maintainer's reading, not legal advice, and other claims on the codec may exist. The other patent-heavy codecs (AC-3, MP2) stay out of the build until the question of patents and Flathub is decided for each. The Flathub question stays open for all of them.
+
+### Research for MP3, AAC and Opus (2026-11-24)
+
+Not legal advice: a web search, not a patent database, so every date below is a third party's claim. Nothing of these three is in the build yet; each waits for the decision of the maintainer ([#470](https://github.com/Koeroesi86/tunelle/issues/470), [#471](https://github.com/Koeroesi86/tunelle/issues/471), [#469](https://github.com/Koeroesi86/tunelle/issues/469)).
+
+- **MP3:** Technicolor and Fraunhofer ended their MP3 licensing programme on 23 April 2017. The last US patents are reported to have expired by April 2017 and the European ones around 2012. Fraunhofer's announcement gives no dates, and a third party may still hold a patent. Lowest risk of the three.
+- **AAC:** AAC-LC is reported expired around 2017 (a forum claim; Fedora ships an AAC-LC only decoder on that reading). The Via LA AAC programme is still running and covers HE-AAC v1 and v2. Some Philips patents of the pool expired on 22 April 2023, a trade article puts the baseline technologies at 2028 and some extensions at 2031, and the two do not agree. If AAC comes in, AAC-LC and ADTS are the safer part; HE-AAC (SBR, PS) and the `.m4b` and `.m4r` variants need the decision.
+- **Opus:** Xiph, Broadcom and Microsoft grant royalty-free licences, which end for anyone who sues Opus users. Qualcomm, Huawei, France Telecom and Ericsson filed IETF disclosures with possibly royalty-bearing terms. Vectis IP started a paid pool in January 2023 (Fraunhofer and Dolby, over 300 patents, about 15 cents a unit) aimed at hardware makers; Vectis says open implementations, apps and services are not affected, and whether the patents read on Opus is disputed.
+- **Flathub:** no written policy on bundling MP3 or AAC was found. Flathub ships patented codecs as an `ffmpeg-full` extension that an app opts into, so a bundled decoder still needs a check.
+
+Sources: Via LA AAC programme (via-la.com/licensing-2/aac), Opus license (opus-codec.org/license), IPWatchdog on the Vectis pool, LWN 910848, Mozilla Connect "Native AAC-LC decoding (patents expired)", The Broadcast Bridge on HE-AAC, Techdirt and Slashdot on the end of the MP3 programme.
 
 ## Not decided here
 

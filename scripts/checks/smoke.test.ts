@@ -19,7 +19,13 @@ class Exit extends Error {}
 
 type Answers = Record<'ready' | 'library' | 'tracks' | 'track' | 'radio', unknown>;
 
-const trackResult = { whole: [200, 80044], part: [206, 'bytes 100-199/80044', 100], suffix: [206, 'bytes 79994-80043/80044', 50], outside: 404, seek: [10, 6] };
+const trackResult = {
+  whole: [200, 160044],
+  part: [206, 'bytes 100-199/160044', 100],
+  suffix: [206, 'bytes 159994-160043/160044', 50],
+  outside: 404,
+  seek: [10, 6],
+};
 const radioResult = { status: 200, type: 'audio/mpeg', metadataLeft: 0, titles: ['Smoke - Song'], played: 'playing' };
 
 describe('the smoke test', () => {

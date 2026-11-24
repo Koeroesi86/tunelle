@@ -31,6 +31,12 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2.
 
+`wav/` (16 bit PCM), `wav-float/` (32 bit float, and 64 bit float for the second track), `wav-adpcm/` (Microsoft ADPCM) and `wav-ima/` (IMA ADPCM) have the same two tracks in the albums "Lossless WAV", "Float WAV", "ADPCM WAV" and "IMA ADPCM WAV", for `e2e/functional/wav.spec.ts` (the first folder) and the integration tests of the decoder proxy. Made with ffmpeg, the same command with the codec of the folder (`pcm_s16le`, `pcm_f32le` and `pcm_f64le`, `adpcm_ms`, `adpcm_ima_wav`):
+
+```sh
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16le -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless WAV" -metadata track=1 wav/1-concert-a.wav
+```
+
 `ape/` has the same two tracks in Monkey's Audio (16 bit, mono, 44.1 kHz, normal compression) in the album "Lossless Monkey", for `electron/protocols/decoded-track.integration.test.ts`. They are made with the `mac` tool of the official SDK (<https://monkeysaudio.com/developers.html>) from WAV files that ffmpeg generates:
 
 ```sh
