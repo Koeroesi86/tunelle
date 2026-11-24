@@ -64,3 +64,25 @@ export const detectStreamSampleRate = (bytes: Uint8Array) => {
     undefined
   );
 };
+
+const oggCodec = (bytes: Uint8Array) => {
+  if (indexOfBytes(bytes, ascii('OpusHead')) >= 0) return 'OPUS';
+  if (indexOfBytes(bytes, [1, ...ascii('vorbis')]) >= 0) return 'VORBIS';
+  return indexOfBytes(bytes, [0x7f, ...ascii('FLAC')]) >= 0 ? 'FLAC' : undefined;
+};
+
+/**
+ * The codec in the start of an audio stream, named as the scan names it: MP3 and AAC (ADTS) by the header of two frames in a row, Ogg by the header of its codec, and native FLAC by its marker.
+ * Undefined when the bytes hold none, which may be as more of the stream is needed.
+ */
+export const detectStreamCodec = (bytes: Uint8Array) => {
+  const marker = String.fromCharCode(...bytes.subarray(0, 4));
+  if (marker === 'OggS') return oggCodec(bytes);
+  if (marker === 'fLaC') return 'FLAC';
+
+  return bytes.reduce<string | undefined>((found, _, offset) => {
+    if (found) return found;
+    if (confirmedFrameAt(mp3FrameAt, bytes, offset) !== undefined) return 'MP3';
+    return confirmedFrameAt(adtsFrameAt, bytes, offset) === undefined ? undefined : 'AAC';
+  }, undefined);
+};

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectStreamSampleRate } from './stream-sample-rate';
+import { detectStreamCodec, detectStreamSampleRate } from './stream-sample-rate';
 
 /** A Layer III frame of 128 kbit/s: 417 bytes at 44.1 kHz, 384 at 48 kHz, as the header says */
 const mp3 = (rateBits: number, length: number) => Buffer.concat([Buffer.from([0xff, 0xfb, 0x90 | (rateBits << 2), 0x00]), Buffer.alloc(length - 4)]);
@@ -43,5 +43,26 @@ describe('detectStreamSampleRate', () => {
 
   it('does not take a frame whose next frame has another rate', () => {
     expect(detectStreamSampleRate(Buffer.concat([mp3(0, 417), mp3(1, 384)]))).toBeUndefined();
+  });
+});
+
+describe('detectStreamCodec', () => {
+  const ogg = (marker: Buffer) => Buffer.concat([Buffer.from('OggS'), Buffer.alloc(24), marker, Buffer.alloc(11)]);
+
+  it.each([
+    ['MP3', Buffer.concat([mp3(0, 417), mp3(0, 417)]), 'MP3'],
+    ['MP3 after a tag', Buffer.concat([Buffer.from('ID3'), Buffer.alloc(30), mp3(0, 417), mp3(0, 417)]), 'MP3'],
+    ['AAC', Buffer.concat([adts(4, 300), adts(4, 300)]), 'AAC'],
+    ['Opus', ogg(Buffer.from('OpusHead')), 'OPUS'],
+    ['Vorbis', ogg(Buffer.concat([Buffer.from([1]), Buffer.from('vorbis')])), 'VORBIS'],
+    ['Ogg FLAC', ogg(Buffer.concat([Buffer.from([0x7f]), Buffer.from('FLAC')])), 'FLAC'],
+    ['native FLAC', Buffer.concat([Buffer.from('fLaC'), Buffer.alloc(40)]), 'FLAC'],
+  ])('names %s', (_, bytes, expected) => {
+    expect(detectStreamCodec(bytes)).toBe(expected);
+  });
+
+  it('names nothing for bytes that hold no format yet', () => {
+    expect(detectStreamCodec(Buffer.from('sound'))).toBeUndefined();
+    expect(detectStreamCodec(Buffer.from('OggS'))).toBeUndefined();
   });
 });
