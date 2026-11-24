@@ -20,6 +20,19 @@ const toMatroskaName = ({ codec, container }: ReadFormat) => {
   return matroskaCodecs.includes(name) ? undefined : `MATROSKA-${name}`;
 };
 
+const cafCodecs: Record<string, string | undefined> = {
+  PCM: 'CAF',
+  ALAC: 'ALAC',
+  'ITU-T G.711 A-law': 'ALAW',
+  'ITU-T G.711 mu-law': 'MULAW',
+};
+
+/** Only PCM, ALAC, A-law and µ-law are decoded from CAF; another codec in it (AAC, IMA4, MP3) is named by its container and not stored. See docs/app/supported-formats.md */
+const toCafName = ({ codec, container }: ReadFormat) => {
+  if (!codec || !/^caf$/i.test(container ?? '')) return undefined;
+  return cafCodecs[codec] ?? `CAF-${codec.toUpperCase()}`;
+};
+
 /** Windows Media Audio is named WMA; the voice codecs are told apart, as the decoder proxy does not play them. See docs/app/supported-formats.md */
 const toWmaName = (codec: string | undefined) => {
   if (!/^windows media audio/i.test(codec ?? '')) return undefined;
@@ -35,6 +48,8 @@ const toCodecName = ({ codec, container }: ReadFormat) => {
   if (wma) return wma;
   const matroska = toMatroskaName({ codec, container });
   if (matroska) return matroska;
+  const caf = toCafName({ codec, container });
+  if (caf) return caf;
   if (/layer 3/i.test(codec ?? '')) return 'MP3';
   if (/layer 2/i.test(codec ?? '')) return 'MP2';
   const name = !codec || /^pcm/i.test(codec) ? (container ?? '') : codec;

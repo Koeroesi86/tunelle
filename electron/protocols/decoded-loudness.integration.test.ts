@@ -63,6 +63,8 @@ const formats = [
   { folder: 'wav-float', amplitude: 0.125 },
   { folder: 'wav-adpcm', amplitude: 0.125, peakDigits: 1 },
   { folder: 'wav-ima', amplitude: 0.125, peakDigits: 1 },
+  { folder: 'caf', amplitude: 0.125 },
+  { folder: 'caf-alac', amplitude: 0.125 },
   { folder: 'rf64', amplitude: 0.125 },
   { folder: 'w64', amplitude: 0.125 },
 ];

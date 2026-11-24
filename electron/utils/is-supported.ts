@@ -25,6 +25,7 @@ export const supportedFormats = [
   'mka',
   'weba',
   'w64',
+  'caf',
 ];
 
 const isSupported = (filePath: string) => supportedFormats.includes(path.extname(filePath).replace('.', '').toLowerCase());
@@ -44,6 +45,7 @@ const decodedCodecs = [
   'DSD',
   'WMA',
   'WAV',
+  'CAF',
   'IEEE_FLOAT',
   'ADPCM',
   'DVI_ADPCM',
@@ -56,7 +58,7 @@ const decodedCodecs = [
 ];
 
 /** Decoded codecs whose length in frames is exact before the decode, so the WAV is served while it is written. See docs/app/decoder-proxy.md */
-const progressiveCodecs = ['ALAC', 'FLAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'WAV', 'IEEE_FLOAT'];
+const progressiveCodecs = ['ALAC', 'FLAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'WAV', 'CAF', 'IEEE_FLOAT'];
 
 /** Decoded codecs that Chromium plays too: where the bundled ffmpeg has no decoder for one (the Flatpak build, see docs/development/ffmpeg-build.md), the file is served as it is */
 const chromiumCodecs = ['MP3'];
@@ -67,7 +69,7 @@ export const isProgressiveCodec = (codec: string | null | undefined) => progress
 
 export const isDecodedCodec = (codec: string | null | undefined) => decodedCodecs.includes(codec ?? '');
 
-/** `MATROSKA-<codec>` is a codec in a Matroska or WebM file that is not one of the decoded ones, see `electron/library/reading/read-audio-format.ts` */
-export const isSupportedCodec = (codec: string | null | undefined) => !unsupportedCodecs.includes(codec ?? '') && !codec?.startsWith('MATROSKA-');
+/** `MATROSKA-<codec>` and `CAF-<codec>` are codecs in a container that are not one of the decoded ones, see `electron/library/reading/read-audio-format.ts` */
+export const isSupportedCodec = (codec: string | null | undefined) => !unsupportedCodecs.includes(codec ?? '') && !/^(MATROSKA|CAF)-/.test(codec ?? '');
 
 export default isSupported;
