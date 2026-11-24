@@ -42,11 +42,13 @@ const measureDecoded = (file: string) => {
   return measureSamples(channelData.map((samples) => resample(samples, sampleRate, measurementRate)));
 };
 
+// a lossy codec overshoots the peak of the sine a little (`peakDigits`: 1 allows 0.05, the default 2 allows 0.005)
 // the sines of e2e/fixtures: the ones that ffmpeg made are at its default amplitude of 0.125, the DSD ones at 0.5 (scripts/tooling/generate-dsd-fixtures.ts)
 const formats = [
   { folder: 'flac', amplitude: 0.125 },
   { folder: 'flac-hires', amplitude: 0.125 },
   { folder: 'alac', amplitude: 0.125 },
+  { folder: 'vorbis', amplitude: 0.125, peakDigits: 1 },
   { folder: 'ape', amplitude: 0.125 },
   { folder: 'wavpack', amplitude: 0.125 },
   { folder: 'aiff', amplitude: 0.125 },
@@ -79,7 +81,7 @@ describe('the loudness of the decoded sound of the formats that Chromium does no
     expect(sineLufs(440, 0.5)).toBeCloseTo(-9.7, 1);
   });
 
-  it.each(formats)('measures the decoded sines of $folder like the ideal ones they were made as', async ({ folder, amplitude }) => {
+  it.each(formats)('measures the decoded sines of $folder like the ideal ones they were made as', async ({ folder, amplitude, peakDigits = 2 }) => {
     const tracks = await executeQuery(
       database,
       { query: 'SELECT path, codec, bitDepth FROM library WHERE path LIKE ? ORDER BY path', variables: [`%/fixtures/${folder}/%`] },
@@ -91,6 +93,6 @@ describe('the loudness of the decoded sound of the formats that Chromium does no
     expect(analyses).toHaveLength(2);
     expect(analyses[0].integratedLufs).toBeCloseTo(sineLufs(440, amplitude), 1);
     expect(analyses[1].integratedLufs).toBeCloseTo(sineLufs(880, amplitude), 1);
-    expect(analyses.map(({ samplePeak }) => samplePeak)).toEqual([expect.closeTo(amplitude, 2), expect.closeTo(amplitude, 2)]);
+    expect(analyses.map(({ samplePeak }) => samplePeak)).toEqual([expect.closeTo(amplitude, peakDigits), expect.closeTo(amplitude, peakDigits)]);
   });
 });

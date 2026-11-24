@@ -44,7 +44,8 @@ describe('isSupportedCodec', () => {
 
 describe('isDecodedCodec', () => {
   it('names the codecs that ffmpeg decodes before they are served', () => {
-    expect(['FLAC', 'ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'DSD', 'WMA'].map(isDecodedCodec)).toEqual([
+    expect(['FLAC', 'VORBIS', 'ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'DSD', 'WMA'].map(isDecodedCodec)).toEqual([
+      true,
       true,
       true,
       true,
