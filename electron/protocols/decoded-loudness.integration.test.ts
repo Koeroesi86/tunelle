@@ -54,6 +54,10 @@ const formats = [
   { folder: 'aiff', amplitude: 0.125 },
   { folder: 'dsd', amplitude: 0.5 },
   { folder: 'wma', amplitude: 0.125 },
+  { folder: 'wav', amplitude: 0.125 },
+  { folder: 'wav-float', amplitude: 0.125 },
+  { folder: 'wav-adpcm', amplitude: 0.125, peakDigits: 1 },
+  { folder: 'wav-ima', amplitude: 0.125, peakDigits: 1 },
 ];
 // the ideal sine at the rate of the measurement, which the decoded sound is compared with
 const sineLufs = (frequency: number, amplitude: number) =>
