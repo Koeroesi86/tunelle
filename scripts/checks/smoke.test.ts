@@ -26,7 +26,7 @@ const trackResult = {
   outside: 404,
   seek: [10, 6],
 };
-const radioResult = { status: 200, type: 'audio/mpeg', metadataLeft: 0, titles: ['Smoke - Song'], played: 'playing' };
+const radioResult = { status: 200, type: 'audio/wav', metadataLeft: 0, titles: ['Smoke - Song'], played: 'playing' };
 
 describe('the smoke test', () => {
   const home = '/tmp/tunelle-smoke-1';
