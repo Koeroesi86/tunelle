@@ -215,7 +215,7 @@ const checkTracks = async socketUrl => {
       }
     })()`
   )
-  const expected = { whole: [200, 80044], part: [206, 'bytes 100-199/80044', 100], suffix: [206, 'bytes 79994-80043/80044', 50], outside: 404, seek: [10, 6] }
+  const expected = { whole: [200, 160044], part: [206, 'bytes 100-199/160044', 100], suffix: [206, 'bytes 159994-160043/160044', 50], outside: 404, seek: [10, 6] }
   if (JSON.stringify(result) !== JSON.stringify(expected)) throw new Error(`A track over tunelle answered ${JSON.stringify(result)}, expected ${JSON.stringify(expected)}`)
   console.log(`tracks over tunelle passed: ${JSON.stringify(result)}`)
 }
