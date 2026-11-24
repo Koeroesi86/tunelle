@@ -45,10 +45,26 @@ describe('isSupportedCodec', () => {
 describe('isDecodedCodec', () => {
   it('names the codecs that ffmpeg decodes before they are served', () => {
     expect(
-      ['FLAC', 'VORBIS', 'ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'DSD', 'WMA', 'WAV', 'IEEE_FLOAT', 'ADPCM', 'DVI_ADPCM', 'ALAW', 'MULAW', 'MP3'].map(
-        isDecodedCodec
-      )
-    ).toEqual([true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]);
+      [
+        'FLAC',
+        'VORBIS',
+        'ALAC',
+        "MONKEY'S",
+        'WAVPACK',
+        'AIFF',
+        'AIFF-C',
+        'DSD',
+        'WMA',
+        'WAV',
+        'IEEE_FLOAT',
+        'ADPCM',
+        'DVI_ADPCM',
+        'ALAW',
+        'MULAW',
+        'MP3',
+        'OPUS',
+      ].map(isDecodedCodec)
+    ).toEqual([true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]);
     expect(['AAC', 'AC-3', null, undefined].map(isDecodedCodec)).toEqual([false, false, false, false]);
   });
 });
