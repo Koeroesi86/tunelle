@@ -39,6 +39,14 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=48000" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2.
 
+`mp2/` has the same two tracks in MP2 (mono, 44.1 kHz, 64 kbit/s) in the album "Lossy MP2", for `e2e/functional/mp2.spec.ts`. ffmpeg cannot write tags into a raw MP2 stream, so an ID3v2.3 tag (TIT2, TPE1, TPE2, TALB, TRCK) is put in front of the stream with a few lines of Node (one frame per tag, a synchsafe size in the 10 byte header):
+
+```sh
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a mp2 -b:a 64k mp2/1-concert-a.mp2
+```
+
+The second track is the same with 880 Hz, "Octave Up" and track 2.
+
 `wav/` (16 bit PCM), `wav-float/` (32 bit float, and 64 bit float for the second track), `wav-adpcm/` (Microsoft ADPCM) and `wav-ima/` (IMA ADPCM) have the same two tracks in the albums "Lossless WAV", "Float WAV", "ADPCM WAV" and "IMA ADPCM WAV", for `e2e/functional/wav.spec.ts` (the first folder) and the integration tests of the decoder proxy. Made with ffmpeg, the same command with the codec of the folder (`pcm_s16le`, `pcm_f32le` and `pcm_f64le`, `adpcm_ms`, `adpcm_ima_wav`):
 
 ```sh

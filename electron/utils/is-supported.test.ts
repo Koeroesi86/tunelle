@@ -5,6 +5,7 @@ describe('isSupported', () => {
   it.each([
     'a.flac',
     'a.mp3',
+    'a.mp2',
     'a.m4a',
     'a.ogg',
     'a.opus',
@@ -24,13 +25,13 @@ describe('isSupported', () => {
     expect(isSupported(name)).toBe(true);
   });
 
-  it.each(['a.wmv', 'a.mp2', 'a.m4p', 'a.mp4', 'a.m4v', 'a.3gp', 'a.ogv', 'a.ogx', 'a.txt', 'a'])('rejects %s, which the player cannot play', (name) => {
+  it.each(['a.wmv', 'a.m2a', 'a.m4p', 'a.mp4', 'a.m4v', 'a.3gp', 'a.ogv', 'a.ogx', 'a.txt', 'a'])('rejects %s, which the player cannot play', (name) => {
     expect(isSupported(name)).toBe(false);
   });
 });
 
 describe('isSupportedCodec', () => {
-  it.each(['FLAC', 'MP3', 'MPEG-4/AAC', 'AAC', 'VORBIS', 'OPUS', 'WAV', 'ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'DSD', 'WMA', null, undefined])(
+  it.each(['FLAC', 'MP3', 'MPEG-4/AAC', 'AAC', 'VORBIS', 'OPUS', 'WAV', 'ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'DSD', 'WMA', 'MP2', null, undefined])(
     'accepts %s',
     (codec) => {
       expect(isSupportedCodec(codec)).toBe(true);
@@ -69,8 +70,9 @@ describe('isDecodedCodec', () => {
         'MULAW',
         'MP3',
         'OPUS',
+        'MP2',
       ].map(isDecodedCodec)
-    ).toEqual([true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]);
+    ).toEqual(Array(18).fill(true));
     expect(['AAC', 'AC-3', null, undefined].map(isDecodedCodec)).toEqual([false, false, false, false]);
   });
 });
