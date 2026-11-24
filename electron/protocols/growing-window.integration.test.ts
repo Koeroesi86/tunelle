@@ -27,13 +27,13 @@ describe('growingTrack window with the real ffmpeg', () => {
   afterAll(() => fs.rmSync(temp, { recursive: true, force: true }));
 
   it('decodes a fast source only a window ahead of the read, and the rest when it is asked for', async () => {
-    if (!fs.existsSync(source)) return;
+    expect(fs.existsSync(source)).toBe(true);
     const track = await growingTrack({ path: source, codec: 'FLAC', bitDepth: null }, new AbortController().signal);
     if (!track || typeof track === 'string') throw new Error('expected a growing track');
 
     const first = track.read(0, 99, new AbortController().signal);
     await first.next();
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await vi.waitFor(() => expect(partSize()).toBeGreaterThan(100_000));
     expect(partSize()).toBeLessThan(track.size / 2);
 
     const bytes = await readAll(track.read(0, track.size - 1, new AbortController().signal));

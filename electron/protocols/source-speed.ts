@@ -4,8 +4,8 @@ import { probeBytes, slowAfterMs, type SourceSpeed } from './decode-policy';
 const volumes = new Map<number, SourceSpeed>();
 
 const timeRead = async (source: string) => {
-  const handle = await open(source, 'r');
   const started = Date.now();
+  const handle = await open(source, 'r');
   await handle.read(Buffer.alloc(probeBytes), 0, probeBytes, 0).finally(() => handle.close());
   return Date.now() - started;
 };

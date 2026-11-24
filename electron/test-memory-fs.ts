@@ -1,6 +1,15 @@
 import { dirname, join, resolve, sep } from 'path';
 import { vi } from 'vitest';
 
+/** What `open` gives: a test that replaces it may give a handle that only reads the whole file */
+interface MemoryHandle {
+  stat: () => Promise<{ size: number; mtimeMs?: number }>;
+  readFile: () => Promise<Buffer>;
+  close: () => Promise<undefined>;
+  read?: (buffer: Buffer, offset: number, length: number, position: number) => Promise<{ bytesRead: number; buffer: Buffer }>;
+  write?: (buffer: Buffer, offset: number, length: number, position: number) => Promise<{ bytesWritten: number; buffer: Buffer }>;
+}
+
 const missing = (path: string) => Object.assign(new Error(`ENOENT: no such file or directory, '${path}'`), { code: 'ENOENT' });
 
 /** An in-memory stand-in for `fs` and `fs/promises`, so a unit test touches no real folder (docs/development/unit-tests.md) */
@@ -126,9 +135,33 @@ const createMemoryFs = () => {
       if (!sync.existsSync(path)) throw missing(path);
       modified.set(clean(path), mtime.getTime());
     },
-    open: async (path: string) => {
-      const data = sync.readFileSync(path);
-      return { stat: async () => ({ size: data.length }), readFile: async () => data, close: async () => undefined };
+    /** `w` creates the file empty; the handle reads and writes at a position, as a `FileHandle` does */
+    open: async (path: string, flags?: string): Promise<MemoryHandle> => {
+      if (flags === 'w') sync.writeFileSync(path, Buffer.alloc(0));
+      const target = followed(path);
+      const current = () => files.get(target) ?? Buffer.alloc(0);
+      if (!files.has(target)) throw missing(path);
+
+      return {
+        stat: async () => ({ size: current().length }),
+        readFile: async () => current(),
+        read: async (buffer: Buffer, offset: number, length: number, position: number) => {
+          const bytesRead = Math.max(0, Math.min(length, current().length - position));
+          current().copy(buffer, offset, position, position + bytesRead);
+
+          return { bytesRead, buffer };
+        },
+        write: async (buffer: Buffer, offset: number, length: number, position: number) => {
+          const next = Buffer.alloc(Math.max(current().length, position + length));
+          current().copy(next);
+          buffer.copy(next, position, offset, offset + length);
+          files.set(target, next);
+          modified.set(target, Date.now());
+
+          return { bytesWritten: length, buffer };
+        },
+        close: async () => undefined,
+      };
     },
   };
 

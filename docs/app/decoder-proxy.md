@@ -20,7 +20,7 @@ A codec whose length in frames is exact before the decode (ALAC, FLAC, APE, WavP
 
 ## How much is decoded: the speed of the source
 
-Constants are in `electron/protocols/decode-policy.ts`, the measurement in `source-speed.ts`. `prepareDecode` reads the first 256 KiB of the file once per volume (`stat.dev`) and keeps the result until the app restarts; a read that takes over 50 ms (about 5 MB/s) makes the volume **slow**, anything else **fast**, and a file that cannot be read counts as slow.
+Constants are in `electron/protocols/decode-policy.ts`, the measurement in `source-speed.ts`. `prepareDecode` opens the file and reads its first 256 KiB once per volume (`stat.dev`), and keeps the result until the app restarts; the open and the read together that take over 50 ms (about 5 MB/s) makes the volume **slow**, anything else **fast**, and a file that cannot be read counts as slow.
 
 | | fast source | slow source |
 | --- | --- | --- |
@@ -31,7 +31,8 @@ Constants are in `electron/protocols/decode-policy.ts`, the measurement in `sour
 - A copy keeps its class in memory (`fastKeys` in `decoded-track.ts`), so after a restart the copies in the folder count as slow ones until they are served again. The decode that needs the whole file first (WMA, DSD) is not windowed, but its copy follows the same limits.
 - Measured on the laptop (NVMe, btrfs): the read of 256 KiB takes 0.2 to 0.3 ms with the file in the page cache. The 50 ms threshold is a margin of 200 times over that and was **not** measured on a network mount, a USB disk or a sleeping spinning disk; a cold NVMe read is expected in the low milliseconds. Move `slowAfterMs` when such a source is measured.
 - A decode does not restart at an offset: the window is a pause of the same ffmpeg run, so the file on disk is not trimmed and a track that is played to the end is whole in the cache until the limit evicts it. The saving is in the limit (a fast source keeps about 256 MiB instead of 2 GiB) and in the work not done for a track that is skipped. The disk used by a whole album is not measured yet. A window in memory or a trimmed file needs a decode that restarts, which comes with the streaming of online sources.
-- Tests: `source-speed.test.ts` (a fake source that answers late), `decode-policy.test.ts`, and `growing-window.integration.test.ts` (the real ffmpeg pauses a fast source and finishes when the rest is read).
+- A reader that is open keeps a held decode however long it waits (a paused player does not read, and its request stays open); the 5 minutes count only when no read is open.
+- Tests: `source-speed.test.ts` (a fake source that answers late, or opens late), `decode-policy.test.ts`, `growing-track.test.ts` (a fake ffmpeg: the window of a fast source, the whole decode of a slow one, a paused reader, the stop without one), `decoded-track.limits.test.ts` (the two cache limits) and `growing-window.integration.test.ts` (the real ffmpeg pauses a fast source and finishes when the rest is read).
 
 ## The decode
 
