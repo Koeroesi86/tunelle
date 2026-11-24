@@ -22,6 +22,8 @@ export const supportedFormats = [
   'dff',
   'wma',
   'asf',
+  'mka',
+  'weba',
 ];
 
 const isSupported = (filePath: string) => supportedFormats.includes(path.extname(filePath).replace('.', '').toLowerCase());
@@ -64,6 +66,7 @@ export const isProgressiveCodec = (codec: string | null | undefined) => progress
 
 export const isDecodedCodec = (codec: string | null | undefined) => decodedCodecs.includes(codec ?? '');
 
-export const isSupportedCodec = (codec: string | null | undefined) => !unsupportedCodecs.includes(codec ?? '');
+/** `MATROSKA-<codec>` is a codec in a Matroska or WebM file that is not one of the decoded ones, see `electron/library/reading/read-audio-format.ts` */
+export const isSupportedCodec = (codec: string | null | undefined) => !unsupportedCodecs.includes(codec ?? '') && !codec?.startsWith('MATROSKA-');
 
 export default isSupported;

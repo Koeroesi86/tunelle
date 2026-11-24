@@ -42,6 +42,7 @@ const formats = [
   { folder: 'mp3', codec: 'MP3', bytes: 2, seconds: 6 },
   { folder: 'mp2', codec: 'MP2', bytes: 2, seconds: 6 },
   { folder: 'ac3', codec: 'AC-3', bytes: 2, seconds: 6 },
+  { folder: 'mka', codec: 'FLAC', bytes: 2, seconds: 6 },
   { folder: 'opus', codec: 'OPUS', bytes: 2, seconds: 6 },
   { folder: 'wav', codec: 'WAV', bytes: 2, seconds: 6 },
   { folder: 'wav-float', codec: 'IEEE_FLOAT', bytes: 4, seconds: 6 },

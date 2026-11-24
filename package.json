@@ -81,7 +81,9 @@
           "dsf",
           "dff",
           "wma",
-          "asf"
+          "asf",
+          "mka",
+          "weba"
         ],
         "name": "Audio file",
         "description": "Audio file",
