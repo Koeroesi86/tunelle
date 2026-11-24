@@ -5,10 +5,11 @@ import { join } from 'path';
 import { app } from 'electron';
 import { isChromiumCodec, isDecodedCodec } from '../utils/is-supported';
 import { logError } from '../utils/log-error';
+import { fastCacheLimit, slowCacheLimit, type SourceSpeed } from './decode-policy';
 import { ffmpegProgram } from './ffmpeg-program';
+import { sourceSpeed } from './source-speed';
 
 // See docs/app/decoder-proxy.md for the cache, the sharing of a decode and what is spared by the eviction
-const cacheLimit = 2 * 1024 ** 3;
 const maxDecodes = 2;
 const keptRecent = 3;
 
@@ -34,6 +35,7 @@ export const jobs = new Map<string, Job>();
 const queue: (() => void)[] = [];
 let running = 0;
 let recent: string[] = [];
+const fastKeys = new Set<string>();
 
 const cacheFolder = () => join(app.getPath('temp'), 'tunelle-decoded');
 
@@ -89,14 +91,22 @@ export const evict = async () => {
     )
   ).filter((file) => file !== undefined);
   const busy = new Set([...jobs.keys(), ...recent].flatMap((key) => [`${key}.wav`, `${key}.wav.part`]));
-  const idle = files.filter(({ name }) => !busy.has(name)).sort((a, b) => a.mtimeMs - b.mtimeMs);
-  const total = files.reduce((sum, { size }) => sum + size, 0);
+  const isFast = ({ name }: { name: string }) => fastKeys.has(name.slice(0, name.indexOf('.')));
+  const trim = (group: typeof files, limit: number) => {
+    const idle = group.filter(({ name }) => !busy.has(name)).sort((a, b) => a.mtimeMs - b.mtimeMs);
+    const total = group.reduce((sum, { size }) => sum + size, 0);
+    return idle
+      .filter((_, index) => total - idle.slice(0, index).reduce((sum, { size }) => sum + size, 0) > limit)
+      .map(({ name }) => rm(join(folder, name), { force: true }));
+  };
 
-  await Promise.all(
-    idle
-      .filter((_, index) => total - idle.slice(0, index).reduce((sum, { size }) => sum + size, 0) > cacheLimit)
-      .map(({ name }) => rm(join(folder, name), { force: true }))
-  );
+  await Promise.all([
+    ...trim(files.filter(isFast), fastCacheLimit),
+    ...trim(
+      files.filter((file) => !isFast(file)),
+      slowCacheLimit
+    ),
+  ]);
 };
 
 const writeDecoded = async (job: Job, source: string, encoder: string[], target: string) => {
@@ -142,7 +152,10 @@ const leave = (key: string, job: Job) => {
 };
 
 /** What names the decoded copy of a source in the cache, and marks the track as one of the last served */
-export const prepareDecode = async (source: string, format: Format) => {
+export const prepareDecode = async (
+  source: string,
+  format: Format
+): Promise<{ key: string; encoder: string[]; speed: SourceSpeed; target: string } | undefined> => {
   const stats = await stat(source).catch(() => undefined);
   if (!stats?.isFile()) return undefined;
 
@@ -152,7 +165,10 @@ export const prepareDecode = async (source: string, format: Format) => {
     .digest('hex')
     .slice(0, 32);
   recent = [key, ...recent.filter((kept) => kept !== key)].slice(0, keptRecent);
-  return { key, encoder, target: join(cacheFolder(), `${key}.wav`) };
+  const speed = await sourceSpeed(source, stats.dev);
+  if (speed === 'fast') fastKeys.add(key);
+  else fastKeys.delete(key);
+  return { key, encoder, speed, target: join(cacheFolder(), `${key}.wav`) };
 };
 
 /** The decoded copy of the cache, with its time set to now so the eviction keeps it, undefined when there is none */

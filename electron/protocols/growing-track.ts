@@ -5,6 +5,7 @@ import { dirname } from 'path';
 import { isProgressiveCodec } from '../utils/is-supported';
 import { logError } from '../utils/log-error';
 import { cachedCopy, evict, freeSlot, jobs, prepareDecode, takeSlot, type Format, type PlayableTrack } from './decoded-track';
+import { aheadBytes, idleStopMs, type SourceSpeed } from './decode-policy';
 import { ffmpegProgram } from './ffmpeg-program';
 import { probeAudio } from './probe-audio';
 import { wavHeader, wavHeaderSize, wavSize, type WavLayout } from './wav-header';
@@ -23,6 +24,10 @@ interface Growing {
   target: string;
   /** The bytes of samples that ffmpeg has written, after the header */
   written: number;
+  /** How many bytes of samples are decoded beyond the furthest one that a read asked for; infinite for a slow source, which is decoded to the end */
+  ahead: number;
+  /** The furthest byte of samples that a read asked for */
+  demand: number;
   state: 'running' | 'done' | 'failed';
   events: EventEmitter;
 }
@@ -56,6 +61,10 @@ const waitForBytes = async (growing: Growing, position: number, signal: AbortSig
 };
 
 const readNext = async (growing: Growing, handle: FileHandle, position: number, end: number, signal: AbortSignal) => {
+  if (position - wavHeaderSize > growing.demand) {
+    growing.demand = position - wavHeaderSize;
+    growing.events.emit('demand');
+  }
   const written = await waitForBytes(growing, position, signal);
   const available = Math.min(end + 1, written) - position;
   if (available <= 0 || signal.aborted) return undefined;
@@ -94,8 +103,30 @@ async function* readGrowing(growing: Growing, start: number, end: number, signal
   }
 }
 
+/** Waits until a read gets near the decoded bytes; false when none came for `idleStopMs`. The slot is free meanwhile. */
+const waitForDemand = async (growing: Growing) => {
+  freeSlot();
+  const asked = await new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => resolve(false), idleStopMs);
+    growing.events.once('demand', () => {
+      clearTimeout(timer);
+      resolve(true);
+    });
+  });
+  await takeSlot();
+  return asked;
+};
+
+/** Holds the decode back while it is a window ahead of every read; throws when no read comes for too long */
+const holdBack = async (growing: Growing) => {
+  const asked = growing.written > growing.demand + growing.ahead ? await waitForDemand(growing) : true;
+  if (!asked) throw new Error('no reader came for the decoded track');
+  if (growing.written > growing.demand + growing.ahead) await holdBack(growing);
+};
+
 const copyOutput = async (growing: Growing, handle: FileHandle, output: AsyncIterable<Buffer>) => {
   for await (const chunk of output) {
+    await holdBack(growing);
     await handle.write(chunk, 0, chunk.length, wavHeaderSize + growing.written);
     growing.written += chunk.length;
     growing.events.emit('progress');
@@ -149,8 +180,18 @@ const writeGrowing = async (key: string, growing: Growing, source: string, encod
   return whole ? growing.target : undefined;
 };
 
-const startGrowing = (key: string, source: string, encoder: string[], target: string, layout: WavLayout) => {
-  const growing: Growing = { layout, part: `${target}.part`, target, written: 0, state: 'running', events: new EventEmitter() };
+const startGrowing = (key: string, source: string, encoder: string[], target: string, layout: WavLayout, speed: SourceSpeed) => {
+  const bytesPerSecond = layout.sampleRate * layout.channels * layout.bytesPerSample;
+  const growing: Growing = {
+    layout,
+    part: `${target}.part`,
+    target,
+    written: 0,
+    ahead: aheadBytes(speed, bytesPerSecond),
+    demand: 0,
+    state: 'running',
+    events: new EventEmitter(),
+  };
   growing.events.setMaxListeners(0);
   const job = { done: Promise.resolve<string | undefined>(undefined), waiters: 0, cancelled: false, growing: true };
   job.done = takeSlot()
@@ -189,7 +230,7 @@ export const growingTrack = async ({ path, ...format }: PlayableTrack, signal: A
   const prepared = await prepareDecode(path, format satisfies Format);
   if (!prepared) return undefined;
 
-  const { key, encoder, target } = prepared;
+  const { key, encoder, speed, target } = prepared;
   const cached = await cachedCopy(target);
   const running = growings.get(key);
   if (cached) return cached;
@@ -200,6 +241,6 @@ export const growingTrack = async ({ path, ...format }: PlayableTrack, signal: A
   const layout = length && toLayout(encoder, length);
   if (!layout) return undefined;
   // another request may have started it meanwhile
-  const started = growings.get(key) ?? (jobs.has(key) ? undefined : startGrowing(key, path, encoder, target, layout));
+  const started = growings.get(key) ?? (jobs.has(key) ? undefined : startGrowing(key, path, encoder, target, layout, speed));
   return started && toGrowingTrack(started);
 };
