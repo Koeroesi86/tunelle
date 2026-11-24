@@ -242,8 +242,9 @@ const checkRadio = async (socketUrl, station) => {
       await reader.cancel()
       const bytes = new Uint8Array(length)
       received.reduce((offset, chunk) => (bytes.set(chunk, offset), offset + chunk.length), 0)
-      // the mpeg frames are decoded by ffmpeg to a WAV: a header of 44 bytes, then the silence of the frames, so any byte of a title that was left in is not zero
-      const metadataLeft = bytes.filter((byte, position) => position >= 44 && byte !== 0).length
+      // the mpeg frames are decoded by ffmpeg to a WAV: a header that ends with the data tag, then the silence of the frames, so any byte of a title that was left in is not zero
+      const dataStart = new TextDecoder('latin1').decode(bytes.subarray(0, 200)).indexOf('data') + 8
+      const metadataLeft = bytes.filter((byte, position) => position >= dataStart && byte !== 0).length
       for (let waited = 0; titles.length === 0 && waited < 10000; waited += 100) await new Promise(done => setTimeout(done, 100))
 
       const audio = new Audio()
