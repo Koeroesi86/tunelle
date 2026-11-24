@@ -3,9 +3,11 @@ import path from 'path';
 import { parseFile } from 'music-metadata';
 import { memoryFs } from '../../test-memory-fs';
 import { readTrackFile } from './read-track-file';
+import { readLargeWave } from './read-large-wave';
 
 vi.mock('fs', () => ({ ...memoryFs.sync, default: memoryFs.sync }));
 vi.mock('music-metadata', () => ({ parseFile: vi.fn() }));
+vi.mock('./read-large-wave', () => ({ readLargeWave: vi.fn() }));
 
 const withPicture = (data: string) => ({
   common: { album: 'Album', picture: [{ format: 'image/jpeg', data: Buffer.from(data) }] },
@@ -68,5 +70,55 @@ describe('readTrackFile pictures', () => {
 
     expect(second.picture).toBe(first.picture);
     expect(memoryFs.sync.readdirSync(folder())).toHaveLength(1);
+  });
+});
+
+describe('readTrackFile of Wave64 and RF64', () => {
+  const wave = {
+    common: { title: 'Concert A', album: 'Album' },
+    format: { codec: 'PCM', container: 'WAVE', lossless: true, bitsPerSample: 16, sampleRate: 44100, bitrate: 705600, duration: 6 },
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('reads a .w64 file with readLargeWave, as music-metadata fails on it', async () => {
+    vi.mocked(readLargeWave).mockResolvedValue(wave);
+
+    const track = await readTrackFile('/music/a.W64', '/user-data');
+
+    expect(track).toMatchObject({ title: 'Concert A', album: 'Album', codec: 'WAV', duration: 6, bitDepth: 16, trackGain: null });
+    expect(parseFile).not.toHaveBeenCalled();
+  });
+
+  it('fails for a .w64 file that is not Wave64', async () => {
+    vi.mocked(readLargeWave).mockResolvedValue(undefined);
+
+    await expect(readTrackFile('/music/a.w64', '/user-data')).rejects.toThrow('/music/a.w64 is not a Wave64 file');
+  });
+
+  it('reads a file that music-metadata finds no codec in with readLargeWave, which is an RF64 file', async () => {
+    vi.mocked(parseFile).mockResolvedValue({ common: {}, format: {}, native: {} } as never);
+    vi.mocked(readLargeWave).mockResolvedValue(wave);
+
+    expect(await readTrackFile('/music/a.wav', '/user-data')).toMatchObject({ title: 'Concert A', codec: 'WAV', duration: 6 });
+  });
+
+  it('keeps what music-metadata read when the file is not RF64', async () => {
+    vi.mocked(parseFile).mockResolvedValue({ common: { title: 'Tagged' }, format: {}, native: {} } as never);
+    vi.mocked(readLargeWave).mockResolvedValue(undefined);
+
+    expect(await readTrackFile('/music/a.wav', '/user-data')).toMatchObject({ title: 'Tagged', codec: null });
+  });
+
+  it('does not look at the header of a file that music-metadata read the codec of', async () => {
+    vi.mocked(parseFile).mockClear();
+    vi.mocked(readLargeWave).mockClear();
+    vi.mocked(parseFile).mockResolvedValue({ common: {}, format: { codec: 'FLAC' }, native: {} } as never);
+
+    await readTrackFile('/music/a.flac', '/user-data');
+
+    expect(readLargeWave).not.toHaveBeenCalled();
   });
 });

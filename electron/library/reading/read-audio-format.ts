@@ -1,7 +1,7 @@
 import type { IFormat } from 'music-metadata';
 import type { AudioFormat } from '@shared/types/library';
 
-type ReadFormat = Partial<Pick<IFormat, 'codec' | 'container' | 'codecProfile' | 'lossless' | 'bitsPerSample' | 'sampleRate' | 'bitrate'>>;
+export type ReadFormat = Partial<Pick<IFormat, 'codec' | 'container' | 'codecProfile' | 'lossless' | 'bitsPerSample' | 'sampleRate' | 'bitrate'>>;
 
 const containerCodecs: Record<string, string> = { WAVE: 'WAV' };
 

@@ -48,6 +48,9 @@ const formats = [
   { folder: 'wav-float', codec: 'IEEE_FLOAT', bytes: 4, seconds: 6 },
   { folder: 'wav-adpcm', codec: 'ADPCM', bytes: 2, seconds: 6 },
   { folder: 'wav-ima', codec: 'DVI_ADPCM', bytes: 2, seconds: 6 },
+  { folder: 'rf64', codec: 'WAV', bytes: 2, seconds: 6 },
+  // Wave64 has no tags that ffmpeg writes or the scan reads, so the titles are empty
+  { folder: 'w64', codec: 'WAV', bytes: 2, seconds: 6, titles: ['', ''] },
 ];
 
 describe('scanning and decoding the formats that Chromium does not play', () => {
@@ -67,24 +70,27 @@ describe('scanning and decoding the formats that Chromium does not play', () => 
     fs.rmSync(temp, { recursive: true, force: true });
   });
 
-  it.each(formats)('reads the tags of $folder and decodes both tracks to the tone they hold', async ({ folder, codec, bytes, seconds }) => {
-    const tracks = await executeQuery(
-      database,
-      { query: 'SELECT path, title, codec, bitDepth FROM library WHERE path LIKE ? ORDER BY path', variables: [`%/fixtures/${folder}/%`] },
-      trackSchema
-    );
+  it.each(formats)(
+    'reads the tags of $folder and decodes both tracks to the tone they hold',
+    async ({ folder, codec, bytes, seconds, titles = ['Concert A', 'Octave Up'] }) => {
+      const tracks = await executeQuery(
+        database,
+        { query: 'SELECT path, title, codec, bitDepth FROM library WHERE path LIKE ? ORDER BY path', variables: [`%/fixtures/${folder}/%`] },
+        trackSchema
+      );
 
-    expect(tracks.map(({ title }) => title)).toEqual(['Concert A', 'Octave Up']);
-    expect(tracks.map((track) => track.codec.toUpperCase().replace('AIFF-C', 'AIFF'))).toEqual([codec, codec]);
+      expect(tracks.map(({ title }) => title)).toEqual(titles);
+      expect(tracks.map((track) => track.codec.toUpperCase().replace('AIFF-C', 'AIFF'))).toEqual([codec, codec]);
 
-    const wavs = await Promise.all(tracks.map((track) => playableFile(track, new AbortController().signal)));
-    const decoded = wavs.map((file) => readWav(file ?? 'missing'));
+      const wavs = await Promise.all(tracks.map((track) => playableFile(track, new AbortController().signal)));
+      const decoded = wavs.map((file) => readWav(file ?? 'missing'));
 
-    expect(decoded.map(({ bytes: width }) => width)).toEqual([bytes, bytes]);
-    expect(decoded.map(({ seconds: length }) => Math.round(length))).toEqual([seconds, seconds]);
-    expect(decoded.map(({ samples, sampleRate }, index) => toneShare(samples, index === 0 ? 440 : 880, sampleRate))).toEqual([
-      expect.toSatisfy((share: number) => share > 0.9),
-      expect.toSatisfy((share: number) => share > 0.9),
-    ]);
-  });
+      expect(decoded.map(({ bytes: width }) => width)).toEqual([bytes, bytes]);
+      expect(decoded.map(({ seconds: length }) => Math.round(length))).toEqual([seconds, seconds]);
+      expect(decoded.map(({ samples, sampleRate }, index) => toneShare(samples, index === 0 ? 440 : 880, sampleRate))).toEqual([
+        expect.toSatisfy((share: number) => share > 0.9),
+        expect.toSatisfy((share: number) => share > 0.9),
+      ]);
+    }
+  );
 });

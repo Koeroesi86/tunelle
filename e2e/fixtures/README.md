@@ -55,6 +55,13 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=48000" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2.
 
+`rf64/` and `w64/` have the same two tracks as 16 bit PCM (mono, 44.1 kHz) in an RF64 `.wav` (album "Lossless RF64", for `e2e/functional/rf64.spec.ts`) and in Wave64 `.w64` files, which have no tags (the muxer of ffmpeg writes none), for the integration tests of the decoder proxy:
+
+```sh
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16le -rf64 always -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album="Lossless RF64" -metadata track=1 rf64/1-concert-a.wav
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16le w64/1-concert-a.w64
+```
+
 `mka/` has the same two tracks as FLAC in a Matroska `.mka` (mono, 48 kHz) in the album "Lossless Matroska", for `e2e/functional/mka.spec.ts`:
 
 ```sh

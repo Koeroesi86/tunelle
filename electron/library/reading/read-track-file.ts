@@ -6,6 +6,9 @@ import crypto from 'crypto';
 import slugify from 'slugify';
 import type { Track } from '@shared/types/library';
 import readAudioFormat from './read-audio-format';
+import type { ReadFormat } from './read-audio-format';
+import { readLargeWave } from './read-large-wave';
+import type { LargeWave } from './read-large-wave';
 import readLoudness from './read-loudness';
 import normalizePath from '../../utils/normalize-path';
 import { getAlbumArtFolder } from '../../utils/album-art-folder';
@@ -50,7 +53,14 @@ const parsePicture = (picture: IPicture, album: string, appDataPath: string): st
   return path.basename(filePath);
 };
 
-const transformMeta = ({ common: metadata, format, native }: IAudioMetadata, fileName: string, appDataPath: string): Track => ({
+/** What a track is made of: the tags and the format of a file, which a Wave64 or RF64 file has only in part */
+interface ReadMeta {
+  common: Partial<IAudioMetadata['common']>;
+  format: ReadFormat & Pick<IAudioMetadata['format'], 'duration'>;
+  native: IAudioMetadata['native'];
+}
+
+const transformMeta = ({ common: metadata, format, native }: ReadMeta, fileName: string, appDataPath: string): Track => ({
   path: normalizePath(fileName),
   artist: metadata.artist || '',
   albumArtist: metadata.albumartist || '',
@@ -66,5 +76,22 @@ const transformMeta = ({ common: metadata, format, native }: IAudioMetadata, fil
   ...readLoudness(metadata, native),
 });
 
+const withoutNative = (wave: LargeWave): ReadMeta => ({ ...wave, native: {} });
+
+const readWave64 = async (fileName: string): Promise<ReadMeta> => {
+  const wave = await readLargeWave(fileName);
+  if (!wave) throw new Error(`${fileName} is not a Wave64 file`);
+  return withoutNative(wave);
+};
+
+/** Wave64 and RF64 files are read by `readLargeWave`, as `music-metadata` reads neither: it fails on the first and finds no format in the second. See docs/app/supported-formats.md */
+const readMeta = async (fileName: string): Promise<ReadMeta> => {
+  if (path.extname(fileName).toLowerCase() === '.w64') return readWave64(fileName);
+  const meta = await parseFile(fileName);
+  if (meta.format.codec) return meta;
+  const wave = await readLargeWave(fileName);
+  return wave ? withoutNative(wave) : meta;
+};
+
 /** Read the tags of a file and write its picture into the album art folder of the app data */
-export const readTrackFile = async (fileName: string, appDataPath: string): Promise<Track> => transformMeta(await parseFile(fileName), fileName, appDataPath);
+export const readTrackFile = async (fileName: string, appDataPath: string): Promise<Track> => transformMeta(await readMeta(fileName), fileName, appDataPath);

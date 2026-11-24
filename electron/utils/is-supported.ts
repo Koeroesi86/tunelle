@@ -24,6 +24,7 @@ export const supportedFormats = [
   'asf',
   'mka',
   'weba',
+  'w64',
 ];
 
 const isSupported = (filePath: string) => supportedFormats.includes(path.extname(filePath).replace('.', '').toLowerCase());

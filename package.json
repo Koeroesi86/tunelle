@@ -83,7 +83,8 @@
           "wma",
           "asf",
           "mka",
-          "weba"
+          "weba",
+          "w64"
         ],
         "name": "Audio file",
         "description": "Audio file",
