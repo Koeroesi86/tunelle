@@ -47,6 +47,14 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2.
 
+`ac3/` has the same two tracks in AC-3 (mono, 48 kHz, 96 kbit/s, in an `.m4a`) in the album "Lossy AC-3", for `e2e/functional/ac3.spec.ts`, made with ffmpeg and its native `ac3` encoder:
+
+```sh
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=48000" -ac 1 -c:a ac3 -b:a 96k -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossy AC-3" -metadata track=1 ac3/1-concert-a.m4a
+```
+
+The second track is the same with 880 Hz, "Octave Up" and track 2.
+
 `wav/` (16 bit PCM), `wav-float/` (32 bit float, and 64 bit float for the second track), `wav-adpcm/` (Microsoft ADPCM) and `wav-ima/` (IMA ADPCM) have the same two tracks in the albums "Lossless WAV", "Float WAV", "ADPCM WAV" and "IMA ADPCM WAV", for `e2e/functional/wav.spec.ts` (the first folder) and the integration tests of the decoder proxy. Made with ffmpeg, the same command with the codec of the folder (`pcm_s16le`, `pcm_f32le` and `pcm_f64le`, `adpcm_ms`, `adpcm_ima_wav`):
 
 ```sh

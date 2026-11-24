@@ -47,8 +47,8 @@ describe('scanFolder audio format', () => {
     expect(await stored()).toEqual([{ codec: 'FLAC', bitDepth: 24, sampleRate: 96000, bitrate: 2304000, vbr: null, lossless: 1 }]);
   });
 
-  it('does not store a file with a codec that does not play, like AC-3', async () => {
-    parsed.mockResolvedValue(meta({ codec: 'AC-3' }) as never);
+  it('does not store a file with a codec that does not play, like Speex', async () => {
+    parsed.mockResolvedValue(meta({ codec: 'SPEEX' }) as never);
 
     await scanFolder(root, sender);
 

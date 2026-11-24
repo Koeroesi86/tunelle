@@ -184,10 +184,10 @@ describe('rescanLibrary', () => {
 
   it('removes the tracks of a format or codec that is not supported, which an earlier version stored', async () => {
     const stored = (name: string) => path.join(root, name).replace(/\\/g, '/');
-    ['kept.flac', 'old.wmv', 'old.m2a', 'ac3.m4a'].forEach((name) => fs.writeFileSync(path.join(root, name), ''));
+    ['kept.flac', 'old.wmv', 'old.m2a', 'speex.m4a'].forEach((name) => fs.writeFileSync(path.join(root, name), ''));
     await addFolder(root, 0);
     await Promise.all(['kept.flac', 'old.wmv', 'old.m2a'].map((name) => addTrack(database, track(stored(name)))));
-    await addTrack(database, { ...track(stored('ac3.m4a')), codec: 'AC-3' });
+    await addTrack(database, { ...track(stored('speex.m4a')), codec: 'SPEEX' });
     await rescan();
 
     expect((await getLibrary(database, { sort: undefined, folders: [] })).map((item) => item.path)).toEqual([stored('kept.flac')]);
