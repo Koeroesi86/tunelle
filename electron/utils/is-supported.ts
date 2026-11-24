@@ -52,6 +52,11 @@ const decodedCodecs = [
 /** Decoded codecs whose length in frames is exact before the decode, so the WAV is served while it is written. See docs/app/decoder-proxy.md */
 const progressiveCodecs = ['ALAC', 'FLAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'WAV', 'IEEE_FLOAT'];
 
+/** Decoded codecs that Chromium plays too: where the bundled ffmpeg has no decoder for one (the Flatpak build, see docs/development/ffmpeg-build.md), the file is served as it is */
+const chromiumCodecs = ['MP3'];
+
+export const isChromiumCodec = (codec: string | null | undefined) => chromiumCodecs.includes(codec ?? '');
+
 export const isProgressiveCodec = (codec: string | null | undefined) => progressiveCodecs.includes(codec ?? '');
 
 export const isDecodedCodec = (codec: string | null | undefined) => decodedCodecs.includes(codec ?? '');

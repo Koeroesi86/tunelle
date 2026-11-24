@@ -3,7 +3,7 @@ import { createHash } from 'crypto';
 import { mkdir, readdir, rename, rm, stat, utimes } from 'fs/promises';
 import { join } from 'path';
 import { app } from 'electron';
-import { isDecodedCodec } from '../utils/is-supported';
+import { isChromiumCodec, isDecodedCodec } from '../utils/is-supported';
 import { logError } from '../utils/log-error';
 import { ffmpegProgram } from './ffmpeg-program';
 
@@ -182,6 +182,9 @@ export const decodeTrack = async (source: string, format: Format, signal: AbortS
   return job.done.finally(() => signal.removeEventListener('abort', onAbort));
 };
 
-/** The file the page gets for a track of the library: the file itself, or its decoded copy for a codec that Chromium does not play */
-export const playableFile = ({ path, ...format }: PlayableTrack, signal: AbortSignal) =>
-  isDecodedCodec(format.codec) ? decodeTrack(path, format, signal) : Promise.resolve(path);
+/** The file the page gets for a track of the library: the file itself, or its decoded copy for a codec that Chromium does not play; a codec that Chromium plays too falls back to the file when the decode fails */
+export const playableFile = async ({ path, ...format }: PlayableTrack, signal: AbortSignal) => {
+  if (!isDecodedCodec(format.codec)) return path;
+  const decoded = await decodeTrack(path, format, signal);
+  return decoded ?? (isChromiumCodec(format.codec) && !signal.aborted ? path : undefined);
+};

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import isSupported, { isDecodedCodec, isSupportedCodec } from './is-supported';
+import isSupported, { isChromiumCodec, isDecodedCodec, isSupportedCodec } from './is-supported';
 
 describe('isSupported', () => {
   it.each([
@@ -39,6 +39,12 @@ describe('isSupportedCodec', () => {
 
   it.each(['AC-3', 'SPEEX', 'THEORA', 'DSD-WAVPACK', 'DST', 'WMA-VOICE'])('rejects %s, which ffmpeg does not decode here', (codec) => {
     expect(isSupportedCodec(codec)).toBe(false);
+  });
+});
+
+describe('isChromiumCodec', () => {
+  it('names the decoded codecs that Chromium plays too, which the file falls back to', () => {
+    expect(['MP3', 'FLAC', 'AC-3', null, undefined].map(isChromiumCodec)).toEqual([true, false, false, false, false]);
   });
 });
 

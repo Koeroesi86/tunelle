@@ -217,6 +217,28 @@ describe('playableFile', () => {
     expect(spawn).not.toHaveBeenCalled();
   });
 
+  it('gives the file itself when the decode of a codec that Chromium plays fails, and nothing for one that it does not', async () => {
+    memoryFs.sync.mkdirSync('/music');
+    memoryFs.sync.writeFileSync('/music/a.mp3', 'mp3');
+    memoryFs.sync.writeFileSync('/music/a.aiff', 'aiff');
+    decoder({ code: 1 });
+    decoder({ code: 1 });
+
+    const signal = new AbortController().signal;
+
+    expect(await playableFile({ path: '/music/a.mp3', codec: 'MP3', bitDepth: 16 }, signal)).toBe('/music/a.mp3');
+    expect(await playableFile({ path: '/music/a.aiff', codec: 'AIFF', bitDepth: 16 }, signal)).toBeUndefined();
+  });
+
+  it('gives nothing for a request that is gone, whatever the codec', async () => {
+    memoryFs.sync.mkdirSync('/music');
+    memoryFs.sync.writeFileSync('/music/a.mp3', 'mp3');
+    const controller = new AbortController();
+    controller.abort();
+
+    expect(await playableFile({ path: '/music/a.mp3', codec: 'MP3', bitDepth: 16 }, controller.signal)).toBeUndefined();
+  });
+
   it('gives the decoded copy for a codec that it does not play', async () => {
     memoryFs.sync.mkdirSync('/music');
     memoryFs.sync.writeFileSync('/music/a.aiff', 'aiff');
