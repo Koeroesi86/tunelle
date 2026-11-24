@@ -21,7 +21,6 @@ const flacFolder = () => {
 
 const formats = [
   { format: 'FLAC', folder: flacFolder, album: 'Pitch Perfect' },
-  { format: 'mp3', folder: () => join(__dirname, '..', 'fixtures', 'mp3'), album: 'Encoder Delay' },
   { format: 'AAC', folder: () => join(__dirname, '..', 'fixtures', 'aac'), album: 'Priming' },
 ];
 

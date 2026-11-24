@@ -7,7 +7,7 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2. No real music or artist.
 
-`flac/` has the same two tracks in FLAC (16 bit, mono, 44.1 kHz) in the album "Lossless FLAC", for `e2e/functional/flac.spec.ts`, made with ffmpeg. `flac-hires/` has them at 24 bit and 96 kHz in the album "Lossless FLAC Hi-Res", each with an embedded cover (a 64x64 PNG), for the integration tests of the decoder proxy (the cover stream is not in the decoded WAV):
+`flac/` has the same two tracks in FLAC (16 bit, mono, 44.1 kHz) in the album "Lossless FLAC", for `electron/protocols/decoded-track.integration.test.ts`, made with ffmpeg. `flac-hires/` has them at 24 bit and 96 kHz in the album "Lossless FLAC Hi-Res", each with an embedded cover (a 64x64 PNG), for the integration tests of the decoder proxy (the cover stream is not in the decoded WAV):
 
 ```sh
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a flac -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless FLAC" -metadata track=1 flac/1-concert-a.flac
@@ -23,7 +23,7 @@ The second tracks are the same with 880 Hz, "Octave Up" and track 2.
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a alac -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless Apple" -metadata track=1 alac/1-concert-a.m4a
 ```
 
-`vorbis/` has the same two tracks in Ogg Vorbis (mono, 44.1 kHz, 64 kbit/s) in the album "Lossy Vorbis", for `e2e/functional/vorbis.spec.ts`, made with ffmpeg and libvorbis:
+`vorbis/` has the same two tracks in Ogg Vorbis (mono, 44.1 kHz, 64 kbit/s) in the album "Lossy Vorbis", for `electron/protocols/decoded-track.integration.test.ts`, made with ffmpeg and libvorbis:
 
 ```sh
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a libvorbis -b:a 64k -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossy Vorbis" -metadata track=1 vorbis/1-concert-a.ogg
@@ -31,7 +31,7 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2.
 
-`opus/` has the same two tracks in Opus (mono, 48 kHz, 48 kbit/s, in an Ogg `.opus`) in the album "Lossy Opus", for `e2e/functional/opus.spec.ts`, made with ffmpeg and libopus:
+`opus/` has the same two tracks in Opus (mono, 48 kHz, 48 kbit/s, in an Ogg `.opus`) in the album "Lossy Opus", for `electron/protocols/decoded-track.integration.test.ts`, made with ffmpeg and libopus:
 
 ```sh
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=48000" -ac 1 -c:a libopus -b:a 48k -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossy Opus" -metadata track=1 opus/1-concert-a.opus
@@ -39,7 +39,7 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=48000" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2.
 
-`mp2/` has the same two tracks in MP2 (mono, 44.1 kHz, 64 kbit/s) in the album "Lossy MP2", for `e2e/functional/mp2.spec.ts`. ffmpeg cannot write tags into a raw MP2 stream, so an ID3v2.3 tag (TIT2, TPE1, TPE2, TALB, TRCK) is put in front of the stream with a few lines of Node (one frame per tag, a synchsafe size in the 10 byte header):
+`mp2/` has the same two tracks in MP2 (mono, 44.1 kHz, 64 kbit/s) in the album "Lossy MP2", for `electron/protocols/decoded-track.integration.test.ts`. ffmpeg cannot write tags into a raw MP2 stream, so an ID3v2.3 tag (TIT2, TPE1, TPE2, TALB, TRCK) is put in front of the stream with a few lines of Node (one frame per tag, a synchsafe size in the 10 byte header):
 
 ```sh
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a mp2 -b:a 64k mp2/1-concert-a.mp2
@@ -47,7 +47,7 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2.
 
-`ac3/` has the same two tracks in AC-3 (mono, 48 kHz, 96 kbit/s, in an `.m4a`) in the album "Lossy AC-3", for `e2e/functional/ac3.spec.ts`, made with ffmpeg and its native `ac3` encoder:
+`ac3/` has the same two tracks in AC-3 (mono, 48 kHz, 96 kbit/s, in an `.m4a`) in the album "Lossy AC-3", for `electron/protocols/decoded-track.integration.test.ts`, made with ffmpeg and its native `ac3` encoder:
 
 ```sh
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=48000" -ac 1 -c:a ac3 -b:a 96k -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossy AC-3" -metadata track=1 ac3/1-concert-a.m4a
@@ -55,14 +55,14 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=48000" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2.
 
-`rf64/` and `w64/` have the same two tracks as 16 bit PCM (mono, 44.1 kHz) in an RF64 `.wav` (album "Lossless RF64", for `e2e/functional/rf64.spec.ts`) and in Wave64 `.w64` files, which have no tags (the muxer of ffmpeg writes none), for the integration tests of the decoder proxy:
+`rf64/` and `w64/` have the same two tracks as 16 bit PCM (mono, 44.1 kHz) in an RF64 `.wav` (album "Lossless RF64", for `electron/protocols/decoded-track.integration.test.ts`) and in Wave64 `.w64` files, which have no tags (the muxer of ffmpeg writes none), for the integration tests of the decoder proxy:
 
 ```sh
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16le -rf64 always -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album="Lossless RF64" -metadata track=1 rf64/1-concert-a.wav
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16le w64/1-concert-a.w64
 ```
 
-`caf/` (16 bit big-endian PCM) and `caf-alac/` (ALAC) have the same two tracks in Apple CAF `.caf` files (mono, 44.1 kHz, albums "Lossless CAF" and "Lossless CAF ALAC"), for `e2e/functional/caf.spec.ts` (the first folder) and the integration tests of the decoder proxy:
+`caf/` (16 bit big-endian PCM) and `caf-alac/` (ALAC) have the same two tracks in Apple CAF `.caf` files (mono, 44.1 kHz, albums "Lossless CAF" and "Lossless CAF ALAC"), for `electron/protocols/decoded-track.integration.test.ts` (the first folder) and the integration tests of the decoder proxy:
 
 ```sh
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16be -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album="Lossless CAF" -metadata track=1 caf/1-concert-a.caf
@@ -70,7 +70,7 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 
 The ALAC ones use `-c:a alac`. The second tracks are the same with 880 Hz, "Octave Up" and track 2.
 
-`mka/` has the same two tracks as FLAC in a Matroska `.mka` (mono, 48 kHz) in the album "Lossless Matroska", for `e2e/functional/mka.spec.ts`:
+`mka/` has the same two tracks as FLAC in a Matroska `.mka` (mono, 48 kHz) in the album "Lossless Matroska", for `electron/protocols/decoded-track.integration.test.ts`:
 
 ```sh
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=48000" -ac 1 -c:a flac -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless Matroska" -metadata track=1 mka/1-concert-a.mka
@@ -78,7 +78,7 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=48000" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2.
 
-`wav/` (16 bit PCM), `wav-float/` (32 bit float, and 64 bit float for the second track), `wav-adpcm/` (Microsoft ADPCM) and `wav-ima/` (IMA ADPCM) have the same two tracks in the albums "Lossless WAV", "Float WAV", "ADPCM WAV" and "IMA ADPCM WAV", for `e2e/functional/wav.spec.ts` (the first folder) and the integration tests of the decoder proxy. Made with ffmpeg, the same command with the codec of the folder (`pcm_s16le`, `pcm_f32le` and `pcm_f64le`, `adpcm_ms`, `adpcm_ima_wav`):
+`wav/` (16 bit PCM), `wav-float/` (32 bit float, and 64 bit float for the second track), `wav-adpcm/` (Microsoft ADPCM) and `wav-ima/` (IMA ADPCM) have the same two tracks in the albums "Lossless WAV", "Float WAV", "ADPCM WAV" and "IMA ADPCM WAV", for `electron/protocols/decoded-track.integration.test.ts` (the first folder) and the integration tests of the decoder proxy. Made with ffmpeg, the same command with the codec of the folder (`pcm_s16le`, `pcm_f32le` and `pcm_f64le`, `adpcm_ms`, `adpcm_ima_wav`):
 
 ```sh
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16le -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless WAV" -metadata track=1 wav/1-concert-a.wav
