@@ -1,16 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { open } from 'fs/promises';
 import { slowAfterMs } from './decode-policy';
 import { sourceSpeed } from './source-speed';
 
-vi.mock('fs/promises', () => ({ open: vi.fn() }));
+const { open } = vi.hoisted(() => ({ open: vi.fn() }));
+
+vi.mock('fs/promises', () => ({ open }));
+
+const wait = (delay: number) => new Promise((resolve) => setTimeout(resolve, delay));
 
 /** A source whose first read answers after `delay` ms, on fake timers */
-const answersAfter = (delay: number) =>
-  vi.mocked(open).mockResolvedValue({
-    read: () => new Promise((resolve) => setTimeout(() => resolve({ bytesRead: 1 }), delay)),
-    close: async () => undefined,
-  } as unknown as Awaited<ReturnType<typeof open>>);
+const answersAfter = (delay: number) => open.mockResolvedValue({ read: () => wait(delay).then(() => ({ bytesRead: 1 })), close: async () => undefined });
+
+/** A source whose file takes `delay` ms to open, as on a network mount, and whose read is at once */
+const opensAfter = (delay: number) =>
+  open.mockImplementation(() => wait(delay).then(() => ({ read: async () => ({ bytesRead: 1 }), close: async () => undefined })));
 
 const measure = async (volume: number) => {
   const speed = sourceSpeed('/music/a.flac', volume);
@@ -22,7 +25,7 @@ describe('sourceSpeed', () => {
   beforeEach(() => vi.useFakeTimers({ toFake: ['Date', 'setTimeout'] }));
   afterEach(() => {
     vi.useRealTimers();
-    vi.mocked(open).mockReset();
+    open.mockReset();
   });
 
   it('calls a source that answers at once fast', async () => {
@@ -33,6 +36,11 @@ describe('sourceSpeed', () => {
   it('calls a source that answers late slow', async () => {
     answersAfter(slowAfterMs + 100);
     await expect(measure(2)).resolves.toBe('slow');
+  });
+
+  it('counts the time the file takes to open, as a network mount is slow there', async () => {
+    opensAfter(slowAfterMs + 100);
+    await expect(measure(7)).resolves.toBe('slow');
   });
 
   it('measures a volume once and keeps the result for its other files', async () => {
@@ -51,7 +59,7 @@ describe('sourceSpeed', () => {
   });
 
   it('counts a file that can not be read as slow', async () => {
-    vi.mocked(open).mockRejectedValue(new Error('gone'));
+    open.mockRejectedValue(new Error('gone'));
     await expect(measure(6)).resolves.toBe('slow');
   });
 });

@@ -28,6 +28,8 @@ interface Growing {
   ahead: number;
   /** The furthest byte of samples that a read asked for */
   demand: number;
+  /** How many reads are open: a decode is held for them however long they wait, and stopped for idleness only when there are none */
+  readers: number;
   state: 'running' | 'done' | 'failed';
   events: EventEmitter;
 }
@@ -96,9 +98,11 @@ const openWhenWritten = async (growing: Growing, signal: AbortSignal) => {
 async function* readGrowing(growing: Growing, start: number, end: number, signal: AbortSignal) {
   const handle: FileHandle | undefined = await openWhenWritten(growing, signal);
   if (!handle) return;
+  growing.readers++;
   try {
     yield* readFrom(growing, handle, start, end, signal);
   } finally {
+    growing.readers--;
     await handle.close().catch(() => undefined);
   }
 }
@@ -117,11 +121,12 @@ const waitForDemand = async (growing: Growing) => {
   return asked;
 };
 
-/** Holds the decode back while it is a window ahead of every read; throws when no read comes for too long */
+/** Holds the decode back while it is a window ahead of every read; throws when no read comes for too long and none is open (a paused player keeps one) */
 const holdBack = async (growing: Growing) => {
-  const asked = growing.written > growing.demand + growing.ahead ? await waitForDemand(growing) : true;
-  if (!asked) throw new Error('no reader came for the decoded track');
-  if (growing.written > growing.demand + growing.ahead) await holdBack(growing);
+  if (growing.written <= growing.demand + growing.ahead) return;
+  const asked = await waitForDemand(growing);
+  if (!asked && growing.readers === 0) throw new Error('no reader came for the decoded track');
+  await holdBack(growing);
 };
 
 const copyOutput = async (growing: Growing, handle: FileHandle, output: AsyncIterable<Buffer>) => {
@@ -189,6 +194,7 @@ const startGrowing = (key: string, source: string, encoder: string[], target: st
     written: 0,
     ahead: aheadBytes(speed, bytesPerSecond),
     demand: 0,
+    readers: 0,
     state: 'running',
     events: new EventEmitter(),
   };
