@@ -12,11 +12,26 @@ The first play of a track waits for the whole decode, and the page gets the answ
 
 A codec whose length in frames is exact before the decode (ALAC, FLAC, APE, WavPack, AIFF, WAV and float WAV; `progressiveCodecs` in `electron/utils/is-supported.ts`) is served while ffmpeg writes it (`growing-track.ts`, `serve-growing.ts`). `ffprobe` (`probe-audio.ts`) gives the channels, the rate and the frames, only when the time base of the stream is one frame (`1/<rate>`); the header of the WAV (`wav-header.ts`) is then written with the size that the file will have, and the answer to the page has that size and the ranges of the finished file. ffmpeg writes raw samples to a pipe (the `s16le`, `s24le` and `s32le` muxers of the build), the app appends them to the `.part` file after the header and a read waits for the bytes that are not written yet, so the track starts at once and a seek far ahead waits for the decode to get there.
 
-- A decode is not stopped when a request goes: several range reads share the file, so it runs to the end and stays in the cache.
+- A decode is not stopped when a request goes: several range reads share the file, so it runs to the end and stays in the cache (a fast source pauses it, see below).
 - A byte count that differs from the declared size drops the file, and that track uses the whole decode from then on (until the app restarts).
 - WMA and DSD have an inexact length and stay on the whole decode.
 - The reader of a growing file opens it when the decode has its slot, so a read that comes first waits for the file.
 - Not tried yet: a seek in the app while the decode runs. `growing-track.integration.test.ts` covers the real ffmpeg without Electron.
+
+## How much is decoded: the speed of the source
+
+Constants are in `electron/protocols/decode-policy.ts`, the measurement in `source-speed.ts`. `prepareDecode` reads the first 256 KiB of the file once per volume (`stat.dev`) and keeps the result until the app restarts; a read that takes over 50 ms (about 5 MB/s) makes the volume **slow**, anything else **fast**, and a file that cannot be read counts as slow.
+
+| | fast source | slow source |
+| --- | --- | --- |
+| progressive decode | paused 60 s of audio ahead of the furthest byte a read asked for, continued when a read comes near (a seek ahead moves the window) | decoded to the end at once |
+| cache limit of its copies | 256 MiB | 2 GiB |
+
+- A paused decode gives its slot back, so it does not hold up the other tracks; the preloaded next track decodes its first window and waits there. One that no read comes to for 5 minutes is stopped and its `.part` file removed, and a later request starts it again.
+- A copy keeps its class in memory (`fastKeys` in `decoded-track.ts`), so after a restart the copies in the folder count as slow ones until they are served again. The decode that needs the whole file first (WMA, DSD) is not windowed, but its copy follows the same limits.
+- Measured on the laptop (NVMe, btrfs): the read of 256 KiB takes 0.2 to 0.3 ms with the file in the page cache. The 50 ms threshold is a margin of 200 times over that and was **not** measured on a network mount, a USB disk or a sleeping spinning disk; a cold NVMe read is expected in the low milliseconds. Move `slowAfterMs` when such a source is measured.
+- A decode does not restart at an offset: the window is a pause of the same ffmpeg run, so the file on disk is not trimmed and a track that is played to the end is whole in the cache until the limit evicts it. The saving is in the limit (a fast source keeps about 256 MiB instead of 2 GiB) and in the work not done for a track that is skipped. The disk used by a whole album is not measured yet. A window in memory or a trimmed file needs a decode that restarts, which comes with the streaming of online sources.
+- Tests: `source-speed.test.ts` (a fake source that answers late), `decode-policy.test.ts`, and `growing-window.integration.test.ts` (the real ffmpeg pauses a fast source and finishes when the rest is read).
 
 ## The decode
 
@@ -38,7 +53,7 @@ The same rule holds for the online sources: a format in `decodedCodecs` is decod
 
 `tunelle-decoded` in the temp folder of the system. The key is a hash of the path, the size and modification time of the source and the output format, so a changed file is decoded again and the old copy is evicted with time. A copy that is served gets its modification time set to now.
 
-After each decode the oldest files are removed until the folder is under 2 GiB (a 24/96 album is some hundreds of MB), except the files being written and the three served last: the track that plays, the preloaded next one (`upNext`, whose request starts the decode early so the hand-off stays gapless) and the previous one. Stale `.part` files go the same way.
+After each decode the oldest files are removed until the copies of slow sources are under 2 GiB and the copies of fast sources under 256 MiB (see above) (a 24/96 album is some hundreds of MB), except the files being written and the three served last: the track that plays, the preloaded next one (`upNext`, whose request starts the decode early so the hand-off stays gapless) and the previous one. Stale `.part` files go the same way.
 
 ## Tests
 
