@@ -38,7 +38,7 @@ describe('isSupportedCodec', () => {
     }
   );
 
-  it.each(['AC-3', 'SPEEX', 'THEORA', 'DSD-WAVPACK', 'DST', 'WMA-VOICE'])('rejects %s, which ffmpeg does not decode here', (codec) => {
+  it.each(['SPEEX', 'THEORA', 'DSD-WAVPACK', 'DST', 'WMA-VOICE'])('rejects %s, which ffmpeg does not decode here', (codec) => {
     expect(isSupportedCodec(codec)).toBe(false);
   });
 });
@@ -71,8 +71,9 @@ describe('isDecodedCodec', () => {
         'MP3',
         'OPUS',
         'MP2',
+        'AC-3',
       ].map(isDecodedCodec)
-    ).toEqual(Array(18).fill(true));
-    expect(['AAC', 'AC-3', null, undefined].map(isDecodedCodec)).toEqual([false, false, false, false]);
+    ).toEqual(Array(19).fill(true));
+    expect(['AAC', 'SPEEX', null, undefined].map(isDecodedCodec)).toEqual([false, false, false, false]);
   });
 });

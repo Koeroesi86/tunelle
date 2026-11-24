@@ -27,7 +27,7 @@ export const supportedFormats = [
 const isSupported = (filePath: string) => supportedFormats.includes(path.extname(filePath).replace('.', '').toLowerCase());
 
 /** Codecs that sit in a container that plays, which Chromium does not decode. See docs/app/supported-formats.md */
-const unsupportedCodecs = ['AC-3', 'SPEEX', 'THEORA', 'DSD-WAVPACK', 'DST', 'WMA-VOICE'];
+const unsupportedCodecs = ['SPEEX', 'THEORA', 'DSD-WAVPACK', 'DST', 'WMA-VOICE'];
 
 /** Codecs that Chromium does not decode and that ffmpeg decodes before the track is served. See docs/app/decoder-proxy.md */
 const decodedCodecs = [
@@ -49,6 +49,7 @@ const decodedCodecs = [
   'MP3',
   'OPUS',
   'MP2',
+  'AC-3',
 ];
 
 /** Decoded codecs whose length in frames is exact before the decode, so the WAV is served while it is written. See docs/app/decoder-proxy.md */

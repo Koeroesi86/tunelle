@@ -91,13 +91,13 @@ describe('openFiles', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     reader.read.mockImplementation(async (file: string) => {
       if (file === abs('/music/bad.flac')) throw new Error('unreadable');
-      return track(file, file === abs('/music/ac3.wav') ? 'AC-3' : 'FLAC');
+      return track(file, file === abs('/music/speex.wav') ? 'SPEEX' : 'FLAC');
     });
 
-    await openFiles([abs('/music/bad.flac'), abs('/music/ac3.wav'), abs('/music/ok.flac')], '/');
+    await openFiles([abs('/music/bad.flac'), abs('/music/speex.wav'), abs('/music/ok.flac')], '/');
 
     expect(sender.send).toHaveBeenCalledWith('OPENED_FILES', { tracks: [track(abs('/music/ok.flac'))] });
-    expect(findOpenedTrack(abs('/music/ac3.wav'))).toBeUndefined();
+    expect(findOpenedTrack(abs('/music/speex.wav'))).toBeUndefined();
   });
 
   it('reads nothing when no argument is an audio file', async () => {
