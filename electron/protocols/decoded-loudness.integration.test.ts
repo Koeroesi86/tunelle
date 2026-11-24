@@ -55,6 +55,7 @@ const formats = [
   { folder: 'dsd', amplitude: 0.5 },
   { folder: 'wma', amplitude: 0.125 },
   { folder: 'mp3', amplitude: 0.125, peakDigits: 1, lufsDigits: 0 },
+  { folder: 'mp2', amplitude: 0.125, peakDigits: 1, lufsDigits: 0 },
   { folder: 'opus', amplitude: 0.125, peakDigits: 1, lufsDigits: 0 },
   { folder: 'wav', amplitude: 0.125 },
   { folder: 'wav-float', amplitude: 0.125 },

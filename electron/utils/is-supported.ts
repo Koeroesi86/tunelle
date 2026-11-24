@@ -8,6 +8,7 @@ export const supportedFormats = [
   'm4r',
   'aac',
   'mp3',
+  'mp2',
   'oga',
   'ogg',
   'opus',
@@ -47,6 +48,7 @@ const decodedCodecs = [
   'MULAW',
   'MP3',
   'OPUS',
+  'MP2',
 ];
 
 /** Decoded codecs whose length in frames is exact before the decode, so the WAV is served while it is written. See docs/app/decoder-proxy.md */
