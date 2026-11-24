@@ -23,6 +23,7 @@ describe('isSupported', () => {
     'a.mka',
     'a.weba',
     'a.w64',
+    'a.caf',
     'C:/Music/b.flac',
   ])('accepts %s', (name) => {
     expect(isSupported(name)).toBe(true);
@@ -41,7 +42,7 @@ describe('isSupportedCodec', () => {
     }
   );
 
-  it.each(['MATROSKA-AAC', 'SPEEX', 'THEORA', 'DSD-WAVPACK', 'DST', 'WMA-VOICE'])('rejects %s, which ffmpeg does not decode here', (codec) => {
+  it.each(['MATROSKA-AAC', 'CAF-AAC', 'SPEEX', 'THEORA', 'DSD-WAVPACK', 'DST', 'WMA-VOICE'])('rejects %s, which ffmpeg does not decode here', (codec) => {
     expect(isSupportedCodec(codec)).toBe(false);
   });
 });

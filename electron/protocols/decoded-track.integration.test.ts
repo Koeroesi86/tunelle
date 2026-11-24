@@ -48,6 +48,8 @@ const formats = [
   { folder: 'wav-float', codec: 'IEEE_FLOAT', bytes: 4, seconds: 6 },
   { folder: 'wav-adpcm', codec: 'ADPCM', bytes: 2, seconds: 6 },
   { folder: 'wav-ima', codec: 'DVI_ADPCM', bytes: 2, seconds: 6 },
+  { folder: 'caf', codec: 'CAF', bytes: 2, seconds: 6 },
+  { folder: 'caf-alac', codec: 'ALAC', bytes: 2, seconds: 6 },
   { folder: 'rf64', codec: 'WAV', bytes: 2, seconds: 6 },
   // Wave64 has no tags that ffmpeg writes or the scan reads, so the titles are empty
   { folder: 'w64', codec: 'WAV', bytes: 2, seconds: 6, titles: ['', ''] },

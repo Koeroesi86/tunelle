@@ -84,7 +84,8 @@
           "asf",
           "mka",
           "weba",
-          "w64"
+          "w64",
+          "caf"
         ],
         "name": "Audio file",
         "description": "Audio file",

@@ -62,6 +62,14 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a 
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16le w64/1-concert-a.w64
 ```
 
+`caf/` (16 bit big-endian PCM) and `caf-alac/` (ALAC) have the same two tracks in Apple CAF `.caf` files (mono, 44.1 kHz, albums "Lossless CAF" and "Lossless CAF ALAC"), for `e2e/functional/caf.spec.ts` (the first folder) and the integration tests of the decoder proxy:
+
+```sh
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a pcm_s16be -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album="Lossless CAF" -metadata track=1 caf/1-concert-a.caf
+```
+
+The ALAC ones use `-c:a alac`. The second tracks are the same with 880 Hz, "Octave Up" and track 2.
+
 `mka/` has the same two tracks as FLAC in a Matroska `.mka` (mono, 48 kHz) in the album "Lossless Matroska", for `e2e/functional/mka.spec.ts`:
 
 ```sh

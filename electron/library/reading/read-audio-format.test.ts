@@ -46,6 +46,18 @@ describe('readAudioFormat', () => {
   });
 
   it.each([
+    [{ codec: 'PCM', container: 'CAF' }, 'CAF'],
+    [{ codec: 'ALAC', container: 'CAF' }, 'ALAC'],
+    [{ codec: 'ITU-T G.711 A-law', container: 'CAF' }, 'ALAW'],
+    [{ codec: 'ITU-T G.711 mu-law', container: 'CAF' }, 'MULAW'],
+    [{ codec: 'AAC', container: 'CAF' }, 'CAF-AAC'],
+    [{ codec: 'IMA4 ADPCM', container: 'CAF' }, 'CAF-IMA4 ADPCM'],
+    [{ codec: 'MPEG-1 Layer III', container: 'CAF' }, 'CAF-MPEG-1 LAYER III'],
+  ])('names %o %s, only PCM, ALAC, A-law and µ-law being decoded from CAF', (format, codec) => {
+    expect(readAudioFormat(format)).toMatchObject({ codec });
+  });
+
+  it.each([
     [{ codec: 'PCM', container: 'WAVE' }, 'WAV'],
     [{ codec: 'PCM', container: 'AIFF' }, 'AIFF'],
     [{ codec: 'PCM (byte swapped)', container: 'AIFF-C' }, 'AIFF-C'],
