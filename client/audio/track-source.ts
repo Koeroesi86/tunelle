@@ -9,7 +9,10 @@ export const sourceOf = (track: Track) => {
   const station = radioUuidOf(track.path);
   if (station) return localUrl(`/radio/${encodeURIComponent(station)}`);
 
-  if (isSourcePath(track.path)) return localUrl(`/source/audio?path=${encodeURIComponent(track.path)}`);
+  if (isSourcePath(track.path))
+    return localUrl(
+      `/source/audio?${new URLSearchParams({ path: track.path, ...(track.codec ? { codec: track.codec } : {}), ...(track.bitDepth ? { bitDepth: String(track.bitDepth) } : {}) })}`
+    );
 
   const remote = remoteKeyOf(track.path);
   if (remote !== undefined) return localUrl(`/remote/audio?t=${remote}`);

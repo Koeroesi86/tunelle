@@ -11,8 +11,8 @@ const metadata = (text: string) => {
   return Buffer.concat([Buffer.from([padded.length / 16]), padded]);
 };
 
-/** A frame of 128 kbit/s at 44.1 kHz, which is 417 bytes: 0xFFFB, bitrate 9, rate 0 */
-const mp3Frame = Buffer.concat([Buffer.from([0xff, 0xfb, 0x90, 0x00]), Buffer.alloc(413)]);
+/** An AAC (ADTS) frame of 300 bytes at 44.1 kHz: AAC is not decoded by ffmpeg, so it plays as it comes, and an MP3 would not (stream-decode.integration.test.ts) */
+const adtsFrame = Buffer.concat([Buffer.from([0xff, 0xf1, (1 << 6) | (4 << 2), 0, 300 >> 3, ((300 & 7) << 5) | 0x1f, 0xfc]), Buffer.alloc(293)]);
 
 describe('serveRadio', () => {
   const titles: [string, string][] = [];
@@ -40,9 +40,9 @@ describe('serveRadio', () => {
         response.end(`asked for metadata: ${request.headers['icy-metadata']}`);
         return;
       }
-      if (request.url === '/mp3') {
-        response.writeHead(200, { 'content-type': 'audio/mpeg' });
-        response.end(Buffer.concat([mp3Frame, mp3Frame, mp3Frame]));
+      if (request.url === '/aac') {
+        response.writeHead(200, { 'content-type': 'audio/aac' });
+        response.end(Buffer.concat([adtsFrame, adtsFrame, adtsFrame]));
         return;
       }
       if (request.url === '/moved') {
@@ -86,12 +86,12 @@ describe('serveRadio', () => {
   });
 
   it('reports the sample rate found in the start of the stream, and serves the stream whole', async () => {
-    resolved.mp3 = `${stationUrl}/mp3`;
+    resolved.aac = `${stationUrl}/aac`;
 
-    const response = await serve('mp3');
+    const response = await serve('aac');
 
-    expect((await response.arrayBuffer()).byteLength).toBe(mp3Frame.length * 3);
-    expect(rates).toEqual([['mp3', 44100]]);
+    expect((await response.arrayBuffer()).byteLength).toBe(adtsFrame.length * 3);
+    expect(rates).toEqual([['aac', 44100]]);
   });
 
   it('reports no sample rate for a stream that has none that is known', async () => {

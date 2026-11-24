@@ -1,15 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { serveSource } from './source-protocol';
+import { downloadSource } from './source-download';
+import { servePlayable } from './serve-track';
+
+vi.mock('./source-download', () => ({ downloadSource: vi.fn() }));
+vi.mock('./serve-track', () => ({ servePlayable: vi.fn() }));
 
 const serverId = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';
 const path = `subsonic:${serverId}:song:1`;
 const client = { stream: vi.fn(), cover: vi.fn() };
 const clientOf = vi.fn();
 const sources = { clientOf };
-const ask = (headers: Record<string, string> = {}) => new Request('tunelle://app/source/audio', { headers });
+const ask = (headers: Record<string, string> = {}, query = '') => new Request(`tunelle://app/source/audio${query}`, { headers });
 
 describe('serveSource', () => {
   beforeEach(() => {
+    vi.mocked(downloadSource).mockReset();
+    vi.mocked(servePlayable).mockReset().mockResolvedValue(new Response('wav'));
     client.stream.mockReset().mockResolvedValue(new Response('audio', { status: 206 }));
     client.cover.mockReset().mockResolvedValue(new Response('cover'));
     clientOf.mockReset().mockResolvedValue(client);
@@ -29,6 +36,31 @@ describe('serveSource', () => {
     await serveSource('audio', path, ask(), sources);
 
     expect(client.stream).toHaveBeenCalledWith('song:1', undefined, expect.any(AbortSignal));
+  });
+
+  it('downloads a track in a codec that ffmpeg decodes and serves it like a file of the library', async () => {
+    vi.mocked(downloadSource).mockResolvedValue('/temp/track.src');
+    const request = ask({}, '?codec=ALAC&bitDepth=24');
+
+    expect(await (await serveSource('audio', path, request, sources)).text()).toBe('wav');
+    expect(downloadSource).toHaveBeenCalledWith(path, client, 'song:1', request.signal);
+    expect(servePlayable).toHaveBeenCalledWith({ path: '/temp/track.src', codec: 'ALAC', bitDepth: 24 }, request);
+    expect(client.stream).not.toHaveBeenCalled();
+  });
+
+  it('plays the stream of the server when the download fails', async () => {
+    vi.mocked(downloadSource).mockResolvedValue(undefined);
+
+    await serveSource('audio', path, ask({}, '?codec=ALAC'), sources);
+
+    expect(client.stream).toHaveBeenCalledWith('song:1', undefined, expect.any(AbortSignal));
+  });
+
+  it('leaves a codec that ffmpeg does not decode to Chromium', async () => {
+    await serveSource('audio', path, ask({}, '?codec=AAC'), sources);
+
+    expect(downloadSource).not.toHaveBeenCalled();
+    expect(client.stream).toHaveBeenCalled();
   });
 
   it('gives the cover of a track', async () => {

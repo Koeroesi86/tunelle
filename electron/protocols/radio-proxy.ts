@@ -2,7 +2,10 @@ import http from 'http';
 import https from 'https';
 import { PassThrough, pipeline } from 'stream';
 import { IcyMetadataStripper } from './icy-metadata';
+import { detectStreamCodec } from '@shared/utils/stream-sample-rate';
 import { SampleRateTap } from './sample-rate-tap';
+import { decodeStream, peekStream, replay } from './stream-decode';
+import { isDecodedCodec } from '../utils/is-supported';
 
 export interface RadioStreamDeps {
   /** The address of the stream of a station */
@@ -57,11 +60,17 @@ export const openRadioStream = async (uuid: string, signal: AbortSignal, { resol
 
   const metaint = Number(upstream.headers['icy-metaint']);
   const strippers = metaint > 0 ? [new IcyMetadataStripper(metaint, (title, streamUrl) => onTitle(uuid, title, streamUrl))] : [];
-  const rateTap = new SampleRateTap((sampleRate) => onSampleRate(uuid, sampleRate));
-
   // one pipeline: destroying the audio ends every stage, and the abort of the upstream is an end, not an unhandled error that opens an error dialog and holds the app
+  const clean = new PassThrough();
+  pipeline([upstream, ...strippers, clean], () => undefined);
+
+  // a codec that the bundled ffmpeg decodes is decoded by it, any other (AAC) and a stream with no known format play in Chromium as they come. See docs/app/decoder-proxy.md
+  const head = await peekStream(clean, detectStreamCodec);
+  const decoded = isDecodedCodec(detectStreamCodec(head)) ? await decodeStream(head, clean, (sampleRate) => onSampleRate(uuid, sampleRate)) : undefined;
+  if (decoded) return { contentType: 'audio/wav', audio: decoded };
+
   const audio = new PassThrough();
-  pipeline([upstream, ...strippers, rateTap, audio], () => undefined);
+  pipeline([replay(head, clean), new SampleRateTap((sampleRate) => onSampleRate(uuid, sampleRate)), audio], () => undefined);
 
   return { contentType: upstream.headers['content-type'] ?? 'audio/mpeg', audio };
 };
