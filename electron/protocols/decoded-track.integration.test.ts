@@ -33,6 +33,7 @@ const formats = [
   { folder: 'flac', codec: 'FLAC', bytes: 2, seconds: 6 },
   { folder: 'flac-hires', codec: 'FLAC', bytes: 3, seconds: 6 },
   { folder: 'alac', codec: 'ALAC', bytes: 2, seconds: 6 },
+  { folder: 'vorbis', codec: 'VORBIS', bytes: 2, seconds: 6 },
   { folder: 'ape', codec: "MONKEY'S", bytes: 2, seconds: 6 },
   { folder: 'wavpack', codec: 'WAVPACK', bytes: 2, seconds: 6 },
   { folder: 'aiff', codec: 'AIFF', bytes: 2, seconds: 6 },

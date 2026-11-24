@@ -23,6 +23,14 @@ The second tracks are the same with 880 Hz, "Octave Up" and track 2.
 ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a alac -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossless Apple" -metadata track=1 alac/1-concert-a.m4a
 ```
 
+`vorbis/` has the same two tracks in Ogg Vorbis (mono, 44.1 kHz, 64 kbit/s) in the album "Lossy Vorbis", for `e2e/functional/vorbis.spec.ts`, made with ffmpeg and libvorbis:
+
+```sh
+ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=44100" -ac 1 -c:a libvorbis -b:a 64k -metadata title="Concert A" -metadata artist="The Sine Waves" -metadata album_artist="The Sine Waves" -metadata album="Lossy Vorbis" -metadata track=1 vorbis/1-concert-a.ogg
+```
+
+The second track is the same with 880 Hz, "Octave Up" and track 2.
+
 `ape/` has the same two tracks in Monkey's Audio (16 bit, mono, 44.1 kHz, normal compression) in the album "Lossless Monkey", for `electron/protocols/decoded-track.integration.test.ts`. They are made with the `mac` tool of the official SDK (<https://monkeysaudio.com/developers.html>) from WAV files that ffmpeg generates:
 
 ```sh
