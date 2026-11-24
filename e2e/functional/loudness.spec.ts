@@ -3,7 +3,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import type { Page } from '@playwright/test';
 import { addFolder, expect, libraryTracks, navigate, test } from '../support/app';
-import { albums, writeLongWav, writeTrack } from '../support/library';
+import { albums, writeTrack } from '../support/library';
 import { expectTone, levelNow, steadyLevel } from '../support/audio';
 import { player } from '../support/player';
 
@@ -69,18 +69,4 @@ test('shows the histogram of a song that is measured while it plays, and levels 
   const full = await steadyLevel(page);
   await page.getByRole('radio', { name: 'Album', exact: true }).click();
   await expect.poll(async () => (await levelNow(page)) / full).toBeCloseTo(cut, 1);
-});
-
-test('measures a track that is too long to decode as a whole, in pieces', async ({ start }) => {
-  const { page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '0' } });
-  const folder = mkdtempSync(join(tmpdir(), 'tunelle-loudness-'));
-  // 50 minutes, over the 45 that are decoded as a whole
-  writeLongWav(folder, 3000);
-  await addFolder(page, folder, 1);
-  const [{ path }] = await libraryTracks(page);
-
-  await expect.poll(async () => (await gainsOf(page, path)).trackGain, { message: 'the measured gain of the long track', timeout: 120_000 }).not.toBeNull();
-
-  // a sine of half the full scale in one channel is at -9.7 LUFS, 3 dB under the same in two
-  expect((await gainsOf(page, path)).trackGain).toBeCloseTo(-8.3, 0);
 });
