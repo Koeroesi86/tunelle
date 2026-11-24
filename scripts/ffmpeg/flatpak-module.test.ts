@@ -19,7 +19,7 @@ describe('the Flatpak module of ffmpeg', () => {
     const configure = module['build-commands'][0];
 
     source.configure.filter((flag) => !/^--enable-(demuxer|decoder)=/.test(flag)).forEach((flag) => expect(configure).toContain(flag));
-    expect(configure).toContain('--enable-demuxer=mov,flac,ogg,wav,ape,wv,aiff,iff,dsf,tta,tak,mpc,mpc8 ');
+    expect(configure).toContain('--enable-demuxer=mov,flac,ogg,wav,mp3,ape,wv,aiff,iff,dsf,tta,tak,mpc,mpc8 ');
     source.forbidden.forEach((flag) => expect(configure).not.toContain(flag));
   });
 

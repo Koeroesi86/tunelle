@@ -213,7 +213,7 @@ describe('playableFile', () => {
   });
 
   it('gives the file itself for a codec that Chromium plays', async () => {
-    expect(await playableFile({ path: '/music/a.mp3', codec: 'MP3', bitDepth: 16 }, new AbortController().signal)).toBe('/music/a.mp3');
+    expect(await playableFile({ path: '/music/a.m4a', codec: 'AAC', bitDepth: 16 }, new AbortController().signal)).toBe('/music/a.m4a');
     expect(spawn).not.toHaveBeenCalled();
   });
 

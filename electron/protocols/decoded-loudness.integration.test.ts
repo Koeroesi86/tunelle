@@ -42,7 +42,7 @@ const measureDecoded = (file: string) => {
   return measureSamples(channelData.map((samples) => resample(samples, sampleRate, measurementRate)));
 };
 
-// a lossy codec overshoots the peak of the sine a little (`peakDigits`: 1 allows 0.05, the default 2 allows 0.005)
+// a lossy codec overshoots the peak of the sine a little and its level is a little off (`peakDigits`: 1 allows 0.05, the default 2 allows 0.005; `lufsDigits`: 0 allows 0.5 LU, the default 1 allows 0.05)
 // the sines of e2e/fixtures: the ones that ffmpeg made are at its default amplitude of 0.125, the DSD ones at 0.5 (scripts/tooling/generate-dsd-fixtures.ts)
 const formats = [
   { folder: 'flac', amplitude: 0.125 },
@@ -54,6 +54,7 @@ const formats = [
   { folder: 'aiff', amplitude: 0.125 },
   { folder: 'dsd', amplitude: 0.5 },
   { folder: 'wma', amplitude: 0.125 },
+  { folder: 'mp3', amplitude: 0.125, peakDigits: 1, lufsDigits: 0 },
   { folder: 'wav', amplitude: 0.125 },
   { folder: 'wav-float', amplitude: 0.125 },
   { folder: 'wav-adpcm', amplitude: 0.125, peakDigits: 1 },
@@ -85,18 +86,21 @@ describe('the loudness of the decoded sound of the formats that Chromium does no
     expect(sineLufs(440, 0.5)).toBeCloseTo(-9.7, 1);
   });
 
-  it.each(formats)('measures the decoded sines of $folder like the ideal ones they were made as', async ({ folder, amplitude, peakDigits = 2 }) => {
-    const tracks = await executeQuery(
-      database,
-      { query: 'SELECT path, codec, bitDepth FROM library WHERE path LIKE ? ORDER BY path', variables: [`%/fixtures/${folder}/%`] },
-      trackSchema
-    );
-    const wavs = await Promise.all(tracks.map((track) => playableFile(track, new AbortController().signal)));
-    const analyses = wavs.map((file) => measureDecoded(file ?? 'missing'));
+  it.each(formats)(
+    'measures the decoded sines of $folder like the ideal ones they were made as',
+    async ({ folder, amplitude, peakDigits = 2, lufsDigits = 1 }) => {
+      const tracks = await executeQuery(
+        database,
+        { query: 'SELECT path, codec, bitDepth FROM library WHERE path LIKE ? ORDER BY path', variables: [`%/fixtures/${folder}/%`] },
+        trackSchema
+      );
+      const wavs = await Promise.all(tracks.map((track) => playableFile(track, new AbortController().signal)));
+      const analyses = wavs.map((file) => measureDecoded(file ?? 'missing'));
 
-    expect(analyses).toHaveLength(2);
-    expect(analyses[0].integratedLufs).toBeCloseTo(sineLufs(440, amplitude), 1);
-    expect(analyses[1].integratedLufs).toBeCloseTo(sineLufs(880, amplitude), 1);
-    expect(analyses.map(({ samplePeak }) => samplePeak)).toEqual([expect.closeTo(amplitude, peakDigits), expect.closeTo(amplitude, peakDigits)]);
-  });
+      expect(analyses).toHaveLength(2);
+      expect(analyses[0].integratedLufs).toBeCloseTo(sineLufs(440, amplitude), lufsDigits);
+      expect(analyses[1].integratedLufs).toBeCloseTo(sineLufs(880, amplitude), lufsDigits);
+      expect(analyses.map(({ samplePeak }) => samplePeak)).toEqual([expect.closeTo(amplitude, peakDigits), expect.closeTo(amplitude, peakDigits)]);
+    }
+  );
 });

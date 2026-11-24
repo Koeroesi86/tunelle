@@ -39,6 +39,7 @@ const formats = [
   { folder: 'aiff', codec: 'AIFF', bytes: 2, seconds: 6 },
   { folder: 'dsd', codec: 'DSD', bytes: 3, seconds: 3 },
   { folder: 'wma', codec: 'WMA', bytes: 2, seconds: 6 },
+  { folder: 'mp3', codec: 'MP3', bytes: 2, seconds: 6 },
   { folder: 'wav', codec: 'WAV', bytes: 2, seconds: 6 },
   { folder: 'wav-float', codec: 'IEEE_FLOAT', bytes: 4, seconds: 6 },
   { folder: 'wav-adpcm', codec: 'ADPCM', bytes: 2, seconds: 6 },
