@@ -8,7 +8,7 @@ A machine with no GPU, or one whose driver Chromium does not use, draws the wind
 
 It can not run earlier: the status says `disabled_software` until a page was drawn, as the GPU process starts with the first one (also after `app.whenReady()`, `getGPUInfo` and a window that is created but has not loaded). The first version read it before the window existed and took every machine for one with no GPU. A hidden probe window works (about 70 to 90 ms) but delays the splash, so the window opens as it always did and the answer comes after the load.
 
-`TUNELLE_GPU=0` forces the software mode, `TUNELLE_GPU=1` the accelerated one, anything else asks the GPU. Try the mode on a machine that has a GPU with `TUNELLE_GPU=0 npm run dev`. The runners have no GPU, so the end to end tests run in the software mode, which is also faster there; `e2e/functional/software-rendering.spec.ts` forces each mode and checks the page. The perf workflow sets `TUNELLE_GPU=1`, as its numbers are those of the app with the bars and the translucent window.
+`TUNELLE_GPU=0` forces the software mode, `TUNELLE_GPU=1` the accelerated one, anything else asks the GPU. Try the mode on a machine that has a GPU with `TUNELLE_GPU=0 npm run dev`. The runners have no GPU, so the end to end tests run in the software mode, which is also faster there; `gpu-acceleration.test.ts` and `client/containers/layout/theme-provider/index.test.tsx` try each mode from the variable to the attribute of the page. The perf workflow sets `TUNELLE_GPU=1`, as its numbers are those of the app with the bars and the translucent window.
 
 ## What changes
 
