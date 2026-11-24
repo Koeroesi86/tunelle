@@ -114,12 +114,12 @@ describe('scanFolder audio format', () => {
     expect(await stored()).toEqual([]);
   });
 
-  it('keeps a WavPack file that holds DSD out of the library', async () => {
-    parsed.mockResolvedValue(meta({ codec: 'DSD', container: 'WavPack', bitsPerSample: 1 }) as never);
+  it('stores a WavPack file that holds DSD, which the decoder proxy plays, as DSD with 1 bit', async () => {
+    parsed.mockResolvedValue(meta({ codec: 'DSD', container: 'WavPack', bitsPerSample: 8, sampleRate: 2822400, lossless: true }) as never);
 
     await scanFolder(root, sender);
 
-    expect(await stored()).toEqual([]);
+    expect(await stored()).toEqual([expect.objectContaining({ codec: 'DSD', bitDepth: 1, sampleRate: 2822400, lossless: 1 })]);
   });
 
   it('fills in a row that was stored before the format was read', async () => {

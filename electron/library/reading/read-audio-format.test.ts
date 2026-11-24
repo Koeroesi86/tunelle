@@ -68,7 +68,7 @@ describe('readAudioFormat', () => {
     [{ codec: 'DSD (DSD uncompressed)', container: 'DSDIFF/DSD' }, 'DSD'],
     [{ container: 'DSDIFF/DSD' }, 'DSD'],
     [{ codec: 'DST (DST compressed)', container: 'DSDIFF/DSD' }, 'DST'],
-    [{ codec: 'DSD', container: 'WavPack' }, 'DSD-WAVPACK'],
+    [{ codec: 'DSD', container: 'WavPack' }, 'DSD'],
     [{ codec: 'PCM', container: 'WavPack' }, 'WAVPACK'],
   ])('names %o as %s', (format, codec) => {
     expect(readAudioFormat(format).codec).toBe(codec);
@@ -76,6 +76,15 @@ describe('readAudioFormat', () => {
 
   it('shows DSD as lossless with its 1 bit and its rate, which DSF does not say', () => {
     expect(readAudioFormat({ container: 'DSF', bitsPerSample: 1, sampleRate: 2822400, bitrate: 5644800 })).toMatchObject({
+      codec: 'DSD',
+      bitDepth: 1,
+      sampleRate: 2822400,
+      lossless: 1,
+    });
+  });
+
+  it('shows DSD in WavPack with its 1 bit, though WavPack counts the 8 bits of a byte', () => {
+    expect(readAudioFormat({ codec: 'DSD', container: 'WavPack', bitsPerSample: 8, sampleRate: 2822400, lossless: true })).toMatchObject({
       codec: 'DSD',
       bitDepth: 1,
       sampleRate: 2822400,

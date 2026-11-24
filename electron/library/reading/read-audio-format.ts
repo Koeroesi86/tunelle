@@ -7,9 +7,9 @@ const containerCodecs: Record<string, string> = { WAVE: 'WAV' };
 
 const matroskaCodecs = ['FLAC', 'OPUS', 'VORBIS'];
 
-/** DSF and DSDIFF hold DSD; a WavPack file that holds it is told apart, as the decoder proxy plays the first two only. See docs/app/supported-formats.md */
+/** DSF, DSDIFF and WavPack hold DSD, which the decoder proxy decodes; DST, the compressed DSDIFF, is named by its codec. See docs/app/supported-formats.md */
 const toDsdName = ({ codec, container }: ReadFormat) => {
-  if (/^wavpack/i.test(container ?? '')) return /^dsd/i.test(codec ?? '') ? 'DSD-WAVPACK' : undefined;
+  if (/^wavpack/i.test(container ?? '')) return /^dsd/i.test(codec ?? '') ? 'DSD' : undefined;
   return /^(dsf|dsdiff)/i.test(container ?? '') && (!codec || /^dsd/i.test(codec)) ? 'DSD' : undefined;
 };
 
@@ -61,7 +61,7 @@ const toFlag = (value: boolean | undefined) => (value === undefined ? null : Num
 /** The encoding of a file; a variable bitrate shows in the profile of the codec (`VBR`, `V0`), a constant (`CBR`) or an average (`ABR`) one does not */
 const readAudioFormat = (format: ReadFormat): AudioFormat => ({
   codec: toCodecName(format),
-  bitDepth: format.bitsPerSample ?? null,
+  bitDepth: toCodecName(format) === 'DSD' ? 1 : (format.bitsPerSample ?? null),
   sampleRate: format.sampleRate ?? null,
   bitrate: format.bitrate ? Math.round(format.bitrate) : null,
   vbr: format.codecProfile ? Number(/^V/i.test(format.codecProfile)) : null,

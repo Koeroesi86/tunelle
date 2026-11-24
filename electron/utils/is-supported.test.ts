@@ -42,7 +42,7 @@ describe('isSupportedCodec', () => {
     }
   );
 
-  it.each(['MATROSKA-AAC', 'CAF-AAC', 'SPEEX', 'THEORA', 'DSD-WAVPACK', 'DST', 'WMA-VOICE'])('rejects %s, which ffmpeg does not decode here', (codec) => {
+  it.each(['MATROSKA-AAC', 'CAF-AAC', 'SPEEX', 'THEORA', 'DST', 'WMA-VOICE'])('rejects %s, which ffmpeg does not decode here', (codec) => {
     expect(isSupportedCodec(codec)).toBe(false);
   });
 });

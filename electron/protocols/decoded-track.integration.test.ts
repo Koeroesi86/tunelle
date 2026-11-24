@@ -38,6 +38,7 @@ const formats = [
   { folder: 'wavpack', codec: 'WAVPACK', bytes: 2, seconds: 6 },
   { folder: 'aiff', codec: 'AIFF', bytes: 2, seconds: 6 },
   { folder: 'dsd', codec: 'DSD', bytes: 3, seconds: 3 },
+  { folder: 'wavpack-dsd', codec: 'DSD', bytes: 3, seconds: 3 },
   { folder: 'wma', codec: 'WMA', bytes: 2, seconds: 6 },
   { folder: 'mp3', codec: 'MP3', bytes: 2, seconds: 6 },
   { folder: 'mp2', codec: 'MP2', bytes: 2, seconds: 6 },

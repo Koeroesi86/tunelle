@@ -53,6 +53,7 @@ const formats = [
   { folder: 'wavpack', amplitude: 0.125 },
   { folder: 'aiff', amplitude: 0.125 },
   { folder: 'dsd', amplitude: 0.5 },
+  { folder: 'wavpack-dsd', amplitude: 0.5 },
   { folder: 'wma', amplitude: 0.125 },
   { folder: 'mp3', amplitude: 0.125, peakDigits: 1, lufsDigits: 0 },
   { folder: 'mp2', amplitude: 0.125, peakDigits: 1, lufsDigits: 0 },
