@@ -25,7 +25,8 @@ interface FavouritesViewProps {
   favourites: Favourite[];
   playTracks: (tracks: Track[]) => void;
   playStation: (station: RadioStation) => void;
-  source: Source;
+  /** The side the user chose; without one, the local side, or the online side when only that has items */
+  source: Source | undefined;
   order: Order;
   setSource: (source: Source) => void;
   setOrder: (order: Order) => void;
@@ -153,7 +154,7 @@ const FavouritesView = ({
   favourites,
   playTracks,
   playStation,
-  source,
+  source: chosen,
   order,
   setSource,
   setOrder,
@@ -176,6 +177,7 @@ const FavouritesView = ({
     local: favourites.filter((favourite) => sourceOf(favourite) === 'local'),
     online: favourites.filter((favourite) => sourceOf(favourite) === 'online'),
   };
+  const source = chosen ?? (sides.local.length === 0 && sides.online.length > 0 ? 'online' : 'local');
   const side = sides[source].toSorted(comparator(order, translator));
   const playable = side.filter(({ available }) => available);
   const gone = side.filter(({ available }) => !available);
