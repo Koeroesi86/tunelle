@@ -22,6 +22,7 @@ describe('isSupported', () => {
     'a.asf',
     'a.mka',
     'a.weba',
+    'a.w64',
     'C:/Music/b.flac',
   ])('accepts %s', (name) => {
     expect(isSupported(name)).toBe(true);

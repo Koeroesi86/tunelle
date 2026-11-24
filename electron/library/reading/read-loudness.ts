@@ -1,7 +1,7 @@
 import type { IAudioMetadata } from 'music-metadata';
 import type { Loudness } from '@shared/types/library';
 
-type ReadTags = Pick<IAudioMetadata, 'common' | 'native'>;
+type ReadTags = { common: Partial<IAudioMetadata['common']>; native: IAudioMetadata['native'] };
 
 /** The ReplayGain 2 reference level is -18 LUFS, the one of R128 is -23 LUFS */
 const r128Offset = 5;
