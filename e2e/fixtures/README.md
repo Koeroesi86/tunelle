@@ -103,6 +103,13 @@ npm run fixtures:dsd
 wavpack -q -hh -w "Title=Concert A" -w "Artist=The Sine Waves" -w "Album Artist=The Sine Waves" -w "Album=Lossless WavPack" -w "Track=1" 1-concert-a.wav -o wavpack/1-concert-a.wv
 ```
 
+`wavpack-dsd/` has the two tracks of `dsd/` as DSD64 in WavPack (1 bit, mono, 2.8224 MHz, 3 s) in the album "Lossless DSD WavPack", for `electron/protocols/decoded-track.integration.test.ts` and `decoded-loudness.integration.test.ts`. `wavpack` reads the DSF and the DFF file:
+
+```sh
+wavpack -q -hh -w "Title=Concert A" -w "Artist=The Sine Waves" -w "Album Artist=The Sine Waves" -w "Album=Lossless DSD WavPack" -w "Track=1" dsd/1-concert-a.dsf -o wavpack-dsd/1-concert-a.wv
+wavpack -q -hh -w "Title=Octave Up" -w "Artist=The Sine Waves" -w "Album Artist=The Sine Waves" -w "Album=Lossless DSD WavPack" -w "Track=2" dsd/2-octave-up.dff -o wavpack-dsd/2-octave-up.wv
+```
+
 `aiff/` has the same two tracks in the album "Lossless AIFF" (16 bit, mono, 44.1 kHz) for `electron/protocols/decoded-track.integration.test.ts`: the first is an AIFF (big endian PCM), the second an AIFC with byte swapped PCM (`sowt`), made with ffmpeg:
 
 ```sh
