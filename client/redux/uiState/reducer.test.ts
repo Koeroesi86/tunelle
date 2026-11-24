@@ -772,8 +772,8 @@ describe('uiState reducer', () => {
 describe('uiState reducer, the state the views keep while the app is open', () => {
   const selected = (...paths: string[]) => run({ type: 'SELECT_TRACKS', payload: { tracks: paths.map(track) } });
 
-  it('keeps the side and the order of the favourites, starting at the local side and the newest', () => {
-    expect(initial).toMatchObject({ favouritesSource: 'local', favouritesOrder: 'recent' });
+  it('keeps the side and the order of the favourites, starting at no choice of a side and the newest', () => {
+    expect(initial).toMatchObject({ favouritesSource: undefined, favouritesOrder: 'recent' });
 
     const state = run({ type: 'SET_FAVOURITES_ORDER', payload: { order: 'name' } }, run({ type: 'SET_FAVOURITES_SOURCE', payload: { source: 'online' } }));
 

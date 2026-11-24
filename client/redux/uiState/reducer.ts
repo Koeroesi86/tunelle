@@ -39,7 +39,7 @@ const initialState: UiState = {
   closedSources: ['subsonic', 'jellyfin', 'plex'],
   overviewGroup: 'library',
   tab: 'home',
-  favouritesSource: 'local',
+  favouritesSource: undefined,
   favouritesOrder: 'recent',
   showFaders: false,
   selectedTracks: {},

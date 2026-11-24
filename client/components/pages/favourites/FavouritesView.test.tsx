@@ -33,7 +33,7 @@ type ViewProps = Parameters<typeof FavouritesView>[0];
 
 /** Keeps the choices the way the store does */
 const StatefulView = (props: Omit<ViewProps, 'renderFavourite' | 'addToQueue' | 'source' | 'order' | 'setSource' | 'setOrder'>) => {
-  const [source, setSource] = useState<FavouritesSource>('local');
+  const [source, setSource] = useState<FavouritesSource | undefined>(undefined);
   const [order, setOrder] = useState<FavouritesOrder>('recent');
   return (
     <FavouritesView
@@ -211,6 +211,20 @@ describe('FavouritesView', () => {
     expect(screen.queryByText(/follows the path of its file/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Play' }));
     expect(playStation).not.toHaveBeenCalled();
+  });
+
+  it('opens the online side when only stations are liked, and the local side when both have items', () => {
+    renderView([stored(stationFavourite(station))]);
+
+    expect(screen.getByRole('button', { name: /Online/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('Jazz FM')).toBeTruthy();
+  });
+
+  it('lets the user open the empty local side after the online one was the default', () => {
+    renderView([stored(stationFavourite(station))]);
+    fireEvent.click(screen.getByRole('button', { name: /Local/ }));
+
+    expect(screen.getByText('Nothing here yet')).toBeTruthy();
   });
 
   it('says that a side is empty while the other has items', () => {

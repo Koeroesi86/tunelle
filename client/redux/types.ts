@@ -70,7 +70,7 @@ export interface UiState extends PersistedSettings {
   /** The group of the sidebar whose welcome page the overview tab shows, not saved */
   overviewGroup: NavigationGroup;
   /** The side and the order of the favourites, and whether the equalizer shows its faders; they are kept while the app is open and not saved */
-  favouritesSource: FavouritesSource;
+  favouritesSource: FavouritesSource | undefined;
   favouritesOrder: FavouritesOrder;
   showFaders: boolean;
   /** The tracks selected in the track list by their path; a change of the sort, the folders or the search is another list and clears it, not saved */
