@@ -5,10 +5,19 @@ type ReadFormat = Partial<Pick<IFormat, 'codec' | 'container' | 'codecProfile' |
 
 const containerCodecs: Record<string, string> = { WAVE: 'WAV' };
 
+const matroskaCodecs = ['FLAC', 'OPUS', 'VORBIS'];
+
 /** DSF and DSDIFF hold DSD; a WavPack file that holds it is told apart, as the decoder proxy plays the first two only. See docs/app/supported-formats.md */
 const toDsdName = ({ codec, container }: ReadFormat) => {
   if (/^wavpack/i.test(container ?? '')) return /^dsd/i.test(codec ?? '') ? 'DSD-WAVPACK' : undefined;
   return /^(dsf|dsdiff)/i.test(container ?? '') && (!codec || /^dsd/i.test(codec)) ? 'DSD' : undefined;
+};
+
+/** Only FLAC, Opus and Vorbis are decoded from Matroska and WebM; another codec in them is named by its container, as Chromium does not play `.mka` either. See docs/app/supported-formats.md */
+const toMatroskaName = ({ codec, container }: ReadFormat) => {
+  if (!codec || !/matroska|webm/i.test(container ?? '')) return undefined;
+  const name = (codec ?? '').replace(/\s.*/, '').toUpperCase();
+  return matroskaCodecs.includes(name) ? undefined : `MATROSKA-${name}`;
 };
 
 /** Windows Media Audio is named WMA; the voice codecs are told apart, as the decoder proxy does not play them. See docs/app/supported-formats.md */
@@ -24,6 +33,8 @@ const toCodecName = ({ codec, container }: ReadFormat) => {
   if (dsd) return dsd;
   const wma = toWmaName(codec);
   if (wma) return wma;
+  const matroska = toMatroskaName({ codec, container });
+  if (matroska) return matroska;
   if (/layer 3/i.test(codec ?? '')) return 'MP3';
   if (/layer 2/i.test(codec ?? '')) return 'MP2';
   const name = !codec || /^pcm/i.test(codec) ? (container ?? '') : codec;

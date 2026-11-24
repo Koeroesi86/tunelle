@@ -57,6 +57,7 @@ const formats = [
   { folder: 'mp3', amplitude: 0.125, peakDigits: 1, lufsDigits: 0 },
   { folder: 'mp2', amplitude: 0.125, peakDigits: 1, lufsDigits: 0 },
   { folder: 'ac3', amplitude: 0.125, peakDigits: 1, lufsDigits: 0 },
+  { folder: 'mka', amplitude: 0.125 },
   { folder: 'opus', amplitude: 0.125, peakDigits: 1, lufsDigits: 0 },
   { folder: 'wav', amplitude: 0.125 },
   { folder: 'wav-float', amplitude: 0.125 },

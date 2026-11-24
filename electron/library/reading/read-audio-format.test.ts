@@ -36,6 +36,16 @@ describe('readAudioFormat', () => {
   });
 
   it.each([
+    [{ codec: 'FLAC', container: 'EBML/matroska' }, 'FLAC'],
+    [{ codec: 'OPUS', container: 'EBML/webm' }, 'OPUS'],
+    [{ codec: 'VORBIS', container: 'EBML/matroska' }, 'VORBIS'],
+    [{ codec: 'AAC', container: 'EBML/matroska' }, 'MATROSKA-AAC'],
+    [{ codec: 'MPEG/L3', container: 'EBML/matroska' }, 'MATROSKA-MPEG/L3'],
+  ])('names %o %s, only FLAC, Opus and Vorbis being decoded from Matroska and WebM', (format, codec) => {
+    expect(readAudioFormat(format)).toMatchObject({ codec });
+  });
+
+  it.each([
     [{ codec: 'PCM', container: 'WAVE' }, 'WAV'],
     [{ codec: 'PCM', container: 'AIFF' }, 'AIFF'],
     [{ codec: 'PCM (byte swapped)', container: 'AIFF-C' }, 'AIFF-C'],
