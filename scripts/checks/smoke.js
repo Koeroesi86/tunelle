@@ -242,9 +242,8 @@ const checkRadio = async (socketUrl, station) => {
       await reader.cancel()
       const bytes = new Uint8Array(length)
       received.reduce((offset, chunk) => (bytes.set(chunk, offset), offset + chunk.length), 0)
-      const frameLength = ${frameLength}
-      const silentByte = ${silentByte.toString()}
-      const metadataLeft = bytes.filter((byte, position) => byte !== silentByte(position)).length
+      // the mpeg frames are decoded by ffmpeg to a WAV: a header of 44 bytes, then the silence of the frames, so any byte of a title that was left in is not zero
+      const metadataLeft = bytes.filter((byte, position) => position >= 44 && byte !== 0).length
       for (let waited = 0; titles.length === 0 && waited < 10000; waited += 100) await new Promise(done => setTimeout(done, 100))
 
       const audio = new Audio()
@@ -262,7 +261,7 @@ const checkRadio = async (socketUrl, station) => {
       return { status: response.status, type: response.headers.get('content-type'), metadataLeft, titles: [...new Set(titles)], played }
     })()`
   )
-  const expected = { status: 200, type: 'audio/mpeg', metadataLeft: 0, titles: ['Smoke - Song'], played: 'playing' }
+  const expected = { status: 200, type: 'audio/wav', metadataLeft: 0, titles: ['Smoke - Song'], played: 'playing' }
   if (JSON.stringify(result) !== JSON.stringify(expected)) throw new Error(`The radio over tunelle answered ${JSON.stringify(result)}, expected ${JSON.stringify(expected)}`)
 
   // the player gave up both connections: the cancelled fetch and the paused element
