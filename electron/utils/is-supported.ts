@@ -46,6 +46,7 @@ const decodedCodecs = [
   'ALAW',
   'MULAW',
   'MP3',
+  'OPUS',
 ];
 
 /** Decoded codecs whose length in frames is exact before the decode, so the WAV is served while it is written. See docs/app/decoder-proxy.md */
