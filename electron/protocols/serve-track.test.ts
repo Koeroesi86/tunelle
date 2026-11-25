@@ -10,8 +10,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../repositories/library-repository', () => ({ findPlayableTrack: mocks.findPlayableTrack }));
 vi.mock('../library/opened/opened-files', () => ({ findOpenedTrack: mocks.findOpenedTrack }));
 vi.mock('./decoded-track', () => ({ playableFile: mocks.playableFile }));
-vi.mock('./growing-track', () => ({ growingTrack: async () => undefined }));
-vi.mock('./serve-growing', () => ({ serveGrowing: vi.fn() }));
+vi.mock('./windowed-track', () => ({ windowedTrack: async () => undefined }));
+vi.mock('./serve-windowed', () => ({ serveWindowed: vi.fn() }));
 vi.mock('./serve-file', () => ({ serveFile: mocks.serveFile, notFound: () => new Response(null, { status: 404 }) }));
 
 const { serveTrack } = await import('./serve-track');

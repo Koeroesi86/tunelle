@@ -17,8 +17,6 @@ interface Job {
   done: Promise<string | undefined>;
   waiters: number;
   cancelled: boolean;
-  /** A decode that is served while it is written is not stopped by a request that goes, as the others read from the same file. See docs/app/decoder-proxy.md */
-  growing: boolean;
   child?: ChildProcess;
 }
 
@@ -31,7 +29,7 @@ export interface PlayableTrack extends Format {
   path: string;
 }
 
-export const jobs = new Map<string, Job>();
+const jobs = new Map<string, Job>();
 const queue: (() => void)[] = [];
 let running = 0;
 let recent: string[] = [];
@@ -45,13 +43,13 @@ const toEncoder = ({ codec, bitDepth }: Format) => {
   return ['-c:a', (bitDepth ?? 16) > 24 ? 'pcm_s32le' : (bitDepth ?? 16) > 16 ? 'pcm_s24le' : 'pcm_s16le'];
 };
 
-export const takeSlot = () => {
+const takeSlot = () => {
   if (running >= maxDecodes) return new Promise<void>((resolve) => queue.push(resolve));
   running += 1;
   return Promise.resolve();
 };
 
-export const freeSlot = () => {
+const freeSlot = () => {
   const next = queue.shift();
   if (next) next();
   else running -= 1;
@@ -129,7 +127,7 @@ const produce = async (job: Job, source: string, encoder: string[], target: stri
 };
 
 const startJob = (key: string, source: string, encoder: string[], target: string) => {
-  const job: Job = { done: Promise.resolve(undefined), waiters: 0, cancelled: false, growing: false };
+  const job: Job = { done: Promise.resolve(undefined), waiters: 0, cancelled: false };
   job.done = produce(job, source, encoder, target)
     .catch((error) => {
       logError(error);
@@ -145,7 +143,7 @@ const startJob = (key: string, source: string, encoder: string[], target: string
 /** The decode stops when no request waits for it any more */
 const leave = (key: string, job: Job) => {
   job.waiters -= 1;
-  if (job.waiters > 0 || job.growing) return;
+  if (job.waiters > 0) return;
   job.cancelled = true;
   job.child?.kill();
   if (jobs.get(key) === job) jobs.delete(key);
@@ -172,7 +170,7 @@ export const prepareDecode = async (
 };
 
 /** The decoded copy of the cache, with its time set to now so the eviction keeps it, undefined when there is none */
-export const cachedCopy = async (target: string) => {
+const cachedCopy = async (target: string) => {
   const found = await stat(target).then(
     () => true,
     () => false
