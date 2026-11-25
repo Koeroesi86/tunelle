@@ -1,8 +1,9 @@
+import type { RouteRequest } from './request-aborts';
 import { parseRange } from './serve-file';
 import type { WindowedTrack } from './windowed-track';
 
 /** A WAV that is decoded as it is read, with the size and the ranges of the whole file; a range that is not decoded yet waits. See docs/app/decoder-proxy.md */
-export const serveWindowed = (track: WindowedTrack, request: Request) => {
+export const serveWindowed = (track: WindowedTrack, request: RouteRequest) => {
   const range = request.headers.get('range');
   const bounds = range ? parseRange(range, track.size) : undefined;
   if (range && !bounds) return new Response(undefined, { status: 416, headers: { 'Content-Range': `bytes */${track.size}` } });

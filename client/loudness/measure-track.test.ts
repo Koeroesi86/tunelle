@@ -30,6 +30,11 @@ beforeEach(() => {
 });
 
 describe('measureTrack', () => {
+  it('marks its requests as the ones of a measurement', async () => {
+    await measureTrack(1, 'a b', slicedFromSeconds, vi.fn());
+    expect(fetch).toHaveBeenCalledWith('tunelle://app/track?path=a%20b&measure');
+  });
+
   it('decodes a file up to the sliced length as a whole', async () => {
     const result = await measureTrack(1, 'a', slicedFromSeconds, vi.fn());
     expect(measureSliced).not.toHaveBeenCalled();

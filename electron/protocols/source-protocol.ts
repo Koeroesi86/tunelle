@@ -4,6 +4,7 @@ import { createGate, Dropped } from '../services/sources/request-gate';
 import { z } from 'zod';
 import { isDecodedCodec } from '../utils/is-supported';
 import { downloadSource } from './source-download';
+import type { RouteRequest } from './request-aborts';
 import { servePlayable } from './serve-track';
 import { notFound } from './serve-file';
 
@@ -32,7 +33,7 @@ const kept = (response: Response) => {
 };
 
 /** The audio or the cover of a track of a server of the user. The page names the track and never the server's address: the host comes from the stored server, so this is no open proxy. See docs/app/sources.md */
-export const serveSource = async (kind: 'audio' | 'cover', path: string | null, request: Request, sources: Pick<Sources, 'clientOf'>) => {
+export const serveSource = async (kind: 'audio' | 'cover', path: string | null, request: RouteRequest, sources: Pick<Sources, 'clientOf'>) => {
   const format = formatSchema.safeParse(Object.fromEntries(new URL(request.url).searchParams)).data;
   const ref = sourcePathSchema.safeParse(path).data;
   const client = ref && (await sources.clientOf(ref.serverId));

@@ -12,10 +12,10 @@ import { notFound, serveFile } from './serve-file';
 import { serveTrack } from './serve-track';
 import { handleTunelleProtocol, handleTunelleRequest, registerTunelleScheme, tunelleOrigin } from './tunelle-protocol';
 
-const onHeadersReceived = vi.hoisted(() => vi.fn());
+const webRequest = vi.hoisted(() => ({ onHeadersReceived: vi.fn(), onBeforeSendHeaders: vi.fn(), onErrorOccurred: vi.fn(), onCompleted: vi.fn() }));
 vi.mock('electron', () => ({
   protocol: { registerSchemesAsPrivileged: vi.fn(), handle: vi.fn() },
-  session: { defaultSession: { webRequest: { onHeadersReceived } } },
+  session: { defaultSession: { webRequest } },
 }));
 vi.mock('../library/art/album-art', () => ({ resolveAlbumArt: vi.fn() }));
 vi.mock('../library/art/album-art-accents', () => ({ getCoverAccent: vi.fn() }));
@@ -79,8 +79,21 @@ describe('the tunelle protocol', () => {
 
     expect((await ask(`/source/audio?path=${encodeURIComponent(path)}`)).status).toBe(200);
     expect((await ask(`/source/cover?path=${encodeURIComponent(path)}`)).status).toBe(200);
-    expect(serveSource).toHaveBeenNthCalledWith(1, 'audio', path, expect.any(Request), sources);
-    expect(serveSource).toHaveBeenNthCalledWith(2, 'cover', path, expect.any(Request), sources);
+    const asked = (route: string) => expect.objectContaining({ url: expect.stringContaining(route) });
+    expect(serveSource).toHaveBeenNthCalledWith(1, 'audio', path, asked('/source/audio'), sources);
+    expect(serveSource).toHaveBeenNthCalledWith(2, 'cover', path, asked('/source/cover'), sources);
+  });
+
+  it('gives the routes a signal that aborts when the page lets the request go', async () => {
+    handleTunelleProtocol({ getDatabase: () => database, radio, sources, appRoot: '/app/out' });
+    webRequest.onBeforeSendHeaders.mock.lastCall?.[1]({ id: 7, requestHeaders: {} }, vi.fn());
+    await ask('/track?path=/m/a.flac', { headers: { 'x-tunelle-request': '7' } });
+    const signal = vi.mocked(serveTrack).mock.calls[0][2].signal;
+    expect(signal.aborted).toBe(false);
+
+    webRequest.onErrorOccurred.mock.lastCall?.[1]({ id: 7 });
+
+    expect(signal.aborted).toBe(true);
   });
 
   it('allows the dev server to ask across origins, and no other origin', async () => {
@@ -151,7 +164,7 @@ describe('the tunelle protocol', () => {
 
   it('adds the content security policy to the response of the page, and of nothing else', () => {
     handleTunelleProtocol({ getDatabase: () => database, radio, sources, appRoot: '/app/out' });
-    const [filter, listener] = onHeadersReceived.mock.lastCall ?? [];
+    const [filter, listener] = webRequest.onHeadersReceived.mock.lastCall ?? [];
     const callback = vi.fn();
     listener({ responseHeaders: { 'Content-Type': ['text/html'] } }, callback);
 

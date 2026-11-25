@@ -31,7 +31,15 @@ describe('serveTrack', () => {
     mocks.findOpenedTrack.mockReturnValue({ path: '/tmp/b.flac', codec: 'FLAC' });
 
     expect(await (await serveTrack(database, '/tmp/b.flac', request)).text()).toBe('/tmp/b.flac');
-    expect(mocks.playableFile).toHaveBeenLastCalledWith({ path: '/tmp/b.flac', codec: 'FLAC', bitDepth: null }, request.signal);
+    expect(mocks.playableFile).toHaveBeenLastCalledWith({ path: '/tmp/b.flac', codec: 'FLAC', bitDepth: null }, request.signal, false);
+  });
+
+  it('tells the decoder that a request of the loudness measurement is one', async () => {
+    mocks.findPlayableTrack.mockResolvedValue({ path: '/music/a.mp3', codec: 'MP3', bitDepth: null });
+
+    await serveTrack(database, '/music/a.mp3', new Request('tunelle://app/track?path=a&measure'));
+
+    expect(mocks.playableFile).toHaveBeenLastCalledWith(expect.anything(), expect.anything(), true);
   });
 
   it('serves nothing else', async () => {

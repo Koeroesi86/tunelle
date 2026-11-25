@@ -3,6 +3,7 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 import { net } from 'electron';
 import mimeType from 'mime-types';
+import type { RouteRequest } from './request-aborts';
 
 /** Resolve a single `bytes=start-end` or `bytes=-suffix` range, undefined when it cannot be satisfied */
 export const parseRange = (range: string, fileSize: number) => {
@@ -19,7 +20,7 @@ export const notFound = () => new Response(undefined, { status: 404 });
  * Serves a file with the range of the request. net.fetch slices the file for a range, but it answers 200 without a Content-Range and without a
  * Content-Length, which an <audio> element can not seek with, and takes the type from the system: so the headers are set here.
  */
-export const serveFile = async (filePath: string, request: Request, headers: Record<string, string> = {}) => {
+export const serveFile = async (filePath: string, request: RouteRequest, headers: Record<string, string> = {}) => {
   const stats = await stat(filePath).catch(() => undefined);
   if (!stats?.isFile()) return notFound();
 

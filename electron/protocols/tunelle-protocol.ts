@@ -7,6 +7,7 @@ import { libraryRoutes } from './library-routes';
 import { serveRadio } from './radio-protocol';
 import type { RadioStreamDeps } from './radio-proxy';
 import type { RadioArtImage } from '../services/radio/radio-art';
+import { abortSignalOf, watchRequestAborts, type RouteRequest } from './request-aborts';
 import { notFound, serveFile } from './serve-file';
 import { serveTrack } from './serve-track';
 import { serveSource } from './source-protocol';
@@ -40,7 +41,7 @@ const pageFile = (appRoot: string, pathname: string) => {
   return file.startsWith(appRoot + path.sep) ? file : undefined;
 };
 
-const route = async (request: Request, { getDatabase, radio, sources, appRoot }: TunelleDeps) => {
+const route = async (request: RouteRequest, { getDatabase, radio, sources, appRoot }: TunelleDeps) => {
   const { pathname, searchParams } = new URL(request.url);
   if (Object.hasOwn(libraryRoutes, pathname)) return libraryRoutes[pathname](getDatabase(), searchParams);
 
@@ -92,7 +93,8 @@ export const handleTunelleRequest = (deps: TunelleDeps) => async (request: Reque
   if (request.method === 'OPTIONS') return allowDevOrigin(request, new Response(undefined, { status: 204 }), deps.devOrigin);
   if (request.method !== 'GET' && request.method !== 'HEAD') return new Response(undefined, { status: 405 });
 
-  const response = await route(request, deps).catch(() => new Response(undefined, { status: 500 }));
+  const { url, headers } = request;
+  const response = await route({ url, headers, signal: abortSignalOf(request) }, deps).catch(() => new Response(undefined, { status: 500 }));
   return allowDevOrigin(request, response, deps.devOrigin);
 };
 
@@ -111,5 +113,6 @@ const watchPageHeaders = () =>
 
 export const handleTunelleProtocol = (deps: TunelleDeps) => {
   watchPageHeaders();
+  watchRequestAborts([`${tunelleOrigin}/*`]);
   protocol.handle(scheme, handleTunelleRequest(deps));
 };

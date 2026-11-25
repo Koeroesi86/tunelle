@@ -15,6 +15,10 @@ const keptRecent = 3;
 interface Job {
   done: Promise<string | undefined>;
   waiters: number;
+  /** The waiting requests of the player, without the ones of the loudness measurement */
+  players: number;
+  /** When the player asked for it last, higher is later */
+  asked: number;
   cancelled: boolean;
   child?: ChildProcess;
 }
@@ -29,8 +33,9 @@ export interface PlayableTrack extends Format {
 }
 
 const jobs = new Map<string, Job>();
-const queue: (() => void)[] = [];
+const queue: { job: Job; start: () => void }[] = [];
 let running = 0;
+let asks = 0;
 let recent: string[] = [];
 
 const cacheFolder = () => join(app.getPath('temp'), 'tunelle-whole-decodes');
@@ -44,16 +49,23 @@ const toEncoder = ({ codec, bitDepth }: Format) => {
   return ['-c:a', (bitDepth ?? 16) > 24 ? 'pcm_s32le' : (bitDepth ?? 16) > 16 ? 'pcm_s24le' : 'pcm_s16le'];
 };
 
-const takeSlot = () => {
-  if (running >= maxDecodes) return new Promise<void>((resolve) => queue.push(resolve));
+const takeSlot = (job: Job) => {
+  if (running >= maxDecodes) return new Promise<void>((start) => queue.push({ job, start }));
   running += 1;
   return Promise.resolve();
 };
 
+const urgency = ({ players, asked }: Job) => (players > 0 ? asked : 0);
+
+/** The player goes before the measurement, its newest request first; the others keep their order */
 const freeSlot = () => {
-  const next = queue.shift();
-  if (next) next();
-  else running -= 1;
+  const [next] = [...queue].sort((a, b) => urgency(b.job) - urgency(a.job));
+  if (!next) {
+    running -= 1;
+    return;
+  }
+  queue.splice(queue.indexOf(next), 1);
+  next.start();
 };
 
 const runDecoder = (job: Job, source: string, encoder: string[], output: string) =>
@@ -117,12 +129,12 @@ const writeDecoded = async (job: Job, source: string, encoder: string[], target:
 };
 
 const produce = async (job: Job, source: string, encoder: string[], target: string) => {
-  await takeSlot();
+  await takeSlot(job);
   return writeDecoded(job, source, encoder, target).finally(freeSlot);
 };
 
 const startJob = (key: string, source: string, encoder: string[], target: string) => {
-  const job: Job = { done: Promise.resolve(undefined), waiters: 0, cancelled: false };
+  const job: Job = { done: Promise.resolve(undefined), waiters: 0, players: 0, asked: 0, cancelled: false };
   job.done = produce(job, source, encoder, target)
     .catch((error) => {
       logError(error);
@@ -136,8 +148,9 @@ const startJob = (key: string, source: string, encoder: string[], target: string
 };
 
 /** The decode stops when no request waits for it any more */
-const leave = (key: string, job: Job) => {
+const leave = (key: string, job: Job, measured: boolean) => {
   job.waiters -= 1;
+  if (!measured) job.players -= 1;
   if (job.waiters > 0) return;
   job.cancelled = true;
   job.child?.kill();
@@ -172,7 +185,7 @@ const cachedCopy = async (target: string) => {
 };
 
 /** Decodes a track to a WAV file in the cache, once for all the requests that ask for it meanwhile, undefined when it fails or the request is gone */
-export const decodeTrack = async (source: string, format: Format, signal: AbortSignal) => {
+export const decodeTrack = async (source: string, format: Format, signal: AbortSignal, measured = false) => {
   const prepared = signal.aborted ? undefined : await prepareDecode(source, format);
   if (!prepared) return undefined;
 
@@ -183,15 +196,19 @@ export const decodeTrack = async (source: string, format: Format, signal: AbortS
 
   const existing = jobs.get(key);
   const job = existing && !existing.cancelled ? existing : startJob(key, source, encoder, target);
-  const onAbort = () => leave(key, job);
+  const onAbort = () => leave(key, job, measured);
   job.waiters += 1;
+  if (!measured) {
+    job.players += 1;
+    job.asked = ++asks;
+  }
   signal.addEventListener('abort', onAbort, { once: true });
   return job.done.finally(() => signal.removeEventListener('abort', onAbort));
 };
 
 /** The file the page gets for a track of the library: the file itself, or its decoded copy for a codec that Chromium does not play; a codec that Chromium plays too falls back to the file when the decode fails */
-export const playableFile = async ({ path, ...format }: PlayableTrack, signal: AbortSignal) => {
+export const playableFile = async ({ path, ...format }: PlayableTrack, signal: AbortSignal, measured = false) => {
   if (!isDecodedCodec(format.codec)) return path;
-  const decoded = await decodeTrack(path, format, signal);
+  const decoded = await decodeTrack(path, format, signal, measured);
   return decoded ?? (isChromiumCodec(format.codec) && !signal.aborted ? path : undefined);
 };

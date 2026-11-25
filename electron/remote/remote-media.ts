@@ -1,4 +1,6 @@
-type Relay = (request: Request) => Promise<Response>;
+import type { RouteRequest } from '../protocols/request-aborts';
+
+type Relay = (request: RouteRequest) => Promise<Response>;
 
 let audio: Relay | undefined;
 let cover: Relay | undefined;
@@ -9,8 +11,8 @@ export const provideRemoteMedia = (relays: { audio: Relay; cover: Relay }) => {
   cover = relays.cover;
 };
 
-const serve = (relay: Relay | undefined, request: Request) => (relay ? relay(request) : Promise.resolve(new Response(undefined, { status: 404 })));
+const serve = (relay: Relay | undefined, request: RouteRequest) => (relay ? relay(request) : Promise.resolve(new Response(undefined, { status: 404 })));
 
-export const serveRemoteAudio = (request: Request) => serve(audio, request);
+export const serveRemoteAudio = (request: RouteRequest) => serve(audio, request);
 
-export const serveRemoteCover = (request: Request) => serve(cover, request);
+export const serveRemoteCover = (request: RouteRequest) => serve(cover, request);

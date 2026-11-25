@@ -59,7 +59,8 @@ export const useGaplessAudio = ({ currentSong, upNext, activateNode, onEnded, on
     if (!node || handoffStartedAt.current !== undefined || !node.paused) return;
 
     const wanted = isFileTrack(song) && isFileTrack(following) ? sourceOf(following) : undefined;
-    if (loaded.current[index] === wanted) return;
+    // an element that was taken over from still has its source, and its request runs on until it is let go of, also when nothing follows
+    if (loaded.current[index] === wanted && (wanted || !node.hasAttribute('src'))) return;
 
     loaded.current[index] = wanted;
     if (wanted) node.src = wanted;
