@@ -54,11 +54,10 @@ Constants are in `electron/protocols/decode-policy.ts`, the measurement in `sour
 | --- | --- | --- |
 | window ahead of a read | 5 s of audio | 10 s of audio |
 | window behind a read | 4 MiB | 4 MiB |
-| cache limit of whole decodes | 256 MiB | 2 GiB |
 
 - There are at most 6 windows, and each may hold its share of 128 MiB. Only a rate above about 1.8 MB/s on a slow source (3.6 MB/s on a fast one) gets fewer seconds ahead than the table says: 192 kHz stereo at 32 bit is 1.5 MB/s. Each window has its own share, so windows only drop each other for their number, never for room: with one shared budget two busy readers could drop each other's window in turn without end. A window with no reader goes first, then the one used longest ago, and a reader whose window was dropped goes on in a new one.
 - Measured on a laptop (NVMe, btrfs): the read of 256 KiB takes 0.2 to 0.3 ms with the file in the page cache. The 50 ms threshold is a margin of 200 times over that and was **not** measured on a network mount, a USB disk or a sleeping spinning disk; a cold NVMe read is expected in the low milliseconds. Move `slowAfterMs` when such a source is measured.
-- A whole decode (WMA, DSD and the others) keeps the class of its copy in memory (`fastKeys` in `decoded-track.ts`), so after a restart the copies in the folder count as slow ones until they are served again.
+- The speed decides only the reach of a window; the cache of the whole decodes has one limit (see The cache).
 
 ### Why 4 MiB behind, in bytes
 
@@ -81,7 +80,18 @@ Time until the first bytes arrive, at the start, the middle and the end of a ste
 | AIFF | 120 s | 3 ms | 3 ms | 5 ms |
 | WAV | 120 s | 6 ms | 5 ms | 5 ms |
 
-Monkey's Audio was not measured on a long file (there is no encoder for it here), and no codec on a slow drive.
+Monkey's Audio seeks by the seek table at the start of the file and does not scan it. Time until the first bytes and bytes read from the file (`Statistics:` in the `-v verbose` log of ffmpeg), for 16 bit mono 44.1 kHz at the normal level, at positions from the start to the last sample, same laptop:
+
+| length | file | first bytes | bytes read per seek |
+| --- | --- | --- | --- |
+| 1003 s | 12.5 MB | 2 to 5 ms | 87 to 295 KB |
+| 6019 s | 75 MB | 2 to 5 ms | 120 to 328 KB |
+
+- Every position gave the same bytes as the decode from the start, including one sample before, at and after a frame edge.
+- ffmpeg cannot encode Monkey's Audio, so these files were made by repeating the full frames of the two fixtures in `e2e/fixtures/ape/` with a new header and seek table. A frame counts its 32 bit words from the first frame: copy the whole words that hold it and keep its start modulo 4 in the seek table. The whole decode of the file made this way equals the decoded frames of the fixtures. To measure again, make such a file (or take a long real one) and run `ffmpeg -v verbose -ss <seconds> -i <file> -frames:a 1 -f s16le -`.
+- A seek decodes from the start of its frame. The frames measured here are 73728 samples long; a file at a higher level has longer ones, so a seek there decodes more before the first byte. That was **not** measured.
+
+No codec was measured on a slow drive.
 
 ## The whole decode
 
@@ -101,13 +111,25 @@ The same rule holds for the online sources: a format in `decodedCodecs` is decod
 
 ## The cache
 
-Only whole decodes are written to disk, to `tunelle-decoded` in the temp folder of the system; playing an album of a progressive codec adds nothing to it (`windowed-track.integration.test.ts` and `windowed-track.test.ts` check that). A whole decode takes rate × channels × bytes per sample × seconds, so 45 minutes of WMA at 44.1 kHz 16 bit stereo are about 480 MB and 45 minutes of DSD (88.2 kHz 24 bit) about 1.4 GB. Copies of progressive codecs that an earlier version left there are not served any more and go with the limit. The key is a hash of the path, the size and modification time of the source and the output format, so a changed file is decoded again and the old copy is evicted with time. A copy that is served gets its modification time set to now.
+Only whole decodes are written to disk, to `tunelle-whole-decodes` in the temp folder of the system; playing an album of a progressive codec adds nothing to it (`windowed-track.integration.test.ts` and `windowed-track.test.ts` check that). A whole decode takes rate × channels × bytes per sample × seconds (the sizes are in the table below). Earlier versions used `tunelle-decoded` and kept copies of progressive codecs there; the app removes that folder when it starts (`removeOldCache`), as the limit only runs after a whole decode, which a library without WMA or DSD never starts. The key is a hash of the path, the size and modification time of the source and the output format, so a changed file is decoded again and the old copy is evicted with time. A copy that is served gets its modification time set to now.
 
-After each decode the oldest files are removed until the copies of slow sources are under 2 GiB and the copies of fast sources under 256 MiB (see above) (a 24/96 album is some hundreds of MB), except the files being written and the three served last: the track that plays, the preloaded next one (`upNext`, whose request starts the decode early so the hand-off stays gapless) and the previous one. Stale `.part` files go the same way.
+After each decode the oldest files are removed until the cache is under 2 GiB, whatever the speed of the source (45 minutes of DSD fit, so an album is not decoded again when it is played again), except the files being written and the three served last: the track that plays, the preloaded next one (`upNext`, whose request starts the decode early so the hand-off stays gapless) and the previous one. Stale `.part` files go the same way.
+
+### Measured after playing an album
+
+The built app on Linux, one folder added and played at a time to the end of each track (by a seek near the end), with `TMPDIR` set to an empty folder. The sizes include what the loudness measurement decodes.
+
+| played, in this order | files in the cache | bytes in the cache |
+| --- | --- | --- |
+| 5 tracks of 60 s: FLAC, ALAC, WavPack, AIFF, WAV (with two APE tracks of a few seconds in the library) | the folder was not made | 0 |
+| then 9 tracks of 300 s of WMA, 44.1 kHz stereo | 9 | 476,209,854 |
+| then 9 tracks of 300 s of DSD64 stereo (generated silence) | 18 | 1,905,050,772, of which DSD 1,428,840,918 |
+
+A `tunelle-decoded` folder put there before the start was gone after it. To measure again: a temporary spec that starts the app with `start({ env: { TMPDIR } })` and adds the folders one by one (with all of them in the library at once, the loudness measurement decodes the WMA and DSD tracks while the first album plays).
 
 ## Tests
 
-`windowed-track.test.ts` runs the windows with a fake ffmpeg (the reach of a fast and of a slow source, a seek, a re-read, a paused reader, a second reader, the number and memory limits, a wrong length and a failure), `serve-windowed.test.ts` their ranges, `decode-policy.test.ts` and `source-speed.test.ts` (a fake source that answers late, or opens late) the policy, and `windowed-track.integration.test.ts` compares, with the real ffmpeg, the bytes from several offsets with the whole decode for every progressive codec. `decoded-track.limits.test.ts` covers the two cache limits. `decoded-track.test.ts` runs the cache, the sharing, the abort, the limit and the eviction with a fake child process; `tunelle-protocol.test.ts` the route; `e2e/functional/alac.spec.ts` plays the ALAC fixture (`e2e/fixtures/alac/`) with the real ffmpeg and measures the tone that leaves the app, which shows that Chromium plays what the decoder proxy serves; `e2e/functional/wav.spec.ts` plays the WAV fixture the same way; `e2e/functional/vorbis.spec.ts` does the same for Ogg Vorbis; `e2e/functional/dsd.spec.ts` does the same for DSD and also measures the loudness, as it is the one that is 24 bit at 88.2 kHz. The other formats (Monkey's Audio, WavPack, AIFF, WMA) go through the same route and are not played in `e2e/`. `electron/protocols/decoded-track.integration.test.ts` and `decoded-loudness.integration.test.ts` scan the fixtures of all the formats and check the decoded WAV of each: the tone and the length, and the loudness that the code of `client/loudness/` gives it against an ideal sine (docs/development/integration-tests.md).
+`windowed-track.test.ts` runs the windows with a fake ffmpeg (the reach of a fast and of a slow source, a seek, a re-read, a paused reader, a second reader, the number and memory limits, a wrong length and a failure), `serve-windowed.test.ts` their ranges, `decode-policy.test.ts` and `source-speed.test.ts` (a fake source that answers late, or opens late) the policy, and `windowed-track.integration.test.ts` compares, with the real ffmpeg, the bytes from several offsets with the whole decode for every progressive codec. `decoded-track.limits.test.ts` covers the cache limit and the removal of the old folder. `decoded-track.test.ts` runs the cache, the sharing, the abort, the limit and the eviction with a fake child process; `tunelle-protocol.test.ts` the route; `e2e/functional/alac.spec.ts` plays the ALAC fixture (`e2e/fixtures/alac/`) with the real ffmpeg and measures the tone that leaves the app, which shows that Chromium plays what the decoder proxy serves; `e2e/functional/wav.spec.ts` plays the WAV fixture the same way; `e2e/functional/vorbis.spec.ts` does the same for Ogg Vorbis; `e2e/functional/dsd.spec.ts` does the same for DSD and also measures the loudness, as it is the one that is 24 bit at 88.2 kHz. The other formats (Monkey's Audio, WavPack, AIFF, WMA) go through the same route and are not played in `e2e/`. `electron/protocols/decoded-track.integration.test.ts` and `decoded-loudness.integration.test.ts` scan the fixtures of all the formats and check the decoded WAV of each: the tone and the length, and the loudness that the code of `client/loudness/` gives it against an ideal sine (docs/development/integration-tests.md).
 
 Decode time of Monkey's Audio, measured on a laptop: a 10 minute 24 bit, 96 kHz stereo file at the insane level took 13.6 s (about 44 times faster than playing). The file was a pure tone, which compresses far better than music, so real albums take longer.
 

@@ -3,6 +3,7 @@ import { prepareDecode, type Format, type PlayableTrack } from './decoded-track'
 import { maxWindows, windowReach, type Reach } from './decode-policy';
 import { openDecodeWindow, rawFormats, type Cursor, type Decoding, type DecodeWindow } from './decode-window';
 import { probeAudio } from './probe-audio';
+import { sourceSpeed } from './source-speed';
 import { wavHeader, wavHeaderSize, wavSize, type WavLayout } from './wav-header';
 
 // See docs/app/decoder-proxy.md: a WAV of the size of the whole file, decoded into windows in memory where it is read
@@ -105,11 +106,12 @@ export const windowedTrack = async ({ path, ...format }: PlayableTrack, signal: 
   const prepared = await prepareDecode(path, format satisfies Format);
   if (!prepared || wholeOnly.has(prepared.key)) return undefined;
 
-  const { key, encoder, speed } = prepared;
+  const { key, encoder, volume } = prepared;
   const layout = layouts.get(key) ?? (await probeLayout(path, encoder));
   if (!layout) return undefined;
   layouts.set(key, layout);
 
+  const speed = await sourceSpeed(path, volume);
   const reach = windowReach(speed, layout.sampleRate * layout.channels * layout.bytesPerSample);
   const source = { key, source: path, encoder, layout, reach };
   return { size: wavSize(layout), read: (start, end, signal) => readTrack(source, start, end, signal) };

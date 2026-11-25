@@ -18,9 +18,8 @@ export const restAfterMs = 10_000;
 export const windowMemoryLimit = 128 * 1024 ** 2;
 export const maxWindows = 6;
 
-/** The cache limit of the copies that were decoded from a fast source (copies of a slow source count against `slowCacheLimit`) */
-export const fastCacheLimit = 256 * 1024 ** 2;
-export const slowCacheLimit = 2 * 1024 ** 3;
+/** The most that the whole decodes may take of the disk: 45 minutes of DSD are about 1.4 GiB */
+export const cacheLimit = 2 * 1024 ** 3;
 
 /** A window that no read uses for this long is dropped; a later request decodes it again */
 export const idleStopMs = 5 * 60 * 1000;
