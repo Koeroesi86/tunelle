@@ -19,6 +19,7 @@ import createDatabase from './electron/database/create-database';
 import { libraryErrorMessage } from './electron/utils/library-error-message';
 import setupListeners from './electron/listeners/setup-listeners';
 import { tunelleOrigin, handleTunelleProtocol, registerTunelleScheme } from './electron/protocols/tunelle-protocol';
+import { removeOldCache } from './electron/protocols/decoded-track';
 import { createRadioBrowser } from './electron/services/radio/radio-browser';
 import { createRadioArt } from './electron/services/radio/radio-art';
 import { createSources } from './electron/services/sources/sources';
@@ -271,6 +272,10 @@ let startup: ReturnType<typeof createStartupSignal> | undefined;
 app
   .whenReady()
   .then(serveApp)
+  .then(() => {
+    // not waited for: it can be gigabytes, and the start does not depend on it
+    removeOldCache();
+  })
   .then(async () => {
     const main = openWindow();
     startup = createStartupSignal(main);

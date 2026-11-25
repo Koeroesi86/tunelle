@@ -8,7 +8,7 @@ import { sourceSpeed } from './source-speed';
 import { wavHeader, wavHeaderSize, type WavLayout } from './wav-header';
 
 const temp = path.join(path.sep, 'temp');
-const cache = path.join(temp, 'tunelle-decoded');
+const cache = path.join(temp, 'tunelle-whole-decodes');
 
 const { spawnFake } = vi.hoisted(() => ({ spawnFake: vi.fn() }));
 
