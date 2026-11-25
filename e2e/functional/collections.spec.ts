@@ -2,7 +2,7 @@ import { expect, navigate, quit, test } from '../support/app';
 import { player } from '../support/player';
 
 // what the listener builds up in the app; the playlist keeps one restart for the whole app, the rest of it is tried in persistence.integration.test.ts
-test('keeps a playlist of an album, and plays it', async ({ start, session }) => {
+test('keeps a playlist of an album, and plays it', async ({ session, start }) => {
   const { page } = session;
   await navigate(page, 'Albums');
   // the menu of the album creates the playlist with the album in it
