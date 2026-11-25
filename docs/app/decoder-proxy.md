@@ -15,18 +15,36 @@ A whole decode that fails, or whose request is gone, answers 404, and the player
 
 The codecs are ALAC, FLAC, APE, WavPack, AIFF, WAV and float WAV (`progressiveCodecs` in `electron/utils/is-supported.ts`), up to two channels. `ffprobe` (`probe-audio.ts`) gives the channels, the rate and the frames, only when the time base of the stream is one frame (`1/<rate>`). The header of the WAV (`wav-header.ts`) and its size are therefore known before anything is decoded, and a request for the header alone starts no decode.
 
-A window (`decode-window.ts`) is one ffmpeg run from the frame of the read that opened it (`-ss <frame / rate>` before `-i`, nine decimals), writing raw samples (the `s16le`, `s24le` and `s32le` muxers) to a pipe. The app takes from the pipe until it is the reach of the window ahead of the read, then stops taking, and ffmpeg waits on the full pipe. Bytes further behind the read than the reach are let go. `windowed-track.ts` picks a window for each read, and opens one when none can serve it:
+A window (`decode-window.ts`) starts with an ffmpeg run from the frame of the read that opened it (`-ss <frame / rate>` before `-i`, nine decimals), writing raw samples (the `s16le`, `s24le` and `s32le` muxers) to a pipe. The app takes from the pipe until it is the reach of the window ahead of the read, then stops taking, and ffmpeg waits on the full pipe. Bytes further behind the read than the reach are let go. `windowed-track.ts` picks a window for each read, and opens one when none can serve it:
 
 - A read inside a window uses it: Chromium's re-reads and overlapping ranges start no new decode.
 - A read outside every window (a seek) starts a new decode at its offset. The old window stays, so a seek back to it costs nothing while it is open.
-- Readers share a window while they are close. One that runs more than the reach ahead of another gets its own decode, so a paused player never has to restart: the loudness measurement, which reads the whole track, splits off once.
+- Readers share a window while they are close. One that runs more than the reach ahead of another gets its own decode, so a paused player keeps its window: the loudness measurement, which reads the whole track, splits off once.
+- A full window that no read moves for 10 s stops its ffmpeg (`restAfterMs`), so the source file is not held open while the player is paused. The decoded bytes stay. When a read comes within half of the reach of their end, a new ffmpeg starts at the frame there and the window goes on from the first byte that it does not hold.
 - A window that has an open reader is kept however long that reader waits (a paused player does not read, and its request may stay open). One without a reader is dropped after 5 minutes, and a later request decodes again.
-- The preloaded next track opens a window, decodes it and waits there.
+- The preloaded next track opens a window, decodes it and waits there, without its ffmpeg after 10 s.
 - Windows do not take the two places of the whole decodes, as most of their time is spent waiting for the reader.
 - A decode that gives another number of bytes than the file said is logged, and that track uses the whole decode from then on (until the app restarts). The CAF fixture with ALAC in it is one: `ffprobe` says 264600 frames and the decode gives 262960.
 - A decode that fails ends the read, without being started again for it; a later request tries again.
 
-Not tested: Windows and macOS in the real app. A window whose decode has not reached the end keeps ffmpeg running, so the source file stays open while the player is paused and for up to 5 minutes after the last read; on Windows that may block renaming or deleting the file.
+Not tested: Windows and macOS in the real app, and whether a sleeping disk wakes within the half of the reach that is left when ffmpeg starts again.
+
+### Why 10 s until ffmpeg is stopped
+
+Chromium does not read a playing track evenly: it asks for about 1.1 MB at once and then waits until that has played. Measured on Linux, by logging every read of a window while generated FLAC files played:
+
+| file | bytes of samples a second | time between reads |
+| --- | --- | --- |
+| 22.05 kHz mono 16 bit | 44 KB | 20 to 26 s |
+| 44.1 kHz stereo 16 bit | 176 KB | 6 to 7 s |
+| 96 kHz stereo 32 bit | 768 KB | 1.9 s |
+| 192 kHz stereo 32 bit | 1.5 MB | 1 s |
+
+With 3 s, ffmpeg was stopped and started again between every two reads of a CD quality track. With 10 s it runs through at that rate and above; a track of less than about 110 KB a second still has a new ffmpeg between its reads. A paused player sends no read, so the file is let go 10 s after the pause. To check it on Linux: play and pause a long track and look for the file under `/proc/*/fd`.
+
+### An open source file on Windows
+
+Symptom: on `windows-2025` the end to end tests that use the `music` fixture failed with `EPERM, Permission denied` on removing the music folder, after their assertions had passed. Cause: the folder was removed while the app still ran, and a window that had not reached the end of its track kept ffmpeg, which holds the file open (an inference from the error and the order of the fixtures). Windows does not remove such a file; a user of the app would likely be refused too (not tried). Two changes: a waiting ffmpeg is stopped (see above), and the fixture removes the folder after the app has quit, as a playing track may be open. While a track plays, its file can still be held.
 
 ## How much is decoded: the speed of the source
 

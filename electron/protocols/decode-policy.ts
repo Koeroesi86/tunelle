@@ -11,7 +11,10 @@ export const slowAheadSeconds = 10;
 /** The bytes that a window keeps behind that read: Chromium asks again from about 2 MiB before it, see docs/app/decoder-proxy.md */
 export const behindBytes = 4 * 1024 ** 2;
 
-/** The most memory that the windows of all tracks may hold, and the most of them (each can have a paused ffmpeg) */
+/** A full window that no read moves for this long stops its ffmpeg, which holds the source file open, see docs/app/decoder-proxy.md */
+export const restAfterMs = 10_000;
+
+/** The most memory that the windows of all tracks may hold, and the most of them (each can have a waiting ffmpeg) */
 export const windowMemoryLimit = 128 * 1024 ** 2;
 export const maxWindows = 6;
 

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventEmitter } from 'events';
 import path from 'path';
 import { memoryFs } from '../test-memory-fs';
-import { behindBytes, idleStopMs, maxWindows, windowMemoryLimit, windowReach, type SourceSpeed } from './decode-policy';
+import { behindBytes, idleStopMs, maxWindows, restAfterMs, windowMemoryLimit, windowReach, type SourceSpeed } from './decode-policy';
 import { probeAudio } from './probe-audio';
 import { sourceSpeed } from './source-speed';
 import { wavHeader, wavHeaderSize, type WavLayout } from './wav-header';
@@ -195,15 +195,62 @@ describe('windowedTrack', () => {
     expect(decodes).toHaveLength(2);
   });
 
-  it('keeps the window of a paused reader longer than the idle time', async () => {
+  it('stops ffmpeg of a paused reader, keeps its window and decodes on from where the window ends', async () => {
+    // a chunk of an odd size, so the window ends inside a frame
+    ffmpeg.chunk = 1001;
     const reader = await request(wavHeaderSize);
     const first = await next(reader);
 
+    await vi.advanceTimersByTimeAsync(restAfterMs);
+    expect(decodes[0].kill).toHaveBeenCalled();
+    const held = decodes[0].taken;
+
     await vi.advanceTimersByTimeAsync(idleStopMs + 1000);
+    const buffered = await next(reader);
+    expect(decodes).toHaveLength(1);
+
+    expect(Buffer.concat([first as Buffer, buffered as Buffer, await readAll(reader)])).toEqual(fileFrom(wavHeaderSize));
+    expect(held % 2).toBe(1);
+    expect(decodes.map(({ from }) => from)).toEqual([0, held - 1]);
+  });
+
+  it('stops ffmpeg of a window without a reader, and answers a re-read from it without a decode', async () => {
+    const { track } = await openTrack();
+    const signal = new AbortController().signal;
+    await readAll(track.read(wavHeaderSize, wavHeaderSize + 999, signal));
+    await settle();
+
+    await vi.advanceTimersByTimeAsync(restAfterMs);
+    expect(decodes[0].kill).toHaveBeenCalled();
+
+    expect(await readAll(track.read(wavHeaderSize, wavHeaderSize + 999, signal))).toEqual(fileFrom(wavHeaderSize, wavHeaderSize + 1000));
+    expect(decodes).toHaveLength(1);
+  });
+
+  it('keeps ffmpeg while the reads move the window more often than the rest time', async () => {
+    const reader = await request(wavHeaderSize);
+
+    for (let read = 0; read < 5; read++) {
+      await next(reader);
+      await vi.advanceTimersByTimeAsync(restAfterMs - 1);
+    }
 
     expect(decodes[0].kill).not.toHaveBeenCalled();
-    expect(Buffer.concat([first as Buffer, await readAll(reader)])).toEqual(fileFrom(wavHeaderSize));
     expect(decodes).toHaveLength(1);
+  });
+
+  it('lets ffmpeg end by itself when the full window holds the end of its track', async () => {
+    const total = ahead + 1000;
+    vi.mocked(probeAudio).mockResolvedValue({ ...layout, frames: total / 2 });
+    ffmpeg.length = total;
+    const { track } = await openTrack();
+    await readAll(track.read(wavHeaderSize, wavHeaderSize + 999, new AbortController().signal));
+    await settle();
+
+    await vi.advanceTimersByTimeAsync(restAfterMs);
+
+    expect(decodes[0].taken).toBe(total);
+    expect(decodes[0].kill).not.toHaveBeenCalled();
   });
 
   it('drops a window that nothing reads for the idle time, and decodes again for the next read', async () => {
@@ -212,7 +259,6 @@ describe('windowedTrack', () => {
     await readAll(track.read(wavHeaderSize, wavHeaderSize + 999, signal));
 
     await vi.advanceTimersByTimeAsync(idleStopMs + 1000);
-    expect(decodes[0].kill).toHaveBeenCalled();
 
     await readAll(track.read(wavHeaderSize + 1000, wavHeaderSize + 1999, signal));
     expect(decodes).toHaveLength(2);

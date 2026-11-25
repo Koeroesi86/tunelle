@@ -94,7 +94,8 @@ export const test = base.extend<Fixtures>({
     directory.close();
   },
 
-  session: async ({ start, music }, use) => {
+  // `music` comes first, so its folder is removed after the app has quit: Windows does not remove a file that the app or its ffmpeg holds open
+  session: async ({ music, start }, use) => {
     const session = await start();
     await addFolder(session.page, music, tracksInLibrary);
     await use(session);
