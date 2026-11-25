@@ -1,8 +1,8 @@
 import { parseRange } from './serve-file';
-import type { GrowingTrack } from './growing-track';
+import type { WindowedTrack } from './windowed-track';
 
-/** A WAV that ffmpeg is still writing, with the size and the ranges of the finished file; a range that is not written yet waits. See docs/app/decoder-proxy.md */
-export const serveGrowing = (track: GrowingTrack, request: Request) => {
+/** A WAV that is decoded as it is read, with the size and the ranges of the whole file; a range that is not decoded yet waits. See docs/app/decoder-proxy.md */
+export const serveWindowed = (track: WindowedTrack, request: Request) => {
   const range = request.headers.get('range');
   const bounds = range ? parseRange(range, track.size) : undefined;
   if (range && !bounds) return new Response(undefined, { status: 416, headers: { 'Content-Range': `bytes */${track.size}` } });

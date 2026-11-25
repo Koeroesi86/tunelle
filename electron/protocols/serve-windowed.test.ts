@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { serveGrowing } from './serve-growing';
-import type { GrowingTrack } from './growing-track';
+import { serveWindowed } from './serve-windowed';
+import type { WindowedTrack } from './windowed-track';
 
 vi.mock('electron', () => ({ net: { fetch: vi.fn() } }));
 
@@ -8,14 +8,14 @@ const track = (size = 10) => {
   const read = vi.fn(async function* (start: number, end: number) {
     yield Buffer.from(`${start}-${end}`);
   });
-  return { size, read } satisfies GrowingTrack;
+  return { size, read } satisfies WindowedTrack;
 };
 const request = (range?: string) => new Request('tunelle://app/x', { headers: range ? { range } : {} });
 
-describe('serveGrowing', () => {
+describe('serveWindowed', () => {
   it('serves the whole file with the final size', async () => {
     const source = track();
-    const response = serveGrowing(source, request());
+    const response = serveWindowed(source, request());
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Length')).toBe('10');
     expect(response.headers.get('Content-Type')).toBe('audio/wav');
@@ -23,7 +23,7 @@ describe('serveGrowing', () => {
   });
 
   it('serves a range with its Content-Range', async () => {
-    const response = serveGrowing(track(), request('bytes=2-5'));
+    const response = serveWindowed(track(), request('bytes=2-5'));
     expect(response.status).toBe(206);
     expect(response.headers.get('Content-Range')).toBe('bytes 2-5/10');
     expect(response.headers.get('Content-Length')).toBe('4');
@@ -31,13 +31,13 @@ describe('serveGrowing', () => {
   });
 
   it('answers 416 for a range outside the file', () => {
-    const response = serveGrowing(track(), request('bytes=50-60'));
+    const response = serveWindowed(track(), request('bytes=50-60'));
     expect(response.status).toBe(416);
     expect(response.headers.get('Content-Range')).toBe('bytes */10');
   });
 
   it('stops reading when the body is cancelled', async () => {
-    const response = serveGrowing(track(), request());
+    const response = serveWindowed(track(), request());
     await response.body?.cancel();
     expect(response.body?.locked).toBe(false);
   });
