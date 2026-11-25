@@ -58,6 +58,10 @@ Measured with `npx vitest run --reporter=json`, the whole suite takes about 17 s
 - the tests with a real SQLite (every `createTestDatabase()` applies all migrations), real folders and real timers, which are now integration tests;
 - the `findBy`/`waitFor` of React tests, that poll in real time (`client/components/`).
 
+### `toEqual` of a large buffer
+
+Symptom (`master`, 25 November, `Test (macos-15-intel)`): two tests of `electron/protocols/windowed-track.test.ts` ended with `Test timed out in 5000ms` (5.2 s and 5.7 s), while the other systems passed. Cause: `toEqual` compares a `Buffer` element by element, and these tests compare up to 200 KB. In earlier runs that passed, the same tests already took 1.2 to 4.1 s on that runner. Compare large buffers with `expect(actual.equals(expected)).toBe(true)`; `toEqual` of a few KB is fine and prints a better difference. How to check: a test of two equal buffers of 200 KB took 376 ms with `toEqual` and under 1 ms with `equals` on a developer machine.
+
 ## What the move found (#388)
 
 Of the 66 tests that the guard listed, 4 were mocked and stay where they were (`read-track-file`, `missing-tracks`, `radio-browser`, `register-loudness-listeners`), 9 only had the text `sqlite3` as a type and use `fakeDatabase()`, and the rest were split: the logic is a unit test with the memory file system, the repositories or the module that reads and writes mocked, and what needs SQLite or real files went to [integration-tests.md](integration-tests.md). Unit tests only, `npm run test:coverage` is at 87 % of the lines and 85 % of the branches, with the entry points (`index.ts`, `scripts/checks/smoke.js`, the screenshot fixtures) included; the thresholds in `vitest.config.ts` are just below that.
