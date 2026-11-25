@@ -7,9 +7,14 @@ import { decodeTrack, playableFile } from './decoded-track';
 import { logError } from '../utils/log-error';
 
 const sizes = vi.hoisted(() => new Map<string, number>());
+const beforeFolder = vi.hoisted(() => vi.fn());
 
 vi.mock('fs/promises', async () => ({
   ...memoryFs.promises,
+  mkdir: async (folder: string) => {
+    beforeFolder();
+    return memoryFs.promises.mkdir(folder);
+  },
   stat: async (file: string) => {
     const stats = await memoryFs.promises.stat(file);
     return { ...stats, size: sizes.get(path.basename(file)) ?? stats.size };
@@ -179,6 +184,70 @@ describe('decodeTrack', () => {
     expect(child.kill).not.toHaveBeenCalled();
     child.emit('close', null);
     await Promise.all([one, two]);
+  });
+
+  /** A decoder that is killed but closes only when the test lets it, as ffmpeg does some time after the kill */
+  const slowToClose = () => {
+    const child = decoder({ code: 0, hold: true });
+    child.kill.mockImplementation(() => undefined);
+    return child;
+  };
+  const writeOutput = (call: number) => {
+    const [, args] = vi.mocked(spawn).mock.calls[call] as unknown as [string, string[]];
+    memoryFs.sync.writeFileSync(args[args.indexOf('-y') + 1], 'wav');
+  };
+
+  it('leaves the retry of a cancelled decode alone when the cancelled one closes late', async () => {
+    const controller = new AbortController();
+    const cancelled = slowToClose();
+    const retried = slowToClose();
+    const first = decodeTrack(source, format, controller.signal);
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalledTimes(1));
+    controller.abort();
+    const second = decodeTrack(source, format, signal());
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalledTimes(2));
+    writeOutput(1);
+
+    cancelled.emit('close', null);
+    expect(await first).toBeUndefined();
+    retried.emit('close', 0);
+
+    const file = await second;
+    expect(file).toBeDefined();
+    expect(memoryFs.sync.readdirSync(cache)).toEqual([path.basename(file ?? '')]);
+  });
+
+  it('keeps no file of a cancelled decode, even when ffmpeg ends well', async () => {
+    const controller = new AbortController();
+    const child = slowToClose();
+    const pending = decodeTrack(source, format, controller.signal);
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalled());
+
+    controller.abort();
+    writeOutput(0);
+    child.emit('close', 0);
+
+    expect(await pending).toBeUndefined();
+    expect(memoryFs.sync.readdirSync(cache)).toEqual([]);
+    expect(logError).not.toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining(source) }));
+  });
+
+  it('does not start ffmpeg for a decode that is cancelled while its folder is made', async () => {
+    const controller = new AbortController();
+    beforeFolder.mockImplementationOnce(() => controller.abort());
+
+    expect(await decodeTrack(source, format, controller.signal)).toBeUndefined();
+    expect(spawn).not.toHaveBeenCalled();
+  });
+
+  it('does not count a request that is aborted while the app looks for the copy', async () => {
+    const controller = new AbortController();
+    const pending = decodeTrack(source, format, controller.signal);
+
+    controller.abort();
+
+    expect(await pending).toBeUndefined();
+    expect(spawn).not.toHaveBeenCalled();
   });
 
   it('removes the oldest files when the cache is over its limit, and keeps the track it just made', async () => {

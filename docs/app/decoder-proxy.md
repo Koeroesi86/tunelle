@@ -95,25 +95,36 @@ No codec was measured on a slow drive.
 
 ## The whole decode
 
-`ffmpeg -nostdin -v error -fflags +bitexact -i <file> -map 0:a:0 -map_metadata -1 -c:a <pcm> -f wav -y <cache>/<key>.wav.part`. The sample rate and the channels stay as in the file (the audio context resamples), the depth too: 16 bit or less is `pcm_s16le`, up to 24 `pcm_s24le`, above `pcm_s32le`, and 16 when the library has none. The output is written as `.part` and renamed when ffmpeg ends well, so a file of the cache is whole. A failure removes the `.part` file and logs the error of ffmpeg.
+`ffmpeg -nostdin -v error -fflags +bitexact -i <file> -map 0:a:0 -map_metadata -1 -c:a <pcm> -f wav -y <cache>/<key>.wav.<uuid>.part`. The sample rate and the channels stay as in the file (the audio context resamples), the depth too: 16 bit or less is `pcm_s16le`, up to 24 `pcm_s24le`, above `pcm_s32le`, and 16 when the library has none. The output is written as `.part` and renamed when ffmpeg ends well, so a file of the cache is whole. A failure removes the `.part` file and logs the error of ffmpeg. Every decode has a `.part` name of its own (see [Cancel and retry](#cancel-and-retry)).
 
 - The program is `ffmpeg/ffmpeg` of the resources of the packaged app, and `.cache/ffmpeg/install/bin/ffmpeg` (`npm run ffmpeg`) next to `out/` otherwise.
 - Requests for the same track meanwhile share one decode. It is killed when the last request waiting for it is aborted (the page leaves the track), and not before.
 - At most two decodes run at the same time, the others wait for a place.
+
+### Cancel and retry
+
+A cancelled decode or download ends later than its cancel (ffmpeg has to close, a stream has to fail), and a new request for the same track can start in between ([#576](https://github.com/Koeroesi86/tunelle/issues/576)). Symptom: the retry answered 404, because both wrote to one `.part` file and the cancelled job removed it when it closed. So:
+
+- Each decode job and each download writes to a `.part` file with a random name of its own.
+- A cancelled one never renames its file into the cache, even when ffmpeg or the download ended well, and a decode cancelled while its folder is made does not start ffmpeg.
+- A cancelled one leaves the map of the running ones at once, so a new request does not join it, and its late end does not remove the entry of the new one.
+- A request that is aborted while the app looks at the file or the cache is checked once more right before it is counted, as a signal that has aborted never calls a listener that is added later.
+
+A `.part` file of a quit or a crash stays: the decode cache removes it like any old file, and the download folder removes the ones of no running download after the next download. The tests are `decoded-track.test.ts` and `source-download.test.ts`.
 
 ## Radio stations and server tracks ([#562](https://github.com/Koeroesi86/tunelle/issues/562))
 
 The same rule holds for the online sources: a format in `decodedCodecs` is decoded by the bundled ffmpeg, Chromium plays the rest.
 
 - **Radio** (`radio-proxy.ts`, `stream-decode.ts`): the ICY metadata is stripped first, then the start of the stream (up to 64 KiB or 2 s, `peekStream`) is read until `detectStreamCodec` names the codec (MP3 and ADTS AAC by two frames in a row, Opus, Vorbis and FLAC in Ogg by the header of the codec, native FLAC by `fLaC`). A codec of `decodedCodecs` goes to `ffmpeg -i pipe:0 ... -f wav pipe:1` and the response is `audio/wav` of no set length; nothing is written to disk. The sample rate comes from the header of the decoded WAV. AAC (no decoder in the build, see [#549](https://github.com/Koeroesi86/tunelle/issues/549)) and a stream whose format is not named take the old path, Chromium decodes the bytes. If ffmpeg cannot start, or ends before it gave a byte (a build without the MP3 decoder, as the Flatpak), the stream plays in Chromium as before: the bytes that were read are replayed (`replay`), the few that ffmpeg took before it failed are lost, and Chromium finds the next frame. Closing the response kills ffmpeg and closes the connection to the station.
-- **Server tracks** (`source-protocol.ts`, `source-download.ts`): the page adds the `codec` and `bitDepth` that the server's metadata gave (`track-source.ts`), as the server's stream has no codec before it is read. A codec of `decodedCodecs` is downloaded whole to `tunelle-source` of the temp folder (once for the requests that ask meanwhile, the three newest files stay, the download stops when the last request leaves) and then goes the way of a library file: the windowed or the whole decode, with ranges. A pipe cannot be sought, and an MP4 with its `moov` at the end cannot be read from one, so a track is not streamed through ffmpeg; the cost is that it starts when the download is done (on the local network a lossless track takes some seconds). A failed download or decode plays the server's own stream as before.
+- **Server tracks** (`source-protocol.ts`, `source-download.ts`): the page adds the `codec` and `bitDepth` that the server's metadata gave (`track-source.ts`), as the server's stream has no codec before it is read. A codec of `decodedCodecs` is downloaded whole to `tunelle-source` of the temp folder (once for the requests that ask meanwhile, the three newest files stay, the download stops when the last request leaves, see [Cancel and retry](#cancel-and-retry)) and then goes the way of a library file: the windowed or the whole decode, with ranges. A pipe cannot be sought, and an MP4 with its `moov` at the end cannot be read from one, so a track is not streamed through ffmpeg; the cost is that it starts when the download is done (on the local network a lossless track takes some seconds). A failed download or decode plays the server's own stream as before.
 - Not built: restarting a stream at an offset for a range request, and a measured start-up delay of ffmpeg for an MP3 station. `stream-decode.integration.test.ts` runs the real ffmpeg on the fixtures through `serveRadio` and `serveSource`. Whether Chromium plays a WAV of unknown length from `<audio>` without trouble is not measured in `e2e/` yet.
 
 ## The cache
 
 Only whole decodes are written to disk, to `tunelle-whole-decodes` in the temp folder of the system; playing an album of a progressive codec adds nothing to it (`windowed-track.integration.test.ts` and `windowed-track.test.ts` check that). A whole decode takes rate × channels × bytes per sample × seconds (the sizes are in the table below). Earlier versions used `tunelle-decoded` and kept copies of progressive codecs there; the app removes that folder when it starts (`removeOldCache`), as the limit only runs after a whole decode, which a library without WMA or DSD never starts. The key is a hash of the path, the size and modification time of the source and the output format, so a changed file is decoded again and the old copy is evicted with time. A copy that is served gets its modification time set to now.
 
-After each decode the oldest files are removed until the cache is under 2 GiB, whatever the speed of the source (45 minutes of DSD fit, so an album is not decoded again when it is played again), except the files being written and the three served last: the track that plays, the preloaded next one (`upNext`, whose request starts the decode early so the hand-off stays gapless) and the previous one. Stale `.part` files go the same way.
+After each decode the oldest files are removed until the cache is under 2 GiB, whatever the speed of the source (45 minutes of DSD fit, so an album is not decoded again when it is played again), except the files (and `.part` files) of a running decode and of the three served last: the track that plays, the preloaded next one (`upNext`, whose request starts the decode early so the hand-off stays gapless) and the previous one. Stale `.part` files go the same way.
 
 ### Measured after playing an album
 

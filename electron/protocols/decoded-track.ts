@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'child_process';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { mkdir, readdir, rename, rm, stat, utimes } from 'fs/promises';
 import { join } from 'path';
 import { app } from 'electron';
@@ -89,8 +89,9 @@ export const evict = async () => {
       )
     )
   ).filter((file) => file !== undefined);
-  const busy = new Set([...jobs.keys(), ...recent].flatMap((key) => [`${key}.wav`, `${key}.wav.part`]));
-  const idle = files.filter(({ name }) => !busy.has(name)).sort((a, b) => a.mtimeMs - b.mtimeMs);
+  // the copy and every part file of a key start with it
+  const live = new Set([...jobs.keys(), ...recent]);
+  const idle = files.filter(({ name }) => !live.has(name.split('.')[0])).sort((a, b) => a.mtimeMs - b.mtimeMs);
   const total = files.reduce((sum, { size }) => sum + size, 0);
 
   await Promise.all(
@@ -101,11 +102,12 @@ export const evict = async () => {
 };
 
 const writeDecoded = async (job: Job, source: string, encoder: string[], target: string) => {
-  if (job.cancelled) return undefined;
   await mkdir(cacheFolder(), { recursive: true });
-  // written under another name and renamed, so a file of the cache is always whole
-  const output = `${target}.part`;
-  if (!(await runDecoder(job, source, encoder, output))) {
+  if (job.cancelled) return undefined;
+  // each job writes under its own name and renames at the end: a file of the cache is whole, and a cancelled job can not touch its retry
+  const output = `${target}.${randomUUID()}.part`;
+  const decoded = await runDecoder(job, source, encoder, output);
+  if (!decoded || job.cancelled) {
     await rm(output, { force: true });
     return undefined;
   }
@@ -176,7 +178,8 @@ export const decodeTrack = async (source: string, format: Format, signal: AbortS
 
   const { key, encoder, target } = prepared;
   const cached = await cachedCopy(target);
-  if (cached) return cached;
+  // checked after the last await: a signal that has aborted never calls the listener, and the request would be counted forever
+  if (cached || signal.aborted) return cached;
 
   const existing = jobs.get(key);
   const job = existing && !existing.cancelled ? existing : startJob(key, source, encoder, target);
