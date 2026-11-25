@@ -97,6 +97,12 @@ mac 1-concert-a.wav ape/1-concert-a.ape -c2000 -t "Title=Concert A|Artist=The Si
 npm run fixtures:dsd
 ```
 
+`dst/` has the two tracks of `dsd/` as DST compressed DSDIFF (225 frames each) in the album "Lossless DST", for `electron/protocols/decoded-track.integration.test.ts` and `decoded-loudness.integration.test.ts`. No free tool encodes DST, so `scripts/tooling/dst-frame.ts` writes arithmetic coded frames with a predictor of zero, which compresses nothing but decodes to the same bits:
+
+```sh
+npm run fixtures:dst
+```
+
 `wavpack/` has the same two tracks in WavPack (16 bit, mono, 44.1 kHz, high compression) in the album "Lossless WavPack", for `electron/protocols/decoded-track.integration.test.ts`. They are made with `wavpack` of the official tools (<https://www.wavpack.com>) from the same WAV files:
 
 ```sh

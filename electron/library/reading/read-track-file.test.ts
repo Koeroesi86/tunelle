@@ -4,10 +4,12 @@ import { parseFile } from 'music-metadata';
 import { memoryFs } from '../../test-memory-fs';
 import { readTrackFile } from './read-track-file';
 import { readLargeWave } from './read-large-wave';
+import { readDstDuration } from './read-dst-duration';
 
 vi.mock('fs', () => ({ ...memoryFs.sync, default: memoryFs.sync }));
 vi.mock('music-metadata', () => ({ parseFile: vi.fn() }));
 vi.mock('./read-large-wave', () => ({ readLargeWave: vi.fn() }));
+vi.mock('./read-dst-duration', () => ({ readDstDuration: vi.fn() }));
 
 const withPicture = (data: string) => ({
   common: { album: 'Album', picture: [{ format: 'image/jpeg', data: Buffer.from(data) }] },
@@ -120,5 +122,23 @@ describe('readTrackFile of Wave64 and RF64', () => {
     await readTrackFile('/music/a.flac', '/user-data');
 
     expect(readLargeWave).not.toHaveBeenCalled();
+  });
+});
+
+describe('readTrackFile of DST', () => {
+  const format = { codec: 'DST (DST Encoded)', container: 'DSDIFF/DSD', sampleRate: 2822400 };
+
+  it('takes the length from readDstDuration, as music-metadata gives none', async () => {
+    vi.mocked(parseFile).mockResolvedValue({ common: {}, format, native: {} } as never);
+    vi.mocked(readDstDuration).mockResolvedValue(6);
+
+    expect(await readTrackFile('/music/a.dff', '/user-data')).toMatchObject({ codec: 'DST', bitDepth: 1, lossless: 1, duration: 6 });
+  });
+
+  it('stores no length when the file gives none', async () => {
+    vi.mocked(parseFile).mockResolvedValue({ common: {}, format, native: {} } as never);
+    vi.mocked(readDstDuration).mockResolvedValue(undefined);
+
+    expect(await readTrackFile('/music/a.dff', '/user-data')).toMatchObject({ codec: 'DST', duration: null });
   });
 });

@@ -31,7 +31,7 @@ export const supportedFormats = [
 const isSupported = (filePath: string) => supportedFormats.includes(path.extname(filePath).replace('.', '').toLowerCase());
 
 /** Codecs that sit in a container that plays, which Chromium does not decode. See docs/app/supported-formats.md */
-const unsupportedCodecs = ['SPEEX', 'THEORA', 'DST', 'WMA-VOICE'];
+const unsupportedCodecs = ['SPEEX', 'THEORA', 'WMA-VOICE'];
 
 /** Codecs that Chromium does not decode and that ffmpeg decodes before the track is served. See docs/app/decoder-proxy.md */
 const decodedCodecs = [
@@ -43,6 +43,7 @@ const decodedCodecs = [
   'AIFF',
   'AIFF-C',
   'DSD',
+  'DST',
   'WMA',
   'WAV',
   'CAF',
@@ -66,6 +67,11 @@ const chromiumCodecs = ['MP3'];
 export const isChromiumCodec = (codec: string | null | undefined) => chromiumCodecs.includes(codec ?? '');
 
 export const isProgressiveCodec = (codec: string | null | undefined) => progressiveCodecs.includes(codec ?? '');
+
+/** 1 bit audio, as it is (DSD) or compressed (DST) */
+const dsdCodecs = ['DSD', 'DST'];
+
+export const isDsdCodec = (codec: string | null | undefined) => dsdCodecs.includes(codec ?? '');
 
 export const isDecodedCodec = (codec: string | null | undefined) => decodedCodecs.includes(codec ?? '');
 

@@ -7,6 +7,7 @@ import slugify from 'slugify';
 import type { Track } from '@shared/types/library';
 import readAudioFormat from './read-audio-format';
 import type { ReadFormat } from './read-audio-format';
+import { readDstDuration } from './read-dst-duration';
 import { readLargeWave } from './read-large-wave';
 import type { LargeWave } from './read-large-wave';
 import readLoudness from './read-loudness';
@@ -84,11 +85,17 @@ const readWave64 = async (fileName: string): Promise<ReadMeta> => {
   return withoutNative(wave);
 };
 
+/** `music-metadata` skips the sound chunk of a DST file, so its length is read from the file. See docs/app/supported-formats.md */
+const withDstDuration = async (fileName: string, meta: IAudioMetadata): Promise<ReadMeta> => {
+  if (!/^dst/i.test(meta.format.codec ?? '')) return meta;
+  return { ...meta, format: { ...meta.format, duration: await readDstDuration(fileName) } };
+};
+
 /** Wave64 and RF64 files are read by `readLargeWave`, as `music-metadata` reads neither: it fails on the first and finds no format in the second. See docs/app/supported-formats.md */
 const readMeta = async (fileName: string): Promise<ReadMeta> => {
   if (path.extname(fileName).toLowerCase() === '.w64') return readWave64(fileName);
   const meta = await parseFile(fileName);
-  if (meta.format.codec) return meta;
+  if (meta.format.codec) return withDstDuration(fileName, meta);
   const wave = await readLargeWave(fileName);
   return wave ? withoutNative(wave) : meta;
 };

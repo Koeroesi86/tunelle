@@ -3,7 +3,7 @@ import { createHash } from 'crypto';
 import { mkdir, readdir, rename, rm, stat, utimes } from 'fs/promises';
 import { join } from 'path';
 import { app } from 'electron';
-import { isChromiumCodec, isDecodedCodec } from '../utils/is-supported';
+import { isChromiumCodec, isDecodedCodec, isDsdCodec } from '../utils/is-supported';
 import { logError } from '../utils/log-error';
 import { cacheLimit } from './decode-policy';
 import { ffmpegProgram } from './ffmpeg-program';
@@ -38,9 +38,9 @@ const cacheFolder = () => join(app.getPath('temp'), 'tunelle-whole-decodes');
 /** Removes the cache of the earlier versions, which also kept copies of the codecs that are decoded in memory now */
 export const removeOldCache = () => rm(join(app.getPath('temp'), 'tunelle-decoded'), { recursive: true, force: true }).catch(logError);
 
-/** The WAV keeps the depth of the file, 16 bit when it is not known; DSD, which has 1 bit, is 88.2 kHz and 24 bit whatever its rate. See docs/app/decoder-proxy.md */
+/** The WAV keeps the depth of the file, 16 bit when it is not known; DSD and DST, which have 1 bit, are 88.2 kHz and 24 bit whatever their rate. See docs/app/decoder-proxy.md */
 const toEncoder = ({ codec, bitDepth }: Format) => {
-  if (codec === 'DSD') return ['-ar', '88200', '-c:a', 'pcm_s24le'];
+  if (isDsdCodec(codec)) return ['-ar', '88200', '-c:a', 'pcm_s24le'];
   return ['-c:a', (bitDepth ?? 16) > 24 ? 'pcm_s32le' : (bitDepth ?? 16) > 16 ? 'pcm_s24le' : 'pcm_s16le'];
 };
 

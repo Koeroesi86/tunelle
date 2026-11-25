@@ -43,7 +43,7 @@ const measureDecoded = (file: string) => {
 };
 
 // a lossy codec overshoots the peak of the sine a little and its level is a little off (`peakDigits`: 1 allows 0.05, the default 2 allows 0.005; `lufsDigits`: 0 allows 0.5 LU, the default 1 allows 0.05)
-// the sines of e2e/fixtures: the ones that ffmpeg made are at its default amplitude of 0.125, the DSD ones at 0.5 (scripts/tooling/generate-dsd-fixtures.ts)
+// the sines of e2e/fixtures: the ones that ffmpeg made are at its default amplitude of 0.125, the DSD and DST ones at 0.5 (scripts/tooling/generate-dsd-fixtures.ts)
 const formats = [
   { folder: 'flac', amplitude: 0.125 },
   { folder: 'flac-hires', amplitude: 0.125 },
@@ -54,6 +54,7 @@ const formats = [
   { folder: 'aiff', amplitude: 0.125 },
   { folder: 'dsd', amplitude: 0.5 },
   { folder: 'wavpack-dsd', amplitude: 0.5 },
+  { folder: 'dst', amplitude: 0.5 },
   { folder: 'wma', amplitude: 0.125 },
   { folder: 'mp3', amplitude: 0.125, peakDigits: 1, lufsDigits: 0 },
   { folder: 'mp2', amplitude: 0.125, peakDigits: 1, lufsDigits: 0 },
