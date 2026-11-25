@@ -141,7 +141,7 @@ describe('windowedTrack', () => {
     const { track } = await openTrack();
 
     expect(track.size).toBe(size);
-    expect(await readAll(track.read(0, size - 1, new AbortController().signal))).toEqual(fileFrom(0));
+    expect((await readAll(track.read(0, size - 1, new AbortController().signal))).equals(fileFrom(0))).toBe(true);
     expect(decodes).toHaveLength(1);
     expect(memoryFs.sync.existsSync(cache)).toBe(false);
   });
@@ -158,7 +158,7 @@ describe('windowedTrack', () => {
     await next(track.read(wavHeaderSize, size - 1, new AbortController().signal));
     const seek = track.read(wavHeaderSize + 150_001, size - 1, new AbortController().signal);
 
-    expect(await readAll(seek)).toEqual(fileFrom(wavHeaderSize + 150_001));
+    expect((await readAll(seek)).equals(fileFrom(wavHeaderSize + 150_001))).toBe(true);
     expect(decodes.map(({ seek, from }) => [seek, from])).toEqual([
       [undefined, 0],
       ['75.000000000', 150_000],
@@ -209,7 +209,7 @@ describe('windowedTrack', () => {
     const buffered = await next(reader);
     expect(decodes).toHaveLength(1);
 
-    expect(Buffer.concat([first as Buffer, buffered as Buffer, await readAll(reader)])).toEqual(fileFrom(wavHeaderSize));
+    expect(Buffer.concat([first as Buffer, buffered as Buffer, await readAll(reader)]).equals(fileFrom(wavHeaderSize))).toBe(true);
     expect(held % 2).toBe(1);
     expect(decodes.map(({ from }) => from)).toEqual([0, held - 1]);
   });
@@ -272,7 +272,7 @@ describe('windowedTrack', () => {
     const measured = await readAll(track.read(wavHeaderSize, size - 1, new AbortController().signal));
     const resumed = await next(paused);
 
-    expect(measured).toEqual(fileFrom(wavHeaderSize));
+    expect(measured.equals(fileFrom(wavHeaderSize))).toBe(true);
     expect(resumed).toEqual(pattern(1000, 1000));
     expect(decodes.map(({ from }) => from)).toEqual([0, 1000 + ahead]);
     expect(decodes[0].kill).not.toHaveBeenCalled();
@@ -341,7 +341,7 @@ describe('windowedTrack', () => {
 
     const bytes = await readAll(track.read(0, size - 1, new AbortController().signal));
 
-    expect(bytes).toEqual(fileFrom(0, wavHeaderSize + Math.min(length, samples)));
+    expect(bytes.equals(fileFrom(0, wavHeaderSize + Math.min(length, samples)))).toBe(true);
     expect(await again()).toBeUndefined();
   });
 
