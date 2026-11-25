@@ -80,7 +80,18 @@ Time until the first bytes arrive, at the start, the middle and the end of a ste
 | AIFF | 120 s | 3 ms | 3 ms | 5 ms |
 | WAV | 120 s | 6 ms | 5 ms | 5 ms |
 
-Monkey's Audio was not measured on a long file (there is no encoder for it here), and no codec on a slow drive.
+Monkey's Audio seeks by the seek table at the start of the file and does not scan it. Time until the first bytes and bytes read from the file (`Statistics:` in the `-v verbose` log of ffmpeg), for 16 bit mono 44.1 kHz at the normal level, at positions from the start to the last sample, same laptop:
+
+| length | file | first bytes | bytes read per seek |
+| --- | --- | --- | --- |
+| 1003 s | 12.5 MB | 2 to 5 ms | 87 to 295 KB |
+| 6019 s | 75 MB | 2 to 5 ms | 120 to 328 KB |
+
+- Every position gave the same bytes as the decode from the start, including one sample before, at and after a frame edge.
+- ffmpeg cannot encode Monkey's Audio, so these files were made by repeating the full frames of the two fixtures in `e2e/fixtures/ape/` with a new header and seek table. A frame counts its 32 bit words from the first frame: copy the whole words that hold it and keep its start modulo 4 in the seek table. The whole decode of the file made this way equals the decoded frames of the fixtures. To measure again, make such a file (or take a long real one) and run `ffmpeg -v verbose -ss <seconds> -i <file> -frames:a 1 -f s16le -`.
+- A seek decodes from the start of its frame. The frames measured here are 73728 samples long; a file at a higher level has longer ones, so a seek there decodes more before the first byte. That was **not** measured.
+
+No codec was measured on a slow drive.
 
 ## The whole decode
 
