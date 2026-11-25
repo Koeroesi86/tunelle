@@ -77,6 +77,7 @@ describe('decodeTrack', () => {
 
   it.each([
     [{ codec: 'DSD', bitDepth: 1 }, ['-ar', '88200', '-c:a', 'pcm_s24le']],
+    [{ codec: 'DST', bitDepth: 1 }, ['-ar', '88200', '-c:a', 'pcm_s24le']],
     [{ codec: 'ALAC', bitDepth: null }, ['-c:a', 'pcm_s16le']],
     [{ codec: 'ALAC', bitDepth: 16 }, ['-c:a', 'pcm_s16le']],
     [{ codec: 'ALAC', bitDepth: 24 }, ['-c:a', 'pcm_s24le']],

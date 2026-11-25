@@ -1,5 +1,6 @@
 import type { IFormat } from 'music-metadata';
 import type { AudioFormat } from '@shared/types/library';
+import { isDsdCodec } from '../../utils/is-supported';
 
 export type ReadFormat = Partial<Pick<IFormat, 'codec' | 'container' | 'codecProfile' | 'lossless' | 'bitsPerSample' | 'sampleRate' | 'bitrate'>>;
 
@@ -61,11 +62,11 @@ const toFlag = (value: boolean | undefined) => (value === undefined ? null : Num
 /** The encoding of a file; a variable bitrate shows in the profile of the codec (`VBR`, `V0`), a constant (`CBR`) or an average (`ABR`) one does not */
 const readAudioFormat = (format: ReadFormat): AudioFormat => ({
   codec: toCodecName(format),
-  bitDepth: toCodecName(format) === 'DSD' ? 1 : (format.bitsPerSample ?? null),
+  bitDepth: isDsdCodec(toCodecName(format)) ? 1 : (format.bitsPerSample ?? null),
   sampleRate: format.sampleRate ?? null,
   bitrate: format.bitrate ? Math.round(format.bitrate) : null,
   vbr: format.codecProfile ? Number(/^V/i.test(format.codecProfile)) : null,
-  lossless: toFlag(format.lossless ?? (toCodecName(format) === 'DSD' || /lossless/i.test(format.codec ?? '') ? true : undefined)),
+  lossless: toFlag(format.lossless ?? (isDsdCodec(toCodecName(format)) || /lossless/i.test(format.codec ?? '') ? true : undefined)),
 });
 
 export default readAudioFormat;

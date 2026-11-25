@@ -92,6 +92,15 @@ describe('readAudioFormat', () => {
     });
   });
 
+  it('shows DST as lossless with its 1 bit, which music-metadata does not say', () => {
+    expect(readAudioFormat({ codec: 'DST (DST Encoded)', container: 'DSDIFF/DSD', sampleRate: 2822400 })).toMatchObject({
+      codec: 'DST',
+      bitDepth: 1,
+      sampleRate: 2822400,
+      lossless: 1,
+    });
+  });
+
   it('leaves out what the file does not tell', () => {
     expect(readAudioFormat({})).toEqual({ codec: null, bitDepth: null, sampleRate: null, bitrate: null, vbr: null, lossless: null });
   });

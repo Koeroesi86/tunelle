@@ -39,6 +39,7 @@ const formats = [
   { folder: 'aiff', codec: 'AIFF', bytes: 2, seconds: 6 },
   { folder: 'dsd', codec: 'DSD', bytes: 3, seconds: 3 },
   { folder: 'wavpack-dsd', codec: 'DSD', bytes: 3, seconds: 3 },
+  { folder: 'dst', codec: 'DST', bytes: 3, seconds: 3 },
   { folder: 'wma', codec: 'WMA', bytes: 2, seconds: 6 },
   { folder: 'mp3', codec: 'MP3', bytes: 2, seconds: 6 },
   { folder: 'mp2', codec: 'MP2', bytes: 2, seconds: 6 },
@@ -96,4 +97,24 @@ describe('scanning and decoding the formats that Chromium does not play', () => 
       ]);
     }
   );
+
+  it('stores a DST file with the length of its frames, and decodes it to the very sound of the same DSD', async () => {
+    const tracks = await executeQuery(
+      database,
+      {
+        query: 'SELECT path, title, codec, bitDepth, duration, lossless FROM library WHERE path LIKE ? ORDER BY path',
+        variables: ['%/fixtures/ds_/2-octave-up.dff'],
+      },
+      trackSchema.extend({ duration: z.number(), lossless: z.number() })
+    );
+
+    expect(tracks.map(({ codec, bitDepth, duration, lossless }) => [codec, bitDepth, duration, lossless])).toEqual([
+      ['DSD', 1, 3, 1],
+      ['DST', 1, 3, 1],
+    ]);
+
+    const [dsd, dst] = await Promise.all(tracks.map((track) => playableFile(track, new AbortController().signal)));
+
+    expect(fs.readFileSync(dst ?? 'missing').equals(fs.readFileSync(dsd ?? 'missing'))).toBe(true);
+  });
 });

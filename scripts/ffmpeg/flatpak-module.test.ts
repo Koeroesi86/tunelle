@@ -31,7 +31,7 @@ describe('the Flatpak module of ffmpeg', () => {
   });
 
   it('leaves out the patent-heavy codecs of the Flathub proposal, which the CI build has', () => {
-    expect(module['build-commands'][0]).not.toMatch(/wma|asf|ac3|mp2|dca/);
+    expect(module['build-commands'][0]).not.toMatch(/wma|asf|ac3|mp2|dca|dst/);
     expect(source.configure.join(' ')).toMatch(/asf.*wmav2/);
   });
 });

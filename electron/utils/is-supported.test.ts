@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import isSupported, { isChromiumCodec, isDecodedCodec, isSupportedCodec } from './is-supported';
+import isSupported, { isChromiumCodec, isDecodedCodec, isDsdCodec, isSupportedCodec } from './is-supported';
 
 describe('isSupported', () => {
   it.each([
@@ -35,14 +35,30 @@ describe('isSupported', () => {
 });
 
 describe('isSupportedCodec', () => {
-  it.each(['FLAC', 'MP3', 'MPEG-4/AAC', 'AAC', 'VORBIS', 'OPUS', 'WAV', 'ALAC', "MONKEY'S", 'WAVPACK', 'AIFF', 'AIFF-C', 'DSD', 'WMA', 'MP2', null, undefined])(
-    'accepts %s',
-    (codec) => {
-      expect(isSupportedCodec(codec)).toBe(true);
-    }
-  );
+  it.each([
+    'FLAC',
+    'MP3',
+    'MPEG-4/AAC',
+    'AAC',
+    'VORBIS',
+    'OPUS',
+    'WAV',
+    'ALAC',
+    "MONKEY'S",
+    'WAVPACK',
+    'AIFF',
+    'AIFF-C',
+    'DSD',
+    'DST',
+    'WMA',
+    'MP2',
+    null,
+    undefined,
+  ])('accepts %s', (codec) => {
+    expect(isSupportedCodec(codec)).toBe(true);
+  });
 
-  it.each(['MATROSKA-AAC', 'CAF-AAC', 'SPEEX', 'THEORA', 'DST', 'WMA-VOICE'])('rejects %s, which ffmpeg does not decode here', (codec) => {
+  it.each(['MATROSKA-AAC', 'CAF-AAC', 'SPEEX', 'THEORA', 'WMA-VOICE'])('rejects %s, which ffmpeg does not decode here', (codec) => {
     expect(isSupportedCodec(codec)).toBe(false);
   });
 });
@@ -65,6 +81,7 @@ describe('isDecodedCodec', () => {
         'AIFF',
         'AIFF-C',
         'DSD',
+        'DST',
         'WMA',
         'WAV',
         'IEEE_FLOAT',
@@ -77,7 +94,13 @@ describe('isDecodedCodec', () => {
         'MP2',
         'AC-3',
       ].map(isDecodedCodec)
-    ).toEqual(Array(19).fill(true));
+    ).toEqual(Array(20).fill(true));
     expect(['AAC', 'SPEEX', null, undefined].map(isDecodedCodec)).toEqual([false, false, false, false]);
+  });
+});
+
+describe('isDsdCodec', () => {
+  it('names the codecs of 1 bit audio', () => {
+    expect(['DSD', 'DST', 'FLAC', null, undefined].map(isDsdCodec)).toEqual([true, true, false, false, false]);
   });
 });

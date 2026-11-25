@@ -1,5 +1,6 @@
 import fs from 'fs';
 import type { IAudioMetadata } from 'music-metadata';
+import { readBytes as read } from './read-bytes';
 
 /** What the scan keeps of a Wave64 or RF64 file: `music-metadata` reads neither. See docs/app/supported-formats.md */
 export interface LargeWave {
@@ -67,11 +68,6 @@ const waveCodecs: Record<number, { codec: string; lossless: boolean } | undefine
 const extensible = 0xfffe;
 const unknownSize = 0xffffffff;
 const maxHeaderBytes = 1 << 20;
-
-const read = async (handle: fs.promises.FileHandle, length: number, position: number) => {
-  const { buffer, bytesRead } = await handle.read(Buffer.alloc(length), 0, length, position);
-  return buffer.subarray(0, bytesRead);
-};
 
 const toText = (body: Buffer) => body.toString('utf8').replace(/\0.*$/s, '').trim();
 
