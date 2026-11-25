@@ -70,6 +70,21 @@ describe('the cache of the whole decodes', () => {
     expect(memoryFs.sync.readdirSync(cache)).toHaveLength(2);
   });
 
+  it('spares every part file of a key in use, and removes the ones that nothing writes', async () => {
+    const key = await copy('playing', undefined, 0);
+    await Promise.all(
+      [`${key}.wav.first.part`, 'abandoned.wav.second.part'].map(async (name, age) => {
+        memoryFs.sync.writeFileSync(path.join(cache, name), 'x');
+        await memoryFs.promises.utimes(path.join(cache, name), new Date(), new Date(1000 + age));
+        sizes.set(name, 1536 * mib);
+      })
+    );
+
+    await decoded.evict();
+
+    expect(memoryFs.sync.readdirSync(cache)).toEqual([`${key}.wav.first.part`]);
+  });
+
   it('removes the folder of the earlier versions and leaves its own', async () => {
     memoryFs.sync.mkdirSync(oldCache);
     memoryFs.sync.writeFileSync(path.join(oldCache, 'flac-copy.wav'), 'x');

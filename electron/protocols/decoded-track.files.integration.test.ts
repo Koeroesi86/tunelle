@@ -79,7 +79,8 @@ describe('decoded track', () => {
     expect(path.basename(target ?? '')).toMatch(/^[0-9a-f]{32}\.wav$/);
     expect(fs.readFileSync(target ?? '', 'utf8')).toBe('RIFF');
     expect(children[0].args).toEqual(expect.arrayContaining(['-i', file, '-map', '0:a:0', '-c:a', 'pcm_s24le', '-f', 'wav']));
-    expect(children[0].args.at(-1)).toBe(`${target}.part`);
+    expect(children[0].args.at(-1)?.startsWith(`${target}.`)).toBe(true);
+    expect(children[0].args.at(-1)).toMatch(/\.part$/);
   });
 
   it.each([
