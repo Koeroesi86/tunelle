@@ -6,8 +6,8 @@ import { measureWebCodecs } from './measure-webcodecs';
 import { readBody } from './read-body';
 import { summarise } from './summarise';
 
-/** The address of a track of the library, which the main process serves (`/track` of electron/protocols/tunelle-protocol.ts) */
-const trackUrl = (path: string) => `tunelle://app/track?path=${encodeURIComponent(path)}`;
+/** The address of a track of the library (`/track` of electron/protocols/tunelle-protocol.ts), marked as a measurement so the player's decodes go first */
+const trackUrl = (path: string) => `tunelle://app/track?path=${encodeURIComponent(path)}&measure`;
 
 /** A file longer than this is cut into pieces when its format can be cut: the decoded sound of 10 minutes of stereo is 460 MB, of 45 minutes 2.2 GB */
 export const slicedFromSeconds = 600;

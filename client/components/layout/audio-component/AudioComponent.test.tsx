@@ -872,6 +872,17 @@ describe('AudioComponent gapless', () => {
     expect(playing.src).toBe(sourceOfPath(first.path));
   });
 
+  it('lets go of the track that was left for the last one, which nothing follows', () => {
+    const { view, playing, standby } = playFirstOfTwo();
+    // what the mocked pause does not do
+    playing.pause = () => defineProperties(playing, { paused: true });
+
+    view.rerender(props(second, null));
+
+    expect(playing.getAttribute('src')).toBeNull();
+    expect(standby.src).toBe(sourceOfPath(second.path));
+  });
+
   it('loads a track that the second element does not hold into the playing one', () => {
     const { view, playing } = playFirstOfTwo();
 

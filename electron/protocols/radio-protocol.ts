@@ -7,10 +7,10 @@ export const serveRadio = async (uuid: string, signal: AbortSignal, deps: RadioS
   if (!stationUuidSchema.safeParse(uuid).success) return new Response(undefined, { status: 404 });
 
   const abort = new AbortController();
-  signal.addEventListener('abort', () => abort.abort());
 
   try {
-    const { contentType, audio } = await openRadioStream(uuid, abort.signal, deps);
+    // the request may have ended already, which a listener that is added now would not hear
+    const { contentType, audio } = await openRadioStream(uuid, AbortSignal.any([signal, abort.signal]), deps);
     const chunks = audio[Symbol.asyncIterator]();
     // a pull per chunk keeps the pace of the player, and a cancelled response destroys the stream: the upstream connection ends with it
     const body = new ReadableStream<Uint8Array>({

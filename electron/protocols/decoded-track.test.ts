@@ -250,6 +250,70 @@ describe('decodeTrack', () => {
     expect(spawn).not.toHaveBeenCalled();
   });
 
+  describe('the queue of the decodes', () => {
+    const settle = () => new Promise((resolve) => setImmediate(resolve));
+    const sourceOfRun = (call: number) => {
+      const [, args] = vi.mocked(spawn).mock.calls[call] as unknown as [string, string[]];
+      return path.basename(args[args.indexOf('-i') + 1], '.dsf');
+    };
+    /** Takes both places, so that what is asked after it waits; each `finish` ends the oldest run, which lets the next one in */
+    const busy = async () => {
+      const children = Array.from({ length: 5 }, slowToClose);
+      const asked: Promise<unknown>[] = [];
+      const ask = async (name: string, measured: boolean, asking = signal()) => {
+        memoryFs.sync.writeFileSync(`/music/${name}.dsf`, name);
+        asked.push(playableFile({ path: `/music/${name}.dsf`, ...format }, asking, measured));
+        await settle();
+      };
+      await ask(`first-${count}`, false);
+      await ask(`second-${count}`, false);
+      const finishAll = async () => {
+        for (const [call, child] of children.entries()) {
+          await vi.waitFor(() => expect(vi.mocked(spawn).mock.calls.length).toBeGreaterThan(call));
+          writeOutput(call);
+          child.emit('close', 0);
+        }
+        await Promise.all(asked);
+        return [2, 3, 4].map(sourceOfRun);
+      };
+      return { ask, finishAll };
+    };
+
+    it('decodes for the player before the measurement, its newest request first', async () => {
+      const { ask, finishAll } = await busy();
+      await ask('measured', true);
+      await ask('skipped-to', false);
+      await ask('newest', false);
+
+      expect(await finishAll()).toEqual(['newest', 'skipped-to', 'measured']);
+    });
+
+    it('counts a request of the player that joins a measurement, and forgets it when it is gone', async () => {
+      const { ask, finishAll } = await busy();
+      const leaving = new AbortController();
+      await ask('measured', true);
+      await ask('left', true);
+      await ask('left', false, leaving.signal);
+      await ask('joined', true);
+      await ask('joined', false);
+      leaving.abort();
+
+      expect(await finishAll()).toEqual(['joined', 'measured', 'left']);
+    });
+
+    it('stays with the player when a measurement that shared its decode is gone', async () => {
+      const { ask, finishAll } = await busy();
+      const leaving = new AbortController();
+      await ask('measured', true);
+      await ask('kept', false);
+      await ask('kept', true, leaving.signal);
+      await ask('later', true);
+      leaving.abort();
+
+      expect(await finishAll()).toEqual(['kept', 'measured', 'later']);
+    });
+  });
+
   it('removes the oldest files when the cache is over its limit, and keeps the track it just made', async () => {
     const gib = 1024 ** 3;
     memoryFs.sync.mkdirSync(cache);

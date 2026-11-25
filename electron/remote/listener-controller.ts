@@ -14,6 +14,7 @@ import {
 } from './listener-client';
 import type { ListenerStore, Pairing } from './listener-store';
 import { getMainTranslator } from '../language';
+import type { RouteRequest } from '../protocols/request-aborts';
 
 export const POLL_MS = 1000;
 /** The host drops a request that nobody answered after ten minutes, so asking longer does not help */
@@ -181,7 +182,7 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
       await ask(target, note, token).catch((failure: unknown) => fail(token, failure, { target: { host: target.host, port: target.port }, code: target.code }));
     },
     /** The audio of the track the host plays, for the player of the page: the range of the request goes on, and nothing names a host or a file */
-    audio: async (request: Request) => {
+    audio: async (request: RouteRequest) => {
       if (!active) return new Response(undefined, { status: 404 });
 
       const { pairing, deviceId } = active;
@@ -195,7 +196,7 @@ export const createListenerController = (store: ListenerStore, deviceName: strin
       ).catch(() => new Response(undefined, { status: 502 }));
     },
     /** The cover of the track the host plays, for the tile of the page */
-    cover: async (request: Request) => {
+    cover: async (request: RouteRequest) => {
       if (!active) return new Response(undefined, { status: 404 });
 
       const { pairing, deviceId } = active;

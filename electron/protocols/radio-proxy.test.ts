@@ -138,6 +138,16 @@ describe('openRadioStream', () => {
     expect(stationDeps.onSampleRate).toHaveBeenCalledWith('abc', 44100);
   });
 
+  it('does not start ffmpeg for a station that is aborted while its format is read', async () => {
+    const controller = new AbortController();
+    const response = respond(200, {}, mp3);
+    answerWith(http, response);
+    response.once('resume', () => controller.abort());
+
+    await expect(openRadioStream('abc', controller.signal, deps())).rejects.toThrow('aborted');
+    expect(decodeStream).not.toHaveBeenCalled();
+  });
+
   it('does not have ffmpeg decode AAC, which Chromium plays', async () => {
     const frame = (length: number) =>
       Buffer.concat([Buffer.from([0xff, 0xf1, (1 << 6) | (4 << 2), 0, length >> 3, ((length & 7) << 5) | 0x1f, 0xfc]), Buffer.alloc(length - 7)]);
