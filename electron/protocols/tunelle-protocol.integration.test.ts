@@ -23,6 +23,7 @@ vi.mock('electron', () => ({
 // the decoder itself is tested in decoded-track.test.ts; here it answers with a file of its own for what it decodes
 const { decoded } = vi.hoisted(() => ({ decoded: { file: '' } }));
 vi.mock('./decoded-track', () => ({
+  arrivalOf: vi.fn(),
   playableFile: vi.fn(async ({ path: trackPath, codec }: { path: string; codec: string | null }) => (codec === 'ALAC' ? decoded.file : trackPath)),
 }));
 

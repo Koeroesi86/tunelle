@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { serveSource } from './source-protocol';
+import { arrivalOf } from './decoded-track';
 import { downloadSource } from './source-download';
 import { servePlayable } from './serve-track';
 import { downloadedFormat } from './source-format';
 import { isHeld } from './held-files';
 
+vi.mock('./decoded-track', () => ({ arrivalOf: vi.fn() }));
 vi.mock('./source-download', () => ({ downloadSource: vi.fn() }));
 vi.mock('./serve-track', () => ({ servePlayable: vi.fn() }));
 vi.mock('./source-format', () => ({ downloadedFormat: vi.fn() }));
@@ -51,6 +53,19 @@ describe('serveSource', () => {
     expect(servePlayable).toHaveBeenCalledWith({ path: '/temp/track.src', codec: 'ALAC', bitDepth: 24 }, request);
     expect(downloadedFormat).toHaveBeenCalledWith('/temp/track.src');
     expect(client.stream).not.toHaveBeenCalled();
+  });
+
+  it('takes the place in the queue of the decodes before the download, which may end after a later one', async () => {
+    const places: unknown[] = [];
+    vi.mocked(downloadSource).mockImplementation(async () => {
+      places.push(...vi.mocked(arrivalOf).mock.calls.at(-1)!);
+      return undefined;
+    });
+    const request = ask({}, '?codec=ALAC');
+
+    await serveSource('audio', path, request, sources);
+
+    expect(places).toEqual([request.signal]);
   });
 
   it('holds the downloaded file until its answer has been read', async () => {

@@ -3,13 +3,14 @@ import { describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   findPlayableTrack: vi.fn(),
   findOpenedTrack: vi.fn(),
+  arrivalOf: vi.fn(),
   playableFile: vi.fn(async (track: { path: string }) => track.path),
   serveFile: vi.fn(async (file: string) => new Response(file)),
 }));
 
 vi.mock('../repositories/library-repository', () => ({ findPlayableTrack: mocks.findPlayableTrack }));
 vi.mock('../library/opened/opened-files', () => ({ findOpenedTrack: mocks.findOpenedTrack }));
-vi.mock('./decoded-track', () => ({ playableFile: mocks.playableFile }));
+vi.mock('./decoded-track', () => ({ arrivalOf: mocks.arrivalOf, playableFile: mocks.playableFile }));
 vi.mock('./windowed-track', () => ({ windowedTrack: async () => undefined }));
 vi.mock('./serve-windowed', () => ({ serveWindowed: vi.fn() }));
 vi.mock('./serve-file', () => ({ serveFile: mocks.serveFile, notFound: () => new Response(null, { status: 404 }) }));
@@ -25,6 +26,16 @@ describe('serveTrack', () => {
     mocks.findPlayableTrack.mockResolvedValue({ path: '/music/a.mp3', codec: 'MP3', bitDepth: null });
 
     expect(await (await serveTrack(database, '/music/a.mp3', request)).text()).toBe('/music/a.mp3');
+  });
+
+  it('takes the place in the queue of the decodes before the lookup', async () => {
+    mocks.arrivalOf.mockClear();
+    mocks.findPlayableTrack.mockImplementationOnce(async () => {
+      expect(mocks.arrivalOf).toHaveBeenCalledWith(request.signal);
+      return { path: '/music/a.mp3', codec: 'MP3', bitDepth: null };
+    });
+
+    expect((await serveTrack(database, '/music/a.mp3', request)).status).toBe(200);
   });
 
   it('serves a file that the system opened when the library has none', async () => {

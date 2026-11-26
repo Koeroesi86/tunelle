@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { spawn } from 'child_process';
 import { memoryFs } from '../test-memory-fs';
 import { cacheFolder } from './cache-folder';
-import { decodeTrack, playableFile, prepareDecode, stopDecodes } from './decoded-track';
+import { arrivalOf, decodeTrack, playableFile, prepareDecode, stopDecodes } from './decoded-track';
 import { logError } from '../utils/log-error';
 import { probeFormat } from './probe-audio';
 
@@ -323,7 +323,8 @@ describe('decodeTrack', () => {
       const children = Array.from({ length: 5 }, slowToClose);
       const asked: Promise<unknown>[] = [];
       const ask = async (name: string, measured: boolean, asking = signal()) => {
-        memoryFs.sync.writeFileSync(`/music/${name}.dsf`, name);
+        // written once: a new time of the file names another copy, which a second request would not share
+        if (!memoryFs.sync.existsSync(`/music/${name}.dsf`)) memoryFs.sync.writeFileSync(`/music/${name}.dsf`, name);
         asked.push(playableFile({ path: `/music/${name}.dsf`, ...format }, asking, measured));
         await settle();
       };
@@ -341,13 +342,48 @@ describe('decodeTrack', () => {
       return { ask, finishAll };
     };
 
-    it('decodes for the player before the measurement, its newest request first', async () => {
+    it('decodes for the player before the measurement, its oldest request first', async () => {
       const { ask, finishAll } = await busy();
       await ask('measured', true);
-      await ask('skipped-to', false);
-      await ask('newest', false);
+      await ask('current', false);
+      await ask('preload', false);
 
-      expect(await finishAll()).toEqual(['newest', 'skipped-to', 'measured']);
+      expect(await finishAll()).toEqual(['current', 'preload', 'measured']);
+    });
+
+    it('decodes the preload that became the current track before the next preload', async () => {
+      const { ask, finishAll } = await busy();
+      const skipped = new AbortController();
+      await ask('measured', true);
+      await ask('skipped', false, skipped.signal);
+      await ask('was-preload', false);
+      skipped.abort();
+      await ask('preload', false);
+
+      expect(await finishAll()).toEqual(['was-preload', 'preload', 'measured']);
+    });
+
+    it('keeps the place of a track that is asked for again while a request of the player waits for it', async () => {
+      const { ask, finishAll } = await busy();
+      const leaving = new AbortController();
+      await ask('current', false, leaving.signal);
+      await ask('preload', false);
+      await ask('current', false);
+      await ask('measured', true);
+      leaving.abort();
+
+      expect(await finishAll()).toEqual(['current', 'preload', 'measured']);
+    });
+
+    it('takes the place of a request when it arrives, though its decode is asked for later', async () => {
+      const { ask, finishAll } = await busy();
+      const downloading = signal();
+      arrivalOf(downloading);
+      await ask('preload', false);
+      await ask('current', false, downloading);
+      await ask('measured', true);
+
+      expect(await finishAll()).toEqual(['current', 'preload', 'measured']);
     });
 
     it('counts a request of the player that joins a measurement, and forgets it when it is gone', async () => {
