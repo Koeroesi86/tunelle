@@ -199,7 +199,7 @@ describe('downloadSource', () => {
 
   it('gives nothing, and asks the server for nothing, when its folder can not be made', async () => {
     // a file where the folder of the user goes
-    memoryFs.sync.mkdirSync('/temp');
+    memoryFs.sync.mkdirSync(path.dirname(path.dirname(folder)));
     memoryFs.sync.writeFileSync(path.dirname(folder), 'x');
     const { stream, client } = server();
 

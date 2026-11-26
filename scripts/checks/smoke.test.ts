@@ -177,6 +177,7 @@ describe('the smoke test', () => {
     expect(options.env).toMatchObject({
       HOME: home,
       XDG_CONFIG_HOME: home,
+      XDG_CACHE_HOME: join(home, 'cache'),
       NODE_ENV: 'production',
       TUNELLE_NO_UPDATE: '1',
       TUNELLE_RADIO_DIRECTORY: 'http://127.0.0.1:9333',

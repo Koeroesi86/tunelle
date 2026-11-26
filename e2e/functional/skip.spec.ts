@@ -25,8 +25,12 @@ test('stops the decodes of the tracks that were skipped, and starts the current 
   // the measurement of the loudness decodes tracks too, so it waits until after the test
   const { app, page } = await start({ env: { TUNELLE_LOUDNESS_IDLE_SECONDS: '3600' } });
   await addFolder(page, longAlbum, 6);
-  const cache = join(await app.evaluate(({ app }) => app.getPath('temp')), `tunelle-${process.getuid?.() ?? 'user'}`, 'whole-decodes');
-  // the folder is shared with the other runs of the machine, and is not there before the first whole decode
+  // on Linux the app has a cache folder for the user, which the test gives it; macOS and Windows keep the cache in the temp folder
+  const folder = await app.evaluate(({ app }) =>
+    process.platform === 'linux' ? `${process.env.XDG_CACHE_HOME}/tunelle` : `${app.getPath('temp')}/tunelle-${process.getuid?.() ?? 'user'}`
+  );
+  const cache = join(folder, 'whole-decodes');
+  // on macOS and Windows the folder is shared with the other runs of the machine; it is not there before the first whole decode
   const listing = () => {
     try {
       return readdirSync(cache);
