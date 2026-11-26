@@ -1,12 +1,13 @@
 import { spawn, type ChildProcess } from 'child_process';
 import { createHash, randomUUID } from 'crypto';
-import { mkdir, readdir, rename, rm, stat, utimes } from 'fs/promises';
+import { readdir, rename, rm, stat, utimes } from 'fs/promises';
 import { join } from 'path';
-import { app } from 'electron';
 import { isChromiumCodec, isDecodedCodec, isMixedCodec } from '../utils/is-supported';
 import { logError } from '../utils/log-error';
+import { cacheFolder, makeCacheFolder } from './cache-folder';
 import { cacheLimit } from './decode-policy';
 import { ffmpegProgram } from './ffmpeg-program';
+import { isHeld } from './held-files';
 import { toEncoder, type Format } from './pcm-encoder';
 import { probeFormat } from './probe-audio';
 
@@ -34,11 +35,6 @@ const queue: { job: Job; start: () => void }[] = [];
 let running = 0;
 let asks = 0;
 let recent: string[] = [];
-
-const cacheFolder = () => join(app.getPath('temp'), 'tunelle-whole-decodes');
-
-/** Removes the cache of the earlier versions, which also kept copies of the codecs that are decoded in memory now */
-export const removeOldCache = () => rm(join(app.getPath('temp'), 'tunelle-decoded'), { recursive: true, force: true }).catch(logError);
 
 const takeSlot = (job: Job) => {
   if (running >= maxDecodes) return new Promise<void>((start) => queue.push({ job, start }));
@@ -99,9 +95,9 @@ const runDecoder = (job: Job, source: string, encoder: string[], output: string)
     });
   });
 
-/** Removes the oldest files of the cache until it fits, but not the files being written and the ones that were served last */
+/** Removes the oldest files of the cache until it fits, but not the files being written, being read, or served to the player last */
 export const evict = async () => {
-  const folder = cacheFolder();
+  const folder = cacheFolder('whole-decodes');
   const files = (
     await Promise.all(
       (await readdir(folder)).map((name) =>
@@ -114,7 +110,7 @@ export const evict = async () => {
   ).filter((file) => file !== undefined);
   // the copy and every part file of a key start with it
   const live = new Set([...jobs.keys(), ...recent]);
-  const idle = files.filter(({ name }) => !live.has(name.split('.')[0])).sort((a, b) => a.mtimeMs - b.mtimeMs);
+  const idle = files.filter(({ name }) => !live.has(name.split('.')[0]) && !isHeld(join(folder, name))).sort((a, b) => a.mtimeMs - b.mtimeMs);
   const total = files.reduce((sum, { size }) => sum + size, 0);
 
   await Promise.all(
@@ -125,7 +121,7 @@ export const evict = async () => {
 };
 
 const writeDecoded = async (job: Job, source: string, encoder: string[], target: string) => {
-  await mkdir(cacheFolder(), { recursive: true });
+  await makeCacheFolder('whole-decodes');
   if (job.cancelled) return undefined;
   // each job writes under its own name and renames at the end: a file of the cache is whole, and a cancelled job can not touch its retry
   const output = `${target}.${randomUUID()}.part`;
@@ -172,7 +168,7 @@ const leave = (key: string, job: Job, measured: boolean) => {
 const isFloatFile = async (source: string, { codec, bitDepth }: Format) =>
   isMixedCodec(codec) && (bitDepth ?? 0) >= 32 && (await probeFormat(source))?.float === true;
 
-/** What names the decoded copy of a source in the cache, and marks the track as one of the last served */
+/** What names the decoded copy of a source in the cache */
 export const prepareDecode = async (
   source: string,
   format: Format
@@ -185,8 +181,7 @@ export const prepareDecode = async (
     .update(`${source}\0${stats.size}\0${stats.mtimeMs}\0${encoder.join(' ')}`)
     .digest('hex')
     .slice(0, 32);
-  recent = [key, ...recent.filter((kept) => kept !== key)].slice(0, keptRecent);
-  return { key, encoder, volume: stats.dev, target: join(cacheFolder(), `${key}.wav`) };
+  return { key, encoder, volume: stats.dev, target: join(cacheFolder('whole-decodes'), `${key}.wav`) };
 };
 
 /** The decoded copy of the cache, with its time set to now so the eviction keeps it, undefined when there is none */
@@ -199,12 +194,21 @@ const cachedCopy = async (target: string) => {
   return found ? target : undefined;
 };
 
+/** The copies of the last tracks that the player asked for stay: the one that plays, the next one and the previous one */
+const markRecent = (key: string) => {
+  recent = [key, ...recent.filter((kept) => kept !== key)].slice(0, keptRecent);
+};
+
 /** Decodes a track to a WAV file in the cache, once for all the requests that ask for it meanwhile, undefined when it fails or the request is gone */
 export const decodeTrack = async (source: string, format: Format, signal: AbortSignal, measured = false) => {
   const prepared = signal.aborted ? undefined : await prepareDecode(source, format);
   if (!prepared) return undefined;
 
+  // before the lookup: a file that another user put there is not served
+  if (!(await makeCacheFolder('whole-decodes').catch(logError))) return undefined;
+
   const { key, encoder, target } = prepared;
+  if (!measured) markRecent(key);
   const cached = await cachedCopy(target);
   // checked after the last await: a signal that has aborted never calls the listener, and the request would be counted forever
   if (cached || signal.aborted) return cached;

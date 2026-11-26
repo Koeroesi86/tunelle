@@ -3,6 +3,7 @@ import { serveSource } from './source-protocol';
 import { downloadSource } from './source-download';
 import { servePlayable } from './serve-track';
 import { downloadedFormat } from './source-format';
+import { isHeld } from './held-files';
 
 vi.mock('./source-download', () => ({ downloadSource: vi.fn() }));
 vi.mock('./serve-track', () => ({ servePlayable: vi.fn() }));
@@ -50,6 +51,18 @@ describe('serveSource', () => {
     expect(servePlayable).toHaveBeenCalledWith({ path: '/temp/track.src', codec: 'ALAC', bitDepth: 24 }, request);
     expect(downloadedFormat).toHaveBeenCalledWith('/temp/track.src');
     expect(client.stream).not.toHaveBeenCalled();
+  });
+
+  it('holds the downloaded file until its answer has been read', async () => {
+    vi.mocked(downloadSource).mockResolvedValue('/temp/held.src');
+    vi.mocked(downloadedFormat).mockImplementation(async (file) => ({ codec: isHeld(file) ? 'ALAC' : null, bitDepth: 16 }));
+
+    const response = await serveSource('audio', path, ask({}, '?codec=ALAC'), sources);
+
+    expect(servePlayable).toHaveBeenCalledWith(expect.objectContaining({ codec: 'ALAC' }), expect.anything());
+    expect(isHeld('/temp/held.src')).toBe(true);
+    await response.text();
+    await vi.waitFor(() => expect(isHeld('/temp/held.src')).toBe(false));
   });
 
   it.each(['ALAC', 'APE', 'wv', 'aif', 'aifc', 'dsf', 'dff', 'm4a', 'mov,mp4,m4a', 'mka', 'wavpack', 'pcm'])(

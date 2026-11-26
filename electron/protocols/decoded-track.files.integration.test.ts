@@ -21,6 +21,7 @@ vi.mock('fs/promises', async (importOriginal) => {
 });
 
 const { decodeTrack, playableFile } = await import('./decoded-track');
+const { cacheFolder } = await import('./cache-folder');
 
 interface FakeChild extends EventEmitter {
   stderr: EventEmitter;
@@ -31,7 +32,7 @@ interface FakeChild extends EventEmitter {
 
 describe('decoded track', () => {
   const children: FakeChild[] = [];
-  const cached = () => fs.readdirSync(path.join(temp.folder, 'tunelle-whole-decodes')).filter((name) => name.endsWith('.wav'));
+  const cached = () => fs.readdirSync(cacheFolder('whole-decodes')).filter((name) => name.endsWith('.wav'));
   const source = (name: string, content = 'alac') => {
     const file = path.join(temp.folder, name);
     fs.writeFileSync(file, content);
@@ -46,7 +47,7 @@ describe('decoded track', () => {
 
   beforeEach(() => {
     children.length = 0;
-    fs.rmSync(path.join(temp.folder, 'tunelle-whole-decodes'), { recursive: true, force: true });
+    fs.rmSync(cacheFolder('whole-decodes'), { recursive: true, force: true });
     spawn.mockReset();
     // the fake decoder writes the output file (the last argument) when it is let to finish
     spawn.mockImplementation((_program: string, args: string[]) => {
@@ -182,7 +183,7 @@ describe('decoded track', () => {
 
     expect(await result).toBeUndefined();
     expect(errors).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Invalid data') }));
-    expect(fs.readdirSync(path.join(temp.folder, 'tunelle-whole-decodes'))).toEqual([]);
+    expect(fs.readdirSync(cacheFolder('whole-decodes'))).toEqual([]);
     errors.mockRestore();
   });
 

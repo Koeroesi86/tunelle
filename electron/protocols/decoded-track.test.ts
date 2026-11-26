@@ -3,6 +3,7 @@ import path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { spawn } from 'child_process';
 import { memoryFs } from '../test-memory-fs';
+import { cacheFolder } from './cache-folder';
 import { decodeTrack, playableFile } from './decoded-track';
 import { logError } from '../utils/log-error';
 import { probeFormat } from './probe-audio';
@@ -26,7 +27,7 @@ vi.mock('./probe-audio', () => ({ probeFormat: vi.fn() }));
 vi.mock('electron', () => ({ app: { getPath: () => '/temp', getAppPath: () => '/app/dist', isPackaged: false } }));
 vi.mock('../utils/log-error', () => ({ logError: vi.fn() }));
 
-const cache = path.join('/temp', 'tunelle-whole-decodes');
+const cache = cacheFolder('whole-decodes');
 
 type Behaviour = { code: number; error?: Error; hold?: boolean };
 
@@ -263,7 +264,11 @@ describe('decodeTrack', () => {
 
   it('does not start ffmpeg for a decode that is cancelled while its folder is made', async () => {
     const controller = new AbortController();
-    beforeFolder.mockImplementationOnce(() => controller.abort());
+    // the first two folders are made to look for the copy, the next ones by the decode
+    beforeFolder
+      .mockImplementationOnce(() => undefined)
+      .mockImplementationOnce(() => undefined)
+      .mockImplementationOnce(() => controller.abort());
 
     expect(await decodeTrack(source, format, controller.signal)).toBeUndefined();
     expect(spawn).not.toHaveBeenCalled();

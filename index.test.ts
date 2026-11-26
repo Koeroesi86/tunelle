@@ -59,7 +59,7 @@ vi.mock('./electron/windows/load-page', () => ({ default: vi.fn(async () => unde
 vi.mock('./electron/database/create-database', () => ({ default: vi.fn(async () => mocks.database) }));
 vi.mock('./electron/utils/library-error-message', () => ({ libraryErrorMessage: vi.fn(() => 'the library can not be opened') }));
 vi.mock('./electron/listeners/setup-listeners', () => ({ default: vi.fn() }));
-vi.mock('./electron/protocols/decoded-track', () => ({ removeOldCache: vi.fn(async () => undefined) }));
+vi.mock('./electron/protocols/cache-folder', () => ({ removeOldCache: vi.fn(async () => undefined) }));
 vi.mock('./electron/protocols/tunelle-protocol', () => ({
   tunelleOrigin: 'tunelle://app',
   registerTunelleScheme: vi.fn(),
@@ -131,7 +131,7 @@ describe('the start of the app', () => {
       cancelScans: (await import('./electron/library/scan/scan-cancellation')).cancelScans,
       radioArt: await import('./electron/services/radio/radio-art'),
       appId: await import('./electron/app-user-model-id'),
-      removeOldCache: (await import('./electron/protocols/decoded-track')).removeOldCache,
+      removeOldCache: (await import('./electron/protocols/cache-folder')).removeOldCache,
     };
 
     return modules;

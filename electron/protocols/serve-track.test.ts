@@ -15,6 +15,7 @@ vi.mock('./serve-windowed', () => ({ serveWindowed: vi.fn() }));
 vi.mock('./serve-file', () => ({ serveFile: mocks.serveFile, notFound: () => new Response(null, { status: 404 }) }));
 
 const { serveTrack } = await import('./serve-track');
+const { isHeld } = await import('./held-files');
 
 const database: Parameters<typeof serveTrack>[0] = Object.create(null);
 const request = new Request('tunelle://app/track');
@@ -40,6 +41,17 @@ describe('serveTrack', () => {
     await serveTrack(database, '/music/a.mp3', new Request('tunelle://app/track?path=a&measure'));
 
     expect(mocks.playableFile).toHaveBeenLastCalledWith(expect.anything(), expect.anything(), true);
+  });
+
+  it('holds a decoded copy while it is read', async () => {
+    mocks.findPlayableTrack.mockResolvedValue({ path: '/music/a.wma', codec: 'WMA', bitDepth: null });
+    mocks.playableFile.mockResolvedValueOnce('/cache/a.wav');
+
+    const response = await serveTrack(database, '/music/a.wma', request);
+
+    expect(isHeld('/cache/a.wav')).toBe(true);
+    expect(await response.text()).toBe('/cache/a.wav');
+    await vi.waitFor(() => expect(isHeld('/cache/a.wav')).toBe(false));
   });
 
   it('serves nothing else', async () => {
