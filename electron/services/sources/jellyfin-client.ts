@@ -10,7 +10,7 @@ import {
   type SourcePage,
   type SourceServer,
 } from '@shared/schemas/sources';
-import { openSource, readJson, SourceError, toResponse, wrongLoginCode } from './source-request';
+import { openSource, readJson, SourceError, toResponse, withoutDocument, wrongLoginCode } from './source-request';
 import { toCodecName } from '../../utils/codec-name';
 
 const clientName = 'Tunelle';
@@ -192,7 +192,7 @@ export const createJellyfinClient = (server: SourceServer, password: string, use
       ]).then(([artists, albums, tracks]) => ({ artists: artists.map(toArtist), albums: albums.map(toAlbum), tracks })),
     /** The file as it is stored (`static` asks the server not to transcode), with the range of the request so the player can seek */
     stream: async (songId: string, range: string | undefined, signal: AbortSignal) =>
-      toResponse(await open(`/Audio/${encodeURIComponent(songId)}/stream`, { static: 'true' }, signal, range)),
+      withoutDocument(toResponse(await open(`/Audio/${encodeURIComponent(songId)}/stream`, { static: 'true' }, signal, range))),
     cover: async (coverId: string, signal: AbortSignal) =>
       toResponse(await open(`/Items/${encodeURIComponent(coverId)}/Images/Primary`, { maxWidth: coverSize }, signal)),
   };

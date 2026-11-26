@@ -128,6 +128,14 @@ export const readJson = async (response: IncomingMessage, host: string): Promise
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 };
 
+/** A server that answers with a document and not with audio or a picture (Subsonic with the status 200, a proxy with a page of its own) has no such file */
+export const withoutDocument = async (response: Response) => {
+  if (!/json|xml|html/.test(response.headers.get('content-type') ?? '')) return response;
+
+  await response.body?.cancel();
+  return new Response(undefined, { status: 404 });
+};
+
 const keptHeaders = (headers: IncomingHttpHeaders, names: string[]) =>
   Object.fromEntries(names.flatMap((name) => (headers[name] ? [[name, String(headers[name])]] : [])));
 

@@ -2,7 +2,7 @@ import type { IncomingMessage } from 'node:http';
 import { z } from 'zod';
 import type { Track } from '@shared/types/library';
 import { toSourcePath, type SourceAlbum, type SourceArtist, type SourceServer } from '@shared/schemas/sources';
-import { openSource, readJson, SourceError, toResponse, wrongLoginCode } from './source-request';
+import { openSource, readJson, SourceError, toResponse, withoutDocument, wrongLoginCode } from './source-request';
 import { toCodecName } from '../../utils/codec-name';
 
 const productName = 'Tunelle';
@@ -192,7 +192,8 @@ export const createPlexClient = (server: SourceServer, token: string, userAgent:
         };
       }),
     /** The file as it is stored, with the range of the request so the player can seek */
-    stream: async (songId: string, range: string | undefined, signal: AbortSignal) => toResponse(await open(await fileOf(songId), {}, signal, range)),
+    stream: async (songId: string, range: string | undefined, signal: AbortSignal) =>
+      withoutDocument(toResponse(await open(await fileOf(songId), {}, signal, range))),
     /** The picture of the item, and for a song without one of its own that of its album */
     cover: async (coverId: string, signal: AbortSignal) => {
       const size = { width: coverSize, height: coverSize };

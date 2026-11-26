@@ -6,7 +6,7 @@ import { isDecodedCodec } from '../utils/is-supported';
 import { isAmbiguousContainer, toCodecName } from '../utils/codec-name';
 import { downloadedFormat } from './source-format';
 import { arrivalOf } from './decoded-track';
-import { downloadSource } from './source-download';
+import { downloadSource, stalled } from './source-download';
 import { answerHolding } from './held-files';
 import type { RouteRequest } from './request-aborts';
 import { servePlayable } from './serve-track';
@@ -39,6 +39,8 @@ const kept = (response: Response) => {
   return new Response(response.body, { status: response.status, headers });
 };
 
+const badGateway = () => new Response(undefined, { status: 502 });
+
 /** The audio or the cover of a track of a server of the user. The page names the track and never the server's address: the host comes from the stored server, so this is no open proxy. See docs/app/sources.md */
 export const serveSource = async (kind: 'audio' | 'cover', path: string | null, request: RouteRequest, sources: Pick<Sources, 'clientOf'>) => {
   const codec = toCodecName(formatSchema.safeParse(Object.fromEntries(new URL(request.url).searchParams)).data?.codec);
@@ -51,10 +53,12 @@ export const serveSource = async (kind: 'audio' | 'cover', path: string | null, 
 
   // a codec that the bundled ffmpeg decodes is downloaded and decoded like a file of the library, so it plays and can be sought; the file, not the name of the server, tells its format
   const file = kind === 'audio' && isDownloaded(codec) ? await downloadSource(path ?? '', client, ref.id, request.signal) : undefined;
+  // the stream of a server that went silent could hang the same way: the player loads the track once more and then skips it
+  if (file === stalled) return badGateway();
   if (file) return answerHolding(file, async () => servePlayable({ path: file, ...(await downloadedFormat(file)) }, request));
 
   return kind === 'audio'
-    ? client.stream(ref.id, request.headers.get('range') ?? undefined, request.signal).catch(() => new Response(undefined, { status: 502 }))
+    ? client.stream(ref.id, request.headers.get('range') ?? undefined, request.signal).catch(badGateway)
     : coverWaiting(ref.serverId, request.signal, () => client.cover(ref.id, request.signal))
         .then(kept)
         .catch(() => new Response(undefined, { status: 502, headers: { 'Cache-Control': 'no-store' } }));
