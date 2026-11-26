@@ -99,10 +99,12 @@ async function* readTrack(source: Source, start: number, end: number, signal: Ab
   yield* readSamples(source, { position: Math.max(start - headerSize, 0) }, end + 1 - headerSize, signal);
 }
 
-const probeLayout = async (path: string, encoder: string[]): Promise<WavLayout | undefined> => {
+/** The layout of the WAV of the windows: false when the track can not be decoded in them, undefined when ffprobe gave no answer */
+const probeLayout = async (path: string, encoder: string[]): Promise<WavLayout | false | undefined> => {
   const raw = rawFormats[encoder[encoder.length - 1]];
   const length = await probeAudio(path);
-  return raw && length && length.channels <= 2 ? { ...length, bytesPerSample: raw.bytesPerSample, float: raw.float } : undefined;
+  if (!length) return length;
+  return raw && length.channels <= 2 ? { ...length, bytesPerSample: raw.bytesPerSample, float: raw.float } : false;
 };
 
 /**
@@ -116,6 +118,8 @@ export const windowedTrack = async ({ path, ...format }: PlayableTrack, signal: 
 
   const { key, encoder, volume } = prepared;
   const layout = layouts.get(key) ?? (await probeLayout(path, encoder));
+  // an answer that rules the windows out is kept, so the next range does not probe again; a probe that failed is tried again
+  if (layout === false) wholeOnly.add(key);
   if (!layout) return undefined;
   layouts.set(key, layout);
 

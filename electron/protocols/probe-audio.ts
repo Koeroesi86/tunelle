@@ -5,7 +5,9 @@ import { ffmpegProgram } from './ffmpeg-program';
 import { toProbedFormat } from '../utils/codec-name';
 
 const probeSchema = z.object({
-  streams: z.array(z.object({ codec_name: z.string(), sample_rate: z.string(), channels: z.number(), time_base: z.string(), duration_ts: z.number() })).min(1),
+  streams: z
+    .array(z.object({ codec_name: z.string(), sample_rate: z.string(), channels: z.number(), time_base: z.string(), duration_ts: z.number().optional() }))
+    .min(1),
   format: z.object({ format_name: z.string() }),
 });
 
@@ -44,15 +46,16 @@ const probe = <Schema extends z.ZodType>(source: string, entries: string, schema
   });
 
 /**
- * The channels, the rate and the exact number of frames of the first audio stream, or undefined when they are not exact: a stream whose time base is not
- * one frame has a length that is only as precise as its timestamps, and ALAC in CAF says more frames than it has. See docs/app/decoder-proxy.md
+ * The channels, the rate and the exact number of frames of the first audio stream: false when they are not exact (a time base that is not one frame, or
+ * ALAC in CAF, which says more frames than it has), undefined when ffprobe gave no answer. See docs/app/decoder-proxy.md
  */
-export const probeAudio = async (source: string): Promise<AudioLength | undefined> => {
+export const probeAudio = async (source: string): Promise<AudioLength | false | undefined> => {
   const found = await probe(source, 'stream=codec_name,sample_rate,channels,time_base,duration_ts:format=format_name', probeSchema);
-  if (!found || (found.streams[0].codec_name === 'alac' && found.format.format_name === 'caf')) return undefined;
-  const [stream] = found.streams;
-  const sampleRate = Number(stream.sample_rate);
-  return stream.time_base === `1/${sampleRate}` && stream.duration_ts > 0 ? { channels: stream.channels, sampleRate, frames: stream.duration_ts } : undefined;
+  if (!found) return undefined;
+  const [{ codec_name: codec, sample_rate: rate, channels, time_base: timeBase, duration_ts: frames = 0 }] = found.streams;
+  const sampleRate = Number(rate);
+  const exact = timeBase === `1/${sampleRate}` && frames > 0 && !(codec === 'alac' && found.format.format_name === 'caf');
+  return exact && { channels, sampleRate, frames };
 };
 
 /** The codec and the depth of the first audio stream as the library names them, and whether its samples are float */

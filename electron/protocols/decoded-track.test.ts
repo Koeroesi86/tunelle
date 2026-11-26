@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { spawn } from 'child_process';
 import { memoryFs } from '../test-memory-fs';
 import { cacheFolder } from './cache-folder';
-import { decodeTrack, playableFile } from './decoded-track';
+import { decodeTrack, playableFile, prepareDecode, stopDecodes } from './decoded-track';
 import { logError } from '../utils/log-error';
 import { probeFormat } from './probe-audio';
 
@@ -120,6 +120,19 @@ describe('decodeTrack', () => {
     expect(vi.mocked(spawn).mock.calls[0][1]).toContain('pcm_f32le');
   });
 
+  it('asks ffprobe once about a 32 bit file, and again after one that it gave no answer for', async () => {
+    vi.mocked(probeFormat).mockReset().mockResolvedValueOnce(undefined).mockResolvedValue({ codec: 'WAVPACK', bitDepth: 32, float: true });
+    const wavpack = { codec: 'WAVPACK', bitDepth: 32 };
+
+    await prepareDecode(source, wavpack);
+    const first = await prepareDecode(source, wavpack);
+    const second = await prepareDecode(source, wavpack);
+
+    expect(second?.encoder).toEqual(first?.encoder);
+    expect(first?.encoder).toContain('pcm_f32le');
+    expect(probeFormat).toHaveBeenCalledTimes(2);
+  });
+
   it('does not ask ffprobe about a file of 24 bit', async () => {
     decoder({ code: 0 });
 
@@ -214,6 +227,21 @@ describe('decodeTrack', () => {
     expect(child.kill).not.toHaveBeenCalled();
     child.emit('close', null);
     await Promise.all([one, two]);
+  });
+
+  it('ends the running and the waiting decodes when the app quits', async () => {
+    const running = [decoder({ code: 0, hold: true }), decoder({ code: 0, hold: true })];
+    const others = [1, 2].map((index) => `/music/other-${count}-${index}.dsf`);
+    others.forEach((other) => memoryFs.sync.writeFileSync(other, 'dsd'));
+    const pending = [source, ...others].map((file) => decodeTrack(file, format, signal()));
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalledTimes(2));
+    await new Promise((resolve) => setImmediate(resolve));
+
+    stopDecodes();
+
+    expect(await Promise.all(pending)).toEqual([undefined, undefined, undefined]);
+    running.forEach((child) => expect(child.kill).toHaveBeenCalledOnce());
+    expect(spawn).toHaveBeenCalledTimes(2);
   });
 
   /** A decoder that is killed but closes only when the test lets it, as ffmpeg does some time after the kill */

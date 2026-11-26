@@ -135,6 +135,25 @@ describe('windowedTrack', () => {
     expect((await open()).track).toBeUndefined();
   });
 
+  it.each([
+    ['more than two channels', { ...layout, channels: 6 }],
+    ['no exact length', false as const],
+  ])('asks ffprobe once about a track of %s, not for every range', async (_name, answer) => {
+    vi.mocked(probeAudio).mockClear().mockResolvedValue(answer);
+    const { again } = await open();
+
+    expect(await again()).toBeUndefined();
+    expect(probeAudio).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks ffprobe again about a track that it gave no answer for', async () => {
+    vi.mocked(probeAudio).mockClear().mockResolvedValueOnce(undefined);
+    const { track, again } = await open();
+
+    expect(track).toBeUndefined();
+    expect(await again()).toBeDefined();
+  });
+
   it('answers a range of the header without a decode', async () => {
     const { track } = await openTrack();
 

@@ -154,19 +154,32 @@ const startJob = (key: string, source: string, encoder: string[], target: string
   return job;
 };
 
-/** The decode stops when no request waits for it any more */
-const leave = (key: string, job: Job, measured: boolean) => {
-  job.waiters -= 1;
-  if (!measured) job.players -= 1;
-  if (job.waiters > 0) return;
+const cancel = (key: string, job: Job) => {
   job.cancelled = true;
   job.child?.kill();
   if (jobs.get(key) === job) jobs.delete(key);
 };
 
+/** The decode stops when no request waits for it any more */
+const leave = (key: string, job: Job, measured: boolean) => {
+  job.waiters -= 1;
+  if (!measured) job.players -= 1;
+  if (job.waiters === 0) cancel(key, job);
+};
+
+/** Ends the running and the waiting decodes as the app quits: an ffmpeg that writes a file would go on without the app */
+export const stopDecodes = () => jobs.forEach((job, key) => cancel(key, job));
+
+/** What ffprobe said of each file that was asked about, so the ranges of a track do not ask again */
+const floatFiles = new Map<string, boolean>();
+
 /** Float samples under a codec that holds integers too, which both have a depth of 32 bit: only the file tells */
-const isFloatFile = async (source: string, { codec, bitDepth }: Format) =>
-  isMixedCodec(codec) && (bitDepth ?? 0) >= 32 && (await probeFormat(source))?.float === true;
+const isFloatFile = async (source: string, version: string, { codec, bitDepth }: Format) => {
+  if (!isMixedCodec(codec) || (bitDepth ?? 0) < 32) return false;
+  const float = floatFiles.get(version) ?? (await probeFormat(source))?.float;
+  if (float !== undefined) floatFiles.set(version, float);
+  return float === true;
+};
 
 /** What names the decoded copy of a source in the cache */
 export const prepareDecode = async (
@@ -176,9 +189,10 @@ export const prepareDecode = async (
   const stats = await stat(source).catch(() => undefined);
   if (!stats?.isFile()) return undefined;
 
-  const encoder = toEncoder(format, await isFloatFile(source, format));
+  const version = `${source}\0${stats.size}\0${stats.mtimeMs}`;
+  const encoder = toEncoder(format, await isFloatFile(source, version, format));
   const key = createHash('sha256')
-    .update(`${source}\0${stats.size}\0${stats.mtimeMs}\0${encoder.join(' ')}`)
+    .update(`${version}\0${encoder.join(' ')}`)
     .digest('hex')
     .slice(0, 32);
   return { key, encoder, volume: stats.dev, target: join(cacheFolder('whole-decodes'), `${key}.wav`) };

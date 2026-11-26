@@ -60,6 +60,7 @@ vi.mock('./electron/database/create-database', () => ({ default: vi.fn(async () 
 vi.mock('./electron/utils/library-error-message', () => ({ libraryErrorMessage: vi.fn(() => 'the library can not be opened') }));
 vi.mock('./electron/listeners/setup-listeners', () => ({ default: vi.fn() }));
 vi.mock('./electron/protocols/cache-folder', () => ({ removeOldCache: vi.fn(async () => undefined) }));
+vi.mock('./electron/protocols/decoded-track', () => ({ stopDecodes: vi.fn() }));
 vi.mock('./electron/protocols/tunelle-protocol', () => ({
   tunelleOrigin: 'tunelle://app',
   registerTunelleScheme: vi.fn(),
@@ -132,6 +133,7 @@ describe('the start of the app', () => {
       radioArt: await import('./electron/services/radio/radio-art'),
       appId: await import('./electron/app-user-model-id'),
       removeOldCache: (await import('./electron/protocols/cache-folder')).removeOldCache,
+      stopDecodes: (await import('./electron/protocols/decoded-track')).stopDecodes,
     };
 
     return modules;
@@ -584,6 +586,17 @@ describe('the start of the app', () => {
 
       expect(preventDefault).toHaveBeenCalledTimes(1);
       expect(modules.closeDatabase).toHaveBeenCalledTimes(1);
+    });
+
+    it('ends the running decodes when it quits, not while its windows still close', async () => {
+      const modules = await start();
+      await started();
+
+      event('before-quit')?.();
+      expect(modules.stopDecodes).not.toHaveBeenCalled();
+      event('will-quit')?.({ preventDefault: vi.fn() });
+
+      expect(modules.stopDecodes).toHaveBeenCalled();
     });
 
     it('stops the queue, the measurement and the scans before it', async () => {

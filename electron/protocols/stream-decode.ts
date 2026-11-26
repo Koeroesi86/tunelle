@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { PassThrough, Readable, Transform, pipeline } from 'stream';
+import { PassThrough, Readable, Transform, finished, pipeline } from 'stream';
 import type { TransformCallback } from 'stream';
 import { ffmpegProgram } from './ffmpeg-program';
 import { logError } from '../utils/log-error';
@@ -87,7 +87,8 @@ export const decodeStream = (head: Buffer, rest: Readable, encoder: string[], on
       child.kill();
       rest.destroy();
     });
-    rest.on('error', () => child.kill());
+    // an input that fails or is destroyed never ends ffmpeg's: `finished` also tells of one that did so before this call
+    finished(rest, { writable: false }, (error) => error && child.kill());
 
     pipeline(
       child.stdout,
