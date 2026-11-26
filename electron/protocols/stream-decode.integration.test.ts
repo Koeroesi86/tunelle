@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import type { AddressInfo } from 'net';
 import { readWav, toneShare } from '../test-wav';
+import { wavHeader } from './wav-header';
 
 const root = path.resolve(__dirname, '../..');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-stream-'));
@@ -33,6 +34,7 @@ const stations: Record<string, { type: string; body: Buffer }> = {
   '/mp3': { type: 'audio/mpeg', body: fixture('mp3/1-concert-a.mp3') },
   '/vorbis': { type: 'audio/ogg', body: fixture('vorbis/1-concert-a.ogg') },
   '/flac': { type: 'audio/flac', body: fixture('flac/1-concert-a.flac') },
+  '/flac-hires': { type: 'audio/flac', body: fixture('flac-hires/1-concert-a.flac') },
   '/other': { type: 'audio/mpeg', body: Buffer.from('not audio, and long enough to give ffmpeg something to refuse '.repeat(40)) },
 };
 
@@ -68,10 +70,11 @@ describe('the streaming decode of radio stations and server tracks', () => {
   });
 
   it.each([
-    ['/mp3', 44100],
-    ['/vorbis', 44100],
-    ['/flac', 44100],
-  ])('decodes the station %s with ffmpeg, to a WAV of the tone with its rate', async (name, sampleRate) => {
+    ['/mp3', 44100, 4, true],
+    ['/vorbis', 44100, 4, true],
+    ['/flac', 44100, 2, false],
+    ['/flac-hires', 96000, 3, false],
+  ])('decodes the station %s with ffmpeg, to a WAV of the tone with its rate and depth', async (name, sampleRate, bytes, float) => {
     rates.mockClear();
     const response = await radio(name);
     const file = path.join(temp, `${name.slice(1)}.wav`);
@@ -81,6 +84,7 @@ describe('the streaming decode of radio stations and server tracks', () => {
     expect(response.headers.get('content-type')).toBe('audio/wav');
     expect(rates).toHaveBeenCalledWith('abc', sampleRate);
     expect(wav.sampleRate).toBe(sampleRate);
+    expect([wav.bytes, wav.float]).toEqual([bytes, float]);
     expect(Math.round(wav.seconds)).toBe(6);
     expect(toneShare(wav.samples, 440, wav.sampleRate)).toBeGreaterThan(0.9);
   });
@@ -117,5 +121,56 @@ describe('the streaming decode of radio stations and server tracks', () => {
     expect(ranged.status).toBe(206);
     expect((await ranged.arrayBuffer()).byteLength).toBe(1000);
     expect(client.stream).toHaveBeenCalledTimes(1);
+  });
+
+  /** A track of a server that names it so, served to the end; the id keeps its download apart from the others */
+  const serverTrack = async (id: string, name: string, body: Buffer) => {
+    const client = { stream: async () => new Response(new Uint8Array(body)) };
+    const request = new Request(`tunelle://app/source/audio?${new URLSearchParams({ codec: name })}`);
+    const response = await serveSource('audio', `subsonic:5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11:${id}`, request, {
+      clientOf: async () => client as never,
+    });
+    const file = path.join(temp, `${id}.served`);
+    fs.writeFileSync(file, Buffer.from(await response.arrayBuffer()));
+    return file;
+  };
+
+  // the suffix of Subsonic, the container of Jellyfin and the codec of Plex
+  it.each([
+    ['m4a', 'alac/1-concert-a.m4a', 2],
+    ['mov,mp4,m4a,3gp,3g2,mj2', 'alac/1-concert-a.m4a', 2],
+    ['alac', 'alac/1-concert-a.m4a', 2],
+    ['ape', 'ape/1-concert-a.ape', 2],
+    ['wv', 'wavpack/1-concert-a.wv', 2],
+    ['wavpack', 'wavpack-dsd/1-concert-a.wv', 3],
+    ['aif', 'aiff/1-concert-a.aiff', 2],
+    ['aifc', 'aiff/2-octave-up.aifc', 2],
+    ['pcm', 'aiff/1-concert-a.aiff', 2],
+    ['dsf', 'dsd/1-concert-a.dsf', 3],
+    ['dsd_msbf', 'dsd/2-octave-up.dff', 3],
+    ['flac', 'flac-hires/1-concert-a.flac', 3],
+    ['mka', 'mka/1-concert-a.mka', 2],
+  ])('decodes the server track that is named %s (%s) at the depth of the file', async (name, track, bytes) => {
+    const file = await serverTrack(`${name}-${track}`.replace(/\W/g, '-'), name, fixture(track));
+    const wav = readWav(file);
+
+    expect(wav.bytes).toBe(bytes);
+    expect(toneShare(wav.samples, track.includes('2-octave-up') ? 880 : 440, wav.sampleRate)).toBeGreaterThan(0.9);
+  });
+
+  it('serves an AAC track of a server as the file that was downloaded', async () => {
+    const aac = fixture('aac/1-concert-a.m4a');
+
+    expect(fs.readFileSync(await serverTrack('aac', 'm4a', aac)).equals(aac)).toBe(true);
+  });
+
+  it('keeps the peaks over full scale of a float track', async () => {
+    const layout = { channels: 1, sampleRate: 44100, bytesPerSample: 4, frames: 44100, float: true };
+    const samples = Float32Array.from({ length: layout.frames }, (_, frame) => 1.5 * Math.sin((2 * Math.PI * 440 * frame) / layout.sampleRate));
+
+    const wav = readWav(await serverTrack('float', 'wav', Buffer.concat([wavHeader(layout), Buffer.from(samples.buffer)])));
+
+    expect(wav.float).toBe(true);
+    expect(Math.max(...wav.samples)).toBeCloseTo(1.5, 3);
   });
 });

@@ -28,11 +28,13 @@ export const readWav = (file: string) => {
   const bytes = data.readUInt16LE(format.start + 14) / 8;
   const size = Math.min(body.size, data.length - body.start);
   const frames = Math.floor(size / (bytes * channels));
-  // a sample is a signed little endian integer of 2, 3 or 4 bytes
+  // a sample is a signed little endian integer of 2, 3 or 4 bytes, or a float of 4 with the format 3
+  const float = data.readUInt16LE(format.start) === 3;
+  const sample = (at: number) => (float ? data.readFloatLE(at) : data.readIntLE(at, bytes) / 2 ** (bytes * 8 - 1));
   const channelData = Array.from({ length: channels }, (_, channel) =>
-    Float64Array.from({ length: frames }, (_, frame) => data.readIntLE(body.start + (frame * channels + channel) * bytes, bytes) / 2 ** (bytes * 8 - 1))
+    Float64Array.from({ length: frames }, (_, frame) => sample(body.start + (frame * channels + channel) * bytes))
   );
-  return { channels, sampleRate, bytes, seconds: frames / sampleRate, samples: channelData[0], channelData };
+  return { channels, sampleRate, bytes, float, seconds: frames / sampleRate, samples: channelData[0], channelData };
 };
 
 /** The samples at another rate, by cubic interpolation: close enough to the resampling of Chromium for the level of a sine to agree within a few hundredths of a LU. */

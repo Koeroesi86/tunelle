@@ -59,11 +59,11 @@ class WavStart extends Transform {
 }
 
 /** Decodes an encoded stream with the bundled ffmpeg, from `pipe:0` to a WAV of no set length on `pipe:1`; undefined when it gives nothing and the stream plays as it is. See docs/app/decoder-proxy.md */
-export const decodeStream = (head: Buffer, rest: Readable, onSampleRate: (sampleRate: number) => void, encoder = 'pcm_s16le') =>
+export const decodeStream = (head: Buffer, rest: Readable, encoder: string[], onSampleRate: (sampleRate: number) => void) =>
   new Promise<Readable | undefined>((resolve) => {
     const child = spawn(
       ffmpegProgram(),
-      ['-v', 'error', '-fflags', '+bitexact', '-i', 'pipe:0', '-map', '0:a:0', '-map_metadata', '-1', '-c:a', encoder, '-f', 'wav', 'pipe:1'],
+      ['-v', 'error', '-fflags', '+bitexact', '-i', 'pipe:0', '-map', '0:a:0', '-map_metadata', '-1', ...encoder, '-f', 'wav', 'pipe:1'],
       { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true }
     );
     const audio = new PassThrough();

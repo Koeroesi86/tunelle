@@ -11,6 +11,7 @@ import {
   type SourceServer,
 } from '@shared/schemas/sources';
 import { openSource, readJson, SourceError, toResponse, wrongLoginCode } from './source-request';
+import { toCodecName } from '../../utils/codec-name';
 
 const clientName = 'Tunelle';
 const searchCount = '30';
@@ -84,7 +85,7 @@ const toTrack = (serverId: string, song: z.infer<typeof songSchema>): Track => (
   genre: song.Genres?.join(', ') ?? '',
   picture: null,
   duration: song.RunTimeTicks ? Math.round(song.RunTimeTicks / ticksPerSecond) : null,
-  codec: song.Container?.toUpperCase() ?? null,
+  codec: toCodecName(song.Container),
   bitrate: song.MediaSources?.[0]?.Bitrate ?? null,
   lossless: Number(losslessContainers.includes(song.Container?.toLowerCase() ?? '')),
 });

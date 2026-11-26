@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { serveSource } from './source-protocol';
 import { downloadSource } from './source-download';
 import { servePlayable } from './serve-track';
+import { downloadedFormat } from './source-format';
 
 vi.mock('./source-download', () => ({ downloadSource: vi.fn() }));
 vi.mock('./serve-track', () => ({ servePlayable: vi.fn() }));
+vi.mock('./source-format', () => ({ downloadedFormat: vi.fn() }));
 
 const serverId = '5f6a1c1e-7d1c-4c3e-9d3b-2f7a7f0a1b11';
 const path = `subsonic:${serverId}:song:1`;
@@ -20,6 +22,7 @@ describe('serveSource', () => {
     client.stream.mockReset().mockResolvedValue(new Response('audio', { status: 206 }));
     client.cover.mockReset().mockResolvedValue(new Response('cover'));
     clientOf.mockReset().mockResolvedValue(client);
+    vi.mocked(downloadedFormat).mockReset().mockResolvedValue({ codec: 'ALAC', bitDepth: 24 });
   });
 
   it('plays the track of a server with the range of the request', async () => {
@@ -40,13 +43,23 @@ describe('serveSource', () => {
 
   it('downloads a track in a codec that ffmpeg decodes and serves it like a file of the library', async () => {
     vi.mocked(downloadSource).mockResolvedValue('/temp/track.src');
-    const request = ask({}, '?codec=ALAC&bitDepth=24');
+    const request = ask({}, '?codec=M4A');
 
     expect(await (await serveSource('audio', path, request, sources)).text()).toBe('wav');
     expect(downloadSource).toHaveBeenCalledWith(path, client, 'song:1', request.signal);
     expect(servePlayable).toHaveBeenCalledWith({ path: '/temp/track.src', codec: 'ALAC', bitDepth: 24 }, request);
+    expect(downloadedFormat).toHaveBeenCalledWith('/temp/track.src');
     expect(client.stream).not.toHaveBeenCalled();
   });
+
+  it.each(['ALAC', 'APE', 'wv', 'aif', 'aifc', 'dsf', 'dff', 'm4a', 'mov,mp4,m4a', 'mka', 'wavpack', 'pcm'])(
+    'downloads a track that a server names %s',
+    async (codec) => {
+      await serveSource('audio', path, ask({}, `?codec=${codec}`), sources);
+
+      expect(downloadSource).toHaveBeenCalled();
+    }
+  );
 
   it('plays the stream of the server when the download fails', async () => {
     vi.mocked(downloadSource).mockResolvedValue(undefined);

@@ -35,8 +35,8 @@ const readFresh = async (source: string, codec: string, bitDepth: number | null,
 };
 
 /** The samples that one run of ffmpeg gives from the start to the end */
-const decodeWhole = (source: string, bitDepth: number | null) => {
-  const raw = bitDepth === 24 ? 's24le' : 's16le';
+const decodeWhole = (source: string, codec: string, bitDepth: number | null) => {
+  const raw = codec === 'IEEE_FLOAT' ? 'f32le' : bitDepth === 24 ? 's24le' : 's16le';
   return execFileSync(
     ffmpegProgram(),
     ['-nostdin', '-v', 'error', '-fflags', '+bitexact', '-i', source, '-map', '0:a:0', '-c:a', `pcm_${raw}`, '-f', raw, 'pipe:1'],
@@ -69,7 +69,7 @@ describe('windowedTrack with the real ffmpeg', () => {
     'serves the %s fixture %s with its final size, and from any offset the samples of the whole decode',
     async (folder, name, codec, bitDepth) => {
       const source = fixture(folder, name);
-      const samples = decodeWhole(source, bitDepth);
+      const samples = decodeWhole(source, codec, bitDepth);
 
       const whole = await readFresh(source, codec, bitDepth, 0);
 

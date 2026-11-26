@@ -11,6 +11,7 @@ import {
   type SourceServer,
 } from '@shared/schemas/sources';
 import { openSource, readJson, SourceError, toResponse } from './source-request';
+import { toCodecName } from '../../utils/codec-name';
 
 const apiVersion = '1.16.1';
 const clientName = 'tunelle';
@@ -81,7 +82,7 @@ const toTrack = (serverId: string, song: Song): Track => ({
   genre: song.genre ?? '',
   picture: null,
   duration: song.duration ?? null,
-  codec: song.suffix?.toUpperCase() ?? null,
+  codec: toCodecName(song.suffix),
   bitrate: song.bitRate ? song.bitRate * 1000 : null,
   lossless: Number(losslessSuffixes.includes(song.suffix?.toLowerCase() ?? '')),
 });

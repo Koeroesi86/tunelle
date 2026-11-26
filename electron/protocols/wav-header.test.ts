@@ -26,4 +26,11 @@ describe('wavHeader', () => {
     expect(header.toString('ascii', 36, 40)).toBe('data');
     expect(header.readUInt32LE(40)).toBe(6000);
   });
+
+  it('marks float samples as IEEE float', () => {
+    const header = wavHeader({ ...stereo24, bytesPerSample: 4, float: true });
+
+    expect(header.readUInt16LE(20)).toBe(3);
+    expect(header.readUInt16LE(34)).toBe(32);
+  });
 });

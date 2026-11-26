@@ -5,10 +5,11 @@ import { idleStopMs, restAfterMs, type Reach } from './decode-policy';
 import { ffmpegProgram } from './ffmpeg-program';
 import { wavHeaderSize, wavSize, type WavLayout } from './wav-header';
 
-export const rawFormats: Record<string, { format: string; bytesPerSample: number }> = {
+export const rawFormats: Record<string, { format: string; bytesPerSample: number; float?: boolean }> = {
   pcm_s16le: { format: 's16le', bytesPerSample: 2 },
   pcm_s24le: { format: 's24le', bytesPerSample: 3 },
   pcm_s32le: { format: 's32le', bytesPerSample: 4 },
+  pcm_f32le: { format: 'f32le', bytesPerSample: 4, float: true },
 };
 
 export interface Decoding {

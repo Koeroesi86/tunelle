@@ -3,10 +3,12 @@ import { createHash, randomUUID } from 'crypto';
 import { mkdir, readdir, rename, rm, stat, utimes } from 'fs/promises';
 import { join } from 'path';
 import { app } from 'electron';
-import { isChromiumCodec, isDecodedCodec, isDsdCodec } from '../utils/is-supported';
+import { isChromiumCodec, isDecodedCodec, isMixedCodec } from '../utils/is-supported';
 import { logError } from '../utils/log-error';
 import { cacheLimit } from './decode-policy';
 import { ffmpegProgram } from './ffmpeg-program';
+import { toEncoder, type Format } from './pcm-encoder';
+import { probeFormat } from './probe-audio';
 
 // See docs/app/decoder-proxy.md for the cache, the sharing of a decode and what is spared by the eviction
 const maxDecodes = 2;
@@ -23,11 +25,6 @@ interface Job {
   child?: ChildProcess;
 }
 
-export interface Format {
-  codec: string | null;
-  bitDepth: number | null;
-}
-
 export interface PlayableTrack extends Format {
   path: string;
 }
@@ -42,12 +39,6 @@ const cacheFolder = () => join(app.getPath('temp'), 'tunelle-whole-decodes');
 
 /** Removes the cache of the earlier versions, which also kept copies of the codecs that are decoded in memory now */
 export const removeOldCache = () => rm(join(app.getPath('temp'), 'tunelle-decoded'), { recursive: true, force: true }).catch(logError);
-
-/** The WAV keeps the depth of the file, 16 bit when it is not known; DSD and DST, which have 1 bit, are 88.2 kHz and 24 bit whatever their rate. See docs/app/decoder-proxy.md */
-const toEncoder = ({ codec, bitDepth }: Format) => {
-  if (isDsdCodec(codec)) return ['-ar', '88200', '-c:a', 'pcm_s24le'];
-  return ['-c:a', (bitDepth ?? 16) > 24 ? 'pcm_s32le' : (bitDepth ?? 16) > 16 ? 'pcm_s24le' : 'pcm_s16le'];
-};
 
 const takeSlot = (job: Job) => {
   if (running >= maxDecodes) return new Promise<void>((start) => queue.push({ job, start }));
@@ -157,6 +148,10 @@ const leave = (key: string, job: Job, measured: boolean) => {
   if (jobs.get(key) === job) jobs.delete(key);
 };
 
+/** Float samples under a codec that holds integers too, which both have a depth of 32 bit: only the file tells */
+const isFloatFile = async (source: string, { codec, bitDepth }: Format) =>
+  isMixedCodec(codec) && (bitDepth ?? 0) >= 32 && (await probeFormat(source))?.float === true;
+
 /** What names the decoded copy of a source in the cache, and marks the track as one of the last served */
 export const prepareDecode = async (
   source: string,
@@ -165,7 +160,7 @@ export const prepareDecode = async (
   const stats = await stat(source).catch(() => undefined);
   if (!stats?.isFile()) return undefined;
 
-  const encoder = toEncoder(format);
+  const encoder = toEncoder(format, await isFloatFile(source, format));
   const key = createHash('sha256')
     .update(`${source}\0${stats.size}\0${stats.mtimeMs}\0${encoder.join(' ')}`)
     .digest('hex')

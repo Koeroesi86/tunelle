@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { Track } from '@shared/types/library';
 import { toSourcePath, type SourceAlbum, type SourceArtist, type SourceServer } from '@shared/schemas/sources';
 import { openSource, readJson, SourceError, toResponse, wrongLoginCode } from './source-request';
+import { toCodecName } from '../../utils/codec-name';
 
 const productName = 'Tunelle';
 const searchCount = '30';
@@ -87,7 +88,7 @@ const toTrack = (serverId: string, item: Item): Track => {
     genre: item.Genre?.map(({ tag }) => tag).join(', ') ?? '',
     picture: null,
     duration: item.duration ? Math.round(item.duration / 1000) : null,
-    codec: (media?.audioCodec ?? media?.container)?.toUpperCase() ?? null,
+    codec: toCodecName(media?.audioCodec ?? media?.container),
     bitrate: media?.bitrate ?? null,
     lossless: Number(losslessCodecs.includes(media?.audioCodec?.toLowerCase() ?? '')),
   };
