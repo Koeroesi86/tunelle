@@ -1,6 +1,7 @@
 import { isProgressiveCodec } from '../utils/is-supported';
-import { prepareDecode, type Format, type PlayableTrack } from './decoded-track';
+import { prepareDecode, type PlayableTrack } from './decoded-track';
 import { maxWindows, windowReach, type Reach } from './decode-policy';
+import type { Format } from './pcm-encoder';
 import { openDecodeWindow, rawFormats, type Cursor, type Decoding, type DecodeWindow } from './decode-window';
 import { probeAudio } from './probe-audio';
 import { sourceSpeed } from './source-speed';
@@ -94,7 +95,7 @@ async function* readTrack(source: Source, start: number, end: number, signal: Ab
 const probeLayout = async (path: string, encoder: string[]): Promise<WavLayout | undefined> => {
   const raw = rawFormats[encoder[encoder.length - 1]];
   const length = await probeAudio(path);
-  return raw && length && length.channels <= 2 ? { ...length, bytesPerSample: raw.bytesPerSample } : undefined;
+  return raw && length && length.channels <= 2 ? { ...length, bytesPerSample: raw.bytesPerSample, float: raw.float } : undefined;
 };
 
 /**

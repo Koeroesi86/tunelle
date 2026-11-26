@@ -74,7 +74,7 @@ describe('decodeStream', () => {
     const input: Buffer[] = [];
     child.stdin.on('data', (chunk: Buffer) => input.push(chunk));
 
-    const decoding = decodeStream(Buffer.from('head'), rest, onSampleRate);
+    const decoding = decodeStream(Buffer.from('head'), rest, ['-c:a', 'pcm_s24le'], onSampleRate);
     child.stdout.write(wav(48000));
     const audio = await decoding;
     rest.end('rest');
@@ -90,7 +90,7 @@ describe('decodeStream', () => {
     const child = fakeFfmpeg();
     const rest = new PassThrough();
 
-    const decoding = decodeStream(Buffer.from('head'), rest, vi.fn());
+    const decoding = decodeStream(Buffer.from('head'), rest, ['-c:a', 'pcm_s16le'], vi.fn());
     child.stdout.write(wav(44100));
     const audio = await decoding;
     audio?.destroy();
@@ -102,7 +102,7 @@ describe('decodeStream', () => {
 
   it('gives undefined when ffmpeg cannot start, so the stream plays as it is', async () => {
     const child = fakeFfmpeg();
-    const decoding = decodeStream(Buffer.from('head'), new PassThrough(), vi.fn());
+    const decoding = decodeStream(Buffer.from('head'), new PassThrough(), ['-c:a', 'pcm_s16le'], vi.fn());
     child.emit('error', new Error('spawn ENOENT'));
 
     expect(await decoding).toBeUndefined();
@@ -111,7 +111,7 @@ describe('decodeStream', () => {
 
   it('gives undefined when ffmpeg ends with no audio', async () => {
     const child = fakeFfmpeg();
-    const decoding = decodeStream(Buffer.from('head'), new PassThrough(), vi.fn());
+    const decoding = decodeStream(Buffer.from('head'), new PassThrough(), ['-c:a', 'pcm_s16le'], vi.fn());
     child.stderr.write('Invalid data\n');
     child.emit('close', 1);
 

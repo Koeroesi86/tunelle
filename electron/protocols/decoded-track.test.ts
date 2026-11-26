@@ -5,6 +5,7 @@ import { spawn } from 'child_process';
 import { memoryFs } from '../test-memory-fs';
 import { decodeTrack, playableFile } from './decoded-track';
 import { logError } from '../utils/log-error';
+import { probeFormat } from './probe-audio';
 
 const sizes = vi.hoisted(() => new Map<string, number>());
 const beforeFolder = vi.hoisted(() => vi.fn());
@@ -21,6 +22,7 @@ vi.mock('fs/promises', async () => ({
   },
 }));
 vi.mock('child_process', () => ({ spawn: vi.fn() }));
+vi.mock('./probe-audio', () => ({ probeFormat: vi.fn() }));
 vi.mock('electron', () => ({ app: { getPath: () => '/temp', getAppPath: () => '/app/dist', isPackaged: false } }));
 vi.mock('../utils/log-error', () => ({ logError: vi.fn() }));
 
@@ -89,6 +91,14 @@ describe('decodeTrack', () => {
     [{ codec: 'AIFF', bitDepth: 32 }, ['-c:a', 'pcm_s32le']],
     [{ codec: 'FLAC', bitDepth: 16 }, ['-c:a', 'pcm_s16le']],
     [{ codec: 'FLAC', bitDepth: 24 }, ['-c:a', 'pcm_s24le']],
+    [{ codec: 'IEEE_FLOAT', bitDepth: 32 }, ['-c:a', 'pcm_f32le']],
+    [{ codec: 'MP3', bitDepth: null }, ['-c:a', 'pcm_f32le']],
+    [{ codec: 'MP2', bitDepth: null }, ['-c:a', 'pcm_f32le']],
+    [{ codec: 'OPUS', bitDepth: null }, ['-c:a', 'pcm_f32le']],
+    [{ codec: 'VORBIS', bitDepth: null }, ['-c:a', 'pcm_f32le']],
+    [{ codec: 'AC-3', bitDepth: null }, ['-c:a', 'pcm_f32le']],
+    [{ codec: 'WMA', bitDepth: 16 }, ['-c:a', 'pcm_f32le']],
+    [{ codec: 'ADPCM', bitDepth: 4 }, ['-c:a', 'pcm_s16le']],
   ])('keeps the depth of %j in the wav', async (given, encoder) => {
     decoder({ code: 0 });
 
@@ -96,6 +106,24 @@ describe('decodeTrack', () => {
 
     const [, args] = vi.mocked(spawn).mock.calls[0] as unknown as [string, string[]];
     expect(args.join(' ')).toContain(encoder.join(' '));
+  });
+
+  it.each(['WAVPACK', 'AIFF', 'AIFF-C', 'CAF'])('keeps the float samples of a 32 bit %s file, which ffprobe tells', async (codec) => {
+    vi.mocked(probeFormat).mockResolvedValue({ codec, bitDepth: 32, float: true });
+    decoder({ code: 0 });
+
+    await decodeTrack(source, { codec, bitDepth: 32 }, signal());
+
+    expect(probeFormat).toHaveBeenCalledWith(source);
+    expect(vi.mocked(spawn).mock.calls[0][1]).toContain('pcm_f32le');
+  });
+
+  it('does not ask ffprobe about a file of 24 bit', async () => {
+    decoder({ code: 0 });
+
+    await decodeTrack(source, { codec: 'WAVPACK', bitDepth: 24 }, signal());
+
+    expect(probeFormat).not.toHaveBeenCalled();
   });
 
   it('answers a second request for the same file from the cache, without decoding again', async () => {

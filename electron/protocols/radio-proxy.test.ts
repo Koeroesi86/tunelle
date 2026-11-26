@@ -113,7 +113,7 @@ describe('openRadioStream', () => {
   it('has ffmpeg decode a stream of a codec that it decodes, and tells the rate of the WAV', async () => {
     answerWith(http, respond(200, { 'content-type': 'audio/mpeg' }, mp3));
     const decoded = new PassThrough();
-    vi.mocked(decodeStream).mockImplementation(async (_head, _rest, onSampleRate) => {
+    vi.mocked(decodeStream).mockImplementation(async (_head, _rest, _encoder, onSampleRate) => {
       onSampleRate(44100);
       return decoded;
     });
@@ -124,6 +124,7 @@ describe('openRadioStream', () => {
     expect(contentType).toBe('audio/wav');
     expect(audio).toBe(decoded);
     expect(vi.mocked(decodeStream).mock.calls[0][0].equals(mp3)).toBe(true);
+    expect(vi.mocked(decodeStream).mock.calls[0][2]).toEqual(['-c:a', 'pcm_f32le']);
     expect(stationDeps.onSampleRate).toHaveBeenCalledWith('abc', 44100);
   });
 

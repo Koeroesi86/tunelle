@@ -73,6 +73,16 @@ const dsdCodecs = ['DSD', 'DST'];
 
 export const isDsdCodec = (codec: string | null | undefined) => dsdCodecs.includes(codec ?? '');
 
+/** Lossy and float codecs, whose samples can go over full scale */
+const floatCodecs = ['MP3', 'MP2', 'OPUS', 'VORBIS', 'AC-3', 'WMA', 'IEEE_FLOAT'];
+
+export const isFloatCodec = (codec: string | null | undefined) => floatCodecs.includes(codec ?? '');
+
+/** Codecs of files that hold either integer or float samples */
+const mixedCodecs = ['WAVPACK', 'AIFF', 'AIFF-C', 'CAF'];
+
+export const isMixedCodec = (codec: string | null | undefined) => mixedCodecs.includes(codec ?? '');
+
 export const isDecodedCodec = (codec: string | null | undefined) => decodedCodecs.includes(codec ?? '');
 
 /** `MATROSKA-<codec>` and `CAF-<codec>` are codecs in a container that are not one of the decoded ones, see `electron/library/reading/read-audio-format.ts` */
