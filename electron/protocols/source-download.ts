@@ -1,12 +1,13 @@
 import { createHash, randomUUID } from 'crypto';
 import { createWriteStream } from 'fs';
-import { mkdir, readdir, rename, rm, stat } from 'fs/promises';
+import { readdir, rename, rm, stat } from 'fs/promises';
 import { join } from 'path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
-import { app } from 'electron';
 import type { Sources } from '../services/sources/sources';
 import { logError } from '../utils/log-error';
+import { cacheFolder, makeCacheFolder } from './cache-folder';
+import { isHeld } from './held-files';
 
 type SourceClient = NonNullable<Awaited<ReturnType<Sources['clientOf']>>>;
 
@@ -21,26 +22,38 @@ interface Download {
 
 const downloads = new Map<string, Download>();
 
-const folder = () => join(app.getPath('temp'), 'tunelle-source');
+/** When a file of the folder was asked for last. Its modification time stays, as it names the decoded copy of the track */
+const used = new Map<string, number>();
 
-const remove = (name: string) => rm(join(folder(), name), { force: true });
+const folder = () => cacheFolder('source');
+
+const remove = (path: string) => rm(path, { force: true });
 
 /** A part file is named by its target and a name of its own; no running download has it after a quit or a crash */
 const isAbandoned = (name: string) => name.endsWith('.part') && !downloads.has(join(folder(), name.split('.', 2).join('.')));
 
 const evictOld = async (current: string) => {
   const names = await readdir(folder());
-  await Promise.all(names.filter(isAbandoned).map(remove));
+  await Promise.all(
+    names
+      .filter(isAbandoned)
+      .map((name) => join(folder(), name))
+      .map(remove)
+  );
   const files = await Promise.all(
     names
-      .filter((name) => !name.endsWith('.part') && join(folder(), name) !== current)
-      .map((name) => stat(join(folder(), name)).then(({ mtimeMs }) => ({ name, mtimeMs })))
+      .filter((name) => !name.endsWith('.part'))
+      .map((name) => join(folder(), name))
+      .filter((path) => path !== current)
+      .map((path) => stat(path).then(({ mtimeMs }) => ({ path, time: used.get(path) ?? mtimeMs })))
   );
   await Promise.all(
     files
-      .sort((a, b) => b.mtimeMs - a.mtimeMs)
+      .sort((a, b) => b.time - a.time)
       .slice(keptFiles - 1)
-      .map(({ name }) => remove(name))
+      .map(({ path }) => path)
+      .filter((path) => !isHeld(path))
+      .map(remove)
   );
 };
 
@@ -48,7 +61,6 @@ const fetchToFile = async (client: SourceClient, id: string, target: string, sig
   const response = await client.stream(id, undefined, signal);
   if (!response.ok || !response.body) throw new Error(`The server answered ${response.status}`);
 
-  await mkdir(folder(), { recursive: true });
   // a name of its own, so a download that was cancelled can not touch the file of the one that follows it
   const part = `${target}.${randomUUID()}.part`;
   const discard = () => rm(part, { force: true });
@@ -69,11 +81,13 @@ const forget = (target: string, abort: AbortController) => {
  * Undefined when the download fails or its request is gone, and the track then plays as the server sends it. See docs/app/decoder-proxy.md
  */
 export const downloadSource = async (key: string, client: SourceClient, id: string, signal: AbortSignal) => {
+  if (!(await makeCacheFolder('source').catch(logError))) return undefined;
   const target = join(folder(), `${createHash('sha256').update(key).digest('hex').slice(0, 32)}.src`);
   const existing = await stat(target).then(
     () => target,
     () => undefined
   );
+  if (existing) used.set(existing, Date.now());
   if (existing || signal.aborted) return signal.aborted ? undefined : existing;
 
   const download =

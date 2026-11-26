@@ -18,6 +18,8 @@ const createMemoryFs = () => {
   const modified = new Map<string, number>();
   const links = new Map<string, string>();
   const folders = new Set<string>();
+  /** The owner and the mode of a folder that `mkdir` or `chmod` of the promises gave one */
+  const owners = new Map<string, { uid?: number; mode: number }>();
   const clean = (path: string) => resolve(path);
   /** A link keeps the text of its target, as on disk, and is followed once, to the file or folder it names */
   const followed = (path: string) => clean(links.get(clean(path)) ?? path);
@@ -56,7 +58,12 @@ const createMemoryFs = () => {
   const sync = {
     existsSync: (path: string): boolean =>
       links.has(clean(path)) ? sync.existsSync(links.get(clean(path)) ?? '') : files.has(clean(path)) || folders.has(clean(path)),
-    mkdirSync: (path: string) => void parents(clean(path)).forEach((folder) => folders.add(folder)),
+    mkdirSync: (path: string) => {
+      const made = parents(clean(path));
+      // as on disk, where no folder is made over a file or in one
+      if (made.some((folder) => files.has(folder))) throw Object.assign(new Error(`EEXIST: file already exists, mkdir '${path}'`), { code: 'EEXIST' });
+      made.forEach((folder) => folders.add(folder));
+    },
     writeFileSync: (path: string, data: string | Uint8Array, options?: { flag?: string }) => {
       folderOf(dirname(clean(path)));
       if (options?.flag === 'wx' && files.has(clean(path))) throw Object.assign(new Error(`EEXIST: file already exists, open '${path}'`), { code: 'EEXIST' });
@@ -91,7 +98,18 @@ const createMemoryFs = () => {
   };
 
   const promises = {
-    mkdir: async (path: string) => sync.mkdirSync(path),
+    mkdir: async (path: string, options?: { mode?: number }) => {
+      const made = !folders.has(clean(path));
+      sync.mkdirSync(path);
+      if (made) owners.set(clean(path), { uid: process.getuid?.(), mode: options?.mode ?? 0o755 });
+    },
+    chmod: async (path: string, mode: number) => void owners.set(clean(path), { uid: process.getuid?.(), ...owners.get(clean(path)), mode }),
+    lstat: async (path: string) => {
+      const link = links.has(clean(path));
+      const stats = link ? { size: 0, mtimeMs: 0, isFile: () => false, isDirectory: () => false } : sync.statSync(path);
+
+      return { ...stats, uid: process.getuid?.(), mode: 0o755, ...owners.get(clean(path)), isSymbolicLink: () => link };
+    },
     writeFile: async (path: string, data: string | Uint8Array, options?: { flag?: string }) => sync.writeFileSync(path, data, options),
     readFile: async (path: string, encoding?: BufferEncoding) => sync.readFileSync(path, encoding),
     rm: async (path: string, options?: { force?: boolean; recursive?: boolean }) => sync.rmSync(path, options),
@@ -170,6 +188,7 @@ const createMemoryFs = () => {
     modified.clear();
     links.clear();
     folders.clear();
+    owners.clear();
   };
 
   return { sync, promises, reset };

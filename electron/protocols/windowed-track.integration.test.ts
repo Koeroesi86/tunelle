@@ -5,6 +5,7 @@ import os from 'os';
 import path from 'path';
 import { readWav, toneShare } from '../test-wav';
 import { ffmpegProgram } from './ffmpeg-program';
+import { cacheFolder } from './cache-folder';
 
 const root = path.resolve(__dirname, '../..');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'tunelle-windowed-'));
@@ -100,7 +101,7 @@ describe('windowedTrack with the real ffmpeg', () => {
     const track = await open(fixture('flac', '2-octave-up.flac'), 'FLAC', null);
     await readAll(track.read(0, track.size - 1, new AbortController().signal));
 
-    expect(fs.existsSync(path.join(temp, 'tunelle-whole-decodes'))).toBe(false);
+    expect(fs.existsSync(cacheFolder('whole-decodes'))).toBe(false);
   });
 
   it('leaves a codec without an exact length to the whole decode', async () => {

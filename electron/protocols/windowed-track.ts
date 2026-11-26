@@ -1,6 +1,7 @@
 import { isProgressiveCodec } from '../utils/is-supported';
 import { prepareDecode, type PlayableTrack } from './decoded-track';
 import { maxWindows, windowReach, type Reach } from './decode-policy';
+import { holdFile } from './held-files';
 import type { Format } from './pcm-encoder';
 import { openDecodeWindow, rawFormats, type Cursor, type Decoding, type DecodeWindow } from './decode-window';
 import { probeAudio } from './probe-audio';
@@ -38,9 +39,14 @@ const makeRoom = () =>
 
 const openWindow = ({ key, reach, ...decoding }: Source, position: number) => {
   makeRoom();
+  // a window that decodes on starts ffmpeg on the file again
+  const release = holdFile(decoding.source);
   const window: DecodeWindow = openDecodeWindow(decoding, position, reach, {
     onMismatch: () => wholeOnly.add(key),
-    onClose: () => windows.delete(window),
+    onClose: () => {
+      release();
+      windows.delete(window);
+    },
   });
   windows.set(window, key);
   return window;

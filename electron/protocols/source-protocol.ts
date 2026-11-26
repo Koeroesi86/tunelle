@@ -6,6 +6,7 @@ import { isDecodedCodec } from '../utils/is-supported';
 import { isAmbiguousContainer, toCodecName } from '../utils/codec-name';
 import { downloadedFormat } from './source-format';
 import { downloadSource } from './source-download';
+import { answerHolding } from './held-files';
 import type { RouteRequest } from './request-aborts';
 import { servePlayable } from './serve-track';
 import { notFound } from './serve-file';
@@ -46,7 +47,7 @@ export const serveSource = async (kind: 'audio' | 'cover', path: string | null, 
 
   // a codec that the bundled ffmpeg decodes is downloaded and decoded like a file of the library, so it plays and can be sought; the file, not the name of the server, tells its format
   const file = kind === 'audio' && isDownloaded(codec) ? await downloadSource(path ?? '', client, ref.id, request.signal) : undefined;
-  if (file) return servePlayable({ path: file, ...(await downloadedFormat(file)) }, request);
+  if (file) return answerHolding(file, async () => servePlayable({ path: file, ...(await downloadedFormat(file)) }, request));
 
   return kind === 'audio'
     ? client.stream(ref.id, request.headers.get('range') ?? undefined, request.signal).catch(() => new Response(undefined, { status: 502 }))

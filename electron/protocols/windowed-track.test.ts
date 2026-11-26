@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventEmitter } from 'events';
 import path from 'path';
 import { memoryFs } from '../test-memory-fs';
+import { cacheFolder } from './cache-folder';
 import { behindBytes, idleStopMs, maxWindows, restAfterMs, windowMemoryLimit, windowReach, type SourceSpeed } from './decode-policy';
 import { probeAudio } from './probe-audio';
 import { serveWindowed } from './serve-windowed';
@@ -9,7 +10,7 @@ import { sourceSpeed } from './source-speed';
 import { wavHeader, type WavLayout } from './wav-header';
 
 const temp = path.join(path.sep, 'temp');
-const cache = path.join(temp, 'tunelle-whole-decodes');
+const cache = cacheFolder('whole-decodes');
 
 const { spawnFake } = vi.hoisted(() => ({ spawnFake: vi.fn() }));
 
@@ -69,6 +70,7 @@ const fakeSpawn = (_program: string, args: string[]) => {
 const settle = () => new Promise((resolve) => setImmediate(resolve));
 
 let windowedTrack: typeof import('./windowed-track').windowedTrack;
+let isHeld: typeof import('./held-files').isHeld;
 let counter = 0;
 
 const open = async (speed: SourceSpeed = 'fast', codec = 'FLAC', bitDepth: number | null = null) => {
@@ -118,6 +120,7 @@ describe('windowedTrack', () => {
     spawnFake.mockImplementation(fakeSpawn);
     vi.resetModules();
     ({ windowedTrack } = await import('./windowed-track'));
+    ({ isHeld } = await import('./held-files'));
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
   });
   afterEach(() => vi.useRealTimers());
@@ -146,6 +149,19 @@ describe('windowedTrack', () => {
     expect((await readAll(track.read(0, size - 1, new AbortController().signal))).equals(fileFrom(0))).toBe(true);
     expect(decodes).toHaveLength(1);
     expect(memoryFs.sync.existsSync(cache)).toBe(false);
+  });
+
+  it('holds the file of a window until the window is dropped', async () => {
+    const reader = await request(wavHeaderSize);
+    await next(reader);
+    const [, args] = spawnFake.mock.lastCall as [string, string[]];
+    const source = args[args.indexOf('-i') + 1];
+    await reader.return(undefined);
+    expect(isHeld(source)).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(idleStopMs);
+
+    expect(isHeld(source)).toBe(false);
   });
 
   it.each(['fast' as const, 'slow' as const])('decodes a window of a %s source ahead of the read, and waits there', async (speed) => {
