@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { isDecodedCodec } from '../utils/is-supported';
 import { isAmbiguousContainer, toCodecName } from '../utils/codec-name';
 import { downloadedFormat } from './source-format';
+import { arrivalOf } from './decoded-track';
 import { downloadSource } from './source-download';
 import { answerHolding } from './held-files';
 import type { RouteRequest } from './request-aborts';
@@ -44,6 +45,9 @@ export const serveSource = async (kind: 'audio' | 'cover', path: string | null, 
   const ref = sourcePathSchema.safeParse(path).data;
   const client = ref && (await sources.clientOf(ref.serverId));
   if (!ref || !client) return notFound();
+
+  // the place in the queue of the decodes: the download of the next track may end first
+  arrivalOf(request.signal);
 
   // a codec that the bundled ffmpeg decodes is downloaded and decoded like a file of the library, so it plays and can be sought; the file, not the name of the server, tells its format
   const file = kind === 'audio' && isDownloaded(codec) ? await downloadSource(path ?? '', client, ref.id, request.signal) : undefined;

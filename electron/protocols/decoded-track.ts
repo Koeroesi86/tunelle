@@ -20,7 +20,7 @@ interface Job {
   waiters: number;
   /** The waiting requests of the player, without the ones of the loudness measurement */
   players: number;
-  /** When the player asked for it last, higher is later */
+  /** The arrival of the oldest request of the player that waits, lower is earlier */
   asked: number;
   cancelled: boolean;
   child?: ChildProcess;
@@ -42,11 +42,11 @@ const takeSlot = (job: Job) => {
   return Promise.resolve();
 };
 
-const urgency = ({ players, asked }: Job) => (players > 0 ? asked : 0);
+const place = ({ players, asked }: Job) => (players > 0 ? asked : Number.MAX_SAFE_INTEGER);
 
-/** The player goes before the measurement, its newest request first; the others keep their order */
+/** The player goes before the measurement, its oldest request first: the track that plays is asked for before the next one. The others keep their order */
 const freeSlot = () => {
-  const [next] = [...queue].sort((a, b) => urgency(b.job) - urgency(a.job));
+  const [next] = [...queue].sort((a, b) => place(a.job) - place(b.job));
   if (!next) {
     running -= 1;
     return;
@@ -213,8 +213,18 @@ const markRecent = (key: string) => {
   recent = [key, ...recent.filter((kept) => kept !== key)].slice(0, keptRecent);
 };
 
+const arrivals = new WeakMap<AbortSignal, number>();
+
+/** The place of a request in the order they came in, kept from the first call: a route takes it before it waits for anything */
+export const arrivalOf = (signal: AbortSignal) => {
+  const arrival = arrivals.get(signal) ?? ++asks;
+  arrivals.set(signal, arrival);
+  return arrival;
+};
+
 /** Decodes a track to a WAV file in the cache, once for all the requests that ask for it meanwhile, undefined when it fails or the request is gone */
 export const decodeTrack = async (source: string, format: Format, signal: AbortSignal, measured = false) => {
+  const arrived = arrivalOf(signal);
   const prepared = signal.aborted ? undefined : await prepareDecode(source, format);
   if (!prepared) return undefined;
 
@@ -232,8 +242,8 @@ export const decodeTrack = async (source: string, format: Format, signal: AbortS
   const onAbort = () => leave(key, job, measured);
   job.waiters += 1;
   if (!measured) {
+    job.asked = job.players > 0 ? Math.min(job.asked, arrived) : arrived;
     job.players += 1;
-    job.asked = ++asks;
   }
   signal.addEventListener('abort', onAbort, { once: true });
   return job.done.finally(() => signal.removeEventListener('abort', onAbort));
