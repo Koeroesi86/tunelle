@@ -58,6 +58,8 @@ export default defineConfig({
           environment: 'node',
           setupFiles: ['electron/test-utility-process.ts'],
           include: ['electron/**/*.integration.test.ts', 'scripts/**/*.integration.test.ts', '.claude/hooks/*.integration.test.ts'],
+          // the caches go below the home folder that a test gives `app.getPath`, not into the one of the machine
+          env: { XDG_CACHE_HOME: '' },
           testTimeout: 60_000,
         },
       },

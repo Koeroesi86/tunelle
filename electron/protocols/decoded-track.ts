@@ -122,6 +122,8 @@ export const evict = async () => {
 
 const writeDecoded = async (job: Job, source: string, encoder: string[], target: string) => {
   await makeCacheFolder('whole-decodes');
+  // before the decode too: the files of an earlier run take room until then
+  await evict().catch(logError);
   if (job.cancelled) return undefined;
   // each job writes under its own name and renames at the end: a file of the cache is whole, and a cancelled job can not touch its retry
   const output = `${target}.${randomUUID()}.part`;

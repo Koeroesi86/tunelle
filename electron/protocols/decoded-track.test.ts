@@ -427,6 +427,26 @@ describe('decodeTrack', () => {
     expect(memoryFs.sync.readdirSync(cache).sort()).toEqual(['newer.wav', path.basename(file ?? '')].sort());
   });
 
+  it('removes the files over the limit before the decode too', async () => {
+    const gib = 1024 ** 3;
+    memoryFs.sync.mkdirSync(cache);
+    ['old.wav', 'newer.wav'].forEach((name, index) => {
+      memoryFs.sync.writeFileSync(path.join(cache, name), 'x');
+      void memoryFs.promises.utimes(path.join(cache, name), new Date(), new Date(1000 + index));
+      sizes.set(name, 1.5 * gib);
+    });
+    const child = decoder({ code: 0, hold: true });
+    const leaving = new AbortController();
+
+    const pending = decodeTrack(source, format, leaving.signal);
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalled());
+
+    expect(memoryFs.sync.readdirSync(cache)).toEqual(['newer.wav']);
+    expect(child.kill).not.toHaveBeenCalled();
+    leaving.abort();
+    expect(await pending).toBeUndefined();
+  });
+
   it('leaves the cache alone while it fits', async () => {
     memoryFs.sync.mkdirSync(cache);
     memoryFs.sync.writeFileSync(path.join(cache, 'old.wav'), 'x');

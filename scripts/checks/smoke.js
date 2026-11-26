@@ -43,7 +43,7 @@ const { ELECTRON_RUN_AS_NODE, ...inherited } = process.env
 const env =
   process.platform === 'win32' || flatpak
     ? { ...inherited, NODE_ENV: 'production', TUNELLE_NO_UPDATE: '1', TUNELLE_NO_ARTIST_PHOTOS: '1' }
-    : { ...inherited, HOME: home, XDG_CONFIG_HOME: home, NODE_ENV: 'production', TUNELLE_NO_UPDATE: '1', TUNELLE_NO_ARTIST_PHOTOS: '1' }
+    : { ...inherited, HOME: home, XDG_CONFIG_HOME: home, XDG_CACHE_HOME: join(home, 'cache'), NODE_ENV: 'production', TUNELLE_NO_UPDATE: '1', TUNELLE_NO_ARTIST_PHOTOS: '1' }
 
 const freePort = () =>
   new Promise((done, fail) => {

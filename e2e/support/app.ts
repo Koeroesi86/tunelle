@@ -174,7 +174,9 @@ export const launchApp = async ({ home, radioDirectory, initScripts, offline = f
   const { ELECTRON_RUN_AS_NODE, ...inherited } = process.env;
   // Windows keeps its profile folders (chromium needs them, and the app data folder does not follow the variables there)
   const profile: Record<string, string> =
-    process.platform === 'win32' ? {} : { HOME: home, XDG_CONFIG_HOME: home, LANG: `${locale}.UTF-8`, LC_ALL: `${locale}.UTF-8` };
+    process.platform === 'win32'
+      ? {}
+      : { HOME: home, XDG_CONFIG_HOME: home, XDG_CACHE_HOME: join(home, 'cache'), LANG: `${locale}.UTF-8`, LC_ALL: `${locale}.UTF-8` };
 
   const spawnedAt = Date.now();
   const app = await electron.launch({
