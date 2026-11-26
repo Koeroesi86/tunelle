@@ -2,6 +2,12 @@ import { SliceError, mustRead } from './types';
 import type { ReadRange, Slicer } from './types';
 
 const chunkHeader = 8;
+/** The size of a `data` chunk that is too large for 32 bit: RF64 keeps the real one in its `ds64` chunk */
+const inDs64 = 0xffffffff;
+/** The chunks before the sound that say what it is */
+const keptChunks = ['fmt ', 'ds64'];
+
+type Chunks = Partial<Record<string, Uint8Array>>;
 
 const text = (bytes: Uint8Array, offset: number) => String.fromCharCode(...bytes.subarray(offset, offset + 4));
 
@@ -20,15 +26,20 @@ const dataLayout = (format: Uint8Array | undefined, dataStart: number, length: n
   return { format, blockAlign: new DataView(format.buffer, format.byteOffset).getUint16(chunkHeader + 12, true), dataStart, dataEnd };
 };
 
+/** The length of the sound: what its chunk says, or the 64 bit size that follows the one of the whole file in `ds64` */
+const soundLength = (length: number, sizes: Uint8Array | undefined) =>
+  length === inDs64 && sizes ? Number(new DataView(sizes.buffer, sizes.byteOffset).getBigUint64(chunkHeader + 8, true)) : length;
+
 /** Where the format and the sound of a WAV file are: the chunks are walked one by one, as a file can have tags before its sound */
-const layoutFrom = async (read: ReadRange, size: number, offset: number, format: Uint8Array | undefined): Promise<WavLayout> => {
+const layoutFrom = async (read: ReadRange, size: number, offset: number, chunks: Chunks): Promise<WavLayout> => {
   const header = offset + chunkHeader <= size ? await read(offset, offset + chunkHeader) : undefined;
   if (!header || header.length < chunkHeader) throw new SliceError('A WAV file without sound');
 
   const length = new DataView(header.buffer, header.byteOffset).getUint32(4, true);
   const next = offset + chunkHeader + length + (length % 2);
-  if (text(header, 0) === 'data') return dataLayout(format, offset + chunkHeader, length, size);
-  return layoutFrom(read, size, next, text(header, 0) === 'fmt ' ? await read(offset, next) : format);
+  const id = text(header, 0);
+  if (id === 'data') return dataLayout(chunks['fmt '], offset + chunkHeader, soundLength(length, chunks.ds64), size);
+  return layoutFrom(read, size, next, keptChunks.includes(id) ? { ...chunks, [id]: await read(offset, next) } : chunks);
 };
 
 /** The header of a WAV file of its own for `dataLength` bytes of the sound, with the format chunk of the file */
@@ -55,7 +66,7 @@ const headerOf = (format: Uint8Array, dataLength: number) => {
 
 /** A WAV file is cut anywhere between two samples of all the channels, so each piece is the file with its own header and a part of the sound */
 export const sliceWav: Slicer = async function* (read, size, sliceBytes) {
-  const { format, blockAlign, dataStart, dataEnd } = await layoutFrom(read, size, 12, undefined);
+  const { format, blockAlign, dataStart, dataEnd } = await layoutFrom(read, size, 12, {});
   if (blockAlign === 0) throw new SliceError('A WAV file with no size of a sample');
   const step = Math.max(Math.floor(sliceBytes / blockAlign), 1) * blockAlign;
 

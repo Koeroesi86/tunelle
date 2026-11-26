@@ -109,6 +109,12 @@ describe('windowedTrack with the real ffmpeg', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('leaves ALAC in CAF, which says more frames than its decode gives, to the whole decode', async () => {
+    await expect(
+      windowedTrack({ path: fixture('caf-alac', '1-concert-a.caf'), codec: 'ALAC', bitDepth: null }, new AbortController().signal)
+    ).resolves.toBeUndefined();
+  });
+
   it('ends a read early when the request is aborted', async () => {
     const aborted = new AbortController();
     const track = await open(fixture('wavpack', '2-octave-up.wv'), 'WAVPACK', null);

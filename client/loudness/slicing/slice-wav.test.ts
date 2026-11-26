@@ -35,6 +35,19 @@ describe('sliceWav', () => {
     expect(join(...slices.map(({ bytes }) => soundOf(bytes)))).toEqual(sound);
   });
 
+  it('takes the length of the sound of an RF64 file from ds64, and not the chunks that follow it', async () => {
+    const { file, sound } = wav(500);
+    const u64 = (value: number) => join(u32(value), u32(0));
+    const sizes = join(ascii('ds64'), u32(28), u64(0), u64(sound.length), u64(500), u32(0));
+    const large = join(ascii('RF64'), u32(0xffffffff), ascii('WAVE'), sizes, file.subarray(12));
+    // the `data` chunk says that its size is in `ds64`
+    large.set(u32(0xffffffff), large.length - sound.length - 4);
+
+    const slices = await collect(sliceWav, join(large, ascii('LIST'), u32(0)), 800);
+
+    expect(join(...slices.map(({ bytes }) => soundOf(bytes)))).toEqual(sound);
+  });
+
   it('takes the sound to the end of the file when the header does not know its length', async () => {
     const { file, sound } = wav(500, 0);
 

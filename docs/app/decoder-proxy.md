@@ -9,11 +9,11 @@ Part of [#302](https://github.com/Koeroesi86/tunelle/issues/302). Chromium plays
 - a codec with an exact length is decoded in **windows in memory** where it is read (`windowedTrack`, `serveWindowed`), and nothing is written to disk;
 - any other file goes to `playableFile` (`electron/protocols/decoded-track.ts`), which gives the file itself or a copy that is decoded whole into the cache, and `serveFile` answers it.
 
-A whole decode that fails, or whose request is gone, answers 404, and the player skips the track as for a file it cannot open. Its first play waits for the whole decode, and the page gets the answer after that.
+A whole decode that fails, or whose request is gone, answers 404, and the player skips the track as for a file it cannot open, after it has tried once more (see [A stream that ends early](#a-stream-that-ends-early)). Its first play waits for the whole decode, and the page gets the answer after that.
 
 ## The windowed decode ([#563](https://github.com/Koeroesi86/tunelle/issues/563))
 
-The codecs are ALAC, FLAC, APE, WavPack, AIFF, WAV and float WAV (`progressiveCodecs` in `electron/utils/is-supported.ts`), up to two channels. `ffprobe` (`probe-audio.ts`) gives the channels, the rate and the frames, only when the time base of the stream is one frame (`1/<rate>`). The header of the WAV (`wav-header.ts`) and its size are therefore known before anything is decoded, and a request for the header alone starts no decode.
+The codecs are ALAC, FLAC, APE, WavPack, AIFF, WAV and float WAV (`progressiveCodecs` in `electron/utils/is-supported.ts`), up to two channels. `ffprobe` (`probe-audio.ts`) gives the channels, the rate and the frames, only when the time base of the stream is one frame (`1/<rate>`). The header of the WAV (`wav-header.ts`, [RF64 above 4 GiB](#over-4-gib-rf64)) and its size are therefore known before anything is decoded, and a request for the header alone starts no decode.
 
 A window (`decode-window.ts`) starts with an ffmpeg run from the frame of the read that opened it (`-ss <frame / rate>` before `-i`, nine decimals), writing raw samples (the `s16le`, `s24le`, `s32le` and `f32le` muxers) to a pipe. The app takes from the pipe until it is the reach of the window ahead of the read, then stops taking, and ffmpeg waits on the full pipe. Bytes further behind the read than the reach are let go. `windowed-track.ts` picks a window for each read, and opens one when none can serve it:
 
@@ -24,10 +24,25 @@ A window (`decode-window.ts`) starts with an ffmpeg run from the frame of the re
 - A window that has an open reader is kept however long that reader waits (a paused player does not read, and its request may stay open). One without a reader is dropped after 5 minutes, and a later request decodes again.
 - The preloaded next track opens a window, decodes it and waits there, without its ffmpeg after 10 s.
 - Windows do not take the two places of the whole decodes, as most of their time is spent waiting for the reader.
-- A decode that gives another number of bytes than the file said is logged, and that track uses the whole decode from then on (until the app restarts). The CAF fixture with ALAC in it is one: `ffprobe` says 264600 frames and the decode gives 262960.
-- A decode that fails ends the read, without being started again for it; a later request tries again.
+- A decode that gives another number of bytes than the file said is logged, and that track uses the whole decode from then on (until the app restarts).
+- ALAC in CAF takes the whole decode from the start: `ffprobe` says 264600 frames of the fixture and the decode gives 262960 (`probe-audio.ts` gives no length for it, by the codec and the container of the file).
+- A decode that fails ends the read, without being started again for it; a later request tries again. The body of the answer [fails](#a-stream-that-ends-early).
 
 Not tested: Windows and macOS in the real app, and whether a sleeping disk wakes within the half of the reach that is left when ffmpeg starts again.
+
+### A stream that ends early
+
+A read that ends before the end of its range, while its request is still wanted, errors the body (`serve-windowed.ts`). Until [#576](https://github.com/Koeroesi86/tunelle/issues/576) the body was closed, and a failed decode looked like a whole answer: `fetch` resolved with fewer bytes than `Content-Length` said, so the loudness measurement could measure a part of a track. Now its read fails, which counts as unreadable and is tried again later.
+
+What `<audio>` does with it, measured in a throwaway app on Linux (Electron 45, a 60 s WAV on a privileged scheme, cut after 10 s):
+
+| body | what Chromium does |
+| --- | --- |
+| errors once | asks for the range again from the bytes it has, and plays on, with no `error` event |
+| always errors | stalls, asks about 30 times in 28 s, then `error` (code 2) with `currentTime` kept |
+| always closes short | asks about 30 times at once, `error` within a second |
+
+On an `error` of the file that plays, `AudioComponent` loads it once more at the same position, and moves on when that fails too, so a file that can never be decoded takes about a minute to be passed over when it breaks midway, and no time when it answers 404. To check it, serve a body that calls `controller.error()` from a `protocol.handle` and log the requests and the events of the element.
 
 ### Why 10 s until ffmpeg is stopped
 
@@ -95,7 +110,7 @@ No codec was measured on a slow drive.
 
 ## The whole decode
 
-`ffmpeg -nostdin -v error -fflags +bitexact -i <file> -map 0:a:0 -map_metadata -1 -c:a <pcm> -f wav -y <cache>/<key>.wav.<uuid>.part`. The sample rate and the channels stay as in the file (the audio context resamples), the samples as in [Depth and float samples](#depth-and-float-samples). The output is written as `.part` and renamed when ffmpeg ends well, so a file of the cache is whole. A failure removes the `.part` file and logs the error of ffmpeg. Every decode has a `.part` name of its own (see [Cancel and retry](#cancel-and-retry)).
+`ffmpeg -nostdin -v error -fflags +bitexact -i <file> -map 0:a:0 -map_metadata -1 -c:a <pcm> -rf64 auto -f wav -y <cache>/<key>.wav.<uuid>.part`. The sample rate and the channels stay as in the file (the audio context resamples), the samples as in [Depth and float samples](#depth-and-float-samples). The output is written as `.part` and renamed when ffmpeg ends well, so a file of the cache is whole. A failure removes the `.part` file and logs the error of ffmpeg. Every decode has a `.part` name of its own (see [Cancel and retry](#cancel-and-retry)).
 
 - The program is `ffmpeg/ffmpeg` of the resources of the packaged app, and `.cache/ffmpeg/install/bin/ffmpeg` (`npm run ffmpeg`) next to `out/` otherwise.
 - Requests for the same track meanwhile share one decode. It is killed when the last request waiting for it is aborted (the page leaves the track, see [tunelle-protocol.md](tunelle-protocol.md#when-the-page-lets-a-request-go)), and not before.
@@ -122,6 +137,12 @@ A `.part` file of a quit or a crash stays: the decode cache removes it like any 
 - DSD and DST have their own format (see [DSD](#dsd)).
 
 The windowed WAV has the 44 byte header with the format 3 (IEEE float) and no `fact` chunk. Measured on Linux in the built app, a float WAV with a sine of 1.5 of full scale kept that peak through `<audio>` into Web Audio and through `decodeAudioData`.
+
+## Over 4 GiB (RF64)
+
+The sizes in a WAV header are 32 bit, which 2 h 15 min of a decoded DSD file (88.2 kHz, 24 bit, stereo) pass ([#576](https://github.com/Koeroesi86/tunelle/issues/576): the windowed decode failed on writing the header, and the whole decode cached a wrong one). A larger WAV is [RF64](https://tech.ebu.ch/docs/tech/tech3306v1_0.pdf): `RF64` instead of `RIFF`, the sizes as `0xFFFFFFFF`, and the 64 bit ones in a `ds64` chunk first. `wavHeader` writes 80 bytes for it instead of 44, and the whole decode asks ffmpeg for it with `-rf64 auto`, which leaves a smaller file a RIFF file with a `JUNK` chunk of 36 bytes. The loudness slicer reads the length of the sound from `ds64`.
+
+Measured on Linux in a throwaway Electron 45 app: `<audio>` plays and `decodeAudioData` decodes small RF64 files; a file of 4.59 GB (a sparse one with a header like ours, and one that the bundled ffmpeg wrote with `-rf64 auto`) had its duration of 13000 s and played after a seek past 4 GiB. Not measured: Windows and macOS, and the real app with such a track. To measure again, write the header, `ftruncate` the file to its size, and serve it with ranges.
 
 ## Radio stations and server tracks ([#562](https://github.com/Koeroesi86/tunelle/issues/562))
 

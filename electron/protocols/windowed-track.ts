@@ -87,9 +87,10 @@ async function* readSamples(source: Source, cursor: Cursor, stop: number, signal
 }
 
 async function* readTrack(source: Source, start: number, end: number, signal: AbortSignal) {
+  const headerSize = wavHeaderSize(source.layout);
   // the header is known before anything is decoded
-  if (start < wavHeaderSize && !signal.aborted) yield wavHeader(source.layout).subarray(start, end + 1);
-  yield* readSamples(source, { position: Math.max(start - wavHeaderSize, 0) }, end + 1 - wavHeaderSize, signal);
+  if (start < headerSize && !signal.aborted) yield wavHeader(source.layout).subarray(start, end + 1);
+  yield* readSamples(source, { position: Math.max(start - headerSize, 0) }, end + 1 - headerSize, signal);
 }
 
 const probeLayout = async (path: string, encoder: string[]): Promise<WavLayout | undefined> => {

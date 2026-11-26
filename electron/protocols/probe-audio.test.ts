@@ -13,8 +13,11 @@ const answer = (error: Error | null, stdout: string) =>
     .mockImplementationOnce(((_program: string, _args: string[], _options: unknown, callback: (error: Error | null, stdout: string) => void) =>
       callback(error, stdout)) as unknown as typeof execFile);
 
-const stream = (overrides: object = {}) =>
-  JSON.stringify({ streams: [{ sample_rate: '44100', channels: 2, time_base: '1/44100', duration_ts: 441000, ...overrides }] });
+const stream = (overrides: object = {}, container = 'mov,mp4,m4a') =>
+  JSON.stringify({
+    streams: [{ codec_name: 'alac', sample_rate: '44100', channels: 2, time_base: '1/44100', duration_ts: 441000, ...overrides }],
+    format: { format_name: container },
+  });
 
 describe('probeAudio', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -28,11 +31,18 @@ describe('probeAudio', () => {
   it.each([
     ['a time base that is not one frame', stream({ time_base: '1/1000' })],
     ['no frames', stream({ duration_ts: 0 })],
+    ['ALAC in CAF, whose length is more than the decode gives', stream({}, 'caf')],
     ['an answer that is not JSON', 'nope'],
     ['an answer without a stream', JSON.stringify({ streams: [] })],
   ])('returns undefined for %s', async (_name, stdout) => {
     answer(null, stdout);
     await expect(probeAudio('/music/a.m4a')).resolves.toBeUndefined();
+  });
+
+  it('returns the length of PCM in CAF', async () => {
+    answer(null, stream({ codec_name: 'pcm_s16be' }, 'caf'));
+
+    await expect(probeAudio('/music/a.caf')).resolves.toMatchObject({ frames: 441000 });
   });
 
   it('logs and returns undefined when ffprobe fails', async () => {
