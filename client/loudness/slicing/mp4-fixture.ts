@@ -94,25 +94,36 @@ interface Fragment {
   /** The track of the samples, and the size of what comes before them in the `mdat` */
   track?: number;
   before?: number;
+  /** The samples of each run, all of them in one unless told */
+  perRun?: number;
 }
 
 /** A box with a version of 0 and the flags it is given */
 const flaggedBox = (type: string, flags: number, ...content: number[][]) =>
   box(type, Uint8Array.from([0, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255]), ...content.map((part) => Uint8Array.from(part)));
 
-/** A `moof` box with one run of the samples, then the `mdat` box that holds them, the data offset being from the start of the `moof` */
-export const fragment = ({ samples, defaultSize = false, track = 1, before = 0 }: Fragment) => {
+/** A `moof` box with the runs of the samples, then the `mdat` box that holds them, the data offset of each run being from the start of the `moof` */
+export const fragment = ({ samples, defaultSize = false, track = 1, before = 0, perRun = samples.length }: Fragment) => {
+  const runs = Array.from({ length: Math.ceil(samples.length / perRun) }, (_, index) => samples.slice(index * perRun, (index + 1) * perRun));
   const build = (dataOffset: number) => {
     // 0x020000: the base of the offsets is the moof; 0x10: the header says the size of the samples; 0x01: the run says the offset of its data; 0x200: and the size of each
     const header = flaggedBox('tfhd', 0x020000 | (defaultSize ? 0x10 : 0), u32(track), defaultSize ? u32(samples[0].length) : []);
-    const run = flaggedBox(
-      'trun',
-      defaultSize ? 0x01 : 0x201,
-      u32(samples.length),
-      u32(dataOffset),
-      defaultSize ? [] : samples.flatMap((one) => u32(one.length))
+    const boxes = runs.map((run, index) =>
+      flaggedBox(
+        'trun',
+        defaultSize ? 0x01 : 0x201,
+        u32(run.length),
+        u32(
+          dataOffset +
+            runs
+              .slice(0, index)
+              .flat()
+              .reduce((total, one) => total + one.length, 0)
+        ),
+        defaultSize ? [] : run.flatMap((one) => u32(one.length))
+      )
     );
-    return box('moof', flaggedBox('mfhd', 0, u32(1)), box('traf', header, run));
+    return box('moof', flaggedBox('mfhd', 0, u32(1)), box('traf', header, ...boxes));
   };
   const moof = build(0);
   return join(build(moof.length + 8 + before), box('mdat', new Uint8Array(before), ...samples));

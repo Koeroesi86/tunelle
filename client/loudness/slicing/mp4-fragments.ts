@@ -47,8 +47,8 @@ const trackFragmentOf = (bytes: Uint8Array, traf: Box, moofOffset: number, fallb
   };
 };
 
-/** The sizes of the samples of a run (`trun`), which follow each other from the offset the run says, or from where the one before ended */
-const addRun = (bytes: Uint8Array, run: Box, cursor: { at: number }, size: number, samples: Found) => {
+/** The sizes of the samples of a run (`trun`), which follow each other from the offset the run says, counted from the base of the fragment, or from where the one before ended */
+const addRun = (bytes: Uint8Array, run: Box, cursor: { base: number; at: number }, size: number, samples: Found) => {
   const data = view(bytes);
   const flags = flagsAt(bytes, run.start);
   const count = data.getUint32(run.start + 4);
@@ -58,7 +58,7 @@ const addRun = (bytes: Uint8Array, run: Box, cursor: { at: number }, size: numbe
   const stride = (flags & 0x100 ? 4 : 0) + (flags & 0x200 ? 4 : 0) + (flags & 0x400 ? 4 : 0) + (flags & 0x800 ? 4 : 0);
   if (first + count * stride > run.end) throw new SliceError('An MP4 file with a run of samples that is cut off');
 
-  if (dataOffset !== undefined) cursor.at += dataOffset;
+  if (dataOffset !== undefined) cursor.at = cursor.base + dataOffset;
   for (let index = 0; index < count; index++) {
     const sample = flags & 0x200 ? data.getUint32(first + index * stride + sizeAt) : size;
     samples.offsets.push(cursor.at);
@@ -76,7 +76,7 @@ const addFragment = (bytes: Uint8Array, offset: number, id: number, fallbackSize
       const fragment = trackFragmentOf(bytes, traf, offset, fallbackSize);
       if (fragment.id !== id) return;
       // a run without an offset of its own goes on where the one before ended, the first from the start of the data
-      const cursor = { at: fragment.base };
+      const cursor = { base: fragment.base, at: fragment.base };
       childrenOf(bytes, traf)
         .filter((box) => box.type === 'trun')
         .forEach((run) => addRun(bytes, run, cursor, fragment.size, samples));

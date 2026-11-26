@@ -80,6 +80,12 @@ describe('sliceMp4', () => {
       expect((await collect(sliceMp4, file, 10_000)).length).toBeGreaterThan(5);
     });
 
+    it('counts the data offset of each run of a fragment from the base of the fragment, not from the run before', async () => {
+      const file = fileOf(fragments().map((one) => fragment({ samples: one, perRun: 12 })));
+
+      expect(await marked(file)).toEqual(samples.map((_, index) => 1 + (index % 200)));
+    });
+
     it('takes the size of a sample from the header of the fragment, or from the defaults of the movie when the header says none', async () => {
       const sized = fileOf(fragments({ defaultSize: true }).map((one) => fragment({ samples: one, defaultSize: true })));
       const first = (await collect(sliceMp4, sized, 10_000))[0];
