@@ -14,8 +14,16 @@ type SourceClient = NonNullable<Awaited<ReturnType<Sources['clientOf']>>>;
 /** How many downloaded tracks stay in the folder: the one that plays, the next one and the previous one */
 const keptFiles = 3;
 
+/** A download that gets no byte for this long is ended, as the stream of a station */
+const idleTimeout = 20_000;
+
+/** What `downloadSource` gives for a server that stopped sending, whose stream is not asked for */
+export const stalled = Symbol('stalled');
+
+type Downloaded = string | typeof stalled | undefined;
+
 interface Download {
-  done: Promise<string | undefined>;
+  done: Promise<Downloaded>;
   waiters: number;
   abort: AbortController;
 }
@@ -57,14 +65,26 @@ const evictOld = async (current: string) => {
   );
 };
 
-const fetchToFile = async (client: SourceClient, id: string, target: string, signal: AbortSignal) => {
+/** Passes the chunks on, each of which starts the wait for the next one again */
+const refreshing = (idle: ReturnType<typeof setTimeout>) =>
+  async function* (chunks: AsyncIterable<Uint8Array>) {
+    for await (const chunk of chunks) {
+      idle.refresh();
+      yield chunk;
+    }
+  };
+
+const fetchToFile = async (client: SourceClient, id: string, target: string, signal: AbortSignal, onSilence: () => void) => {
   const response = await client.stream(id, undefined, signal);
   if (!response.ok || !response.body) throw new Error(`The server answered ${response.status}`);
 
   // a name of its own, so a download that was cancelled can not touch the file of the one that follows it
   const part = `${target}.${randomUUID()}.part`;
   const discard = () => rm(part, { force: true });
-  await pipeline(Readable.from(response.body), createWriteStream(part)).catch((error: unknown) => discard().then(() => Promise.reject(error)));
+  const idle = setTimeout(onSilence, idleTimeout);
+  await pipeline(Readable.from(response.body), refreshing(idle), createWriteStream(part))
+    .catch((error: unknown) => discard().then(() => Promise.reject(error)))
+    .finally(() => clearTimeout(idle));
   if (signal.aborted) return discard().then(() => undefined);
   await rename(part, target);
   await evictOld(target).catch(() => undefined);
@@ -76,9 +96,24 @@ const forget = (target: string, abort: AbortController) => {
   if (downloads.get(target)?.abort === abort) downloads.delete(target);
 };
 
+const startDownload = (client: SourceClient, id: string, target: string): Download => {
+  const abort = new AbortController();
+  const onSilence = () => {
+    logError(new Error(`The server stopped sending ${id}`));
+    // forgotten first: a request that comes now starts a download of its own
+    forget(target, abort);
+    abort.abort(stalled);
+  };
+  const done = fetchToFile(client, id, target, abort.signal, onSilence)
+    .catch((error: unknown) => (abort.signal.aborted ? undefined : void logError(error)))
+    .then((file) => (abort.signal.reason === stalled ? stalled : file))
+    .finally(() => forget(target, abort));
+  return { abort, waiters: 0, done };
+};
+
 /**
  * A track of a server in a file of the temp folder, once for all the requests that ask for it meanwhile: the decoder proxy and the ranges of the page work on a file.
- * Undefined when the download fails or its request is gone, and the track then plays as the server sends it. See docs/app/decoder-proxy.md
+ * Undefined when the download fails or its request is gone, and the track then plays as the server sends it; `stalled` when the server went silent. See docs/app/decoder-proxy.md
  */
 export const downloadSource = async (key: string, client: SourceClient, id: string, signal: AbortSignal) => {
   if (!(await makeCacheFolder('source').catch(logError))) return undefined;
@@ -90,15 +125,7 @@ export const downloadSource = async (key: string, client: SourceClient, id: stri
   if (existing) used.set(existing, Date.now());
   if (existing || signal.aborted) return signal.aborted ? undefined : existing;
 
-  const download =
-    downloads.get(target) ??
-    ((abort: AbortController): Download => ({
-      abort,
-      waiters: 0,
-      done: fetchToFile(client, id, target, abort.signal)
-        .catch((error: unknown) => (abort.signal.aborted ? undefined : void logError(error)))
-        .finally(() => forget(target, abort)),
-    }))(new AbortController());
+  const download = downloads.get(target) ?? startDownload(client, id, target);
   downloads.set(target, download);
   download.waiters += 1;
   const leave = () => {

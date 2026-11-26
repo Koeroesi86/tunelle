@@ -10,7 +10,7 @@ import {
   type SourcePage,
   type SourceServer,
 } from '@shared/schemas/sources';
-import { openSource, readJson, SourceError, toResponse } from './source-request';
+import { openSource, readJson, SourceError, toResponse, withoutDocument } from './source-request';
 import { toCodecName } from '../../utils/codec-name';
 
 const apiVersion = '1.16.1';
@@ -101,9 +101,6 @@ const understand = <Schema extends z.ZodType>(body: unknown, schema: Schema, hos
   return parsed.data;
 };
 
-/** A server that answers with a document and not with audio or a picture (Subsonic does that with the status 200) has no such file */
-const isDocument = (response: Response) => /json|xml|html/.test(response.headers.get('content-type') ?? '');
-
 /** The calls of one server. The password stays here, in the main process, and signs each call with a new salt. See docs/app/sources.md */
 export const createSubsonicClient = (server: SourceServer, password: string, userAgent: string) => {
   const host = new URL(server.url).host;
@@ -121,13 +118,8 @@ export const createSubsonicClient = (server: SourceServer, password: string, use
   const call = async <Schema extends z.ZodType>(name: string, schema: Schema, params: Record<string, string> = {}) =>
     understand(await open(name, params).then((response) => readJson(response, host)), schema, host);
 
-  const media = async (name: string, params: Record<string, string>, signal: AbortSignal, range?: string) => {
-    const response = toResponse(await open(name, params, signal, range));
-    if (!isDocument(response)) return response;
-
-    await response.body?.cancel();
-    return new Response(undefined, { status: 404 });
-  };
+  const media = async (name: string, params: Record<string, string>, signal: AbortSignal, range?: string) =>
+    withoutDocument(toResponse(await open(name, params, signal, range)));
 
   const artists = () => call('getArtists', artistsSchema).then(({ artists: found }) => (found.index ?? []).flatMap(({ artist }) => artist ?? []).map(toArtist));
 

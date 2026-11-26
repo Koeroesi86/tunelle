@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { serveSource } from './source-protocol';
 import { arrivalOf } from './decoded-track';
-import { downloadSource } from './source-download';
+import { downloadSource, stalled } from './source-download';
 import { servePlayable } from './serve-track';
 import { downloadedFormat } from './source-format';
 import { isHeld } from './held-files';
 
 vi.mock('./decoded-track', () => ({ arrivalOf: vi.fn() }));
-vi.mock('./source-download', () => ({ downloadSource: vi.fn() }));
+vi.mock('./source-download', () => ({ downloadSource: vi.fn(), stalled: Symbol('stalled') }));
 vi.mock('./serve-track', () => ({ servePlayable: vi.fn() }));
 vi.mock('./source-format', () => ({ downloadedFormat: vi.fn() }));
 
@@ -95,6 +95,15 @@ describe('serveSource', () => {
     await serveSource('audio', path, ask({}, '?codec=ALAC'), sources);
 
     expect(client.stream).toHaveBeenCalledWith('song:1', undefined, expect.any(AbortSignal));
+  });
+
+  it('answers 502 for a server that went silent in the download, without asking for its stream', async () => {
+    vi.mocked(downloadSource).mockResolvedValue(stalled);
+
+    const response = await serveSource('audio', path, ask({}, '?codec=ALAC'), sources);
+
+    expect(response.status).toBe(502);
+    expect(client.stream).not.toHaveBeenCalled();
   });
 
   it('leaves a codec that ffmpeg does not decode to Chromium', async () => {
