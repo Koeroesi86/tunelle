@@ -2,6 +2,8 @@
 
 Part of [#66](https://github.com/Koeroesi86/tunelle/issues/66): the music of a server that the user runs (Navidrome, Subsonic) is browsed and played like the library. Jellyfin has its own client on the same pieces ([jellyfin.md](jellyfin.md)). The main process holds everything that is secret or has an address, the page names a track and a server by id.
 
+More: [servers of the user: load and rate limits](sources-limits.md).
+
 ## The path of a track
 
 `<source>:<serverId>:<id>` with the source `subsonic` or `jellyfin`, for example `subsonic:5f6a1c1e-…:song-42` (`shared/schemas/sources.ts`). The server id is a UUID made when the server is added, the id is whatever the server calls the song and may hold a colon. `radio:<uuid>` stays as it is: a station has no server.
@@ -16,7 +18,7 @@ Part of [#66](https://github.com/Koeroesi86/tunelle/issues/66): the music of a s
 
 - Each call sends `u`, `t`, `s`, `v=1.16.1`, `c=tunelle` and `f=json`, with `t = md5(password + salt)` and a new random salt of 16 hex digits. The API asks for md5 from version 1.13.0 and a salt of at least six characters; the plain `p` is documented as "for testing purposes", and is never sent. The md5 is the protocol's, not a choice of ours: it is a token a server checks, not a store of passwords. The token of a call travels with it, so a server on plain `http` lets whoever sees the traffic repeat that call.
 - Subsonic answers an error with the HTTP status 200 and `status: "failed"` with a code (40 is a wrong user or password, 70 is data not found). The client turns it into a `SubsonicError`. A status outside 200-299, a body that is not an answer of a Subsonic server and one that has not the shape of the call (a Zod schema each) are errors too.
-- `stream` asks for `format=raw`, which both Subsonic (since 1.9.0) and OpenSubsonic document as "disable transcoding". On an error `stream` answers a document and not audio ("an XML document on error", content type `text/xml`), so a JSON, XML or HTML answer is a 404 and not audio, as for the `stream` of the other servers ([decoder-proxy.md](decoder-proxy.md#a-stalled-download-and-a-page-in-place-of-the-audio)).
+- `stream` asks for `format=raw`, which both Subsonic (since 1.9.0) and OpenSubsonic document as "disable transcoding". On an error `stream` answers a document and not audio ("an XML document on error", content type `text/xml`), so a JSON, XML or HTML answer is a 404 and not audio, as for the `stream` of the other servers ([decoder-proxy.md](decoder-sources.md#a-stalled-download-and-a-page-in-place-of-the-audio)).
 - Every request has the `User-Agent` of the app and a timeout of 10 s for the answer to start. The body of a list is limited to 16 MB.
 
 ## Certificates
@@ -58,13 +60,3 @@ What the documentation of [Subsonic](https://www.subsonic.org/pages/api.jsp) and
 - Whether a server that ignores `format=raw` sends a transcoded file (and a `Content-Type` that tells).
 - The look of the tiles and rows with a server's data (the favourite and playlist buttons of a tile on an album of a server) was not seen in the running app.
 - The page was tested with component tests only, not in the running app against a server: the layout at the three sizes, the approval of a certificate and playing a track are not seen.
-
-## Load and rate limits
-
-A window of tiles asks for dozens of pages and covers at once, which a server answers late or refuses. `openSource` asks a GET again when the server says 429 or 503 (at most twice, after the `Retry-After` it names, capped at 5 s, else 0.5 s and 1 s). The pages of a list are asked a few at a time per server (`createGate`, 4), the same request that is on its way is not asked again (`register-source-listeners.ts`), and the covers go through a gate of 6 per server. A cover is kept by the page for a day (`Cache-Control: private, max-age=86400`) and an answer that is an error is not (`no-store`). The tiles show a cover as a background image, which has no way to ask again after a failure: a cover that failed after its retries stays blank until the page is shown again. Plex asks for its music sections once per client. Connections are not pooled (`agent: false`), so every request pays its handshake.
-
-The views of a server fetch two pages ahead of the window (`pagesAhead` of `usePageLoader`, set by the `source-*` containers; the local library has none), up to the end of the list, so a scroll finds the next pages there. They go through the same gate, so they share the queue with the pages the window needs (in order, so after a jump the window waits for the prefetch that is already queued).
-
-A scroll that jumps leaves pages queued that nobody wants. The views tell the main process which pages the window wants (`keepPages`, `SOURCE_BROWSE_KEEP`), and the pages of that list that still wait for their turn are dropped (`createGate().drop`); a page that already runs is left to finish, and one that was dropped is asked again if it is wanted later.
-
-The covers are dropped the same way, by the abort of their request: a tile that scrolls away aborts its cover, and one that still waits for its turn in the gate of the covers is not fetched. Whether the page aborts a background image that is no longer needed was not measured here: if it does not, the queue of the covers still drains as the others are answered.

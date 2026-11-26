@@ -2,7 +2,7 @@ import fs from 'fs';
 import type { IAudioMetadata } from 'music-metadata';
 import { readBytes as read } from './read-bytes';
 
-/** What the scan keeps of a Wave64 or RF64 file: `music-metadata` reads neither. See docs/app/supported-formats.md */
+/** What the scan keeps of a Wave64 or RF64 file: `music-metadata` reads neither. See docs/app/decoded-formats.md */
 export interface LargeWave {
   common: Partial<IAudioMetadata['common']>;
   format: {
@@ -143,7 +143,7 @@ const readWave = async (handle: fs.promises.FileHandle, fileName: string): Promi
 
 /**
  * The format and the tags of a Wave64 file or an RF64 file (a WAV with 64 bit sizes, which `music-metadata` does not read), or undefined when the file is neither.
- * Only the header chunks are read, not the audio. See docs/app/supported-formats.md
+ * Only the header chunks are read, not the audio. See docs/app/decoded-formats.md
  */
 export const readLargeWave = async (fileName: string): Promise<LargeWave | undefined> => {
   const handle = await fs.promises.open(fileName, 'r');

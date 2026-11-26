@@ -87,7 +87,7 @@ const decodeBatch = async (decoder: AudioDecoder, read: ReadRange, samples: Para
 
 /**
  * The measurement of an MP4 with AAC that the slicers do not cut, with a WebCodecs `AudioDecoder` fed sample by sample; undefined when it does not
- * cover the file or the browser does not decode its AAC. See docs/app/loudness-measurement.md
+ * cover the file or the browser does not decode its AAC. See docs/app/loudness-background.md
  */
 export const measureWebCodecs = async (id: number, url: string, progress: () => void): Promise<MeasureResult | undefined> => {
   const { read, size, state: reading } = rangeReader(url, progress);

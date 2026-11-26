@@ -65,7 +65,7 @@ export const openRadioStream = async (uuid: string, signal: AbortSignal, { resol
   const clean = new PassThrough();
   pipeline([upstream, ...strippers, clean], () => undefined);
 
-  // a codec that the bundled ffmpeg decodes is decoded by it, any other (AAC) and a stream with no known format play in Chromium as they come. See docs/app/decoder-proxy.md
+  // a codec that the bundled ffmpeg decodes is decoded by it, any other (AAC) and a stream with no known format play in Chromium as they come. See docs/app/decoder-sources.md
   const head = await peekStream(clean, completeStreamFormat);
   // a stream that was aborted has ended: ffmpeg would wait on it for ever
   signal.throwIfAborted();

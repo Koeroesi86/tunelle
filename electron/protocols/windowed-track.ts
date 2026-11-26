@@ -8,7 +8,7 @@ import { probeAudio } from './probe-audio';
 import { sourceSpeed } from './source-speed';
 import { wavHeader, wavHeaderSize, wavSize, type WavLayout } from './wav-header';
 
-// See docs/app/decoder-proxy.md: a WAV of the size of the whole file, decoded into windows in memory where it is read
+// See docs/app/decoder-windowed.md: a WAV of the size of the whole file, decoded into windows in memory where it is read
 export interface WindowedTrack {
   size: number;
   /** The bytes from `start` to `end` of the file, each as soon as it is decoded; ends early when the decode fails or the signal aborts */
@@ -109,7 +109,7 @@ const probeLayout = async (path: string, encoder: string[]): Promise<WavLayout |
 
 /**
  * The track to serve while it is decoded in windows, for a codec with an exact length; undefined when the whole decode has to run first
- * (`playableFile`). See docs/app/decoder-proxy.md
+ * (`playableFile`). See docs/app/decoder-windowed.md
  */
 export const windowedTrack = async ({ path, ...format }: PlayableTrack, signal: AbortSignal): Promise<WindowedTrack | undefined> => {
   if (!isProgressiveCodec(format.codec) || signal.aborted) return undefined;

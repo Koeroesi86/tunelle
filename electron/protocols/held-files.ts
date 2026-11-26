@@ -1,4 +1,4 @@
-/** The files of the caches that a request or a window uses, with the number of users of each. See docs/app/decoder-proxy.md */
+/** The files of the caches that a request or a window uses, with the number of users of each. See docs/app/decoder-cache.md */
 const held = new Map<string, number>();
 
 export const isHeld = (path: string) => held.has(path);

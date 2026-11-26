@@ -29,7 +29,7 @@ const messageOf = (failure: unknown) => {
 
 /**
  * The listener side of the app: the first contact with a host, the request to listen, and the now playing of the host once approved.
- * One host at a time; a new connect or a leave ends what runs. See docs/app/remote-access-discovery.md
+ * One host at a time; a new connect or a leave ends what runs. See docs/app/remote-access-listener.md
  */
 export const createListenerController = (store: ListenerStore, deviceName: string, onChange: (state: RemoteListenerState) => void) => {
   let state: RemoteListenerState = { status: 'idle' };

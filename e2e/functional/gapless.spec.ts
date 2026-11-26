@@ -9,7 +9,7 @@ import { player } from '../support/player';
 // the probe measures in windows of 1024 frames (about 21 ms): a silent window is a gap, and without gapless playback one or two are heard at every change of track
 const noGap = 0;
 
-// a loaded runner can starve the audio thread for one window in the middle of a track, which a missing gapless playback does at every change of track, so only this file retries. See docs/development/ci.md
+// a loaded runner can starve the audio thread for one window in the middle of a track, which a missing gapless playback does at every change of track, so only this file retries. See docs/development/ci-runners.md
 test.describe.configure({ retries: process.env.CI ? 2 : 0 });
 
 // two tracks of 6 s, so the end of the first is reached by playing, not by a seek: a seek leaves a gap of its own in some formats and on some systems

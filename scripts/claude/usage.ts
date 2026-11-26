@@ -8,6 +8,8 @@ import { z } from 'zod';
 // project (default: the last 7 days), with the weights of docs/development/claude-usage.md. See that doc for how to read it.
 const weights = { cacheRead: 0.1, cacheWrite: 2, input: 1, output: 5 };
 const bigContext = 200_000;
+// a larger step between two calls is not the work of one call, and would carry the mean
+const maxGrowth = 80_000;
 
 const usageSchema = z.object({
   input_tokens: z.number().default(0),
@@ -25,6 +27,8 @@ const blockSchema = z.object({
 });
 const entrySchema = z.object({
   type: z.string().optional(),
+  subtype: z.string().optional(),
+  compactMetadata: z.object({ trigger: z.string() }).optional(),
   timestamp: z.string().optional(),
   message: z.object({ id: z.string().optional(), usage: usageSchema.optional(), content: z.union([z.string(), z.array(blockSchema)]).optional() }).optional(),
 });
@@ -41,6 +45,7 @@ interface Session {
   day: string;
   calls: Call[];
   results: { chars: number; what: string }[];
+  compactions: string[];
 }
 
 const callOf = (usage: z.infer<typeof usageSchema>): Call => ({
@@ -73,17 +78,21 @@ const describeUse = (block: z.infer<typeof blockSchema>) =>
 const readSession = (id: string, text: string): Session => {
   const seen = new Set<string>();
   const uses = new Map<string, string>();
-  const session: Session = { id, day: '', calls: [], results: [] };
+  const session: Session = { id, day: '', calls: [], results: [], compactions: [] };
   text
     .split('\n')
     .filter(Boolean)
     .map(parseEntry)
     .forEach((entry) => {
       session.day ||= entry?.timestamp?.slice(0, 10) ?? '';
+      if (entry?.subtype === 'compact_boundary') {
+        session.compactions.push(entry.compactMetadata?.trigger ?? 'unknown');
+      }
       const blocks = typeof entry?.message?.content === 'object' ? entry.message.content : [];
       blocks.filter((block) => block.type === 'tool_use' && block.id).forEach((block) => uses.set(block.id ?? '', describeUse(block)));
+      // an api-request-blob entry repeats the result of a user entry
       blocks
-        .filter((block) => block.type === 'tool_result')
+        .filter((block) => entry?.type === 'user' && block.type === 'tool_result')
         .forEach((block) => session.results.push({ chars: textOf(block.content).length, what: uses.get(block.tool_use_id ?? '') ?? 'unknown' }));
       const messageId = entry?.message?.id;
       const usage = entry?.message?.usage;
@@ -102,12 +111,21 @@ const millions = (value: number) => `${(value / 1e6).toFixed(1)}M`;
 const percent = (part: number, whole: number) => `${Math.round((part / (whole || 1)) * 100)}%`;
 const costOfSession = (session: Session) => sum(session.calls.map((call) => call.cost));
 
+const growthOf = (session: Session) =>
+  session.calls
+    .slice(1)
+    .map((call, index) => call.context - session.calls[index].context)
+    .filter((growth) => growth > 0 && growth < maxGrowth);
+
 const report = (sessions: Session[], top = 8) => {
   const calls = sessions.flatMap((session) => session.calls);
   const total = sum(calls.map((call) => call.cost));
   const days = Object.entries(Object.groupBy(sessions, (session) => session.day)).map(
     ([day, group]) => `${day} ${millions(sum((group ?? []).map(costOfSession)))}`
   );
+  const growth = sessions.flatMap(growthOf);
+  const compactions = sessions.flatMap((session) => session.compactions);
+  const automatic = compactions.filter((trigger) => trigger === 'auto').length;
   const starts = sessions.flatMap((session) => session.calls.slice(0, 1).map((call) => call.context)).sort((a, b) => a - b);
   const biggest = [...sessions].sort((a, b) => costOfSession(b) - costOfSession(a));
   return [
@@ -115,6 +133,7 @@ const report = (sessions: Session[], top = 8) => {
     `cache read ${percent(sum(calls.map((call) => call.cacheRead)), total)}, cache write ${percent(sum(calls.map((call) => call.cacheWrite)), total)}, output ${percent(sum(calls.map((call) => call.output)), total)}`,
     `calls over ${bigContext / 1000}K of context: ${percent(sum(calls.filter((call) => call.context > bigContext).map((call) => call.cost)), total)}; the ${top} costliest sessions: ${percent(sum(biggest.slice(0, top).map(costOfSession)), total)}`,
     `start context: median ${Math.round((starts[starts.length >> 1] ?? 0) / 1000)}K, re-read on every call it is about ${percent((starts[starts.length >> 1] ?? 0) * calls.length * weights.cacheRead, total)} of the total`,
+    `context growth per call: mean ${(sum(growth) / (growth.length || 1) / 1000).toFixed(1)}K; compactions: ${automatic} automatic, ${compactions.length - automatic} other`,
     `\nper day: ${days.sort().join(', ')}`,
     `\ncostliest sessions:`,
     ...biggest

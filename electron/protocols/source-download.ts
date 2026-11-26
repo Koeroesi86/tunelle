@@ -113,7 +113,7 @@ const startDownload = (client: SourceClient, id: string, target: string): Downlo
 
 /**
  * A track of a server in a file of the cache, once for all the requests that ask for it meanwhile: the decoder proxy and the ranges of the page work on a file.
- * Undefined when the download fails or its request is gone, and the track then plays as the server sends it; `stalled` when the server went silent. See docs/app/decoder-proxy.md
+ * Undefined when the download fails or its request is gone, and the track then plays as the server sends it; `stalled` when the server went silent. See docs/app/decoder-sources.md
  */
 export const downloadSource = async (key: string, client: SourceClient, id: string, signal: AbortSignal) => {
   if (!(await makeCacheFolder('source').catch(logError))) return undefined;

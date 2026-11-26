@@ -14,7 +14,7 @@ CONTEXT="$(tail -n 40 "$TRANSCRIPT" | jq -rs '[.[] | select(.type == "assistant"
 STATE="${TMPDIR:-/tmp}/tunelle-claude-context"
 mkdir -p "$STATE"
 
-for LEVEL in 200000 120000; do
+for LEVEL in 160000 120000; do
   [ "$CONTEXT" -ge "$LEVEL" ] || continue
   [ ! -e "$STATE/$SESSION-$LEVEL" ] || exit 0
   touch "$STATE/$SESSION-$LEVEL" "$STATE/$SESSION-120000"

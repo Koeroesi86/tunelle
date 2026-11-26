@@ -2,7 +2,7 @@ import { browse } from './mdns';
 import type { NearbyHost } from '../../shared/schemas/remote-nearby';
 import { logError } from '../utils/log-error';
 
-/** The list of Tunelles on the network. The socket is open only while the page shows the list; a list that cannot be made is an empty one. See docs/app/remote-access-discovery.md */
+/** The list of Tunelles on the network. The socket is open only while the page shows the list; a list that cannot be made is an empty one. See docs/app/remote-access-listener.md */
 export const createNearby = (onChange: (hosts: NearbyHost[]) => void, ownId: () => string | undefined) => {
   let browser: Awaited<ReturnType<typeof browse>> | undefined;
   let changing: Promise<void> = Promise.resolve();

@@ -50,7 +50,7 @@ const run = (command: ControlCommand, { play, pause, isPlaying, previousSong, ne
   }
 };
 
-/** Sends what plays to the listeners that the host approved, and lets the controls they were given drive the player. See docs/app/remote-access-discovery.md */
+/** Sends what plays to the listeners that the host approved, and lets the controls they were given drive the player. See docs/app/remote-access-host.md */
 export const useRemoteHost = (info: RemoteHostInfo | undefined, { isPlaying, currentTime, volume }: RemoteHostPlayback, commands: RemoteHostCommands) => {
   const latest = useRef({ currentTime, at: Date.now(), isPlaying });
   const current = useRef(commands);

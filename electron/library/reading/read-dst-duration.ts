@@ -22,7 +22,7 @@ const findDuration = async (handle: fs.promises.FileHandle, position: number): P
   return findDuration(handle, position + headerLength + size + (size % 2));
 };
 
-/** The seconds of a DST compressed DSDIFF, from the `FRTE` chunk that starts its sound chunk. See docs/app/supported-formats.md */
+/** The seconds of a DST compressed DSDIFF, from the `FRTE` chunk that starts its sound chunk. See docs/app/decoded-formats.md */
 export const readDstDuration = async (fileName: string) => {
   const handle = await fs.promises.open(fileName);
   try {

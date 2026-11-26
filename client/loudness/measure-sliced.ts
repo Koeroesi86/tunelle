@@ -87,7 +87,7 @@ const toFailure = (error: unknown): typeof failed | typeof tooLarge => {
 
 /**
  * The measurement of a file that is too long to be decoded as a whole: it is cut into pieces that are fetched, decoded and measured one after
- * the other, so only one is in memory. A format that is not cut is `too-large`. See docs/app/loudness-measurement.md
+ * the other, so only one is in memory. A format that is not cut is `too-large`. See docs/app/loudness-background.md
  */
 export const measureSliced = async (id: number, url: string, duration: number | undefined, decode: Decode, progress: () => void): Promise<MeasureResult> => {
   const { read, size, state } = rangeReader(url, progress);

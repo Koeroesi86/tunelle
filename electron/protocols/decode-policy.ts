@@ -1,4 +1,4 @@
-// How much is decoded at once and how much is kept, by how fast the source answers. See docs/app/decoder-proxy.md
+// How much is decoded at once and how much is kept, by how fast the source answers. See docs/app/decoder-windowed.md
 export type SourceSpeed = 'fast' | 'slow';
 
 /** The start of a file is read once per volume, and a read of this many bytes that takes longer than `slowAfterMs` makes the volume slow */
@@ -8,10 +8,10 @@ export const slowAfterMs = 50;
 /** The seconds of audio that a window decodes ahead of the read that is furthest behind */
 export const fastAheadSeconds = 5;
 export const slowAheadSeconds = 10;
-/** The bytes that a window keeps behind that read: Chromium asks again from about 2 MiB before it, see docs/app/decoder-proxy.md */
+/** The bytes that a window keeps behind that read: Chromium asks again from about 2 MiB before it, see docs/app/decoder-windowed.md */
 export const behindBytes = 4 * 1024 ** 2;
 
-/** A full window that no read moves for this long stops its ffmpeg, which holds the source file open, see docs/app/decoder-proxy.md */
+/** A full window that no read moves for this long stops its ffmpeg, which holds the source file open, see docs/app/decoder-windowed.md */
 export const restAfterMs = 10_000;
 
 /** The most memory that the windows of all tracks may hold, and the most of them (each can have a waiting ffmpeg) */

@@ -54,7 +54,7 @@ interface Stream {
   secret: string;
 }
 
-/** The routes of the host and the now playing they answer with; no other route exists. See docs/app/remote-access-discovery.md */
+/** The routes of the host and the now playing they answer with; no other route exists. See docs/app/remote-access-host.md */
 export const createRoutes = (
   access: AccessControl,
   onControl: (command: ControlCommand) => void,

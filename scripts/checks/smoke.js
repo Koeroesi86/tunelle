@@ -14,7 +14,7 @@ const { waitForPage } = require('./wait-for-page')
 // the updater is turned off (TUNELLE_NO_UPDATE), so a newer release can not be downloaded and installed in the middle of the run
 const root = resolve(__dirname, '../..')
 const timeout = 60000
-// an event of an audio element in the page; a slow runner without an audio device took over 15 s, see docs/development/ci.md
+// an event of an audio element in the page; a slow runner without an audio device took over 15 s, see docs/development/ci-runners.md
 const audioTimeout = 30000
 
 // what comes from the app or its files is printed on one line per entry, so it cannot forge a line of the log of the run

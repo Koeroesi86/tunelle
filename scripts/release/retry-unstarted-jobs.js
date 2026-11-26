@@ -1,6 +1,6 @@
 // usage: node scripts/release/retry-unstarted-jobs.js             cancels the runs whose waiting jobs no runner took, and runs their jobs again once
 //        node scripts/release/retry-unstarted-jobs.js <run id>    the same for one run, checked every few minutes until it ends (watch-unstarted-jobs.yml)
-// A job that no runner picks up holds its run, which cannot be run again until it ends (retry-unstarted-jobs.yml, docs/development/ci.md)
+// A job that no runner picks up holds its run, which cannot be run again until it ends (retry-unstarted-jobs.yml, docs/development/ci-runners.md)
 const workflows = ['pr-checks.yml', 'build.yml', 'release.yml']
 const stalledMinutes = 15
 const lastAttempt = 2
@@ -60,7 +60,7 @@ const isRunStalled = async (request, repository, id, now) => {
   return jobs !== undefined && isStalled(jobs, now)
 }
 
-// GitHub ends a job that waited too long for a runner with a cancel and this annotation, while the rest of the run goes on (docs/development/ci.md)
+// GitHub ends a job that waited too long for a runner with a cancel and this annotation, while the rest of the run goes on (docs/development/ci-runners.md)
 const isNotAcquired = async (request, repository, job) => {
   if (job.conclusion !== 'cancelled' || job.runner_id) return false
   const annotations = await request(`/repos/${repository}/check-runs/${job.id}/annotations`)
@@ -130,7 +130,7 @@ const findStalled = async (request, repository, now) => {
   return { runs, stalled }
 }
 
-// several runs without a runner at once mean that GitHub is short of runners: cancelling them only queues them again, behind the rest (docs/development/ci.md)
+// several runs without a runner at once mean that GitHub is short of runners: cancelling them only queues them again, behind the rest (docs/development/ci-runners.md)
 const isOutage = (stalled) => stalled.length >= outageRuns
 const outageMessage = (stalled) => `${stalled.length} runs have jobs that no runner took at once, GitHub is short of runners and they are left alone`
 

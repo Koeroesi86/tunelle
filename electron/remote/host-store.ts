@@ -41,7 +41,7 @@ const readJson = (file: string): Promise<unknown> =>
 // a file that is cut or not JSON counts as missing: the host starts from its defaults instead of failing
 const readJsonSafely = (file: string) => readJson(file).catch(() => undefined);
 
-/** What the host keeps between starts: its settings, its certificate and the approved devices. See docs/app/remote-access-discovery.md */
+/** What the host keeps between starts: its settings, its certificate and the approved devices. See docs/app/remote-access-host.md */
 export const createHostStore = (appData: string) => {
   const folder = folderOf(appData);
   const settingsFile = join(folder, 'host.json');

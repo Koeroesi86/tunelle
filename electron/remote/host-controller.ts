@@ -56,7 +56,7 @@ const isTaken = (error: unknown) => error instanceof Error && 'code' in error &&
 
 /**
  * Starts and stops the host server by its settings, keeps the approved devices on disk and reports the state to the page.
- * Nothing listens until the user turns host mode on. See docs/app/remote-access-discovery.md
+ * Nothing listens until the user turns host mode on. See docs/app/remote-access-host.md
  */
 export const createHostController = (
   store: HostStore,

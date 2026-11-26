@@ -47,7 +47,7 @@ const probe = <Schema extends z.ZodType>(source: string, entries: string, schema
 
 /**
  * The channels, the rate and the exact number of frames of the first audio stream: false when they are not exact (a time base that is not one frame, or
- * ALAC in CAF, which says more frames than it has), undefined when ffprobe gave no answer. See docs/app/decoder-proxy.md
+ * ALAC in CAF, which says more frames than it has), undefined when ffprobe gave no answer. See docs/app/decoder-windowed.md
  */
 export const probeAudio = async (source: string): Promise<AudioLength | false | undefined> => {
   const found = await probe(source, 'stream=codec_name,sample_rate,channels,time_base,duration_ts:format=format_name', probeSchema);

@@ -21,7 +21,7 @@ test('starts and shows its pages without a network', async () => {
     // the radio page opens without its stations, and the other pages still open
     await navigate(page, 'Radio stations');
     await expect(page.getByText(ui('Radio stations'), { exact: true }).filter({ visible: true }).first()).toBeVisible();
-    // the message follows the failed search of the stations, which took more than the 15 s of the default on the Intel macOS runner. See docs/development/ci.md
+    // the message follows the failed search of the stations, which took more than the 15 s of the default on the Intel macOS runner. See docs/development/ci-runners.md
     await expect(page.getByText('Radio stations need an internet connection. Your own library plays without one.').filter({ visible: true })).toBeVisible({
       timeout: 60_000,
     });

@@ -4,6 +4,8 @@ import { dirname, join, relative, resolve, sep } from 'path';
 // the rules of docs/ that a script can check, see CLAUDE.md
 const root = resolve(__dirname, '../..');
 const maxCommentLines = 4;
+// a doc over this is not read whole, see docs/development/claude-usage.md
+const maxDocLength = 12_000;
 const commentRoots = ['electron', 'client', 'scripts', '.github'];
 const commentFile = /\.(ts|tsx|js|yml|yaml|sh|ps1)$/;
 const hashComments = /\.(yml|yaml|sh|ps1)$/;
@@ -87,13 +89,20 @@ const findUnlinkedDocs = () => {
     .map((file) => `${relative(root, file).split(sep).join('/')} is not linked from README.md or CLAUDE.md`);
 };
 
+const findLargeDocs = () =>
+  listFiles(join(root, 'docs'))
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => ({ file: relative(root, file).split(sep).join('/'), length: readFileSync(file, 'utf8').length }))
+    .filter(({ length }) => length > maxDocLength)
+    .map(({ file, length }) => `${file} has ${length} characters (at most ${maxDocLength}): move a part of it to a new file of docs/`);
+
 const findReadmeDetail = () => {
   const text = readFileSync(join(root, 'README.md'), 'utf8');
 
   return /```|^\|/m.test(text) ? ['README.md holds detail (a code block or a table): move it to docs/'] : [];
 };
 
-export { findLongBlocks, findLongComments, findBrokenLinks, findUnlinkedDocs, findReadmeDetail, maxCommentLines };
+export { findLongBlocks, findLongComments, findBrokenLinks, findUnlinkedDocs, findLargeDocs, findReadmeDetail, maxCommentLines };
 
 const checkEdit = (file: string) =>
   commentFile.test(file) && !exempt.test(relative(root, resolve(file)))
@@ -103,7 +112,7 @@ const checkEdit = (file: string) =>
 if (require.main === module) {
   // with a file name and the new text on stdin: the check of one edit, for .claude/hooks/guard-comments.sh
   const [file] = process.argv.slice(2);
-  const problems = file ? checkEdit(file) : [...findLongComments(), ...findBrokenLinks(), ...findUnlinkedDocs(), ...findReadmeDetail()];
+  const problems = file ? checkEdit(file) : [...findLongComments(), ...findBrokenLinks(), ...findUnlinkedDocs(), ...findLargeDocs(), ...findReadmeDetail()];
   problems.forEach((problem) => console.error(problem));
   process.exit(problems.length ? 1 : 0);
 }
