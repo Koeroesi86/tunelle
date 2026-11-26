@@ -2,7 +2,7 @@ name: Retry unstarted jobs
 
 # A job that no runner picks up holds its run (and the next release) for hours. Twice an hour, off the start of the hour when GitHub is busy, a run of the pull request
 # checks, the build and the release whose only unfinished jobs have been queued without a runner for 15 minutes is cancelled and its jobs run again, once
-# (scripts/release/retry-unstarted-jobs.js, docs/development/ci.md). A job that ran and failed is not touched.
+# (scripts/release/retry-unstarted-jobs.js, docs/development/ci-runners.md). A job that ran and failed is not touched.
 on:
   schedule:
     - cron: '17,47 * * * *'

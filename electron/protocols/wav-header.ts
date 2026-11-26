@@ -53,7 +53,7 @@ const sizesChunk = (layout: WavLayout) => {
   return chunk('ds64', body.length, body);
 };
 
-/** The header of a PCM or float WAV file that holds `frames` frames (RF64 above 4 GiB), so the size is known before the samples are decoded. See docs/app/decoder-proxy.md */
+/** The header of a PCM or float WAV file that holds `frames` frames (RF64 above 4 GiB), so the size is known before the samples are decoded. See docs/app/decoder-formats.md */
 export const wavHeader = (layout: WavLayout) => {
   const large = isLarge(layout);
   return Buffer.concat([

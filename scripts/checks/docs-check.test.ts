@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findBrokenLinks, findLongBlocks, findLongComments, findReadmeDetail, findUnlinkedDocs } from './docs-check';
+import { findBrokenLinks, findLargeDocs, findLongBlocks, findLongComments, findReadmeDetail, findUnlinkedDocs } from './docs-check';
 
 const block = (length: number, prefix = '//') => Array.from({ length }, (_, index) => `${prefix} line ${index}`).join('\n');
 
@@ -10,6 +10,10 @@ describe('docs', () => {
 
   it('links every file of docs/ from the README or CLAUDE.md', () => {
     expect(findUnlinkedDocs()).toEqual([]);
+  });
+
+  it('has no file of docs/ too large to read whole', () => {
+    expect(findLargeDocs()).toEqual([]);
   });
 
   it('keeps the README to links', () => {

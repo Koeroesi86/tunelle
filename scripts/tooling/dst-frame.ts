@@ -1,4 +1,4 @@
-// The smallest DST encoder that gives arithmetic coded frames: a predictor of zero and even odds. See docs/app/decoder-proxy.md
+// The smallest DST encoder that gives arithmetic coded frames: a predictor of zero and even odds. See docs/app/decoder-formats.md
 const fullRange = 4095;
 const codeBits = 12;
 const evenOdds = 128;

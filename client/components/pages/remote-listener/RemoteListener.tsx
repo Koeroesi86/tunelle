@@ -299,7 +299,7 @@ const NowPlaying = ({
   );
 };
 
-/** Pairs this app with another Tunelle that plays: the address, the code to compare, the request and what the host plays. See docs/app/remote-access-discovery.md */
+/** Pairs this app with another Tunelle that plays: the address, the code to compare, the request and what the host plays. See docs/app/remote-access-listener.md */
 const RemoteListener = ({ state, host, connect, confirm, leave, control, listenAlong, nearby, browse, resolveUrl }: RemoteListenerProps) => {
   const { t } = useTranslation();
 

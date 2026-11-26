@@ -36,7 +36,7 @@ interface Pending {
 
 /**
  * The hidden window that decodes the files of the library and measures them (client/loudness). One file at a time; the window is made when
- * the first file asks for it and again after a number of files. See docs/app/loudness-measurement.md
+ * the first file asks for it and again after a number of files. See docs/app/loudness-background.md
  */
 export const createLoudnessWindow = (pageUrl: string) => {
   let window: BrowserWindow | undefined;

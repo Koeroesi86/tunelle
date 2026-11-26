@@ -19,7 +19,7 @@ const listenerFileSchema = z.object({
   pairing: pairingSchema.optional().catch(undefined),
 });
 
-/** What the listener keeps between starts: its device id and the host it was approved by. See docs/app/remote-access-discovery.md */
+/** What the listener keeps between starts: its device id and the host it was approved by. See docs/app/remote-access-listener.md */
 export const createListenerStore = (appData: string) => {
   const folder = join(appData, 'remote');
   const file = join(folder, 'listener.json');

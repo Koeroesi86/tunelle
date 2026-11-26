@@ -48,7 +48,7 @@ export type RequestResult =
 
 const hashOf = (secret: string) => createHash('sha256').update(secret).digest();
 
-/** Who may listen to the host: the requests that wait for an answer, the approved devices and the blocked ones. See docs/app/remote-access-discovery.md */
+/** Who may listen to the host: the requests that wait for an answer, the approved devices and the blocked ones. See docs/app/remote-access-host.md */
 export class AccessControl {
   private devices = new Map<string, StoredDevice>();
   private waiting = new Map<string, PendingRequest>();

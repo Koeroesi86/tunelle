@@ -8,13 +8,13 @@ const containerCodecs: Record<string, string> = { WAVE: 'WAV' };
 
 const matroskaCodecs = ['FLAC', 'OPUS', 'VORBIS'];
 
-/** DSF, DSDIFF and WavPack hold DSD, which the decoder proxy decodes; DST, the compressed DSDIFF, is named by its codec. See docs/app/supported-formats.md */
+/** DSF, DSDIFF and WavPack hold DSD, which the decoder proxy decodes; DST, the compressed DSDIFF, is named by its codec. See docs/app/decoded-formats.md */
 const toDsdName = ({ codec, container }: ReadFormat) => {
   if (/^wavpack/i.test(container ?? '')) return /^dsd/i.test(codec ?? '') ? 'DSD' : undefined;
   return /^(dsf|dsdiff)/i.test(container ?? '') && (!codec || /^dsd/i.test(codec)) ? 'DSD' : undefined;
 };
 
-/** Only FLAC, Opus and Vorbis are decoded from Matroska and WebM; another codec in them is named by its container, as Chromium does not play `.mka` either. See docs/app/supported-formats.md */
+/** Only FLAC, Opus and Vorbis are decoded from Matroska and WebM; another codec in them is named by its container, as Chromium does not play `.mka` either. See docs/app/decoded-formats.md */
 const toMatroskaName = ({ codec, container }: ReadFormat) => {
   if (!codec || !/matroska|webm/i.test(container ?? '')) return undefined;
   const name = (codec ?? '').replace(/\s.*/, '').toUpperCase();
@@ -28,13 +28,13 @@ const cafCodecs: Record<string, string | undefined> = {
   'ITU-T G.711 mu-law': 'MULAW',
 };
 
-/** Only PCM, ALAC, A-law and µ-law are decoded from CAF; another codec in it (AAC, IMA4, MP3) is named by its container and not stored. See docs/app/supported-formats.md */
+/** Only PCM, ALAC, A-law and µ-law are decoded from CAF; another codec in it (AAC, IMA4, MP3) is named by its container and not stored. See docs/app/decoded-formats.md */
 const toCafName = ({ codec, container }: ReadFormat) => {
   if (!codec || !/^caf$/i.test(container ?? '')) return undefined;
   return cafCodecs[codec] ?? `CAF-${codec.toUpperCase()}`;
 };
 
-/** Windows Media Audio is named WMA; the voice codecs are told apart, as the decoder proxy does not play them. See docs/app/supported-formats.md */
+/** Windows Media Audio is named WMA; the voice codecs are told apart, as the decoder proxy does not play them. See docs/app/decoded-formats.md */
 const toWmaName = (codec: string | undefined) => {
   if (!/^windows media audio/i.test(codec ?? '')) return undefined;
   return /voice|speech/i.test(codec ?? '') ? 'WMA-VOICE' : 'WMA';

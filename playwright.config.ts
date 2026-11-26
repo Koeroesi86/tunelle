@@ -12,7 +12,7 @@ export default defineConfig({
   // the Intel macOS runner has taken more than a minute to start the app
   timeout: process.env.CI ? 180_000 : 90_000,
   expect: { timeout: 15_000 },
-  // ends the run, and writes the report, before the 40 minutes of the step in test.yml kill it. See docs/development/ci.md
+  // ends the run, and writes the report, before the 40 minutes of the step in test.yml kill it. See docs/development/ci-runners.md
   globalTimeout: process.env.CI ? 35 * 60_000 : undefined,
   reporter: process.env.CI ? [['github'], ['list'], ['html', { open: 'never' }]] : [['list']],
   use: { trace: 'retain-on-failure' },

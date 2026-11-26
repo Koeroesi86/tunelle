@@ -6,7 +6,7 @@ const formats = new Map<string, Format>();
 
 /**
  * The format of a downloaded track, probed once for each file and not for every range of it; no codec, so the file plays as it is, when ffprobe
- * can not read it. See docs/app/decoder-proxy.md
+ * can not read it. See docs/app/decoder-sources.md
  */
 export const downloadedFormat = async (path: string): Promise<Format> => {
   const stats = await stat(path).catch(() => undefined);

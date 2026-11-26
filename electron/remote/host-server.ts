@@ -36,7 +36,7 @@ export interface HostOptions {
   maxListeners?: number;
 }
 
-/** The HTTPS server of the host around its routes (host-routes.ts). See docs/app/remote-access-discovery.md */
+/** The HTTPS server of the host around its routes (host-routes.ts). See docs/app/remote-access-host.md */
 export const startHostServer = async ({
   identity,
   access,

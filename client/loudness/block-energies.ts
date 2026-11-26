@@ -35,7 +35,7 @@ const addSample = (state: ChannelState, value: number) => {
 
 /**
  * Measures a file that comes in pieces, one after the other: the filters and the hop that is being filled go on from one piece to the next, so
- * the blocks are the ones of the whole file, whatever its pieces are. See docs/app/loudness-measurement.md
+ * the blocks are the ones of the whole file, whatever its pieces are. See docs/app/loudness-background.md
  */
 export const createBlockMeter = (channelCount: number) => {
   const weights = channelWeights(channelCount);

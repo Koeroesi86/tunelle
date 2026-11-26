@@ -23,6 +23,21 @@
       "Bash(npx tsx scripts/checks/ci-failure.ts*)"
     ]
   },
+  "bashOutputMaxChars": 10000,
+  "disableClaudeAiConnectors": true,
+  "skillOverrides": {
+    "claude-api": "user-invocable-only",
+    "claude-approvals": "user-invocable-only",
+    "dataviz": "user-invocable-only",
+    "fewer-permission-prompts": "user-invocable-only",
+    "init": "user-invocable-only",
+    "jira-task-gaps": "user-invocable-only",
+    "jira-verify-task": "user-invocable-only",
+    "keybindings-help": "user-invocable-only",
+    "plugin-authoring": "user-invocable-only",
+    "read-ts": "user-invocable-only",
+    "schedule": "user-invocable-only"
+  },
   "env": {
     "CLAUDE_CODE_SUBAGENT_MODEL": "haiku",
     "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "220000"

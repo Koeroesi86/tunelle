@@ -58,7 +58,7 @@ class WavStart extends Transform {
   }
 }
 
-/** Decodes an encoded stream with the bundled ffmpeg, from `pipe:0` to a WAV of no set length on `pipe:1`; undefined when it gives nothing and the stream plays as it is. See docs/app/decoder-proxy.md */
+/** Decodes an encoded stream with the bundled ffmpeg, from `pipe:0` to a WAV of no set length on `pipe:1`; undefined when it gives nothing and the stream plays as it is. See docs/app/decoder-sources.md */
 export const decodeStream = (head: Buffer, rest: Readable, encoder: string[], onSampleRate: (sampleRate: number) => void) =>
   new Promise<Readable | undefined>((resolve) => {
     const child = spawn(

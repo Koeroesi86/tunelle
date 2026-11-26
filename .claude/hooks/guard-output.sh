@@ -7,16 +7,26 @@ command -v jq >/dev/null 2>&1 || exit 0
 
 CMD="$(jq -r '.tool_input.command // empty' <<<"$(cat)")"
 MAX_LINES=300
+MAX_BYTES=12000
 
 deny() {
   echo "guard-output: blocked: $1" >&2
   exit 2
 }
 
-# a commit message or a heredoc may contain anything
+# a commit message may contain anything
 case "$CMD" in
-  git\ commit* | *'<<'*) exit 0 ;;
+  git\ commit*) exit 0 ;;
 esac
+
+# so may the body of a heredoc, but not the rest of its command
+CMD="$(awk '
+  end != "" { line = $0; sub(/^\t+/, "", line); if (line == end) end = ""; next }
+  { print }
+  match($0, /(^|[^<])<<-?[[:space:]]*["\047\\]?[A-Za-z_][A-Za-z0-9_]*/) {
+    end = substr($0, RSTART, RLENGTH); sub(/.*<<-?[[:space:]]*["\047\\]?/, "", end)
+  }
+' <<<"$CMD")"
 
 BOUNDED='\|[[:space:]]*(tail|head|grep|wc|jq|sed -n)|[[:space:]]>[[:space:]]*[^&[:space:]]'
 if [[ "$CMD" =~ (gh[[:space:]]+run[[:space:]]+view.*--log|gh[[:space:]]+pr[[:space:]]+diff|npm[[:space:]]+(ci|install))([[:space:]]|$) ]] && ! [[ "$CMD" =~ $BOUNDED ]]; then
@@ -36,13 +46,15 @@ while IFS= read -r segment; do
   read -ra words <<<"$segment"
   files=()
   for word in "${words[@]:1}"; do
-    [[ "$word" == -* ]] || files+=("$word")
+    [[ "$word" == -* || "$word" == '<'* ]] || files+=("$word")
   done
 
   [ "${#files[@]}" -gt 1 ] && deny "cat of several files; read what you need with 'grep -n' and 'sed -n A,Bp', or the Read tool with offset and limit."
   [[ "${files[0]:-}" == *'*'* ]] && deny "cat of a glob; read what you need with 'grep -n' and 'sed -n A,Bp'."
   [[ "$CMD" =~ $BOUNDED ]] && continue
-  [ -f "${files[0]:-}" ] && [ "$(wc -l <"${files[0]}")" -gt "$MAX_LINES" ] && deny "${files[0]} has over $MAX_LINES lines; read the part you need with 'sed -n A,Bp' or the Read tool with offset and limit."
+  [ -f "${files[0]:-}" ] || continue
+  [ "$(wc -l <"${files[0]}")" -le "$MAX_LINES" ] && [ "$(wc -c <"${files[0]}")" -le "$MAX_BYTES" ] ||
+    deny "${files[0]} has over $MAX_LINES lines or $MAX_BYTES bytes; read the part you need with 'sed -n A,Bp' or the Read tool with offset and limit."
 done < <(sed -E 's/(&&|\|\||[;|])/\n/g' <<<"$CMD")
 
 exit 0

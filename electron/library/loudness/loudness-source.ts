@@ -98,7 +98,7 @@ const toRow = (track: TrackToMeasure, measurement: Measurement): TrackLoudness |
   return isFailure(measurement.outcome) ? failed(track, measurement.outcome) : undefined;
 };
 
-/** Puts the measurement of the loudness of the library on the background queue as a source of tasks, one track a task. See docs/app/loudness-measurement.md */
+/** Puts the measurement of the loudness of the library on the background queue as a source of tasks, one track a task. See docs/app/loudness-background.md */
 export const registerLoudness = (database: Database, pageUrl: string, onStatus: (status: LoudnessProgress) => void) => {
   const window = createLoudnessWindow(pageUrl);
   // the library folders, which are the mounts a track can be on: looked at with each batch of tracks

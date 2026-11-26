@@ -145,7 +145,7 @@ const NumberField = ({
   );
 };
 
-/** Turns the host mode on and off, and answers the devices that ask to listen. Nothing listens until the switch is on. See docs/app/remote-access-discovery.md */
+/** Turns the host mode on and off, and answers the devices that ask to listen. Nothing listens until the switch is on. See docs/app/remote-access-host.md */
 const RemoteAccess = ({ state, setEnabled, update, decide, setControls }: RemoteAccessProps) => {
   const { t } = useTranslation();
 

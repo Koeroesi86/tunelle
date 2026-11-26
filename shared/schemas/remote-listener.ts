@@ -4,7 +4,7 @@ import { nowPlayingSchema } from './now-playing';
 
 const LISTENER_STATUSES = ['idle', 'contacting', 'confirming', 'waiting', 'listening', 'revoked', 'blocked', 'error'] as const;
 
-/** What the listener side reports to the page: where it is in pairing with a host and what the host plays. See docs/app/remote-access-discovery.md */
+/** What the listener side reports to the page: where it is in pairing with a host and what the host plays. See docs/app/remote-access-listener.md */
 export const remoteListenerStateSchema = z.object({
   status: z.enum(LISTENER_STATUSES),
   target: z.object({ host: z.string(), port: z.number() }).optional(),

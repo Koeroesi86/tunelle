@@ -11,7 +11,7 @@ import { isHeld } from './held-files';
 import { toEncoder, type Format } from './pcm-encoder';
 import { probeFormat } from './probe-audio';
 
-// See docs/app/decoder-proxy.md for the cache, the sharing of a decode and what is spared by the eviction
+// See docs/app/decoder-cache.md for the cache, the sharing of a decode and what is spared by the eviction
 const maxDecodes = 2;
 const keptRecent = 3;
 

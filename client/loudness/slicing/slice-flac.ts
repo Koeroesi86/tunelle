@@ -65,7 +65,7 @@ const soundEnd = async (read: ReadRange, size: number) => {
 
 /**
  * A FLAC file is cut at the start of a frame, and each piece is given the metadata of the file in front, which the decoder takes as a file of its own.
- * An ID3v2 tag in front of the marker and an ID3v1 tag after the last frame are not in a piece. See docs/app/loudness-measurement.md
+ * An ID3v2 tag in front of the marker and an ID3v1 tag after the last frame are not in a piece. See docs/app/loudness-background.md
  */
 export const sliceFlac: Slicer = async function* (read, size, sliceBytes) {
   const { header, firstFrame } = await headerOf(read, await tagLength(read));

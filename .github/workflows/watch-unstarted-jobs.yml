@@ -1,7 +1,7 @@
 name: Watch for unstarted jobs
 
 # The schedule of retry-unstarted-jobs.yml runs a few times a day when GitHub is busy. This watches one run from the moment it is created: every five minutes it
-# cancels the run and runs its jobs again, once, when the only unfinished jobs have been queued without a runner for 15 minutes (docs/development/ci.md).
+# cancels the run and runs its jobs again, once, when the only unfinished jobs have been queued without a runner for 15 minutes (docs/development/ci-runners.md).
 on:
   workflow_run:
     workflows: [Pull request checks, Build, Release]

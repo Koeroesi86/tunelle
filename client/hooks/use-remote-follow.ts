@@ -19,7 +19,7 @@ interface RemoteFollowPlayer {
   leave: () => void;
 }
 
-/** Plays what the host plays while the loaded track is the remote one, and leaves the session as soon as any other track is loaded. See docs/app/remote-access-discovery.md */
+/** Plays what the host plays while the loaded track is the remote one, and leaves the session as soon as any other track is loaded. See docs/app/remote-access-follow.md */
 export const useRemoteFollow = (snapshot: NowPlaying | undefined, player: RemoteFollowPlayer) => {
   const latest = useRef(player);
   latest.current = player;

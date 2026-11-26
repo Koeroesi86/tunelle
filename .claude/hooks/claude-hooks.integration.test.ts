@@ -111,6 +111,7 @@ describe.skipIf(!hasTools)('claude hooks', () => {
     const big = () => {
       writeFileSync(join(project, 'big.txt'), 'x\n'.repeat(400));
       writeFileSync(join(project, 'small.txt'), 'x\n');
+      writeFileSync(join(project, 'wide.txt'), `${'x'.repeat(13_000)}\n`);
     };
 
     it.each([
@@ -118,6 +119,11 @@ describe.skipIf(!hasTools)('claude hooks', () => {
       'cd x && cat a.ts b.ts | head',
       'cat src/*.ts',
       'cat big.txt',
+      'cat wide.txt',
+      "cat wide.txt; python3 - <<'EOF'\nprint(1)\nEOF",
+      "python3 - <<'EOF'\nprint(1)\nEOF\ngit show abc",
+      'cat <<-END\n\tbody\n\tEND\nnpm ci',
+      'grep x <<<"$y" && cat a.ts b.ts',
       'gh run view 1 --log',
       'gh pr diff 3',
       'npm ci',
@@ -135,6 +141,8 @@ describe.skipIf(!hasTools)('claude hooks', () => {
       'cat big.txt | head -50',
       'cat > out.txt',
       "cat <<'EOF'\ncat a b\nEOF",
+      'cat <<EOF > notes.md\ngit diff\nnpm ci\nEOF',
+      'cat wide.txt | head -c 2000',
       'git commit -m "cat a b"',
       'gh run view 1 --log-failed | tail -n 100',
       'gh pr diff 3 > diff.txt',
@@ -160,6 +168,13 @@ describe.skipIf(!hasTools)('claude hooks', () => {
       writeFileSync(join(project, 'long.txt'), 'x\n'.repeat(400));
 
       expect(read({ file_path: join(project, 'long.txt') }).status).toBe(2);
+    });
+
+    it('blocks a whole file of a few long lines', () => {
+      writeFileSync(join(project, 'wide.txt'), `${'x'.repeat(13_000)}\n`);
+
+      expect(read({ file_path: join(project, 'wide.txt') }).status).toBe(2);
+      expect(read({ file_path: join(project, 'wide.txt'), limit: 80 }).status).toBe(0);
     });
 
     it('allows a range, a short file, a missing file and a binary one', () => {
@@ -271,8 +286,8 @@ describe.skipIf(!hasTools)('claude hooks', () => {
     it('says it once per level', () => {
       expect(nudge(130000, 'levels').stdout).toContain('/handoff');
       expect(nudge(140000, 'levels').stdout).toBe('');
-      expect(nudge(210000, 'levels').stdout).toContain('211K');
-      expect(nudge(220000, 'levels').stdout).toBe('');
+      expect(nudge(170000, 'levels').stdout).toContain('171K');
+      expect(nudge(180000, 'levels').stdout).toBe('');
     });
   });
 

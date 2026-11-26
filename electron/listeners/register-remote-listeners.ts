@@ -21,7 +21,7 @@ import { parsePayload } from '../utils/parse-payload';
 import { sendIfAlive } from '../utils/send-if-alive';
 import type { ListenerContext } from './listener-context';
 
-/** The host mode of the app (what the page asks: settings, the decision on a device, and the now playing it sends) and the listener side (pairing with a host). See docs/app/remote-access-discovery.md */
+/** The host mode of the app (what the page asks: settings, the decision on a device, and the now playing it sends) and the listener side (pairing with a host). See docs/app/remote-access-host.md */
 const registerRemoteListeners = ({ database, windows, radio }: ListenerContext) => {
   // a listener gets the stream of the station from the host, through a connection of its own to the station; the host's player is not shared
   const station = { resolveStream: (uuid: string) => radio.resolveStream(uuid), onTitle: () => {}, onSampleRate: () => {} };

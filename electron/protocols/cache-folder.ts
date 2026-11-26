@@ -3,7 +3,7 @@ import { isAbsolute, join } from 'path';
 import { app } from 'electron';
 import { logError } from '../utils/log-error';
 
-// See docs/app/decoder-proxy.md for the folders of the caches
+// See docs/app/decoder-cache.md for the folders of the caches
 const cacheNames = ['whole-decodes', 'source'] as const;
 type CacheName = (typeof cacheNames)[number];
 

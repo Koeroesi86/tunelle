@@ -32,7 +32,7 @@ interface Listeners {
 
 export type DecodeWindow = ReturnType<typeof openDecodeWindow>;
 
-/** The decoded bytes around the reads that use it, from the frame of `position`, and the ffmpeg that adds to them. See docs/app/decoder-proxy.md */
+/** The decoded bytes around the reads that use it, from the frame of `position`, and the ffmpeg that adds to them. See docs/app/decoder-windowed.md */
 export const openDecodeWindow = ({ source, encoder, layout }: Decoding, position: number, reach: Reach, { onFailure, onClose }: Listeners) => {
   const frameSize = layout.channels * layout.bytesPerSample;
   const total = wavDataSize(layout);
@@ -127,7 +127,7 @@ export const openDecodeWindow = ({ source, encoder, layout }: Decoding, position
     const raw = rawFormats[encoder[encoder.length - 1]];
     let held = end % frameSize;
     const first = end - held;
-    // the time of a frame: exact for every progressive codec, see docs/app/decoder-proxy.md
+    // the time of a frame: exact for every progressive codec, see docs/app/decoder-windowed.md
     const seek = first > 0 ? ['-ss', (first / frameSize / layout.sampleRate).toFixed(9)] : [];
     const child = spawn(
       ffmpegProgram(),
