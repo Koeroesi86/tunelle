@@ -58,7 +58,12 @@ const createMemoryFs = () => {
   const sync = {
     existsSync: (path: string): boolean =>
       links.has(clean(path)) ? sync.existsSync(links.get(clean(path)) ?? '') : files.has(clean(path)) || folders.has(clean(path)),
-    mkdirSync: (path: string) => void parents(clean(path)).forEach((folder) => folders.add(folder)),
+    mkdirSync: (path: string) => {
+      const made = parents(clean(path));
+      // as on disk, where no folder is made over a file or in one
+      if (made.some((folder) => files.has(folder))) throw Object.assign(new Error(`EEXIST: file already exists, mkdir '${path}'`), { code: 'EEXIST' });
+      made.forEach((folder) => folders.add(folder));
+    },
     writeFileSync: (path: string, data: string | Uint8Array, options?: { flag?: string }) => {
       folderOf(dirname(clean(path)));
       if (options?.flag === 'wx' && files.has(clean(path))) throw Object.assign(new Error(`EEXIST: file already exists, open '${path}'`), { code: 'EEXIST' });
