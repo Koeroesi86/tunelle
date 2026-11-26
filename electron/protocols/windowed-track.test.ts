@@ -391,7 +391,7 @@ describe('windowedTrack', () => {
     await expect(response.arrayBuffer()).rejects.toThrow('The decode ended before the end of the range');
   });
 
-  it('ends the read when ffmpeg fails, without starting it again and again, and tries again for a later request', async () => {
+  it('ends the read when ffmpeg fails, without starting it again and again, and leaves a later request to the whole decode', async () => {
     Object.assign(ffmpeg, { length: 3000, code: 1 });
     const { track, again } = await openTrack();
 
@@ -399,6 +399,30 @@ describe('windowedTrack', () => {
 
     expect(bytes).toEqual(pattern(0, 3000));
     expect(decodes).toHaveLength(1);
+    expect(await again()).toBeUndefined();
+  });
+
+  it('keeps the windows of a track whose ffmpeg fails after the last byte', async () => {
+    ffmpeg.code = 1;
+    const { track, again } = await openTrack();
+
+    await readAll(track.read(0, size - 1, new AbortController().signal));
+    await settle();
+
+    expect(await again()).toBeDefined();
+  });
+
+  it('keeps the windows of a track whose ffmpeg was stopped', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    const { track, again } = await openTrack();
+    const reading = new AbortController();
+    const reader = track.read(wavHeaderSize, size - 1, reading.signal);
+    await next(reader);
+    await reader.return(undefined);
+
+    await vi.advanceTimersByTimeAsync(idleStopMs);
+
+    expect(decodes[0].kill).toHaveBeenCalled();
     expect(await again()).toBeDefined();
   });
 });
