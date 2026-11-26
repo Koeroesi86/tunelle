@@ -80,6 +80,7 @@ describe('decodeTrack', () => {
     const [program, args] = vi.mocked(spawn).mock.calls[0] as unknown as [string, string[]];
     expect(program).toBe(path.join('/app', '.cache', 'ffmpeg', 'install', 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'));
     expect(args).toEqual(expect.arrayContaining(['-i', source, '-map', '0:a:0', '-map_metadata', '-1', '-f', 'wav']));
+    expect(args.join(' ')).toContain('-rf64 auto -f wav');
   });
 
   it.each([

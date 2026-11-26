@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import { logError } from '../utils/log-error';
 import { idleStopMs, restAfterMs, type Reach } from './decode-policy';
 import { ffmpegProgram } from './ffmpeg-program';
-import { wavHeaderSize, wavSize, type WavLayout } from './wav-header';
+import { wavDataSize, type WavLayout } from './wav-header';
 
 export const rawFormats: Record<string, { format: string; bytesPerSample: number; float?: boolean }> = {
   pcm_s16le: { format: 's16le', bytesPerSample: 2 },
@@ -35,7 +35,7 @@ export type DecodeWindow = ReturnType<typeof openDecodeWindow>;
 /** The decoded bytes around the reads that use it, from the frame of `position`, and the ffmpeg that adds to them. See docs/app/decoder-proxy.md */
 export const openDecodeWindow = ({ source, encoder, layout }: Decoding, position: number, reach: Reach, { onMismatch, onClose }: Listeners) => {
   const frameSize = layout.channels * layout.bytesPerSample;
-  const total = wavSize(layout) - wavHeaderSize;
+  const total = wavDataSize(layout);
   const from = position - (position % frameSize);
   const chunks: Buffer[] = [];
   /** The bytes of samples that are held, from `start` up to `end` */

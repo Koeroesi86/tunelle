@@ -587,6 +587,45 @@ describe('AudioComponent radio reconnect', () => {
     expect(trackEnded).toHaveBeenCalledTimes(1);
   });
 
+  it('loads a file that fails once more where it was, and goes on playing it', () => {
+    const trackEnded = vi.fn();
+    const file = { ...station, path: '/music/a.flac' };
+    const view = render(
+      <AudioComponent
+        readFormat={noFormat}
+        devices={[]}
+        currentSong={file}
+        isPlaying
+        volume={1}
+        trackEnded={trackEnded}
+        connectNode={vi.fn()}
+        connectStandbyNode={vi.fn()}
+        activateNode={vi.fn()}
+        normalization="album"
+        setNormalization={vi.fn()}
+        outputDevice={undefined}
+        setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
+        upNext={null}
+      />
+    );
+    const audio = view.container.querySelector('audio') as HTMLAudioElement;
+    // jsdom loads nothing, so the position is only what is set
+    Object.defineProperty(audio, 'currentTime', { configurable: true, writable: true, value: 42 });
+    const setSource = vi.spyOn(audio, 'src', 'set').mockImplementation(() => {
+      audio.currentTime = 0;
+    });
+    play.mockClear();
+
+    fireEvent.error(audio);
+
+    expect(setSource).toHaveBeenCalledWith(`tunelle://app/track?path=${encodeURIComponent(file.path)}`);
+    expect(audio.currentTime).toBe(42);
+    expect(play).toHaveBeenCalledTimes(1);
+    expect(trackEnded).not.toHaveBeenCalled();
+  });
+
   it('moves on to the next track when a file cannot be played', () => {
     const trackEnded = vi.fn();
     const file = { ...station, path: '/mnt/usb/a.flac' };
@@ -611,6 +650,7 @@ describe('AudioComponent radio reconnect', () => {
       />
     );
 
+    fireEvent.error(view.container.querySelector('audio') as HTMLAudioElement);
     fireEvent.error(view.container.querySelector('audio') as HTMLAudioElement);
 
     expect(trackEnded).toHaveBeenCalledTimes(1);
@@ -640,6 +680,7 @@ describe('AudioComponent radio reconnect', () => {
       />
     );
 
+    fireEvent.error(view.container.querySelector('audio') as HTMLAudioElement);
     fireEvent.error(view.container.querySelector('audio') as HTMLAudioElement);
 
     expect(trackEnded).not.toHaveBeenCalled();

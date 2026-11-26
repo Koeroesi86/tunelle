@@ -5,7 +5,8 @@ import { ffmpegProgram } from './ffmpeg-program';
 import { toProbedFormat } from '../utils/codec-name';
 
 const probeSchema = z.object({
-  streams: z.array(z.object({ sample_rate: z.string(), channels: z.number(), time_base: z.string(), duration_ts: z.number() })).min(1),
+  streams: z.array(z.object({ codec_name: z.string(), sample_rate: z.string(), channels: z.number(), time_base: z.string(), duration_ts: z.number() })).min(1),
+  format: z.object({ format_name: z.string() }),
 });
 
 interface AudioLength {
@@ -44,14 +45,14 @@ const probe = <Schema extends z.ZodType>(source: string, entries: string, schema
 
 /**
  * The channels, the rate and the exact number of frames of the first audio stream, or undefined when they are not exact: a stream whose time base is not
- * one frame has a length that is only as precise as its timestamps. See docs/app/decoder-proxy.md
+ * one frame has a length that is only as precise as its timestamps, and ALAC in CAF says more frames than it has. See docs/app/decoder-proxy.md
  */
 export const probeAudio = async (source: string): Promise<AudioLength | undefined> => {
-  const stream = (await probe(source, 'stream=sample_rate,channels,time_base,duration_ts', probeSchema))?.streams[0];
-  const sampleRate = Number(stream?.sample_rate);
-  return stream && stream.time_base === `1/${sampleRate}` && stream.duration_ts > 0
-    ? { channels: stream.channels, sampleRate, frames: stream.duration_ts }
-    : undefined;
+  const found = await probe(source, 'stream=codec_name,sample_rate,channels,time_base,duration_ts:format=format_name', probeSchema);
+  if (!found || (found.streams[0].codec_name === 'alac' && found.format.format_name === 'caf')) return undefined;
+  const [stream] = found.streams;
+  const sampleRate = Number(stream.sample_rate);
+  return stream.time_base === `1/${sampleRate}` && stream.duration_ts > 0 ? { channels: stream.channels, sampleRate, frames: stream.duration_ts } : undefined;
 };
 
 /** The codec and the depth of the first audio stream as the library names them, and whether its samples are float */

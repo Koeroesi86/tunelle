@@ -78,6 +78,8 @@ const AudioComponent = ({
   const playingSince = useRef<number | undefined>(undefined);
   const stallTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const skipped = useRef(0);
+  // whether the current file was loaded once more after an error
+  const reloaded = useRef(false);
   const ended = useRef(false);
   const isRadio = currentSong !== null && radioUuidOf(currentSong.path) !== undefined;
   const shouldReconnect = isRadio && isPlaying;
@@ -117,6 +119,7 @@ const AudioComponent = ({
     if (ended.current) return;
 
     ended.current = true;
+    reloaded.current = false;
     trackEnded();
   };
 
@@ -137,11 +140,24 @@ const AudioComponent = ({
     if (skipped.current <= maxSkippedFiles) trackEnded();
   };
 
+  // a stream can break midway, as a decode that fails does: the file is loaded once more where it was, before it is passed over
+  const loadAgain = (song: Track) => {
+    reloaded.current = true;
+    gapless.cancelHandoff();
+    const position = gapless.activeElement()?.currentTime ?? 0;
+    const node = gapless.load(sourceOf(song));
+    if (!node) return;
+
+    node.currentTime = position;
+    if (isPlaying) node.play().catch((err) => console.error(err));
+  };
+
   const handleError = (index: number) => {
     if (!gapless.handleError(index)) return;
-
-    if (isRadio) reconnect();
-    else if (currentSong && isPlaying) skipUnplayable();
+    if (isRadio) return reconnect();
+    if (!currentSong) return;
+    if (!reloaded.current) return loadAgain(currentSong);
+    if (isPlaying) skipUnplayable();
   };
 
   const handlePlaying = (index: number) => {
@@ -214,6 +230,7 @@ const AudioComponent = ({
     stopReconnecting();
     attempts.current = 0;
     ended.current = false;
+    reloaded.current = false;
     const source = currentSong ? sourceOf(currentSong) : '';
     if (gapless.changeTrack(source, isPlaying)) return;
 

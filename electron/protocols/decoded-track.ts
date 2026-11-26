@@ -63,7 +63,27 @@ const runDecoder = (job: Job, source: string, encoder: string[], output: string)
   new Promise<boolean>((resolve) => {
     const child = spawn(
       ffmpegProgram(),
-      ['-nostdin', '-v', 'error', '-fflags', '+bitexact', '-i', source, '-map', '0:a:0', '-map_metadata', '-1', ...encoder, '-f', 'wav', '-y', output],
+      // `-rf64 auto`: a WAV over 4 GiB gets 64 bit sizes
+      [
+        '-nostdin',
+        '-v',
+        'error',
+        '-fflags',
+        '+bitexact',
+        '-i',
+        source,
+        '-map',
+        '0:a:0',
+        '-map_metadata',
+        '-1',
+        ...encoder,
+        '-rf64',
+        'auto',
+        '-f',
+        'wav',
+        '-y',
+        output,
+      ],
       { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true }
     );
     const errors: Buffer[] = [];

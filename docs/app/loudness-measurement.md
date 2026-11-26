@@ -55,7 +55,7 @@ A file longer than 10 minutes (`slicedFromSeconds` in `client/loudness/measure-t
 
 | Format | Cut | Left out of the piece |
 |---|---|---|
-| WAV | between two samples, with a header of its own for each piece and the format chunk of the file | nothing |
+| WAV and RF64 (the length of the sound from `ds64`, see [decoder-proxy.md](decoder-proxy.md#over-4-gib-rf64)) | between two samples, with a header of its own for each piece and the format chunk of the file | nothing |
 | FLAC | at the start of a frame (the sync code, allowed fields and the CRC-8 of the header, as the sync code alone is in the sound too often), with the stream marker and the metadata of the file in front; an ID3v2 tag before the marker and an ID3v1 tag (`TAG`, 128 bytes) after the last frame are left out, as a file with them (taggers add them) was cut as MP3, or ended in a piece the decoder rejects | nothing |
 | MP3 | at the start of a frame (three headers that follow each other by their lengths), a few frames early | the frames before the cut, which only give the decoder what the bit reservoir holds |
 | AAC with ADTS headers (`.aac`) | the same, by the length that each header tells; a tag in front is skipped | the frames before the cut, which only give the decoder the overlap of the one before |

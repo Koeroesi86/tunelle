@@ -4,8 +4,9 @@ import path from 'path';
 import { memoryFs } from '../test-memory-fs';
 import { behindBytes, idleStopMs, maxWindows, restAfterMs, windowMemoryLimit, windowReach, type SourceSpeed } from './decode-policy';
 import { probeAudio } from './probe-audio';
+import { serveWindowed } from './serve-windowed';
 import { sourceSpeed } from './source-speed';
-import { wavHeader, wavHeaderSize, type WavLayout } from './wav-header';
+import { wavHeader, type WavLayout } from './wav-header';
 
 const temp = path.join(path.sep, 'temp');
 const cache = path.join(temp, 'tunelle-whole-decodes');
@@ -21,6 +22,7 @@ vi.mock('./source-speed', () => ({ sourceSpeed: vi.fn() }));
 
 // 2000 bytes per second: a window of a fast source reaches 10000 bytes ahead, of a slow one 20000, and the track is 200000 bytes of samples
 const layout: WavLayout = { channels: 1, sampleRate: 1000, bytesPerSample: 2, frames: 100_000 };
+const wavHeaderSize = 44;
 const samples = 200_000;
 const size = wavHeaderSize + samples;
 const { ahead } = windowReach('fast', 2000);
@@ -343,6 +345,15 @@ describe('windowedTrack', () => {
 
     expect(bytes.equals(fileFrom(0, wavHeaderSize + Math.min(length, samples)))).toBe(true);
     expect(await again()).toBeUndefined();
+  });
+
+  it('fails the body of an answer when ffmpeg fails midway', async () => {
+    Object.assign(ffmpeg, { length: 3000, code: 1 });
+    const { track } = await openTrack();
+
+    const response = serveWindowed(track, new Request('tunelle://app/track'));
+
+    await expect(response.arrayBuffer()).rejects.toThrow('The decode ended before the end of the range');
   });
 
   it('ends the read when ffmpeg fails, without starting it again and again, and tries again for a later request', async () => {

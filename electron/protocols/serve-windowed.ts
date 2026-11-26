@@ -11,11 +11,17 @@ export const serveWindowed = (track: WindowedTrack, request: RouteRequest) => {
   const start = bounds?.start ?? 0;
   const end = bounds?.end ?? track.size - 1;
   const chunks = track.read(start, end, request.signal);
+  let missing = end - start + 1;
   const body = new ReadableStream<Uint8Array>({
     pull: async (controller) => {
       const next = await chunks.next();
-      if (next.done) controller.close();
-      else controller.enqueue(next.value);
+      if (!next.done) {
+        missing -= next.value.length;
+        return controller.enqueue(next.value);
+      }
+      // a body that closes short looks like a whole answer to `fetch`, and the player asks for the rest of it at once
+      if (missing > 0 && !request.signal.aborted) return controller.error(new Error('The decode ended before the end of the range'));
+      controller.close();
     },
     cancel: async () => {
       await chunks.return(undefined);

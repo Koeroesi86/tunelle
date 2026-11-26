@@ -14,6 +14,7 @@ const ascii = (text: string) => [...text].map((letter) => letter.charCodeAt(0));
 describe('slicerOf', () => {
   it.each([
     ['WAV', [...ascii('RIFF'), 0, 0, 0, 0, ...ascii('WAVE')], sliceWav],
+    ['RF64', [...ascii('RF64'), 255, 255, 255, 255, ...ascii('WAVE')], sliceWav],
     ['FLAC', ascii('fLaC'), sliceFlac],
     ['MP3 with a tag', ascii('ID3'), sliceMp3],
     ['MP3 without a tag', [0xff, 0xfb, 0x90], sliceMp3],

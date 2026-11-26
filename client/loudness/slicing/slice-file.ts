@@ -23,7 +23,7 @@ const framesSlicer = async (read: ReadRange) => {
 export const slicerOf = async (read: ReadRange): Promise<Slicer | undefined> => {
   const head = await read(0, 12);
   if (!head) return undefined;
-  if (text(head, 0, 4) === 'RIFF' && text(head, 8, 12) === 'WAVE') return sliceWav;
+  if (['RIFF', 'RF64'].includes(text(head, 0, 4)) && text(head, 8, 12) === 'WAVE') return sliceWav;
   if (text(head, 0, 4) === 'fLaC') return sliceFlac;
   if (text(head, 0, 4) === 'OggS') return sliceOgg;
   if (mp4Boxes.includes(text(head, 4, 8))) return sliceMp4;
