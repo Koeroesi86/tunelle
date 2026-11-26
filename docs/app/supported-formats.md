@@ -1,6 +1,6 @@
 # Supported formats
 
-The library scan keeps the files whose extension is in `supportedFormats` of `electron/utils/is-supported.ts`: `flac`, `mp3`, `wav`, `aac`, `ogg` (also `oga`), `opus`, the MP4 family (`m4a`, `m4b`, `m4r`), `mp2`, `ape`, `wv`, `aif`, `aiff`, `aifc`, `dsf`, `dff`, `wma` and `asf`.
+The library scan keeps the files whose extension is in `supportedFormats` of `electron/utils/is-supported.ts`: `flac`, `mp3`, `wav`, `aac`, `ogg` (also `oga`), `opus`, the MP4 family (`m4a`, `m4b`, `m4r`), `mp2`, `ape`, `wv`, `aif`, `aiff`, `aifc`, `dsf`, `dff`, `wma`, `asf`, `mka`, `weba`, `w64` and `caf`.
 
 These are the formats that Chromium plays in an `<audio>` element and decodes with `decodeAudioData`. The list is what the player can play, so a file the player cannot open is not in the library.
 

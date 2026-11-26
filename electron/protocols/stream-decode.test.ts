@@ -109,6 +109,50 @@ describe('decodeStream', () => {
     expect(logError).toHaveBeenCalledTimes(1);
   });
 
+  const losses = [
+    ['destroyed', undefined],
+    ['errored', new Error('socket hang up')],
+  ] as const;
+  const dropped = () => new PassThrough().on('error', () => undefined);
+
+  it.each(losses)('ends ffmpeg of an input that was %s before it starts', async (_name, error) => {
+    const child = fakeFfmpeg();
+    child.kill.mockImplementation(() => child.emit('close', null));
+    const rest = dropped().destroy(error);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(await decodeStream(Buffer.from('head'), rest, ['-c:a', 'pcm_s16le'], vi.fn())).toBeUndefined();
+    expect(child.kill).toHaveBeenCalled();
+  });
+
+  it.each(losses)('ends ffmpeg of an input that is %s while it decodes', async (_name, error) => {
+    const child = fakeFfmpeg();
+    const rest = dropped();
+    const decoding = decodeStream(Buffer.from('head'), rest, ['-c:a', 'pcm_s16le'], vi.fn());
+    child.stdout.write(wav(44100));
+    await decoding;
+
+    rest.destroy(error);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(child.kill).toHaveBeenCalled();
+  });
+
+  it('lets ffmpeg finish an input that ended before it starts', async () => {
+    const child = fakeFfmpeg();
+    const rest = new PassThrough();
+    rest.end();
+    await peekStream(rest, () => undefined);
+
+    const decoding = decodeStream(Buffer.from('head'), rest, ['-c:a', 'pcm_s16le'], vi.fn());
+    child.stdout.write(wav(44100));
+    await decoding;
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(child.kill).not.toHaveBeenCalled();
+    expect(child.stdin.writableEnded).toBe(true);
+  });
+
   it('gives undefined when ffmpeg ends with no audio', async () => {
     const child = fakeFfmpeg();
     const decoding = decodeStream(Buffer.from('head'), new PassThrough(), ['-c:a', 'pcm_s16le'], vi.fn());
