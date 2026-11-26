@@ -24,8 +24,8 @@ export interface Cursor {
 }
 
 interface Listeners {
-  /** ffmpeg gave another number of samples than the file said */
-  onMismatch: () => void;
+  /** ffmpeg failed, or gave another number of samples than the file said */
+  onFailure: () => void;
   /** The window takes no new reads any more */
   onClose: () => void;
 }
@@ -33,7 +33,7 @@ interface Listeners {
 export type DecodeWindow = ReturnType<typeof openDecodeWindow>;
 
 /** The decoded bytes around the reads that use it, from the frame of `position`, and the ffmpeg that adds to them. See docs/app/decoder-proxy.md */
-export const openDecodeWindow = ({ source, encoder, layout }: Decoding, position: number, reach: Reach, { onMismatch, onClose }: Listeners) => {
+export const openDecodeWindow = ({ source, encoder, layout }: Decoding, position: number, reach: Reach, { onFailure, onClose }: Listeners) => {
   const frameSize = layout.channels * layout.bytesPerSample;
   const total = wavDataSize(layout);
   const from = position - (position % frameSize);
@@ -169,11 +169,10 @@ export const openDecodeWindow = ({ source, encoder, layout }: Decoding, position
     const code = await closed;
     if (ffmpeg !== child) return;
     const mismatch = excess || (code === 0 && end !== total);
-    if (mismatch) {
-      logError(new Error(`ffmpeg wrote another number of bytes of ${source} than the ${total} that the file said`));
-      onMismatch();
-    }
+    if (mismatch) logError(new Error(`ffmpeg wrote another number of bytes of ${source} than the ${total} that the file said`));
     if (!mismatch && code !== 0) logError(new Error(`ffmpeg failed on ${source}: ${Buffer.concat(errors).toString().trim()}`));
+    // an exit with an error after the last byte took nothing away, and the whole decode would fail on it
+    if (mismatch || end !== total) onFailure();
     finish(end === total ? 'done' : 'failed');
   };
 

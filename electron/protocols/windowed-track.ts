@@ -42,7 +42,7 @@ const openWindow = ({ key, reach, ...decoding }: Source, position: number) => {
   // a window that decodes on starts ffmpeg on the file again
   const release = holdFile(decoding.source);
   const window: DecodeWindow = openDecodeWindow(decoding, position, reach, {
-    onMismatch: () => wholeOnly.add(key),
+    onFailure: () => wholeOnly.add(key),
     onClose: () => {
       release();
       windows.delete(window);

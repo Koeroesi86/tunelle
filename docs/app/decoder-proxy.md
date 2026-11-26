@@ -24,9 +24,9 @@ A window (`decode-window.ts`) starts with an ffmpeg run from the frame of the re
 - A window that has an open reader is kept however long that reader waits (a paused player does not read, and its request may stay open). One without a reader is dropped after 5 minutes, and a later request decodes again.
 - The preloaded next track opens a window, decodes it and waits there, without its ffmpeg after 10 s.
 - Windows do not take the two places of the whole decodes, as most of their time is spent waiting for the reader.
-- A decode that gives another number of bytes than the file said is logged, and that track uses the whole decode from then on (until the app restarts).
+- A decode that gives another number of bytes than the file said, or an ffmpeg of a window that exits with an error before the last byte (not one that the app stopped), is logged, and that track uses the whole decode from then on (until the app restarts). The player loads a track whose answer failed once more, which takes the whole decode; until [#583](https://github.com/Koeroesi86/tunelle/issues/583) the reload opened another window, and the track was skipped. No file is known for which the whole decode does better, and one that fails whole too answers as in [The route](#the-route).
 - ALAC in CAF takes the whole decode from the start: `ffprobe` says 264600 frames of the fixture and the decode gives 262960 (`probe-audio.ts` gives no length for it, by the codec and the container of the file).
-- A decode that fails ends the read, without being started again for it; a later request tries again. The body of the answer [fails](#a-stream-that-ends-early).
+- A decode that fails ends the read, without being started again for it. The body of the answer [fails](#a-stream-that-ends-early), and the next request of the track takes the whole decode.
 
 Not tested: Windows and macOS in the real app, and whether a sleeping disk wakes within the half of the reach that is left when ffmpeg starts again.
 
