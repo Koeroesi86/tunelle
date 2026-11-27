@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'fs';
 import { createServer } from 'http';
-import type { ServerResponse, IncomingMessage } from 'http';
+import type { ServerResponse, IncomingMessage, RequestListener } from 'http';
 import type { AddressInfo } from 'net';
 import { join } from 'path';
 import { drawCover, writeFlac } from './screenshot-media';
@@ -204,10 +204,10 @@ const portOf = (address: string | AddressInfo | null) => (address && typeof addr
 const json = (response: ServerResponse, body: unknown) => response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(body));
 
 /**
- * A station directory of the stations above, whose first station plays silence and announces a song with the cover of its album:
- * the app is pointed to it with TUNELLE_RADIO_DIRECTORY, so no real station and no search of an image on the internet is involved
+ * A station directory of the stations above, whose first station plays silence and announces a song with the cover of its album
+ * (`station` answers for every stream instead). With TUNELLE_RADIO_DIRECTORY no real station or image search is involved
  */
-const startDirectory = () => {
+const startDirectory = (station?: RequestListener) => {
   const announcement = `${announced.album.artist} - ${announced.album.tracks[announced.track]}`;
   let origin = '';
   const directory = () => stations.map((station, index) => toDirectoryStation(station, index, origin));
@@ -255,7 +255,7 @@ const startDirectory = () => {
     if (pathname.startsWith('/json/url/')) return json(response, { url: `${origin}/station` });
     const listed = new Map(Object.entries(options)).get(pathname);
     if (listed) return json(response, listed);
-    if (pathname === '/station') return stream(request, response);
+    if (pathname === '/station') return (station ?? stream)(request, response);
     if (pathname.startsWith('/logo/')) return response.writeHead(200, { 'content-type': 'image/png' }).end(logos[Number.parseInt(pathname.slice(6))]);
     if (pathname === '/cover.png') return response.writeHead(200, { 'content-type': 'image/png' }).end(cover);
     return response.writeHead(404).end();

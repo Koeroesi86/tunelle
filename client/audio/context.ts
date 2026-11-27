@@ -70,11 +70,11 @@ const listenToPlayStatus = (node: HTMLAudioElement) => {
   // a track that reaches its end is paused before it ends: that is not a pause of the listener, the next track follows
   node.addEventListener('pause', () => isActive() && !node.ended && playStatus.notify(false));
   node.addEventListener('play', () => isActive() && playStatus.notify(true));
+  // the player stays playing: what follows a failure (another load, the next track, a reconnect) is for AudioComponent to decide
   node.addEventListener('error', () => {
     if (!isActive()) return;
 
     console.warn('error playing', node.src);
-    playStatus.notify(false);
     playFailure.notify(undefined);
   });
 };

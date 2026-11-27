@@ -20,6 +20,7 @@ const mapState = (state: RootState) => ({
 
 const mapDispatch = (dispatch: Dispatch<AppAction>) => ({
   trackEnded: () => dispatch({ type: 'TRACK_ENDED', payload: {} }),
+  stopPlaying: () => dispatch({ type: 'SET_PLAYING', payload: { isPlaying: false } }),
   readFormat: fetchTrackFormat,
 });
 
