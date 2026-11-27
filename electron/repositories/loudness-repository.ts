@@ -13,8 +13,8 @@ import { trackLoudnessRowSchema } from '../schemas/database/track-loudness';
 export const saveTrackLoudness = (database: Database, row: TrackLoudness) =>
   executeQuery(database, {
     query: `INSERT OR REPLACE INTO track_loudness
-      (path, status, trackGain, trackPeak, albumGain, albumPeak, albumTracks, fileModified, fileSize, analysisVersion, reason, analysis)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (path, status, trackGain, trackPeak, albumGain, albumPeak, albumTracks, fileModified, fileSize, analysisVersion, reason, analysis, appVersion)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     variables: [
       row.path,
       row.status,
@@ -28,6 +28,7 @@ export const saveTrackLoudness = (database: Database, row: TrackLoudness) =>
       row.analysisVersion,
       row.reason,
       row.analysis ? JSON.stringify(row.analysis) : null,
+      row.appVersion,
     ],
   });
 
@@ -48,26 +49,35 @@ const trackToMeasureRowSchema = libraryRowSchema.pick({ path: true, duration: tr
 
 export type TrackToMeasure = z.output<typeof trackToMeasureRowSchema>;
 
+/** What a stored row has to match to count: the version of the analysis, and for a failure the version of the app too */
+export interface LoudnessVersions {
+  analysisVersion: number;
+  appVersion: string;
+}
+
+// a row is current while it is of the file as it is and of the analysis version; a failure only for the app version that met it
+const isCurrent = `track_loudness.analysisVersion = ? AND track_loudness.fileModified IS library.fileModified
+  AND track_loudness.fileSize IS library.fileSize AND (track_loudness.status != 'failed' OR track_loudness.appVersion IS ?)`;
+
 /**
- * The tracks after a path, in the order of their paths, that have no measurement to go by: none, one of another file than the library has now (a changed
- * file), or one of an older version. A failed measurement is not tried again until the file changes or the version rises
+ * The tracks after a path, in the order of their paths, that have no current row: none, one of another file than the library has now (a changed
+ * file), one of an older analysis version, or a failure of another version of the app
  */
-export const findTracksToMeasure = (database: Database, afterPath: string, limit: number, version: number) =>
+export const findTracksToMeasure = (database: Database, afterPath: string, limit: number, { analysisVersion, appVersion }: LoudnessVersions) =>
   executeQuery(
     database,
     {
       query: `SELECT library.path, library.duration, library.fileModified, library.fileSize, library.trackGain, library.trackPeak
       FROM library LEFT JOIN track_loudness ON track_loudness.path = library.path
-      WHERE library.path > ? AND (track_loudness.path IS NULL OR track_loudness.analysisVersion != ?
-        OR track_loudness.fileModified IS NOT library.fileModified OR track_loudness.fileSize IS NOT library.fileSize)
+      WHERE library.path > ? AND (track_loudness.path IS NULL OR NOT (${isCurrent}))
       ORDER BY library.path ASC LIMIT ?`,
-      variables: [afterPath, version, limit],
+      variables: [afterPath, analysisVersion, appVersion, limit],
     },
     trackToMeasureRowSchema
   );
 
-/** The given tracks of the library that have no measurement to go by, by the same rule as `findTracksToMeasure` */
-export const findTracksToMeasureAmong = (database: Database, paths: string[], version: number) =>
+/** The given tracks of the library that have no current row, by the same rule as `findTracksToMeasure` */
+export const findTracksToMeasureAmong = (database: Database, paths: string[], { analysisVersion, appVersion }: LoudnessVersions) =>
   paths.length === 0
     ? Promise.resolve([])
     : executeQuery(
@@ -75,9 +85,8 @@ export const findTracksToMeasureAmong = (database: Database, paths: string[], ve
         {
           query: `SELECT library.path, library.duration, library.fileModified, library.fileSize, library.trackGain, library.trackPeak
       FROM library LEFT JOIN track_loudness ON track_loudness.path = library.path
-      WHERE library.path IN (${paths.map(() => '?').join(', ')}) AND (track_loudness.path IS NULL OR track_loudness.analysisVersion != ?
-        OR track_loudness.fileModified IS NOT library.fileModified OR track_loudness.fileSize IS NOT library.fileSize)`,
-          variables: [...paths, version],
+      WHERE library.path IN (${paths.map(() => '?').join(', ')}) AND (track_loudness.path IS NULL OR NOT (${isCurrent}))`,
+          variables: [...paths, analysisVersion, appVersion],
         },
         trackToMeasureRowSchema
       );
@@ -150,32 +159,30 @@ export const saveAlbumGain = (database: Database, paths: string[], gain: { album
     }))
   );
 
-/** How many tracks have a measurement of their file as it is, and how many could not be measured (a failure counts until the file changes or the version rises) */
-export const getLoudnessProgress = (database: Database, version: number) =>
+/** How many tracks have a measurement of their file as it is, and how many could not be measured, under the rule of `findTracksToMeasure` */
+export const getLoudnessProgress = (database: Database, { analysisVersion, appVersion }: LoudnessVersions) =>
   executeQuery(
     database,
     {
       query: `SELECT COUNT(*) AS total,
         COALESCE(SUM(CASE WHEN track_loudness.status = 'measured' THEN 1 ELSE 0 END), 0) AS measured,
         COALESCE(SUM(CASE WHEN track_loudness.status = 'failed' THEN 1 ELSE 0 END), 0) AS failed
-      FROM library LEFT JOIN track_loudness ON track_loudness.path = library.path
-        AND track_loudness.analysisVersion = ? AND track_loudness.fileModified IS library.fileModified AND track_loudness.fileSize IS library.fileSize`,
-      variables: [version],
+      FROM library LEFT JOIN track_loudness ON track_loudness.path = library.path AND ${isCurrent}`,
+      variables: [analysisVersion, appVersion],
     },
     loudnessProgressSchema
   ).then(([status]): LoudnessProgress => status);
 
-/** The tracks that could not be measured, by path, under the same rule as the count: a failure counts until the file changes or the version rises */
-export const getFailedLoudnessTracks = (database: Database, version: number) =>
+/** The tracks that could not be measured, by path, under the same rule as the count */
+export const getFailedLoudnessTracks = (database: Database, { analysisVersion, appVersion }: LoudnessVersions) =>
   executeQuery(
     database,
     {
       query: `SELECT library.path AS path, track_loudness.reason AS reason
-      FROM library JOIN track_loudness ON track_loudness.path = library.path
-        AND track_loudness.analysisVersion = ? AND track_loudness.fileModified IS library.fileModified AND track_loudness.fileSize IS library.fileSize
+      FROM library JOIN track_loudness ON track_loudness.path = library.path AND ${isCurrent}
       WHERE track_loudness.status = 'failed'
       ORDER BY library.path`,
-      variables: [version],
+      variables: [analysisVersion, appVersion],
     },
     failedLoudnessTrackSchema
   );

@@ -19,6 +19,7 @@ vi.mock('../database/execute-query', () => ({ default: vi.fn() }));
 vi.mock('../database/execute-queries', () => ({ default: vi.fn() }));
 
 const database = fakeDatabase();
+const versions = { analysisVersion: 4, appVersion: '26.11.30' };
 const last = () => vi.mocked(executeQuery).mock.calls.at(-1)?.[1];
 const row = {
   path: '/m/a.flac',
@@ -33,6 +34,7 @@ const row = {
   analysisVersion: 4,
   reason: null,
   analysis: null,
+  appVersion: null,
 };
 
 describe('the loudness repository', () => {
@@ -46,8 +48,8 @@ describe('the loudness repository', () => {
     await saveTrackLoudness(database, { ...row, analysis: { blocks: [] } as never });
 
     const [first, second] = vi.mocked(executeQuery).mock.calls.map(([, query]) => query.variables);
-    expect(first).toEqual(['/m/a.flac', 'measured', -3, 0.9, null, null, null, 1, 2, 4, null, null]);
-    expect(second.at(-1)).toBe('{"blocks":[]}');
+    expect(first).toEqual(['/m/a.flac', 'measured', -3, 0.9, null, null, null, 1, 2, 4, null, null, null]);
+    expect(second.at(-2)).toBe('{"blocks":[]}');
   });
 
   it('finds no analysis for a track that has none, and reads the stored one back', async () => {
@@ -56,19 +58,19 @@ describe('the loudness repository', () => {
   });
 
   it('asks for the tracks after a path in the order of their paths, with the version', async () => {
-    await findTracksToMeasure(database, '/m/a', 50, 4);
+    await findTracksToMeasure(database, '/m/a', 50, versions);
 
-    expect(last()?.variables).toEqual(['/m/a', 4, 50]);
+    expect(last()?.variables).toEqual(['/m/a', 4, '26.11.30', 50]);
     expect(last()?.query).toContain('ORDER BY library.path ASC LIMIT ?');
   });
 
   it('asks for none among no paths, and for the given ones otherwise', async () => {
-    expect(await findTracksToMeasureAmong(database, [], 4)).toEqual([]);
+    expect(await findTracksToMeasureAmong(database, [], versions)).toEqual([]);
     expect(executeQuery).not.toHaveBeenCalled();
 
-    await findTracksToMeasureAmong(database, ['/a', '/b'], 4);
+    await findTracksToMeasureAmong(database, ['/a', '/b'], versions);
 
-    expect(last()?.variables).toEqual(['/a', '/b', 4]);
+    expect(last()?.variables).toEqual(['/a', '/b', 4, '26.11.30']);
     expect(last()?.query).toContain('IN (?, ?)');
   });
 
@@ -105,11 +107,11 @@ describe('the loudness repository', () => {
   it('counts how far the measurement is, and lists the failures by the same rule', async () => {
     vi.mocked(executeQuery).mockResolvedValueOnce([{ total: 4, measured: 3, failed: 1 }]);
 
-    expect(await getLoudnessProgress(database, 4)).toEqual({ total: 4, measured: 3, failed: 1 });
+    expect(await getLoudnessProgress(database, versions)).toEqual({ total: 4, measured: 3, failed: 1 });
 
-    await getFailedLoudnessTracks(database, 4);
+    await getFailedLoudnessTracks(database, versions);
     expect(last()?.query).toContain("track_loudness.status = 'failed'");
-    expect(last()?.variables).toEqual([4]);
+    expect(last()?.variables).toEqual([4, '26.11.30']);
   });
 
   it('forgets every measurement', async () => {

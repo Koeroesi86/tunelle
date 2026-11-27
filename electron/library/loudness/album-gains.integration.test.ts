@@ -50,6 +50,7 @@ const measured = (path: string, bin: number, peak: number, extra: Partial<TrackL
   analysisVersion: 1,
   reason: null,
   analysis: analysisOf(bin, peak),
+  appVersion: null,
   ...extra,
 });
 

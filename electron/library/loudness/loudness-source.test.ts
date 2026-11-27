@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { app } from 'electron';
 import type { LoudnessAnalysis, LoudnessProgress, TrackLoudness } from '@shared/types/loudness';
 import { analysisVersion } from '@shared/constants/loudness';
 import { backgroundQueue } from '../tasks/background-queue';
@@ -16,6 +17,7 @@ import type { Task } from '../tasks/task-queue';
 import { fakeDatabase } from '../../test-fake-database';
 
 // everything the source reads or does outside of itself is replaced: the database and what is read from it, the drives, the window, the system and the queue
+vi.mock('electron', () => ({ app: { getVersion: vi.fn() } }));
 vi.mock('../../power/power-state', () => ({ savingPower: vi.fn(), onPowerSavingChange: vi.fn() }));
 vi.mock('./album-gains', () => ({ poolAlbumGains: vi.fn() }));
 vi.mock('./loudness-window', () => ({ createLoudnessWindow: vi.fn() }));
@@ -65,6 +67,7 @@ const track = (file: string, extra: Partial<TrackToMeasure> = {}): TrackToMeasur
 });
 
 const idle = 30_000;
+const versions = { analysisVersion, appVersion: '26.11.30' };
 const rest = 60_000;
 const byPath = (a: TrackToMeasure, b: TrackToMeasure) => a.path.localeCompare(b.path);
 
@@ -100,6 +103,7 @@ describe('the measurement of the loudness as a source of the background queue', 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date', 'setTimeout'] });
     vi.setSystemTime(1_000_000);
+    vi.mocked(app.getVersion).mockReturnValue(versions.appVersion);
     delete process.env.TUNELLE_LOUDNESS_IDLE_SECONDS;
     library = [];
     stored = [];
@@ -187,6 +191,7 @@ describe('the measurement of the loudness as a source of the background queue', 
         fileModified: 100,
         fileSize: 1000,
         analysisVersion,
+        appVersion: null,
         analysis,
       });
     });
@@ -220,17 +225,17 @@ describe('the measurement of the loudness as a source of the background queue', 
       expect(measure.mock.calls.map(([file]) => file)).toEqual(keys);
     });
 
-    it('asks for the tracks after the last one it was given, with the version of the analysis, and from the start again after the rest', async () => {
+    it('asks for the tracks after the last one it was given, with the versions of the analysis and the app, and from the start again after the rest', async () => {
       library = [track('/music/a.flac')];
       register();
       await drain();
       elapse(rest + 1);
       await source.next();
 
-      expect(vi.mocked(findTracksToMeasure).mock.calls.map(([, afterPath, , version]) => [afterPath, version])).toEqual([
-        ['', analysisVersion],
-        ['/music/a.flac', analysisVersion],
-        ['', analysisVersion],
+      expect(vi.mocked(findTracksToMeasure).mock.calls.map(([, afterPath, , asked]) => [afterPath, asked])).toEqual([
+        ['', versions],
+        ['/music/a.flac', versions],
+        ['', versions],
       ]);
     });
 
@@ -538,7 +543,9 @@ describe('the measurement of the loudness as a source of the background queue', 
       measure.mockResolvedValue({ id: 1, outcome: 'undecodable' });
       register();
       await drain();
-      expect(stored).toEqual([expect.objectContaining({ status: 'failed', reason: 'undecodable', trackGain: null, analysis: null })]);
+      expect(stored).toEqual([
+        expect.objectContaining({ status: 'failed', reason: 'undecodable', trackGain: null, analysis: null, appVersion: versions.appVersion }),
+      ]);
 
       elapse(rest + 1);
       await drain();
@@ -839,7 +846,7 @@ describe('the measurement of the loudness as a source of the background queue', 
       await drain();
 
       expect(await loudness.status()).toEqual({ total: 1, measured: 1, failed: 0 });
-      expect(getLoudnessProgress).toHaveBeenLastCalledWith(database, analysisVersion);
+      expect(getLoudnessProgress).toHaveBeenLastCalledWith(database, versions);
     });
 
     it('does not stop measuring when the counts cannot be read', async () => {

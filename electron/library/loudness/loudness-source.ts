@@ -1,5 +1,6 @@
 import { secondsSchema } from '../../schemas/environment';
 import path from 'path';
+import { app } from 'electron';
 import type { Database } from 'sqlite3';
 import type { LoudnessProgress, TrackLoudness } from '@shared/types/loudness';
 import { analysisVersion } from '@shared/constants/loudness';
@@ -64,7 +65,10 @@ const isOff = (settings: unknown) => readMainSettings(settings).measureLoudness 
 
 type Failure = 'crashed' | 'too-large' | 'silent' | 'undecodable' | 'timeout';
 
-const row = (track: TrackToMeasure, fields: Pick<TrackLoudness, 'status' | 'reason' | 'analysis' | 'trackGain' | 'trackPeak'>): TrackLoudness => ({
+const row = (
+  track: TrackToMeasure,
+  fields: Pick<TrackLoudness, 'status' | 'reason' | 'analysis' | 'trackGain' | 'trackPeak'> & Partial<Pick<TrackLoudness, 'appVersion'>>
+): TrackLoudness => ({
   path: track.path,
   albumGain: null,
   albumPeak: null,
@@ -73,6 +77,7 @@ const row = (track: TrackToMeasure, fields: Pick<TrackLoudness, 'status' | 'reas
   fileModified: track.fileModified ?? null,
   fileSize: track.fileSize ?? null,
   analysisVersion,
+  appVersion: null,
   ...fields,
 });
 
@@ -80,7 +85,9 @@ const row = (track: TrackToMeasure, fields: Pick<TrackLoudness, 'status' | 'reas
 const isFailure = (outcome: Measurement['outcome']): outcome is 'crashed' | 'silent' | 'undecodable' | 'too-large' =>
   ['crashed', 'silent', 'undecodable', 'too-large'].includes(outcome);
 
-const failed = (track: TrackToMeasure, reason: Failure) => row(track, { status: 'failed', reason, analysis: null, trackGain: null, trackPeak: null });
+// a failure keeps the version of the app, as the next one tries the track again
+const failed = (track: TrackToMeasure, reason: Failure) =>
+  row(track, { status: 'failed', reason, analysis: null, trackGain: null, trackPeak: null, appVersion: app.getVersion() });
 
 /** What to store for a measurement, undefined for one that is tried again later: a drive that went away says nothing about the file */
 const toRow = (track: TrackToMeasure, measurement: Measurement): TrackLoudness | undefined => {
@@ -101,6 +108,7 @@ const toRow = (track: TrackToMeasure, measurement: Measurement): TrackLoudness |
 /** Puts the measurement of the loudness of the library on the background queue as a source of tasks, one track a task. See docs/app/loudness-background.md */
 export const registerLoudness = (database: Database, pageUrl: string, onStatus: (status: LoudnessProgress) => void) => {
   const window = createLoudnessWindow(pageUrl);
+  const versions = { analysisVersion, appVersion: app.getVersion() };
   // the library folders, which are the mounts a track can be on: looked at with each batch of tracks
   let folders: string[] = [];
   let cursor = '';
@@ -140,7 +148,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
   // the tracks that timed out, by path, and how many times in a row; it is kept while the app runs
   const timeouts = new Map<string, number>();
 
-  const status = () => getLoudnessProgress(database, analysisVersion);
+  const status = () => getLoudnessProgress(database, versions);
 
   const reportStatus = () => {
     statusAt = Date.now();
@@ -212,7 +220,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
     // while power is saved only the track that plays is measured: the others come with the pass, when the charger is back
     if ((savingPower() && !nowPlaying) || (await readOff())) return;
 
-    const tracks = await findTracksToMeasureAmong(database, paths, analysisVersion);
+    const tracks = await findTracksToMeasureAmong(database, paths, versions);
     folders = await readFolders();
     paths
       .flatMap((path) => tracks.filter((track) => track.path === path))
@@ -239,7 +247,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
       return { key: track.path, run: measure(track) };
     }
 
-    const batch = await findTracksToMeasure(database, cursor, batchSize, analysisVersion);
+    const batch = await findTracksToMeasure(database, cursor, batchSize, versions);
     if (batch.length === 0) {
       cursor = '';
       restUntil = Date.now() + restPause;
@@ -275,7 +283,7 @@ export const registerLoudness = (database: Database, pageUrl: string, onStatus: 
 
   return {
     status,
-    failed: () => getFailedLoudnessTracks(database, analysisVersion),
+    failed: () => getFailedLoudnessTracks(database, versions),
     /** The settings were saved: the count that waits follows the switch at once, not when the source is next asked to run */
     checkSetting: async () => {
       // the page saves its settings on the way out, and the database is closed by the time this is asked

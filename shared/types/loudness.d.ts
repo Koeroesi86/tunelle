@@ -20,6 +20,8 @@ export interface TrackLoudness {
   analysisVersion: number;
   reason: string | null;
   analysis: LoudnessAnalysis | null;
+  /** The version of the app that failed to measure the file, null for a measurement */
+  appVersion: string | null;
 }
 
 /** What the main process asks the measuring page for */
