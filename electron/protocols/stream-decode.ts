@@ -102,12 +102,14 @@ export const decodeStream = (head: Buffer, rest: Readable, encoder: string[], on
     child.stdin.on('error', () => undefined);
     child.on('error', fallBack);
     child.on('close', (code) => fallBack(new Error(`ffmpeg gave no audio (${code}): ${Buffer.concat(errors).toString().trim()}`)));
+    // not the default SIGTERM: ffmpeg that waits for input stays after it on Linux. See docs/app/playback-failures.md
+    const stop = () => child.kill('SIGKILL');
     audio.on('close', () => {
-      child.kill();
+      stop();
       rest.destroy();
     });
     // an input that fails or is destroyed never ends ffmpeg's: `finished` also tells of one that did so before this call
-    finished(rest, { writable: false }, (error) => error && child.kill());
+    finished(rest, { writable: false }, (error) => error && stop());
 
     const wavStart = new WavStart((sampleRate) => {
       started = true;
