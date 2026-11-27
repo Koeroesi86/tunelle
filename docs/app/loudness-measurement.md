@@ -36,6 +36,7 @@ ITU-R BS.1770 / EBU R128 at 48 kHz, the rate `decodeAudioData` resamples to:
 - `summarise.ts` gates the blocks (-70 LUFS absolute, then 10 LU below the rest), gives the integrated loudness, the loudness range (3 s short term values, gates at -70 and -20 LU, the 10th to the 95th percentile), the curve, the histogram (bins of 0.1 LU keyed by the bin number) and the gain to -18 LUFS.
 - `summarise` takes the `BlockStats` of one or more parts and pools their blocks for the gating, the histogram and the peak.
 - The peak is the highest sample after the resampling, not a true peak.
+- [The EBU reference cases](loudness-reference-cases.md) lists the test signals the measurement is checked against, and where it differs from the documents.
 
 ## The gain of an album
 

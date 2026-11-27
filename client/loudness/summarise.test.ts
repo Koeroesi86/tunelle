@@ -31,9 +31,13 @@ describe('summarise', () => {
   it.each([
     ['no block at all', stats(new Float64Array(0))],
     ['blocks of silence', stats(new Float64Array(50))],
-    ['blocks under the absolute gate of -70 LUFS', stats(blocks(-80, 50))],
+    ['blocks just under the absolute gate of -70 LUFS', stats(blocks(-70.1, 50))],
   ])('has no loudness for %s', (_, part) => {
     expect(summarise([part])).toBeUndefined();
+  });
+
+  it('measures blocks just over the absolute gate of -70 LUFS', () => {
+    expect(summarise([stats(blocks(-69.9, 50))])?.analysis.integratedLufs).toBeCloseTo(-69.9, 6);
   });
 
   it('leaves out the blocks under the absolute gate: a quiet part does not lower the loudness', () => {
