@@ -41,3 +41,10 @@ A connection that stays open without sending never ends or fails. The player sta
 - **Check:** `e2e/functional/channel-mixing.spec.ts` plays a mono track with a three channel track next and listens to both sides.
 
 It was found while looking into [#591](https://github.com/Koeroesi86/tunelle/issues/591); that this is what happened there is not known.
+
+## A restored track starts where it was left
+
+- **Symptom:** after a restart the queue and the track were back, but the track started at 0.
+- **Cause:** the saved position arrives together with the track. `seek` of `client/audio/context.ts` drops a seek while the element has no duration, which is the case before the source is loaded, and the time reporter then wrote the 0 of the element over the saved position.
+- **Fix:** `AudioComponent` takes `pausedAt` (the position, only while paused) and sets it on the element right after it loads a track paused. A station is live and takes none.
+- **Check:** `npx playwright test --project=e2e restart` after `npm run build`.

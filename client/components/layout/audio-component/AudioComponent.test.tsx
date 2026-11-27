@@ -72,6 +72,38 @@ describe('AudioComponent', () => {
     expect(play).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['a file', { ...station, path: '/music/a.flac' }, 42],
+    ['a station, which is live,', station, 0],
+  ])('loads %s that is restored paused at its place', (_, song, position) => {
+    const view = renderAudio(null);
+    view.rerender(
+      <AudioComponent
+        readFormat={noFormat}
+        devices={[]}
+        currentSong={song}
+        isPlaying={false}
+        pausedAt={42}
+        volume={1}
+        trackEnded={vi.fn()}
+        stopPlaying={vi.fn()}
+        connectNode={vi.fn()}
+        connectStandbyNode={vi.fn()}
+        activateNode={vi.fn()}
+        normalization="album"
+        setNormalization={vi.fn()}
+        outputDevice={undefined}
+        setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
+        upNext={null}
+      />
+    );
+
+    expect(view.container.querySelector('audio')?.currentTime).toBe(position);
+    expect(play).not.toHaveBeenCalled();
+  });
+
   it('plays a track that was asked to play once its source is set', () => {
     const view = renderAudio(null);
     view.rerender(

@@ -24,10 +24,12 @@ const sendState = async ({ database }: ListenerContext, sender: WebContents) => 
 
 const registerStateListeners = (context: ListenerContext) => {
   ipcMain.on('APP_READY', (event) => {
-    sendState(context, event.sender).catch(logError);
+    // the opened files follow the saved settings, as the saved queue would replace them
+    sendState(context, event.sender)
+      .finally(() => attachOpenedFiles(event.sender))
+      .catch(logError);
     sendPowerSaving(event.sender);
     sendSoftwareRendering(event.sender);
-    attachOpenedFiles(event.sender);
     startLibraryWatching(context.database, event.sender).catch(logError);
   });
 

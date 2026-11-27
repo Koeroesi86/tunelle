@@ -13,6 +13,8 @@ Tunelle is offered for audio files by the system (the "Open with" menu, the defa
 
 The tags are read with the track reader of the library scan, and a file with a codec that does not play is left out. The tracks are sent to the page as `OPENED_FILES` when it is ready (`APP_READY`), and kept until then; the page plays them (`PLAY_TRACKS`).
 
+At `APP_READY` they are sent after the saved settings (`register-state-listeners.ts`). **Symptom:** a file opened while the app was closed did not play, the track of the last time did. **Cause:** the files were read before the page was ready and were sent before the settings, so the restored queue replaced them. **Check:** `npx playwright test --project=e2e open-files` after `npm run build`.
+
 A file that is not in a library folder is not stored in the library: the `/track` route serves it from the list of opened files (`findOpenedTrack` in `serveTrack`) and still serves nothing else. The list lasts until the app quits. Such a track has no measured loudness, only the tags.
 
 ## Check it
