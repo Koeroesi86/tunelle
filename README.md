@@ -36,6 +36,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [The windowed decode and its speed](docs/app/decoder-windowed.md)
 - [The caches of the decoder](docs/app/decoder-cache.md)
 - [Radio stations and server tracks in the decoder](docs/app/decoder-sources.md)
+- [Radio station logos](docs/app/radio-logos.md)
 - [Sample formats of the decoder](docs/app/decoder-formats.md)
 - [Remote access: discovery and certificate](docs/app/remote-access-discovery.md)
 - [Remote access: the code of the host](docs/app/remote-access-host.md)

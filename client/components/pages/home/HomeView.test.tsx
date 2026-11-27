@@ -123,6 +123,19 @@ describe('HomeView', () => {
     expect(Array.from(document.querySelectorAll('.current')).map((row) => row.querySelector('.name')?.textContent)).toEqual(['Jazz FM']);
   });
 
+  it('shows the logo of a station in its row, the radio icon for one without, and neither for a track', () => {
+    renderView([
+      played(stationFavourite({ ...station, hasLogo: true })),
+      played(stationFavourite({ ...station, uuid: 'other', name: 'Rock FM' })),
+      played(trackFavourite(track)),
+    ]);
+
+    const covers = Array.from(document.querySelectorAll('.item .cover'));
+    expect(covers.map((cover) => cover.querySelector('img')?.getAttribute('src')?.includes('/radio-logo/abc'))).toEqual([true, undefined, undefined]);
+    expect(covers.map((cover) => cover.querySelector('svg') !== null)).toEqual([false, true, false]);
+    expect(covers.map((cover) => cover.classList.contains('stationCover'))).toEqual([true, true, false]);
+  });
+
   it('shows the logo of a station in its tile, and the radio icon for one without', () => {
     renderView([played(stationFavourite({ ...station, hasLogo: true })), played(stationFavourite({ ...station, uuid: 'other', name: 'Rock FM' }))]);
 

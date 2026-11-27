@@ -181,13 +181,17 @@ const HomeView = ({
                   onDoubleClick={() => item.available && play(item)}
                 >
                   <div
-                    className={style.cover}
+                    className={classNames(style.cover, { [style.stationCover]: item.kind === 'station' })}
                     style={
                       item.kind === 'track' && item.snapshot.picture
                         ? { backgroundImage: `url("${resolveUrl(coverRouteOf(item.snapshot.picture))}")` }
                         : undefined
                     }
-                  />
+                  >
+                    {item.kind === 'station' && (
+                      <StationLogo uuid={item.snapshot.uuid} hasLogo={item.snapshot.hasLogo} fallback={<RadioIcon size="16px" aria-hidden />} />
+                    )}
+                  </div>
                   <span className={style.name} title={nameOf(item)}>
                     {nameOf(item)}
                   </span>

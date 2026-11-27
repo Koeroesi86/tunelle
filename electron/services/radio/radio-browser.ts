@@ -3,6 +3,7 @@ import { resolve4, resolve6, reverse } from 'node:dns/promises';
 import type { RadioOption, RadioOptionKind, RadioQuery, RadioStation, RadioTag } from '@shared/types/radio';
 import { z } from 'zod';
 import { fetchOk } from '../http';
+import { createStoredAddresses } from './stored-addresses';
 import { parseRadioSearch, radioSortOrders } from '@shared/types/radio-query';
 import { radioPageSize } from '@shared/constants/radio';
 
@@ -13,7 +14,7 @@ const knownMirrors = ['https://de1.api.radio-browser.info', 'https://de2.api.rad
 const requestTimeout = 10000;
 // the mirrors asked at once, the first answer wins
 const raceSize = 3;
-const maxStoredStreams = 500;
+const maxStoredStations = 500;
 const optionLimit = { countries: 300, languages: 300, codecs: 20 };
 const tagLimit = 40;
 const maxLogos = 2000;
@@ -142,7 +143,12 @@ const optionSources = {
 export const createRadioBrowser = (
   userAgent: string,
   directoryUrl = defaultDirectoryUrl,
-  { cachePath, streamsPath, findMirrors = resolveMirrors }: { cachePath?: string; streamsPath?: string; findMirrors?: () => Promise<string[]> } = {}
+  {
+    cachePath,
+    streamsPath,
+    logosPath,
+    findMirrors = resolveMirrors,
+  }: { cachePath?: string; streamsPath?: string; logosPath?: string; findMirrors?: () => Promise<string[]> } = {}
 ) => {
   let servers: Promise<string[]> | undefined;
 
@@ -242,42 +248,43 @@ export const createRadioBrowser = (
     return toList(await request(`/json/tags?${parameters}`), toTag);
   };
 
-  /** The stations of the directory among the uuids, the ones it no longer lists are left out */
+  // the logo addresses of the stations of the history and the favourites, for the time the directory can not be asked
+  const storedLogos = createStoredAddresses(logosPath, maxStoredStations);
+
+  /** The stations of the directory among the uuids, the ones it no longer lists are left out; their logo addresses are stored */
   const findStations = async (uuids: string[]) => {
     if (uuids.length === 0) return [];
 
-    return toStations(await request(`/json/stations/byuuid?${new URLSearchParams({ uuids: uuids.join(',') })}`));
+    const stations = toStations(await request(`/json/stations/byuuid?${new URLSearchParams({ uuids: uuids.join(',') })}`));
+    await storedLogos.store(
+      stations.flatMap(({ uuid }): [string, string][] => {
+        const logo = logos.get(uuid);
+
+        return logo ? [[uuid, logo]] : [];
+      })
+    );
+
+    return stations;
   };
+
+  const getLogoUrl = async (uuid: string) => logos.get(uuid) ?? (await storedLogos.read()).get(uuid);
 
   // the stream of every station that was played, for the time the directory can not be asked
-  const readStreams = async (): Promise<Record<string, string>> => {
-    const streams: unknown = await readFile(streamsPath ?? '', 'utf8').then(JSON.parse, () => ({}));
-
-    return Object.fromEntries(
-      Object.entries(z.record(z.string(), z.unknown()).safeParse(streams).data ?? {}).flatMap(([uuid, url]) => (typeof url === 'string' ? [[uuid, url]] : []))
-    );
-  };
-
-  const storeStream = async (uuid: string, url: string) => {
-    if (!streamsPath) return;
-    const streams = Object.entries(await readStreams()).filter(([stored]) => stored !== uuid);
-    const kept = [...streams, [uuid, url]].slice(-maxStoredStreams);
-    await writeFile(streamsPath, JSON.stringify(Object.fromEntries(kept))).catch(() => undefined);
-  };
+  const storedStreams = createStoredAddresses(streamsPath, maxStoredStations);
 
   /** Also registers a click of the station, which ranks it in the directory; the stream played last is used when the directory is down */
   const resolveStream = (uuid: string) =>
     request(`/json/url/${encodeURIComponent(uuid)}`)
       .then(toStreamUrl)
-      .then((url) => storeStream(uuid, url).then(() => url))
+      .then((url) => storedStreams.store([[uuid, url]]).then(() => url))
       .catch(async (error) => {
-        const stored = (await readStreams())[uuid];
+        const stored = (await storedStreams.read()).get(uuid);
         if (stored === undefined) throw error;
 
         return stored;
       });
 
-  return { searchStations, getTags, getOptions, findStations, resolveStream, getLogoUrl: (uuid: string) => logos.get(uuid) };
+  return { searchStations, getTags, getOptions, findStations, resolveStream, getLogoUrl };
 };
 
 export type RadioBrowser = ReturnType<typeof createRadioBrowser>;
