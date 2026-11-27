@@ -60,7 +60,9 @@ export const openRadioStream = async (uuid: string, signal: AbortSignal, { resol
   const upstream = await openUpstream(await resolveStream(uuid), signal);
 
   const metaint = Number(upstream.headers['icy-metaint']);
-  const strippers = metaint > 0 ? [new IcyMetadataStripper(metaint, (title, streamUrl) => onTitle(uuid, title, streamUrl))] : [];
+  // the stripper counts down in whole bytes: a fraction has it loop on a chunk until the memory is full
+  const strippers =
+    Number.isSafeInteger(metaint) && metaint > 0 ? [new IcyMetadataStripper(metaint, (title, streamUrl) => onTitle(uuid, title, streamUrl))] : [];
   // one pipeline: destroying the audio ends every stage, and the abort of the upstream is an end, not an unhandled error that opens an error dialog and holds the app
   const clean = new PassThrough();
   pipeline([upstream, ...strippers, clean], () => undefined);

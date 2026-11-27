@@ -16,10 +16,10 @@ const decodeMetadata = (bytes: Buffer) => {
 };
 
 /** The title of the metadata block of a stream, undefined when it carries none */
-export const parseStreamTitle = (metadata: string) => metadata.match(/StreamTitle='(.*?)';/)?.[1]?.trim() || undefined;
+export const parseStreamTitle = (metadata: string) => metadata.match(/StreamTitle='(.*?)';/s)?.[1]?.trim() || undefined;
 
 /** The address the station names next to the title, undefined when it names none */
-export const parseStreamUrl = (metadata: string) => metadata.match(/StreamUrl='(.*?)';/)?.[1]?.trim() || undefined;
+export const parseStreamUrl = (metadata: string) => metadata.match(/StreamUrl='(.*?)';/s)?.[1]?.trim() || undefined;
 
 /**
  * Takes the ICY metadata out of an audio stream: every `metaint` bytes of audio are followed by a length byte

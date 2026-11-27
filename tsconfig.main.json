@@ -13,5 +13,5 @@
     "resolveJsonModule": true
   },
   "include": ["electron", "index.ts", "shared"],
-  "exclude": ["electron/**/*.test.ts", "electron/test-database.ts", "electron/test-utility-process.ts", "shared/**/*.test.ts"]
+  "exclude": ["electron/**/*.test.ts", "electron/test-database.ts", "electron/test-utility-process.ts", "shared/test-damaged-bytes.ts", "shared/test-properties.ts", "shared/**/*.test.ts"]
 }

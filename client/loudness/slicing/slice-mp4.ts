@@ -1,11 +1,11 @@
 import { aacSampleRates } from './adts';
 import { aacConfigOf, audioTrackOf, sampleTableOf } from './mp4-audio';
 import type { AacConfig } from './mp4-audio';
-import { boxAt, childOf, mustChild } from './mp4-boxes';
+import { boxAt, childOf, countOf, mustChild } from './mp4-boxes';
 import type { Box } from './mp4-boxes';
 import { defaultSizeOf, fragmentSamples, trackIdOf } from './mp4-fragments';
 import type { Samples } from './mp4-fragments';
-import { NotSliceable, SliceError, mustRead } from './types';
+import { NotSliceable, SliceError, asSliceError, mustRead } from './types';
 import type { ReadRange, Slicer } from './types';
 
 /** The table of the samples of the track is read whole: 4 bytes of a sample, 22 ms of sound each, so a ten hour book is 7 MB of it */
@@ -33,16 +33,19 @@ const readMovie = async (read: ReadRange, size: number, offset = 0): Promise<{ b
 const view = (bytes: Uint8Array) => new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 
 /** The sizes of the samples: one size for all of them, or one each */
-const sizesOf = (bytes: Uint8Array, box: Box) => {
+const sizesOf = (bytes: Uint8Array, box: Box, fileSize: number) => {
   const data = view(bytes);
-  const [size, count] = [data.getUint32(box.start + 4), data.getUint32(box.start + 8)];
+  const size = data.getUint32(box.start + 4);
+  const count = countOf(bytes, box, 12, size ? 0 : 4);
+  // each sample is a byte of the file at least, and each can be a read of its own
+  if (count > fileSize) throw new SliceError('An MP4 file with more samples than it has bytes');
   return Uint32Array.from({ length: count }, (_, index) => size || data.getUint32(box.start + 12 + index * 4));
 };
 
 /** The runs of chunks that have the same number of samples: the first chunk (from 1) and the samples of each */
 const runsOf = (bytes: Uint8Array, box: Box) => {
   const data = view(bytes);
-  return Array.from({ length: data.getUint32(box.start + 4) }, (_, index) => ({
+  return Array.from({ length: countOf(bytes, box, 8, 12) }, (_, index) => ({
     firstChunk: data.getUint32(box.start + 8 + index * 12),
     samplesPerChunk: data.getUint32(box.start + 12 + index * 12),
   }));
@@ -53,7 +56,7 @@ const chunkOffsetsOf = (bytes: Uint8Array, box: Box) => {
   const data = view(bytes);
   const width = box.type === 'co64' ? 8 : 4;
   const offsetAt = (at: number) => (width === 8 ? data.getUint32(at) * 2 ** 32 + data.getUint32(at + 4) : data.getUint32(at));
-  return Array.from({ length: data.getUint32(box.start + 4) }, (_, index) => offsetAt(box.start + 8 + index * width));
+  return Array.from({ length: countOf(bytes, box, 8, width) }, (_, index) => offsetAt(box.start + 8 + index * width));
 };
 
 const fillChunk = (samples: Samples, first: number, count: number, offset: number) => {
@@ -83,22 +86,24 @@ const checkedSizes = (samples: Samples) => {
   return samples;
 };
 
-const samplesOf = (bytes: Uint8Array, stbl: Box) => {
+const samplesOf = (bytes: Uint8Array, stbl: Box, fileSize: number) => {
   const offsets = chunkOffsetsOf(bytes, childOf(bytes, stbl, 'stco') ?? mustChild(bytes, stbl, 'co64'));
-  const sizes = sizesOf(bytes, mustChild(bytes, stbl, 'stsz'));
+  const sizes = sizesOf(bytes, mustChild(bytes, stbl, 'stsz'), fileSize);
   return layoutOf(sizes, runsOf(bytes, mustChild(bytes, stbl, 'stsc')), offsets);
 };
 
 /** The description of the sound and the place of its samples, as the table of the file says or the fragments add up; the sizes of the samples are not looked at */
-export const readMp4Track = async (read: ReadRange, size: number) => {
+const parseTrack = async (read: ReadRange, size: number) => {
   const { bytes, moov, end } = await readMovie(read, size);
   const track = audioTrackOf(bytes, moov);
   const stbl = sampleTableOf(bytes, track);
   const isFragmented = childOf(bytes, moov, 'mvex') !== undefined;
   const id = isFragmented ? trackIdOf(bytes, track) : 0;
-  const samples = isFragmented ? await fragmentSamples(read, size, end, id, defaultSizeOf(bytes, moov, id)) : samplesOf(bytes, stbl);
+  const samples = isFragmented ? await fragmentSamples(read, size, end, id, defaultSizeOf(bytes, moov, id)) : samplesOf(bytes, stbl, size);
   return { bytes, description: mustChild(bytes, stbl, 'stsd'), samples };
 };
+
+export const readMp4Track = (read: ReadRange, size: number) => parseTrack(read, size).catch(asSliceError);
 
 /** The sample at which each piece starts, a piece taking samples until it has about `sliceBytes` of them, and the end */
 const cutPoints = (sizes: Uint32Array, sliceBytes: number) => {

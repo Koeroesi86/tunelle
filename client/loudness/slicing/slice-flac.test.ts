@@ -55,4 +55,8 @@ describe('sliceFlac', () => {
   it('rejects a file without the marker', async () => {
     await expect(collect(sliceFlac, new Uint8Array(100), 50)).rejects.toThrow('marker');
   });
+
+  it('rejects a file whose metadata goes past its end', async () => {
+    await expect(collect(sliceFlac, join(marker, Uint8Array.from([0x80, 0, 1, 0])), 50)).rejects.toThrow('goes past its end');
+  });
 });

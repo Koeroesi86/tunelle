@@ -19,7 +19,9 @@ const findDuration = async (handle: fs.promises.FileHandle, position: number): P
   if (header.length < headerLength) return undefined;
   if (header.toString('latin1', 0, 4) === 'DST ') return toDuration(await readBytes(handle, frameInfoLength, position + headerLength));
   const size = Number(header.readBigUInt64BE(4));
-  return findDuration(handle, position + headerLength + size + (size % 2));
+  const next = position + headerLength + size + (size % 2);
+  // a size of 64 bits can point further than a file can be read
+  return Number.isSafeInteger(next) ? findDuration(handle, next) : undefined;
 };
 
 /** The seconds of a DST compressed DSDIFF, from the `FRTE` chunk that starts its sound chunk. See docs/app/decoded-formats.md */

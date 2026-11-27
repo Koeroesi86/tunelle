@@ -111,4 +111,22 @@ describe('readLargeWave', () => {
 
     await expect(readLargeWave('/music/a.wav')).rejects.toThrow('no fmt or data chunk');
   });
+
+  it.each([
+    ['with no bytes a second', rf64([riffChunk('fmt ', fmt(1, 0))])],
+    ['whose fmt chunk is cut off', rf64([riffChunk('fmt ', fmt(1).subarray(0, 8))])],
+  ])('says that the header of a file %s is not valid', async (_, content) => {
+    file = content;
+
+    await expect(readLargeWave('/music/a.wav')).rejects.toThrow('has a header that is not valid');
+  });
+
+  it.each([
+    ['a chunk whose size does not count its header', w64([Buffer.concat([w64Guid('junk'), u64(0)])])],
+    ['a chunk that is longer than a file can be read', w64([Buffer.concat([w64Guid('junk'), u64(2 ** 62)])])],
+  ])('finds no data chunk behind %s', async (_, content) => {
+    file = content;
+
+    await expect(readLargeWave('/music/a.w64')).rejects.toThrow('no fmt or data chunk');
+  });
 });

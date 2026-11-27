@@ -1,4 +1,4 @@
-import { boxAt, childrenOf, mustChild } from './mp4-boxes';
+import { boxAt, childrenOf, maxSamples, mustChild } from './mp4-boxes';
 import type { Box } from './mp4-boxes';
 import { NotSliceable, SliceError, mustRead } from './types';
 import type { ReadRange } from './types';
@@ -57,8 +57,11 @@ const addRun = (bytes: Uint8Array, run: Box, cursor: { base: number; at: number 
   const sizeAt = flags & 0x100 ? 4 : 0;
   const stride = (flags & 0x100 ? 4 : 0) + (flags & 0x200 ? 4 : 0) + (flags & 0x400 ? 4 : 0) + (flags & 0x800 ? 4 : 0);
   if (first + count * stride > run.end) throw new SliceError('An MP4 file with a run of samples that is cut off');
+  // a run with no field for each sample has any count in the same few bytes
+  if (samples.sizes.length + count > samples.limit) throw new NotSliceable('An MP4 file in fragments with too many samples');
 
   if (dataOffset !== undefined) cursor.at = cursor.base + dataOffset;
+  if (cursor.at < 0) throw new SliceError('An MP4 file with samples in front of its start');
   for (let index = 0; index < count; index++) {
     const sample = flags & 0x200 ? data.getUint32(first + index * stride + sizeAt) : size;
     samples.offsets.push(cursor.at);
@@ -86,6 +89,8 @@ const addFragment = (bytes: Uint8Array, offset: number, id: number, fallbackSize
 interface Found {
   offsets: number[];
   sizes: number[];
+  /** The most samples that are taken: each is a byte of the file at least */
+  limit: number;
 }
 
 /** The bytes of a `moof` box that starts `head`, which holds them when it is long enough */
@@ -108,7 +113,7 @@ const walkBoxes = async (read: ReadRange, size: number, offset: number, id: numb
  * place of the samples of its fragment. The `mdat` boxes are not read
  */
 export const fragmentSamples = async (read: ReadRange, size: number, from: number, id: number, defaultSize: number): Promise<Samples> => {
-  const found: Found = { offsets: [], sizes: [] };
+  const found: Found = { offsets: [], sizes: [], limit: Math.min(size, maxSamples) };
   await walkBoxes(read, size, from, id, defaultSize, found);
   if (found.sizes.length === 0) throw new NotSliceable('An MP4 file in fragments without samples');
   return { offsets: Float64Array.from(found.offsets), sizes: Uint32Array.from(found.sizes) };

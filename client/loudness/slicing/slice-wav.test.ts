@@ -59,4 +59,14 @@ describe('sliceWav', () => {
   it('rejects a file that is not a WAV file with sound', async () => {
     await expect(collect(sliceWav, ascii('RIFF....WAVE'), 100)).rejects.toThrow('without sound');
   });
+
+  it('does not read a format chunk of more than 64 KB, and refuses one that is too short to tell the size of a sample', async () => {
+    const { file } = wav(100);
+    const long = Uint8Array.from(file);
+    long.set(u32(0xfffffff0), 16);
+    const short = join(ascii('RIFF'), u32(0), ascii('WAVE'), ascii('fmt '), u32(2), u16(1), ascii('data'), u32(0));
+
+    await expect(collect(sliceWav, long, 100)).rejects.toThrow('more than 64 KB');
+    await expect(collect(sliceWav, short, 100)).rejects.toThrow('points outside');
+  });
 });

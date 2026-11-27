@@ -49,4 +49,13 @@ describe('parsePlaylist', () => {
 
     expect(parsePlaylist('xspf', text)).toEqual({ title: 'T', entries: [{ location: 'a.flac' }] });
   });
+
+  it.each([
+    ['m3u', `#EXTINF:${'9'.repeat(400)},One\u2028Two\na.flac`, { title: 'One\u2028Two' }],
+    ['pls', 'File1=a.flac\nLength1=Infinity\nTitle1=One\u2028Two', { title: 'One\u2028Two' }],
+    ['xspf', '<track><location>a.flac</location><title>&constructor;</title><duration>1e400</duration></track>', { title: '&constructor;' }],
+  ] as const)('keeps the text of a %s entry as it is, without a length that is not a number', (format, text, expected) => {
+    expect(parsePlaylist(format, text).entries).toEqual([expect.objectContaining({ location: 'a.flac', ...expected })]);
+    expect(parsePlaylist(format, text).entries[0].duration).toBeUndefined();
+  });
 });
