@@ -3,6 +3,7 @@ import { resolve } from 'path';
 import windowStateKeeper from 'electron-window-state';
 import lockNavigation from './lock-navigation';
 import registerWindowZoom from './window-zoom';
+import { recoverRenderer } from './recover-renderer';
 import { correctWindowBounds, minWindowSize } from './window-bounds';
 import { isDarkTheme } from '../theme';
 import { applyWindowBackdrop, getBackdropArguments, getWindowBackdrop, getWindowBackground, isWindowTransparent } from './window-backdrop';
@@ -40,6 +41,7 @@ const createWindow = () => {
   mainWindowState.manage(mainWindow);
   lockNavigation(mainWindow.webContents);
   registerWindowZoom(mainWindow.webContents);
+  recoverRenderer(mainWindow);
   mainWindow.setFullScreenable(false);
 
   return mainWindow;

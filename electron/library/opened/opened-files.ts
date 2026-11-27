@@ -50,6 +50,11 @@ export const attachOpenedFiles = (sender: WebContents) => {
   flush();
 };
 
+/** The page is gone: files wait for the one that is loaded in its place */
+export const detachOpenedFiles = () => {
+  target = undefined;
+};
+
 /** Reads the files and hands them to the page, which plays them; a file that does not read stays out */
 export const openFiles = async (args: string[], workingDirectory: string) => {
   const files = findOpenableFiles(args, workingDirectory);

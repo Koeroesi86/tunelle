@@ -249,6 +249,7 @@ export type AppAction =
   | PayloadAction<'SCANNING_FILE', { fileName: string; progress: number; totalCount: number }>
   | PayloadAction<'MAXIMIZED_APP', { maximized: boolean }>
   | PayloadAction<'SET_PLAYING', { isPlaying: boolean }>
+  | PayloadAction<'KEEP_POSITION', { currentTime: number }>
   | PayloadAction<'SET_UP_NEXT', { track: Track | null }>
   | PayloadAction<'LAUNCHER_STATE', { available: boolean; enabled: boolean; offered: boolean; external: boolean }>
   | PayloadAction<'SET_LAUNCHER', { enabled: boolean }>

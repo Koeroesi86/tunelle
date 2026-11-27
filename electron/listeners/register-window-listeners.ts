@@ -1,9 +1,10 @@
-import { ipcMain, nativeImage } from 'electron';
+import { ipcMain, nativeImage, powerMonitor } from 'electron';
 import type { BrowserWindow } from 'electron';
 import { resolve } from 'path';
 import { getMainWindow } from '../windows/get-main-window';
 import type { ListenerContext } from './listener-context';
 import { getMainTranslator, onLanguageChange } from '../language';
+import { sendIfAlive } from '../utils/send-if-alive';
 
 const isWin = process.platform === 'win32';
 
@@ -45,6 +46,8 @@ const registerWindowListeners = ({ windows }: ListenerContext) => {
   ipcMain.on('MINIMIZE_APP', () => main().minimize());
   ipcMain.on('NOTIFICATION_CLICKED', () => focusMainWindow(main()));
   listenForMaximize(main());
+  // the player stays paused after the computer wakes. See docs/app/system-events.md
+  powerMonitor.on('suspend', () => sendIfAlive(main().webContents, 'SET_PLAYING', { isPlaying: false }));
   if (!isWin) return;
 
   setPlaybackButtons(main());

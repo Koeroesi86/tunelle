@@ -54,12 +54,13 @@ describe('openFiles', () => {
   let attachOpenedFiles: (typeof import('./opened-files'))['attachOpenedFiles'];
   let findOpenedTrack: (typeof import('./opened-files'))['findOpenedTrack'];
   let openFiles: (typeof import('./opened-files'))['openFiles'];
+  let detachOpenedFiles: (typeof import('./opened-files'))['detachOpenedFiles'];
 
   // the module keeps the page it was attached to and the tracks that wait for it
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    ({ attachOpenedFiles, findOpenedTrack, openFiles } = await import('./opened-files'));
+    ({ attachOpenedFiles, detachOpenedFiles, findOpenedTrack, openFiles } = await import('./opened-files'));
     global._appDataPath = '/data';
   });
 
@@ -83,6 +84,20 @@ describe('openFiles', () => {
     attach(sender);
 
     expect(sender.send).toHaveBeenCalledWith('OPENED_FILES', { tracks: [track(abs('/music/early.flac'))] });
+  });
+
+  it('keeps the files for the next page once the page is gone', async () => {
+    const gone = createSender();
+    const next = createSender();
+    reader.read.mockResolvedValue(track(abs('/music/a.flac')));
+    attach(gone);
+    detachOpenedFiles();
+
+    await openFiles([abs('/music/a.flac')], '/');
+    attach(next);
+
+    expect(gone.send).not.toHaveBeenCalled();
+    expect(next.send).toHaveBeenCalledWith('OPENED_FILES', { tracks: [track(abs('/music/a.flac'))] });
   });
 
   it('leaves out a file that does not read and a codec that does not play', async () => {

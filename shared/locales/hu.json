@@ -386,6 +386,8 @@
   "scan.done": "A könyvtár beolvasása kész",
   "scan.count": "{current} / {total} fájl",
   "scan.open": "Kattints a megnyitáshoz: {folder}",
+  "crash.title": "A Tunelle leállt",
+  "crash.message": "A lejátszó ablaka többször is leállt, ezért a Tunelle bezárul.",
   "library.error.title": "A könyvtár nem nyitható meg",
   "library.error.newer": "Ezt a könyvtárat a Tunelle újabb verziója használta utoljára. Frissítsd a Tunellét a megnyitásához.",
   "library.error.failed": "A könyvtár nem frissíthető: {message}\n\nA frissítés az első hibánál megállt. Ha a könyvtárban volt adat, a frissítés előtti másolata a könyvtár mellett található library.sqlite.v<szám>.bak néven.",

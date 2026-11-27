@@ -15,17 +15,24 @@ import { sendIfAlive } from '../utils/send-if-alive';
 import { attachOpenedFiles } from '../library/opened/opened-files';
 import { logError } from '../utils/log-error';
 
-const sendState = async ({ database }: ListenerContext, sender: WebContents) => {
+const sendState = async ({ database }: ListenerContext, sender: WebContents, unsaved: Record<string, unknown>) => {
   sendIfAlive(sender, 'STORE_FOLDERS', { folders: await getFolders(database) });
 
-  const settings = await getSettings(database);
-  if (settings) sendIfAlive(sender, 'RESTORE_SETTINGS', { settings });
+  const settings = { ...savedSettingsSchema.safeParse(await getSettings(database)).data, ...unsaved };
+  if (Object.keys(settings).length > 0) sendIfAlive(sender, 'RESTORE_SETTINGS', { settings });
 };
 
 const registerStateListeners = (context: ListenerContext) => {
+  // what the page changed of the queue since it started: a page that is loaded again after a crash saved none of it. See docs/app/system-events.md
+  const playback: Record<string, unknown> = {};
+
+  ipcMain.on('PLAYBACK_SNAPSHOT', (_, payload: unknown) => {
+    Object.assign(playback, parsePayload(savedSettingsSchema, payload));
+  });
+
   ipcMain.on('APP_READY', (event) => {
     // the opened files follow the saved settings, as the saved queue would replace them
-    sendState(context, event.sender)
+    sendState(context, event.sender, playback)
       .finally(() => attachOpenedFiles(event.sender))
       .catch(logError);
     sendPowerSaving(event.sender);

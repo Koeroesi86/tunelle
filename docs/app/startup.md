@@ -15,7 +15,7 @@ The app has one window from the first moment. The splash is not a window of its 
 ## Rules that cost time to find
 
 - The page must not talk to the main process before `APP_STARTED`. The listeners and the database are registered just before it, a message sent earlier is lost without an error. The store is created in `mount` (`createAppStore`, `client/redux/store.ts`) and not when the script loads, as the connection middleware sends `APP_READY` and asks for the favourites, history and playlists the moment it is created. When it was created at load, the player stayed empty of folders and saved its default settings over the real ones on the next unload.
-- A page that saves its settings (`beforeunload`) before they were restored overwrites them. Nothing reloads the page in the app; the end to end tests do, see [the end to end tests](../development/end-to-end-tests.md).
+- A page that saves its settings (`beforeunload`) before they were restored overwrites them. The app reloads the page after a crash only, which saves nothing on the way out (see [sleep and a crash of the page](system-events.md)); the end to end tests reload it too, see [the end to end tests](../development/end-to-end-tests.md).
 - `loadURL` rejects with `ERR_ABORTED` when a navigation interrupts it (a reload of the development server, the page reloading itself), and an error in the start up chain ends in `process.exit(1)`. `loadPage` (`electron/windows/load-page.ts`) lets that one through and fails for any other error.
 
 ## Notes
