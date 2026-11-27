@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Track } from '@shared/types/library';
 import { toRemoteTrack } from '../domain/remote-track';
-import { isFileTrack, sourceOf } from './track-source';
+import { isFileTrack, loadAddressOf, sourceOf } from './track-source';
 
 const track = (path: string) => ({ path }) as Track;
 const remote = toRemoteTrack({ state: 'playing', title: 'A&B', position: 0, at: 0 });
@@ -15,6 +15,14 @@ describe('track source', () => {
 
   it('plays the track of the host through the relay with its key', () => {
     expect(sourceOf(remote)).toBe(`tunelle://app/remote/audio?t=${remote.path.slice('remote://'.length)}`);
+  });
+
+  it('gives each connection of a station an address of its own, and a file the same one', () => {
+    const first = loadAddressOf(track('radio:abc'));
+
+    expect(first).toContain('tunelle://app/radio/abc?connection=');
+    expect(loadAddressOf(track('radio:abc'))).not.toBe(first);
+    expect(loadAddressOf(track('/music/a.flac'))).toBe(sourceOf(track('/music/a.flac')));
   });
 
   it('measures and preloads files only', () => {

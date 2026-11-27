@@ -17,5 +17,15 @@ export const sourceOf = (track: Track) => {
   return /^http/.test(track.path) ? track.path : localUrl(`/track?path=${encodeURIComponent(track.path)}`);
 };
 
+let connections = 0;
+
+/** What an element is given to load. Chromium plays a stream that ended again from its cache, so each connection of a station has an address of its own. See docs/app/playback-failures.md */
+export const loadAddressOf = (track: Track) => {
+  if (radioUuidOf(track.path) === undefined) return sourceOf(track);
+
+  connections += 1;
+  return `${sourceOf(track)}?connection=${connections}`;
+};
+
 export const isFileTrack = (track: Track | null): track is Track =>
   track !== null && radioUuidOf(track.path) === undefined && !isSourcePath(track.path) && remoteKeyOf(track.path) === undefined;

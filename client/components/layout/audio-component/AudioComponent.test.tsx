@@ -254,7 +254,7 @@ describe('AudioComponent', () => {
       />
     );
 
-    expect(view.container.querySelector('audio')?.src).toBe('tunelle://app/radio/abc-1');
+    expect(view.container.querySelector('audio')?.src).toContain('tunelle://app/radio/abc-1');
   });
 });
 
@@ -443,11 +443,14 @@ describe('AudioComponent radio reconnect', () => {
 
   it('asks a station again when its stream ends', () => {
     const audio = playStation();
+    const first = audio.src;
 
     fireEvent.ended(audio);
     vi.advanceTimersByTime(1000);
 
     expect(play).toHaveBeenCalledTimes(1);
+    // Chromium would play the ended stream of the same address again
+    expect(audio.src).not.toBe(first);
   });
 
   it('asks a station again when its stream fails, with a longer pause each time', () => {

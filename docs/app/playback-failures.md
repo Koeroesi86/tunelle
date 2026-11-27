@@ -20,6 +20,15 @@ Seen on Linux with the built app (2026-11-27):
 
 So a cut short file is silent for the rest of its length. A single track at the end of a queue that is cut short has no next one to take over, which no test covers.
 
+On Linux the decoder of a station (ffmpeg) outlives a broken connection: `child.kill()` (SIGTERM) does not end it while it waits for input, so the answer to the page never ends. The old process was still there after the player had connected again, beside the one of the new connection. On Windows the same call ends the process at once, so there the answer ends and the element raises `ended`.
+
+## A station that dropped and did not come back
+
+- **Symptom:** `radio-failures.spec.ts` failed on Windows in CI: after a drop the new tone was never heard, with the player showing a station at 00:00:01.
+- **Cause:** the stream had ended, and Chromium played it again from its cache when the same address was set, `Cache-Control: no-store` or not. The station was not asked: the element replayed the last seconds, with a growing pause in between.
+- **Fix:** each connection of a station has an address of its own (`loadAddressOf` in `client/audio/track-source.ts`). The query is ignored by the route.
+- **Check:** on Linux, change both `child.kill()` of `out/electron/protocols/stream-decode.js` to `child.kill('SIGKILL')` after `npm run build` and run `e2e/functional/radio-failures.spec.ts`, which fails without the fix. A replay shows as `loadedmetadata` right after `loadstart`, with the length of the ended stream.
+
 ## A queue that stopped on a broken file
 
 - **Symptom:** a deleted or garbled file in a queue stayed in the player bar, paused, while the unit tests of `AudioComponent` passed.
