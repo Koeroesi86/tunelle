@@ -17,6 +17,10 @@ const watching = vi.hoisted(() => ({ startLibraryWatching: vi.fn(async () => und
 
 vi.mock('../library/watch/library-watching', () => watching);
 
+const opened = vi.hoisted(() => ({ attachOpenedFiles: vi.fn() }));
+
+vi.mock('../library/opened/opened-files', () => opened);
+
 const power = vi.hoisted(() => ({ applyPowerSetting: vi.fn(), sendPowerSaving: vi.fn() }));
 
 vi.mock('../power/power-state', () => ({ applyPowerSetting: power.applyPowerSetting }));
@@ -39,6 +43,7 @@ describe('registerStateListeners', () => {
   beforeEach(() => {
     listeners.clear();
     send.mockReset();
+    opened.attachOpenedFiles.mockReset();
     nativeTheme.themeSource = 'system';
     registerStateListeners(context);
   });
@@ -51,6 +56,16 @@ describe('registerStateListeners', () => {
 
     expect(send).toHaveBeenCalledWith('STORE_FOLDERS', { folders: ['/music'] });
     expect(send).toHaveBeenCalledWith('RESTORE_SETTINGS', { settings: { volume: 1 } });
+  });
+
+  it('hands over the opened files after the saved settings, which would replace their queue', async () => {
+    const sender = { send, isDestroyed: () => false };
+
+    listeners.get('APP_READY')?.({ sender } as unknown as IpcMainEvent);
+    await vi.waitFor(() => expect(opened.attachOpenedFiles).toHaveBeenCalledWith(sender));
+
+    expect(send).toHaveBeenCalledWith('RESTORE_SETTINGS', { settings: { volume: 1 } });
+    expect(send.mock.invocationCallOrder.at(-1)).toBeLessThan(opened.attachOpenedFiles.mock.invocationCallOrder[0]);
   });
 
   it('starts watching the library for the window that is ready', async () => {

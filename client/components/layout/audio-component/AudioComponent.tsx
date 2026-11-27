@@ -19,6 +19,8 @@ interface AudioComponentProps {
   readFormat: ReadFormat;
   currentSong: Track | null;
   isPlaying: boolean;
+  /** The position of a track that is loaded paused, as a restored one is; undefined while it plays */
+  pausedAt?: number;
   volume: number;
   normalization: NormalizationMode;
   /** The output device picked in the settings, undefined is the system default */
@@ -56,6 +58,7 @@ const elementIndexes = [0, 1];
 const AudioComponent = ({
   currentSong,
   isPlaying,
+  pausedAt,
   volume,
   normalization,
   outputDevice,
@@ -240,7 +243,11 @@ const AudioComponent = ({
     if (gapless.changeTrack(source, isPlaying)) return;
 
     const node = gapless.load(source);
-    if (node && currentSong && isPlaying) node.play().catch((err) => console.error(err));
+    if (!node || !currentSong) return;
+
+    // the seek of the controls comes before the source, and is dropped. See docs/app/audio-context.md
+    if (!isRadio && pausedAt) node.currentTime = pausedAt;
+    if (isPlaying) node.play().catch((err) => console.error(err));
   }, [currentSong]);
 
   useEffect(gapless.preloadNext, [currentSong, upNext, generation]);

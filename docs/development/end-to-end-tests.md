@@ -33,6 +33,8 @@ The window opens as soon as the app is ready, before the library is open, so `la
 - It waits until the splash is gone (`#splash` removed, which is after the settings were restored and the first page of tracks is in), then reloads until the scripts are there. A page that is loaded again earlier saves its settings on the way out, and a default state written then overwrites the saved ones ("keeps the mode after a restart" failed on that).
 - `#root` stays empty until the app has started (see [startup](../app/startup.md)), so waiting for its children still means that the player is mounted.
 
+What the app gets only once (the files it is started with, see [open-files.md](../app/open-files.md)) is on the first load and not on the next one: `onFirstLoad` of `launchApp` looks at that load, without `window.activeAudio` and `window.audioProbe`. `session.openAgain(files)` starts a second process on the same profile, which hands the files to the running app and leaves.
+
 ## When every test times out at once
 
 - Check that `build/` exists: the page is served from it, and without it the window shows an empty document (`#root` and `#splash` both missing, one 404 in the console). `npm run build` brings it back.

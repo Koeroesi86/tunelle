@@ -10,6 +10,8 @@ import { Audio } from '../../../audio/context';
 const mapState = (state: RootState) => ({
   currentSong: state.uiState.currentSong,
   isPlaying: state.uiState.isPlaying,
+  // not while it plays, as the position changes a few times a second
+  pausedAt: state.uiState.isPlaying ? undefined : state.uiState.currentTime,
   upNext: state.uiState.upNext,
   loudnessStatus: state.uiState.loudnessStatus,
   volume: state.uiState.volume,

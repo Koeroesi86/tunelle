@@ -1,8 +1,9 @@
 import { _electron as electron, test as base, expect, type ElectronApplication, type Page } from '@playwright/test';
-import { spawnSync } from 'child_process';
+import { execFile, spawnSync } from 'child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
+import { promisify } from 'util';
 import { startDirectory } from '../../scripts/screenshots/screenshot-fixtures';
 import { installActiveAudio } from './active-audio';
 import { installAudioProbe } from './audio-probe';
@@ -15,6 +16,8 @@ interface Session {
   page: Page;
   /** When the first load of the page painted, from the spawn of the app: only with `measureStart` */
   startTimes?: StartTimes;
+  /** Starts the app once more with the files, as the system does when they are opened with it: the running one takes them and the second one leaves */
+  openAgain: (files: string[]) => Promise<void>;
 }
 
 interface Directory {
@@ -25,8 +28,8 @@ interface Directory {
 interface Fixtures {
   /** A folder of the generated albums, outside of the profile of the app */
   music: string;
-  /** Starts the app on the profile of the test: a second start finds what the first one left; `measureStart` reads the paint times of the first load, before the page is reloaded for the init scripts */
-  start: (options?: { measureStart?: boolean; env?: Record<string, string> }) => Promise<Session>;
+  /** Starts the app on the profile of the test: a second start finds what the first one left; the options are those of `launchApp` */
+  start: (options?: Pick<LaunchOptions, 'measureStart' | 'env' | 'files' | 'onFirstLoad'>) => Promise<Session>;
   /** The app started on a profile whose library holds the albums of `music` */
   session: Session;
   /** The fake station directory the app is pointed to; the first station plays silence and announces a song */
@@ -118,8 +121,8 @@ export const test = base.extend<Fixtures>({
     const home = mkdtempSync(join(tmpdir(), 'tunelle-e2e-'));
     const running: ElectronApplication[] = [];
 
-    await use(async ({ measureStart, env } = {}) => {
-      const session = await launchApp({ home, radioDirectory: directory.origin, initScripts: [installActiveAudio, installAudioProbe], measureStart, env });
+    await use(async (options = {}) => {
+      const session = await launchApp({ ...options, home, radioDirectory: directory.origin, initScripts: [installActiveAudio, installAudioProbe] });
       running.push(session.app);
       return session;
     });
@@ -148,6 +151,10 @@ interface LaunchOptions {
   measureStart?: boolean;
   /** More variables for the app, such as the ones of docs/development/building.md */
   env?: Record<string, string>;
+  /** Audio files the app is started with */
+  files?: string[];
+  /** Runs on the first load of the page, which the reload below replaces: only that load is given the files of the start */
+  onFirstLoad?: (page: Page) => Promise<void>;
 }
 
 /** The language of the app in the run: English, or another file of shared/locales/ with SCREENSHOTS_LANG=hu (the pictures of the Store listing) */
@@ -170,7 +177,8 @@ export const ui = (english: string) => {
 };
 
 /** Starts the built app (npm run build first, PERF_APP_OUT=<folder> for the build of another checkout, which the perf runs compare with) on a profile, and answers when its window shows the page */
-export const launchApp = async ({ home, radioDirectory, initScripts, offline = false, measureStart = false, env = {} }: LaunchOptions): Promise<Session> => {
+export const launchApp = async (options: LaunchOptions): Promise<Session> => {
+  const { home, radioDirectory, initScripts, offline = false, measureStart = false, env = {}, files = [], onFirstLoad } = options;
   const { ELECTRON_RUN_AS_NODE, ...inherited } = process.env;
   // Windows keeps its profile folders (chromium needs them, and the app data folder does not follow the variables there)
   const profile: Record<string, string> =
@@ -178,40 +186,41 @@ export const launchApp = async ({ home, radioDirectory, initScripts, offline = f
       ? {}
       : { HOME: home, XDG_CONFIG_HOME: home, XDG_CACHE_HOME: join(home, 'cache'), LANG: `${locale}.UTF-8`, LC_ALL: `${locale}.UTF-8` };
 
+  const args = [
+    join(process.env.PERF_APP_OUT ?? join(root, 'out'), 'index.js'),
+    // the audio runs with its clock and its graph, to a sink that plays nothing: the tests measure what the app sends to it
+    '--disable-audio-output',
+    '--autoplay-policy=no-user-gesture-required',
+    `--lang=${language}`,
+    `--user-data-dir=${join(home, 'user-data')}`,
+    ...(offline ? ['--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost'] : []),
+    // Linux draws without a display server: a window on a desktop session gets no frames while the compositor does not ask for them (a locked screen, another workspace)
+    // the chromium sandbox needs user namespaces that the runners of CI (containers, locked down images) do not give; macOS and Windows run it
+    ...(process.platform === 'linux' ? ['--no-sandbox', '--ozone-platform=headless'] : []),
+  ];
+  const variables = {
+    ...Object.fromEntries(Object.entries(inherited).filter((entry): entry is [string, string] => entry[1] !== undefined)),
+    ...profile,
+    NODE_ENV: 'production',
+    ...(offline ? {} : { TUNELLE_NO_UPDATE: '1' }),
+    TUNELLE_NO_ARTIST_PHOTOS: '1',
+    // a change in a folder of the library is seen within a second, not after the ten that a listener waits
+    TUNELLE_WATCH_MIN_SECONDS: '1',
+    // the library is in the profile of the run on every system, not in the app data folder of the user (macOS and Windows do not follow HOME there)
+    TUNELLE_APP_DATA: home,
+    TUNELLE_RADIO_DIRECTORY: radioDirectory,
+    ...env,
+  };
+
   const spawnedAt = Date.now();
-  const app = await electron.launch({
-    args: [
-      join(process.env.PERF_APP_OUT ?? join(root, 'out'), 'index.js'),
-      // the audio runs with its clock and its graph, to a sink that plays nothing: the tests measure what the app sends to it
-      '--disable-audio-output',
-      '--autoplay-policy=no-user-gesture-required',
-      `--lang=${language}`,
-      `--user-data-dir=${join(home, 'user-data')}`,
-      ...(offline ? ['--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost'] : []),
-      // Linux draws without a display server: a window on a desktop session gets no frames while the compositor does not ask for them (a locked screen, another workspace)
-      // the chromium sandbox needs user namespaces that the runners of CI (containers, locked down images) do not give; macOS and Windows run it
-      ...(process.platform === 'linux' ? ['--no-sandbox', '--ozone-platform=headless'] : []),
-    ],
-    env: {
-      ...Object.fromEntries(Object.entries(inherited).filter((entry): entry is [string, string] => entry[1] !== undefined)),
-      ...profile,
-      NODE_ENV: 'production',
-      ...(offline ? {} : { TUNELLE_NO_UPDATE: '1' }),
-      TUNELLE_NO_ARTIST_PHOTOS: '1',
-      // a change in a folder of the library is seen within a second, not after the ten that a listener waits
-      TUNELLE_WATCH_MIN_SECONDS: '1',
-      // the library is in the profile of the run on every system, not in the app data folder of the user (macOS and Windows do not follow HOME there)
-      TUNELLE_APP_DATA: home,
-      TUNELLE_RADIO_DIRECTORY: radioDirectory,
-      ...env,
-    },
-  });
+  const app = await electron.launch({ args: [...args, ...files], env: variables });
   await Promise.all([installNoNotifications, ...initScripts].map((script) => app.context().addInitScript(script)));
   const page = await findPage(app);
   // before the reload below, which starts the page again
   const startTimes = measureStart ? await readStartTimes(page, spawnedAt) : undefined;
   // a window of the same size on every system, or the layout of a small display moves the controls out of reach
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().forEach((window) => window.setContentSize(1360, 850)));
+  await onFirstLoad?.(page);
   // the init scripts run on the next load, and the window opens as soon as the app is ready: the first load may have been before some of them or all, so the page is
   // loaded again until they ran. The tests measure the page through them: without them a check would pass on defaults
   // the context can miss a window that opened before it knew the scripts, so the page gets them too
@@ -229,7 +238,11 @@ export const launchApp = async ({ home, radioDirectory, initScripts, offline = f
       { message: 'the init scripts (window.activeAudio, window.audioProbe) on the page', timeout: 30_000 }
     )
     .toBe(true);
-  return { app, page, startTimes };
+  const openAgain = async (opened: string[]) => {
+    const executable = await app.evaluate(() => process.execPath);
+    await promisify(execFile)(executable, [...args, ...opened], { env: variables, timeout: 60_000 });
+  };
+  return { app, page, startTimes, openAgain };
 };
 
 export { expect };
