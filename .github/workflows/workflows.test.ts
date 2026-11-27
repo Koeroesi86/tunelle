@@ -359,6 +359,14 @@ describe('workflows', () => {
     expect(text.indexOf('store-submission.js started')).toBeLessThan(text.indexOf('Say what was submitted'));
   });
 
+  it('store.yml reads the status again when a read fails while it waits for the committed submission', () => {
+    const wait = read('store.yml').split('- name: Wait until the submission has started')[1].split('- name:')[0];
+
+    expect(wait).toMatch(/\$failures = if \(\$LASTEXITCODE -eq 0\) \{ 0 \} else \{ \$failures \+ 1 \}/);
+    expect(wait).toMatch(/if \(\$failures -ge 5\) \{ throw /);
+    expect(wait).not.toMatch(/if \(\$LASTEXITCODE -ne 0\) \{ throw /);
+  });
+
   it('store.yml runs from release.yml, by hand and weekly on Wednesday', () => {
     const text = read('store.yml');
 

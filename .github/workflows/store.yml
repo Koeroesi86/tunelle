@@ -166,11 +166,14 @@ jobs:
         timeout-minutes: 15
         shell: pwsh
         run: |
+          $failures = 0
           do {
             msstore submission status $env:PRODUCT_ID 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath status.txt
-            if ($LASTEXITCODE -ne 0) { throw "msstore submission status failed with $LASTEXITCODE" }
-            $state = node scripts/release/store-submission.js started status.txt
-            if ($LASTEXITCODE -ne 0) { msstore submission get $env:PRODUCT_ID; throw 'The Store did not take the submission' }
+            # a failed read says nothing about the submission, so it is read again: only five in a row fail the run
+            $failures = if ($LASTEXITCODE -eq 0) { 0 } else { $failures + 1 }
+            if ($failures -ge 5) { throw "msstore submission status failed $failures times in a row, the last with $LASTEXITCODE" }
+            $state = if ($failures) { 'starting' } else { node scripts/release/store-submission.js started status.txt }
+            if (-not $failures -and $LASTEXITCODE -ne 0) { msstore submission get $env:PRODUCT_ID; throw 'The Store did not take the submission' }
             if ($state -eq 'starting') { Start-Sleep -Seconds 30 }
           } while ($state -eq 'starting')
       - name: Say what was submitted

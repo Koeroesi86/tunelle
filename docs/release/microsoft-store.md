@@ -31,6 +31,10 @@ The secrets of the Microsoft Entra application (Manager role in Partner Center) 
 
 `store.yml` runs both `status` and `check` before it submits a release. The Store takes a version only when it is greater than the one of the last submission and its fourth part is 0 (the Store keeps that part for itself, electron-builder adds the 0). After the commit `store.yml` waits (every 30 seconds, at most 15 minutes) until the submission is in certification, so a submission that the Store rejects fails the run and prints its `StatusDetails`; it does not wait for the certification itself, which takes days on the side of Microsoft. A submission that is not published (in certification, or failed and still there) blocks the next one: the Store keeps one per app, and nothing here deletes or cancels it.
 
+## A failed status read
+
+`msstore submission status` exits with -1 and prints only `Error!` when any of its calls to Partner Center fails (it logs the exception only with `--verbose`). On 2026-11-27 one such read, after four of `CommitStarted`, failed the release run of `v26.11.29` although the submission went through. The wait after the commit therefore reads again after a failed read, and fails after five in a row; check the submission in Partner Center then, before running anything again. A run that fails in this step has already committed the submission.
+
 ## The certification kit (`wack.yml`)
 
 The Windows App Certification Kit (the tests that Partner Center runs on a package) runs on the x64 package, so a problem shows before the submission, and a run of the installed package shows that it does not look for updates on GitHub. The second is also done for the arm64 package on an arm64 runner (`windows-11-arm`), where the kit is not installed (its image has the SDK without it, and nothing says it runs on arm64), so the Store package of that processor is installed and started at least.
