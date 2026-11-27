@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import { PassThrough, Readable, Transform, finished, pipeline } from 'stream';
 import type { TransformCallback } from 'stream';
 import { ffmpegProgram } from './ffmpeg-program';
+import { OverscaleGuard } from './overscale-guard';
 import { logError } from '../utils/log-error';
 
 /** The start of a stream that is read to find its format; a stream that shows none by then is not decoded */
@@ -63,7 +64,25 @@ export const decodeStream = (head: Buffer, rest: Readable, encoder: string[], on
   new Promise<Readable | undefined>((resolve) => {
     const child = spawn(
       ffmpegProgram(),
-      ['-v', 'error', '-fflags', '+bitexact', '-i', 'pipe:0', '-map', '0:a:0', '-map_metadata', '-1', ...encoder, '-f', 'wav', 'pipe:1'],
+      // `buffer` drops an MP3 frame that refers to data it does not have, as after a splice, in place of playing it as noise
+      [
+        '-v',
+        'error',
+        '-fflags',
+        '+bitexact',
+        '-err_detect',
+        'buffer',
+        '-i',
+        'pipe:0',
+        '-map',
+        '0:a:0',
+        '-map_metadata',
+        '-1',
+        ...encoder,
+        '-f',
+        'wav',
+        'pipe:1',
+      ],
       { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true }
     );
     const audio = new PassThrough();
@@ -90,16 +109,14 @@ export const decodeStream = (head: Buffer, rest: Readable, encoder: string[], on
     // an input that fails or is destroyed never ends ffmpeg's: `finished` also tells of one that did so before this call
     finished(rest, { writable: false }, (error) => error && child.kill());
 
-    pipeline(
-      child.stdout,
-      new WavStart((sampleRate) => {
-        started = true;
-        if (sampleRate !== undefined) onSampleRate(sampleRate);
-        resolve(audio);
-      }),
-      audio,
-      () => undefined
-    );
+    const wavStart = new WavStart((sampleRate) => {
+      started = true;
+      if (sampleRate !== undefined) onSampleRate(sampleRate);
+      resolve(audio);
+    });
+    // only float audio can go over full scale
+    const guards = encoder.includes('pcm_f32le') ? [new OverscaleGuard()] : [];
+    pipeline([child.stdout, wavStart, ...guards, audio], () => undefined);
     child.stdin.write(head);
     rest.pipe(child.stdin);
   });

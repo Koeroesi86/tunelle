@@ -29,12 +29,23 @@ const { serveSource } = await import('./source-protocol');
 
 const fixture = (name: string) => fs.readFileSync(path.join(root, 'e2e', 'fixtures', name));
 
+/** The fixture with a bit flipped every `step` bytes of its middle third, as a station that sends damaged audio */
+const damaged = (step: number, bit: number) => {
+  const body = Buffer.from(fixture('mp3/1-concert-a.mp3'));
+  const third = Math.floor(body.length / 3);
+  for (let at = third; at < 2 * third; at += step) body[at] ^= bit;
+  return body;
+};
+
 // the first fixture of each folder is a sine of 440 Hz
 const stations: Record<string, { type: string; body: Buffer }> = {
   '/mp3': { type: 'audio/mpeg', body: fixture('mp3/1-concert-a.mp3') },
   '/vorbis': { type: 'audio/ogg', body: fixture('vorbis/1-concert-a.ogg') },
   '/flac': { type: 'audio/flac', body: fixture('flac/1-concert-a.flac') },
   '/flac-hires': { type: 'audio/flac', body: fixture('flac-hires/1-concert-a.flac') },
+  // the decoder gives samples of tens of thousands for the first, which it drops with `-err_detect`, and of 13 for the second, which it does not
+  '/mp3-broken-reservoir': { type: 'audio/mpeg', body: damaged(211, 1) },
+  '/mp3-broken-frames': { type: 'audio/mpeg', body: damaged(97, 16) },
   '/other': { type: 'audio/mpeg', body: Buffer.from('not audio, and long enough to give ffmpeg something to refuse '.repeat(40)) },
 };
 
@@ -87,6 +98,15 @@ describe('the streaming decode of radio stations and server tracks', () => {
     expect([wav.bytes, wav.float]).toEqual([bytes, float]);
     expect(Math.round(wav.seconds)).toBe(6);
     expect(toneShare(wav.samples, 440, wav.sampleRate)).toBeGreaterThan(0.9);
+  });
+
+  it.each(['/mp3-broken-reservoir', '/mp3-broken-frames'])('plays no loud burst for the damaged station %s', async (name) => {
+    const file = path.join(temp, `${name.slice(1)}.wav`);
+    fs.writeFileSync(file, Buffer.from(await (await radio(name)).arrayBuffer()));
+    const { samples, seconds } = readWav(file);
+
+    expect(Math.round(seconds)).toBe(6);
+    expect(samples.reduce((peak, sample) => Math.max(peak, Math.abs(sample)), 0)).toBeLessThanOrEqual(2);
   });
 
   it('plays a stream in no known format as it comes', async () => {

@@ -86,6 +86,20 @@ describe('decodeStream', () => {
     expect(vi.mocked(spawn).mock.calls[0][1]).toEqual(expect.arrayContaining(['-i', 'pipe:0', '-f', 'wav', 'pipe:1']));
   });
 
+  it('has ffmpeg drop damaged frames, and silences what still goes far over full scale in float audio', async () => {
+    const child = fakeFfmpeg();
+    const header = Buffer.concat([wav(44100).subarray(0, 36), Buffer.from('data\xff\xff\xff\xff', 'latin1')]);
+    const samples = Buffer.from(Float32Array.of(0.5, 30).buffer);
+
+    const decoding = decodeStream(Buffer.from('head'), new PassThrough(), ['-c:a', 'pcm_f32le'], vi.fn());
+    child.stdout.write(header);
+    const audio = await decoding;
+    child.stdout.end(samples);
+
+    expect((await read(audio ?? Readable.from([]))).subarray(header.length)).toEqual(Buffer.alloc(samples.length));
+    expect(vi.mocked(spawn).mock.calls[0][1]).toEqual(expect.arrayContaining(['-err_detect', 'buffer']));
+  });
+
   it('kills ffmpeg and closes the stream when the WAV is closed', async () => {
     const child = fakeFfmpeg();
     const rest = new PassThrough();
