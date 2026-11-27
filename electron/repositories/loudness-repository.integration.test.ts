@@ -3,12 +3,22 @@ import type { Database } from 'sqlite3';
 import type { Track } from '@shared/types/library';
 import type { LoudnessAnalysis, TrackLoudness } from '@shared/types/loudness';
 import { deleteTracks, deleteTracksInside, findTrackFormat, getAlbumTrackList, getTrackList, getTrackPage } from './library-repository';
-import { findLoudnessAnalysis, findTracksToMeasure, findTracksToMeasureAmong, saveTrackLoudness, getFailedLoudnessTracks } from './loudness-repository';
+import {
+  findLoudnessAnalysis,
+  findTracksToMeasure,
+  findTracksToMeasureAmong,
+  saveTrackLoudness,
+  getFailedLoudnessTracks,
+  getLoudnessProgress,
+} from './loudness-repository';
 import addTrack from '../library/scan/add-track';
 import executeQuery from '../database/execute-query';
 import { createTestDatabase } from '../test-database';
 
 const unsorted = { sort: undefined, folders: [] };
+const versions = { analysisVersion: 1, appVersion: '26.11.30' };
+const newerAnalysis = { ...versions, analysisVersion: 2 };
+const newerApp = { ...versions, appVersion: '26.12.31' };
 
 const track = (path: string, extra: Partial<Track> = {}): Track => ({
   path,
@@ -50,6 +60,7 @@ const measured = (path: string, extra: Partial<TrackLoudness> = {}): TrackLoudne
   analysisVersion: 1,
   reason: null,
   analysis,
+  appVersion: null,
   ...extra,
 });
 
@@ -176,7 +187,7 @@ describe('loudnessRepository', () => {
       await Promise.all(['/music/ok.flac', '/music/new.flac', '/music/other.flac'].map((path) => addTrack(database, track(path))));
       await saveTrackLoudness(database, measured('/music/ok.flac'));
 
-      const among = async (paths: string[]) => (await findTracksToMeasureAmong(database, paths, 1)).map((found) => found.path);
+      const among = async (paths: string[]) => (await findTracksToMeasureAmong(database, paths, versions)).map((found) => found.path);
 
       expect(await among(['/music/ok.flac', '/music/new.flac', '/music/missing.flac'])).toEqual(['/music/new.flac']);
       expect(await among([])).toEqual([]);
@@ -184,23 +195,40 @@ describe('loudnessRepository', () => {
   });
 
   describe('the tracks that could not be measured', () => {
-    const failedPaths = async (version = 1) => (await getFailedLoudnessTracks(database, version)).map((found) => `${found.path} ${found.reason}`);
+    const failedPaths = async (asked = versions) => (await getFailedLoudnessTracks(database, asked)).map((found) => `${found.path} ${found.reason}`);
+    const failure = (path: string, extra: Partial<TrackLoudness> = {}) =>
+      measured(path, { status: 'failed', reason: 'silent', analysis: null, appVersion: versions.appVersion, ...extra });
 
     it('are listed with why, in the order of their paths, and not once the file changed or the version rose', async () => {
       await Promise.all(['/music/c.flac', '/music/a.flac', '/music/b.flac', '/music/d.flac'].map((path) => addTrack(database, track(path))));
-      await saveTrackLoudness(database, measured('/music/c.flac', { status: 'failed', reason: 'silent', analysis: null }));
-      await saveTrackLoudness(database, measured('/music/a.flac', { status: 'failed', reason: 'undecodable', analysis: null }));
-      await saveTrackLoudness(database, measured('/music/b.flac', { status: 'failed', reason: 'silent', analysis: null, fileSize: 5 }));
+      await saveTrackLoudness(database, failure('/music/c.flac'));
+      await saveTrackLoudness(database, failure('/music/a.flac', { reason: 'undecodable' }));
+      await saveTrackLoudness(database, failure('/music/b.flac', { fileSize: 5 }));
       await saveTrackLoudness(database, measured('/music/d.flac'));
 
       expect(await failedPaths()).toEqual(['/music/a.flac undecodable', '/music/c.flac silent']);
-      expect(await failedPaths(2)).toEqual([]);
+      expect(await failedPaths(newerAnalysis)).toEqual([]);
+    });
+
+    it('count and are listed only for the version of the app that failed, while a measurement counts for any', async () => {
+      await Promise.all(['/music/ok.flac', '/music/failed.flac', '/music/earlier.flac'].map((path) => addTrack(database, track(path))));
+      await saveTrackLoudness(database, measured('/music/ok.flac'));
+      await saveTrackLoudness(database, failure('/music/failed.flac'));
+      // as a failure stored before the rows had the version of the app
+      await saveTrackLoudness(database, failure('/music/earlier.flac', { appVersion: null }));
+
+      expect(await failedPaths()).toEqual(['/music/failed.flac silent']);
+      expect(await getLoudnessProgress(database, versions)).toEqual({ total: 3, measured: 1, failed: 1 });
+      expect(await failedPaths(newerApp)).toEqual([]);
+      expect(await getLoudnessProgress(database, newerApp)).toEqual({ total: 3, measured: 1, failed: 0 });
     });
   });
 
   describe('the tracks to measure', () => {
-    const toMeasure = async (afterPath = '', limit = 100, version = 1) =>
-      (await findTracksToMeasure(database, afterPath, limit, version)).map((found) => found.path);
+    const toMeasure = async (afterPath = '', limit = 100, asked = versions) =>
+      (await findTracksToMeasure(database, afterPath, limit, asked)).map((found) => found.path);
+    const failure = (path: string, extra: Partial<TrackLoudness> = {}) =>
+      measured(path, { status: 'failed', analysis: null, appVersion: versions.appVersion, ...extra });
 
     it('are the tracks with no row, in the order of their paths, after a path and up to a limit', async () => {
       await Promise.all(['/music/c.flac', '/music/a.flac', '/music/b.flac'].map((path) => addTrack(database, track(path))));
@@ -213,7 +241,7 @@ describe('loudnessRepository', () => {
     it('carry what the measurement needs of the track: its length, its file and the gains of its tags', async () => {
       await addTrack(database, track('/music/a.flac', { duration: 200, trackGain: -3, trackPeak: 0.9 }));
 
-      expect(await findTracksToMeasure(database, '', 10, 1)).toEqual([
+      expect(await findTracksToMeasure(database, '', 10, versions)).toEqual([
         { path: '/music/a.flac', duration: 200, fileModified: 100, fileSize: 1000, trackGain: -3, trackPeak: 0.9 },
       ]);
     });
@@ -221,7 +249,7 @@ describe('loudnessRepository', () => {
     it('leave out a track that was measured, and one that failed, as the file is now', async () => {
       await Promise.all(['/music/ok.flac', '/music/failed.flac', '/music/new.flac'].map((path) => addTrack(database, track(path))));
       await saveTrackLoudness(database, measured('/music/ok.flac'));
-      await saveTrackLoudness(database, measured('/music/failed.flac', { status: 'failed', analysis: null }));
+      await saveTrackLoudness(database, failure('/music/failed.flac'));
 
       expect(await toMeasure()).toEqual(['/music/new.flac']);
     });
@@ -235,14 +263,28 @@ describe('loudnessRepository', () => {
       await saveTrackLoudness(database, measured('/music/old.flac'));
       expect(await toMeasure()).toEqual(['/music/size.flac', '/music/time.flac']);
 
-      expect(await toMeasure('', 100, 2)).toEqual(['/music/old.flac', '/music/size.flac', '/music/time.flac']);
+      expect(await toMeasure('', 100, newerAnalysis)).toEqual(['/music/old.flac', '/music/size.flac', '/music/time.flac']);
     });
 
     it('take a failed track again when its file changed', async () => {
       await addTrack(database, track('/music/a.flac', { fileSize: 2000 }));
-      await saveTrackLoudness(database, measured('/music/a.flac', { status: 'failed', analysis: null }));
+      await saveTrackLoudness(database, failure('/music/a.flac'));
 
       expect(await toMeasure()).toEqual(['/music/a.flac']);
+    });
+
+    it('take a failed track again in another version of the app, and one that failed before the version was kept, but no measured one', async () => {
+      await Promise.all(['/music/ok.flac', '/music/failed.flac', '/music/earlier.flac'].map((path) => addTrack(database, track(path))));
+      await saveTrackLoudness(database, measured('/music/ok.flac'));
+      await saveTrackLoudness(database, failure('/music/failed.flac'));
+      await saveTrackLoudness(database, failure('/music/earlier.flac', { appVersion: null }));
+      const all = ['/music/earlier.flac', '/music/failed.flac', '/music/ok.flac'];
+      const among = async (asked: typeof versions) => (await findTracksToMeasureAmong(database, all, asked)).map((found) => found.path).sort();
+
+      expect(await toMeasure()).toEqual(['/music/earlier.flac']);
+      expect(await among(versions)).toEqual(['/music/earlier.flac']);
+      expect(await toMeasure('', 100, newerApp)).toEqual(['/music/earlier.flac', '/music/failed.flac']);
+      expect(await among(newerApp)).toEqual(['/music/earlier.flac', '/music/failed.flac']);
     });
   });
 

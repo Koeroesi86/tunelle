@@ -101,6 +101,7 @@ describe('library routes for browsing', () => {
       analysisVersion,
       reason: null,
       analysis,
+      appVersion: null,
     });
 
     const found = await answer('/library/loudness', `path=${encodeURIComponent('/m/c/1.flac')}`);

@@ -10,10 +10,11 @@ More: [loudness: measuring in the background](loudness-background.md).
 
 | Column | Meaning |
 |---|---|
-| `status`, `reason` | `measured`, or `failed` with why (a failed row is not measured again until the file changes) |
+| `status`, `reason` | `measured`, or `failed` with why (a failed row is not measured again until the file or the version of the app changes) |
 | `trackGain`, `trackPeak`, `albumGain`, `albumPeak` | in the units of the tags: dB at -18 LUFS, and a ratio of full scale (a peak can be above 1) |
 | `fileModified`, `fileSize` | the stat of the file that was measured |
 | `analysisVersion` | the algorithm and the JSON shape (`analysisVersion` in `client/loudness/summarise.ts`) |
+| `appVersion` | of a failed row, the version of the app that failed, see [failures and updates](loudness-background.md#failures-and-updates) |
 | `analysis` | the JSON of `LoudnessAnalysis` (`shared/types/loudness.d.ts`): the integrated loudness, the loudness range, the peak, a curve of at most 256 points and a histogram of the 400 ms blocks. A view that shows them reads the JSON of the one track |
 
 A row counts only while its `fileModified` and `fileSize` equal the ones of the track in `library`, the test the scan uses to skip an unchanged file. A changed file makes its row stale and it is ignored. Rows are deleted with their tracks (`deleteTracks`, `deleteTracksInside`).
@@ -50,7 +51,7 @@ ITU-R BS.1770 / EBU R128 at 48 kHz, the rate `decodeAudioData` resamples to:
 The tile "Measure loudness" (`client/components/settings/measure-loudness/`) has the switch (`measureLoudness`, saved with the other settings and read by the main process before each track), the progress and "Clear measured values".
 
 - The progress is `LoudnessProgress` (`shared/types/loudness.d.ts`): the tracks, those with a measurement of the file as it is, and those that could not be measured (`getLoudnessProgress`). The tile asks for it (`LOUDNESS_STATUS_LOAD`) when it opens and when the switch changes, and the main process sends it (`LOUDNESS_STATUS`) at most every 2 s while it measures, at the end of a pass, after a clear, and when a scan ends (it may have added or taken away tracks, and the count would stay stale until the next measurement).
-- Under the count of tracks that could not be measured is a link, "Show the files", that opens a modal (`FailedTracksModal`) with the file name, the path and why of each one. The tile asks for the list (`LOUDNESS_FAILED_LOAD`) when the link is clicked and the main process answers with `LOUDNESS_FAILED` (`getFailedLoudnessTracks`, the failures that count in the progress: a failure is forgotten when the file changes or the version rises). The list is not kept up to date while the modal is open, and is forgotten after "Clear measured values".
+- Under the count of tracks that could not be measured is a link, "Show the files", that opens a modal (`FailedTracksModal`) with the file name, the path and why of each one. The tile asks for the list (`LOUDNESS_FAILED_LOAD`) when the link is clicked and the main process answers with `LOUDNESS_FAILED` (`getFailedLoudnessTracks`, the failures that count in the progress: a failure is forgotten when the file, the analysis version or the version of the app changes). The list is not kept up to date while the modal is open, and is forgotten after "Clear measured values".
 - "Clear measured values" (`LOUDNESS_CLEAR`) deletes every row of `track_loudness`, including the pooled album gains, and starts the measurement again from the first track (`restart`); with the switch off the tracks stay unmeasured and play at their tag gains.
 
 ## Not built yet

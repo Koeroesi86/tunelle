@@ -28,7 +28,7 @@ export const measureResultSchema = z.discriminatedUnion('outcome', [
 /** How far the measurement of the library is: the tracks, those with a measurement and those that could not be measured. The rest wait for it */
 export const loudnessProgressSchema = z.object({ total: z.number(), measured: z.number(), failed: z.number() });
 
-/** A track that could not be measured, with why: a file as it is now, as a failure is forgotten when the file changes */
+/** A track that could not be measured, with why: a file as it is now, as a failure is forgotten when the file or the version of the app changes */
 export const failedLoudnessTrackSchema = z.object({ path: z.string(), reason: z.string().nullable() });
 
 export type FailedLoudnessTrack = z.infer<typeof failedLoudnessTrackSchema>;
