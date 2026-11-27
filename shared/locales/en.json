@@ -387,6 +387,8 @@
   "scan.done": "Library scan finished",
   "scan.count": "{current} of {total} files",
   "scan.open": "Click to open {folder}",
+  "crash.title": "Tunelle stopped working",
+  "crash.message": "The window of the player stopped again and again, so Tunelle is closing.",
   "library.error.title": "The library could not be opened",
   "library.error.newer": "This library was last used by a newer version of Tunelle. Update Tunelle to open it.",
   "library.error.failed": "The library could not be updated: {message}\n\nThe update stopped at the first error. A copy of the library from before it is next to the library as library.sqlite.v<number>.bak, where the library had data.",

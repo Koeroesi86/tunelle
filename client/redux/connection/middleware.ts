@@ -26,6 +26,7 @@ import { fetchAlbumPage, fetchGroupPage, fetchTrackPage } from '../../services/l
 import { selectAlbumQuery, selectGroupAlbumQuery, selectGroupQuery, selectTrackQuery } from '../library-query';
 import { hideSplash } from '../../startup';
 import { actionMiddleware, onAction } from '../on-action';
+import { createPlaybackWatcher } from './playback-watcher';
 
 import type { Store } from '../on-action';
 import type { PageKind, PersistedSettings, PlaylistItem, UiState } from '../types';
@@ -395,6 +396,7 @@ const handleActions = actionMiddleware((store) => [
   // the colour input fires while it is dragged, the main process does not need the accent before it is saved
   onAction('SET_ACCENT', () => saveLater(store)),
   onAction('SAVE_SETTINGS', () => saveSettings(store.getState().uiState)),
+  onAction('KEEP_POSITION', ({ payload }) => send('PLAYBACK_SNAPSHOT', payload)),
 ]);
 
 const pageKinds: PageKind[] = ['tracks', 'albums', 'groupAlbums', 'artist', 'albumArtist', 'genre'];
@@ -435,10 +437,12 @@ const middleware: Middleware<object, RootState> = (store) => {
 
   const handle = handleActions(store);
   const watchQueries = createQueryWatcher(store);
+  const watchPlayback = createPlaybackWatcher(store);
 
   return (next) => (action) => {
     const result = handle(next)(action);
     watchQueries();
+    watchPlayback();
     return result;
   };
 };

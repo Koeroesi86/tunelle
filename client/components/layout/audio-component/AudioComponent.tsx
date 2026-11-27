@@ -34,6 +34,7 @@ interface AudioComponentProps {
   trackEnded: () => void;
   /** Stops the player, as too many files in a row could not be played */
   stopPlaying: () => void;
+  keepPosition: (currentTime: number) => void;
   connectNode: (node: HTMLAudioElement | null) => void;
   connectStandbyNode: (node: HTMLAudioElement | null) => void;
   activateNode: (node: HTMLAudioElement) => void;
@@ -68,6 +69,7 @@ const AudioComponent = ({
   readFormat,
   trackEnded,
   stopPlaying,
+  keepPosition,
   connectNode,
   connectStandbyNode,
   activateNode,
@@ -87,6 +89,7 @@ const AudioComponent = ({
   // whether the current file was loaded once more after an error
   const reloaded = useRef(false);
   const ended = useRef(false);
+  const keptSecond = useRef<number | undefined>(undefined);
   const isRadio = currentSong !== null && radioUuidOf(currentSong.path) !== undefined;
   const shouldReconnect = isRadio && isPlaying;
 
@@ -196,6 +199,18 @@ const AudioComponent = ({
     if (target !== undefined) node.currentTime = target;
   };
 
+  // once a second, also in a hidden window, where the time of the controls stands still. See docs/app/system-events.md
+  const keepElementPosition = (node: HTMLAudioElement) => {
+    const second = Math.floor(node.currentTime);
+    if (isRadio || second === keptSecond.current) return;
+
+    keptSecond.current = second;
+    keepPosition(node.currentTime);
+  };
+
+  // a paused station is not connected to, as play would continue with old audio
+  const addressToLoad = (song: Track | null, playing: boolean) => (song && (playing || !radioUuidOf(song.path)) ? loadAddressOf(song) : '');
+
   useEffect(() => stopReconnecting, []);
 
   useEffect(() => {
@@ -226,7 +241,7 @@ const AudioComponent = ({
     connectStandbyNode(gapless.elements.current[1]);
     const pending = resume.current;
     resume.current = undefined;
-    const node = pending && currentSong ? gapless.load(loadAddressOf(currentSong)) : undefined;
+    const node = pending && currentSong ? gapless.load(addressToLoad(currentSong, pending.wasPlaying)) : undefined;
     if (!pending || !node) return;
 
     if (!isRadio) node.currentTime = pending.position;
@@ -239,7 +254,8 @@ const AudioComponent = ({
     attempts.current = 0;
     ended.current = false;
     reloaded.current = false;
-    const source = currentSong ? loadAddressOf(currentSong) : '';
+    keptSecond.current = undefined;
+    const source = addressToLoad(currentSong, isPlaying);
     if (gapless.changeTrack(source, isPlaying)) return;
 
     const node = gapless.load(source);
@@ -297,7 +313,10 @@ const AudioComponent = ({
           onWaiting={() => handleStall(index)}
           onTimeUpdate={(event) => {
             gapless.handleTimeUpdate(index);
-            if (gapless.isActive(index)) catchUpToLive(event.currentTarget);
+            if (!gapless.isActive(index)) return;
+
+            catchUpToLive(event.currentTarget);
+            keepElementPosition(event.currentTarget);
           }}
         />
       ))}

@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
     setAlwaysOnTop: vi.fn(),
     setThumbarButtons: vi.fn(),
     on: vi.fn(),
-    webContents: { send: vi.fn() },
+    webContents: { send: vi.fn(), isDestroyed: () => false },
   },
   languageChanged: undefined as undefined | (() => void),
 }));
@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('electron', () => ({
   ipcMain: { on: (channel: string, handler: Handler) => mocks.handlers.set(channel, handler) },
   nativeImage: { createFromPath: (path: string) => ({ path }) },
+  powerMonitor: { on: (event: string, handler: Handler) => mocks.handlers.set(event, handler) },
 }));
 vi.mock('../windows/get-main-window', () => ({ getMainWindow: () => mocks.main }));
 vi.mock('../language', () => ({
@@ -74,6 +75,14 @@ describe('registerWindowListeners', () => {
     ]);
     expect(mocks.main.unmaximize).toHaveBeenCalledTimes(1);
     expect(mocks.main.maximize).toHaveBeenCalledTimes(1);
+  });
+
+  it('pauses the player when the computer goes to sleep', async () => {
+    (await load('linux'))({ windows: [] } as unknown as ListenerContext);
+
+    mocks.handlers.get('suspend')?.();
+
+    expect(mocks.main.webContents.send.mock.calls).toEqual([['SET_PLAYING', { isPlaying: false }]]);
   });
 
   it('has no playback buttons off Windows', async () => {

@@ -68,6 +68,19 @@ describe('registerStateListeners', () => {
     expect(send.mock.invocationCallOrder.at(-1)).toBeLessThan(opened.attachOpenedFiles.mock.invocationCallOrder[0]);
   });
 
+  it('gives a page that is loaded again what the one before it changed of the playback', async () => {
+    const sender = { send, isDestroyed: () => false };
+    const event = { sender } as unknown as IpcMainEvent;
+    listeners.get('PLAYBACK_SNAPSHOT')?.(event, { currentSong: { path: '/a.flac' }, currentTime: 0 });
+    listeners.get('PLAYBACK_SNAPSHOT')?.(event, { currentTime: 42 });
+
+    listeners.get('APP_READY')?.(event);
+
+    await vi.waitFor(() =>
+      expect(send).toHaveBeenCalledWith('RESTORE_SETTINGS', { settings: { volume: 1, currentSong: { path: '/a.flac' }, currentTime: 42 } })
+    );
+  });
+
   it('starts watching the library for the window that is ready', async () => {
     const sender = { send, isDestroyed: () => false };
 

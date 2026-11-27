@@ -35,6 +35,10 @@ The window opens as soon as the app is ready, before the library is open, so `la
 
 What the app gets only once (the files it is started with, see [open-files.md](../app/open-files.md)) is on the first load and not on the next one: `onFirstLoad` of `launchApp` looks at that load, without `window.activeAudio` and `window.audioProbe`. `session.openAgain(files)` starts a second process on the same profile, which hands the files to the running app and leaves.
 
+## A page that crashed
+
+The `Page` of Playwright stays dead after its renderer crashed, also when the app loads it again: every call fails with `Target crashed`, and `app.windows()` holds no other one. The new page is there and has the init scripts, so `e2e/functional/system-events.spec.ts` asks it through `webContents.executeJavaScript` in the main process. A call that meets the reload fails with `Render frame was disposed`, so it is asked again.
+
 ## When every test times out at once
 
 - Check that `build/` exists: the page is served from it, and without it the window shows an empty document (`#root` and `#splash` both missing, one 404 in the console). `npm run build` brings it back.

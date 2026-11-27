@@ -28,6 +28,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [The decode-only ffmpeg build](docs/development/ffmpeg-build.md)
 - [Patents of the codecs in the ffmpeg build](docs/development/ffmpeg-patents.md)
 - [Startup and the splash](docs/app/startup.md)
+- [Sleep and a crash of the page](docs/app/system-events.md)
 - [The updater](docs/app/updater.md)
 - [The app data folder](docs/app/user-data.md)
 - [The `tunelle://app` protocol](docs/app/tunelle-protocol.md)
