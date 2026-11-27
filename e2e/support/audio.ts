@@ -49,6 +49,22 @@ export const expectTone = (page: Page, frequency: number) =>
     )
     .toBeCloseTo(frequency, -1);
 
+/** As `expectTone`, of the right channel */
+export const expectToneOnRight = (page: Page, frequency: number) =>
+  expect
+    .poll(
+      async () => {
+        const { sampleRate, windows } = await probeOf(page);
+        const lately = windows
+          .slice(-Math.ceil((0.5 * sampleRate) / 1024))
+          .map((window) => ({ ...window, rms: window.rightRms, crossings: window.rightCrossings }));
+        const { seconds, rms, frequency: heard } = summarize(sampleRate, lately);
+        return seconds >= 0.4 && rms > audible ? heard : 0;
+      },
+      { message: `a tone of ${frequency} Hz on the right` }
+    )
+    .toBeCloseTo(frequency, -1);
+
 /** Waits until the last half second is silent */
 export const expectSilence = (page: Page) =>
   expect

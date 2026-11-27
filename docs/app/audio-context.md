@@ -14,6 +14,15 @@
 - **A short gap is expected** at the switch: the sound is paused until the new elements play.
 - **The default device is followed.** A context that plays on the default device listens to `sinkchange`. When the default changes it opens a context for the new default, and replaces the current one if the rates differ (a device that was picked is left alone). The two kinds of switch share a queue.
 
+## A channel that goes silent ([#591](https://github.com/Koeroesi86/tunelle/issues/591))
+
+- **Symptom:** one channel, say the right one, falls silent while the other plays on, and stays silent on the following tracks until the app is restarted (or the context is replaced).
+- **Cause:** a filter of the equalizer keeps a memory of the samples of each channel. One sample that is `NaN` or `Infinity` stays in that memory, so all that the filter gives for that channel from then on is `NaN`, which is played as silence. The filters are in the graph also when the equalizer is flat. A float WAV can hold such a sample, as neither the decoder nor Chromium takes it out (the `OverscaleGuard` of a [decoded stream](decoder-sources.md) does, for its own audio only).
+- **Fix:** `connectDestination` hangs a small analyser behind the last filter. At each `timeupdate` of the element that plays, `repairOutput` reads it (the analyser mixes the channels, so a `NaN` in either shows), and when a value is not a finite number it disconnects the filters and calls the listeners of `onAudioMounted` again, which makes new ones. The channel is silent for a quarter of a second or so. It is logged as `the filters give no sound, they are made again` with the source of the track.
+- **Check:** `e2e/functional/damaged-audio.spec.ts` plays a float WAV with one `NaN` in the right channel and listens to that channel.
+
+What gave the sample in the report of #591 (macOS) is not known: the file or station that played was not named.
+
 ## The rate of a radio station
 
 A station has no file, so no rate in the library. The proxy of the stream (`electron/protocols/radio-proxy.ts`) passes the audio through a `SampleRateTap`, which keeps the first 64 KiB until `detectStreamSampleRate` (`shared/utils/stream-sample-rate.ts`) finds a rate and then lets the rest go by untouched. It reads MP3 and AAC (ADTS) from two frame headers in a row, since the sync pattern of one frame can be in the data by chance, Opus as 48 kHz and Vorbis from its header; a stream of another kind has no rate and shows none. The main process sends it as `RADIO_STREAM_RATE`, the state keeps it as `streamSampleRate` for the station that plays (forgotten when another track starts), and the now playing page shows it in the same line as a file's rate, `LoudnessPanel` with no `path`: only the rate and whether it is resampled, as a station has no loudness analysis. A station that reconnects sends the rate again.

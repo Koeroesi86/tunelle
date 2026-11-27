@@ -3,6 +3,7 @@ import { useContext } from 'react';
 import { renderHook } from '@testing-library/react';
 
 const fakeNode = () => ({ connect: vi.fn(), disconnect: vi.fn() });
+const fakeAnalyser = () => ({ ...fakeNode(), smoothingTimeConstant: 0, fftSize: 0, getFloatTimeDomainData: vi.fn((into: Float32Array) => void into.fill(0)) });
 const fakeGain = () => ({
   ...fakeNode(),
   gain: { cancelScheduledValues: vi.fn(), setValueAtTime: vi.fn(), setTargetAtTime: vi.fn() },
@@ -19,7 +20,7 @@ const setup = async () => {
   vi.resetModules();
   const source = fakeNode();
   const gains: ReturnType<typeof fakeGain>[] = [];
-  const analysers: ReturnType<typeof fakeNode>[] = [];
+  const analysers: ReturnType<typeof fakeAnalyser>[] = [];
   const createMediaElementSource = vi.fn(() => source);
   const contexts: { sinkId: string; sampleRate: number; close: ReturnType<typeof vi.fn>; resume: ReturnType<typeof vi.fn>; sinkchange: () => void }[] = [];
   vi.stubGlobal(
@@ -48,8 +49,9 @@ const setup = async () => {
         gains.push(gain);
         return gain;
       };
+      createBiquadFilter = fakeNode;
       createAnalyser = () => {
-        const analyser = Object.assign(fakeNode(), { smoothingTimeConstant: 0, fftSize: 0 });
+        const analyser = fakeAnalyser();
         analysers.push(analyser);
         return analyser;
       };
@@ -292,6 +294,82 @@ describe('audio context', () => {
 
     expect(input.connect).toHaveBeenCalledWith(analyser);
     expect(analysers[0].connect).not.toHaveBeenCalled();
+  });
+
+  describe('filters that give no number', () => {
+    /** An element that plays through one filter, which the listener of the audio makes as the equalizer does */
+    const playThroughFilter = async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const { audio, input, analysers } = await setup();
+      const filters: BiquadFilterNode[] = [];
+      audio.onAudioMounted(() => {
+        const filter = audio.createBiquadFilter();
+        filters.push(filter);
+        audio.connectDestination(filter);
+      });
+      const node = document.createElement('audio');
+      audio.connectNode(node);
+      const spoil = (sample: number) => analysers[0].getFloatTimeDomainData.mockImplementation((into) => void into.fill(0).fill(sample, 5, 6));
+      return { audio, input, analysers, filters, node, spoil, progress: () => node.dispatchEvent(new Event('timeupdate')) };
+    };
+
+    it('are listened to behind the last one', async () => {
+      const { filters, analysers } = await playThroughFilter();
+
+      expect(filters[0].connect).toHaveBeenCalledWith(analysers[0]);
+    });
+
+    it('stay while their output is sound', async () => {
+      const { filters, progress } = await playThroughFilter();
+
+      progress();
+
+      expect(filters).toHaveLength(1);
+    });
+
+    it.each([NaN, Infinity, -Infinity])('are taken out and made again when their output is %s', async (sample) => {
+      const { input, filters, spoil, progress } = await playThroughFilter();
+      spoil(sample);
+
+      progress();
+
+      expect(input.disconnect).toHaveBeenCalledTimes(1);
+      expect(filters[0].disconnect).toHaveBeenCalledTimes(1);
+      expect(filters).toHaveLength(2);
+    });
+
+    it('leave the analyser of the spectrum on the input', async () => {
+      const { audio, input, spoil, progress } = await playThroughFilter();
+      const spectrum = audio.createAnalyser();
+      spoil(NaN);
+      input.connect.mockClear();
+
+      progress();
+
+      expect(input.connect).toHaveBeenCalledExactlyOnceWith(spectrum);
+    });
+
+    it('are listened to again after they were made again', async () => {
+      const { filters, analysers, spoil, progress } = await playThroughFilter();
+      spoil(NaN);
+
+      progress();
+      progress();
+
+      expect(filters[1].connect).toHaveBeenCalledWith(analysers[1]);
+      expect(filters).toHaveLength(2);
+    });
+
+    it('are not checked for an element that waits for the next track', async () => {
+      const { audio, filters, spoil } = await playThroughFilter();
+      const standby = document.createElement('audio');
+      audio.connectStandbyNode(standby);
+      spoil(NaN);
+
+      standby.dispatchEvent(new Event('timeupdate'));
+
+      expect(filters).toHaveLength(1);
+    });
   });
 
   it.each([

@@ -10,6 +10,9 @@ export interface ProbeWindow {
   peak: number;
   /** Rising zero crossings: the cycles of a tone */
   crossings: number;
+  /** The rms of the right channel; the other numbers are of the left one */
+  rightRms: number;
+  rightCrossings: number;
 }
 
 export interface Probe {
@@ -54,14 +57,17 @@ export const installAudioProbe = () => {
     // a script processor needs no module, which the policy of the page (script-src 'self') would refuse a worklet to load from a blob
     const node = context.createScriptProcessor(windowLength, 2, 1);
     node.onaudioprocess = ({ inputBuffer, playbackTime }) => {
-      const channel = inputBuffer.getChannelData(0);
-      const samples = Array.from(channel);
+      const [samples, right] = [0, 1].map((channel) => Array.from(inputBuffer.getChannelData(channel)));
+      const rmsOf = (values: number[]) => Math.sqrt(values.reduce((sum, sample) => sum + sample * sample, 0) / values.length);
+      const crossingsOf = (values: number[]) => values.filter((sample, index) => sample >= 0 && (values[index - 1] ?? 0) < 0).length;
       probe.windows.push({
         frame: Math.round(playbackTime * context.sampleRate),
         frames: samples.length,
-        rms: Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length),
+        rms: rmsOf(samples),
         peak: samples.reduce((peak, sample) => Math.max(peak, Math.abs(sample)), 0),
-        crossings: samples.filter((sample, index) => sample >= 0 && (samples[index - 1] ?? 0) < 0).length,
+        crossings: crossingsOf(samples),
+        rightRms: rmsOf(right),
+        rightCrossings: crossingsOf(right),
       });
     };
     Reflect.apply(originalConnect, bus, [node]);
