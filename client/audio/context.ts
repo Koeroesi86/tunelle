@@ -23,9 +23,16 @@ const createListeners = <T>() => {
 let audioContext = new window.AudioContext();
 let switching: Promise<void> = Promise.resolve();
 let audioNode: HTMLAudioElement | null = null;
+// two channels, as an element that holds 3, 5, 7 or 8 channels would else leave a mono track on the left only. See docs/app/audio-context.md
+const createInput = () => {
+  const node = audioContext.createGain();
+  node.channelCount = 2;
+  node.channelCountMode = 'explicit';
+  return node;
+};
 // the sound of every element comes in here, so the equalizer and the analyser do not care which element plays; an element can only be wrapped once,
 // a second createMediaElementSource on it throws
-let input = audioContext.createGain();
+let input = createInput();
 const wrappedElements = new Set<HTMLAudioElement>();
 // the loudness normalization of each element, as an element plays one track after the other
 const normalizers = new Map<HTMLAudioElement, GainNode>();
@@ -155,7 +162,7 @@ const replaceContext = (next: AudioContext) => {
   clearInterval(timeChangeTimer);
   audioContext = next;
   watchDefaultDevice(next);
-  input = next.createGain();
+  input = createInput();
   wrappedElements.clear();
   normalizers.clear();
   analyser = undefined;

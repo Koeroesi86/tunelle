@@ -74,6 +74,13 @@ describe('audio context', () => {
     vi.unstubAllGlobals();
   });
 
+  // a source of 3, 5, 7 or 8 channels would else make the equalizer that wide, with a mono track on the left only
+  it('mixes every element to two channels before the equalizer', async () => {
+    const { input } = await setup();
+
+    expect(input).toMatchObject({ channelCount: 2, channelCountMode: 'explicit' });
+  });
+
   describe('output device', () => {
     beforeEach(() => {
       setSinkId.mockReset().mockResolvedValue(undefined);
@@ -136,6 +143,15 @@ describe('audio context', () => {
         expect(setSinkId).not.toHaveBeenCalled();
         expect(contexts[0].close).toHaveBeenCalledTimes(1);
         expect(contexts[1].resume).toHaveBeenCalledTimes(1);
+      });
+
+      it('mixes to two channels in the new context too', async () => {
+        const { audio, gains } = await setup();
+
+        await audio.setOutputDevice('dac');
+
+        // no element is wrapped yet, so the second gain is the input of the new context
+        expect(gains[1]).toMatchObject({ channelCount: 2, channelCountMode: 'explicit' });
       });
 
       it('tells the player where the track was and whether it played, with the old elements paused and silent for the status of the player', async () => {
