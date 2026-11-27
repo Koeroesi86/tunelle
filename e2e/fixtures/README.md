@@ -55,6 +55,12 @@ ffmpeg -f lavfi -i "sine=frequency=440:duration=6:sample_rate=48000" -ac 1 -c:a 
 
 The second track is the same with 880 Hz, "Octave Up" and track 2.
 
+`noise/` has files of 6000 frames of noise, other in each channel, for `electron/protocols/bit-exact.integration.test.ts`: stereo in each lossless format at 16 bit, 44.1 kHz and 24 bit, 96 kHz (AIFF-C at 16 bit only), and FLAC and WAV in 5.1 and at 176.4, 192 and 384 kHz. There is no Monkey's Audio file, which needs the `mac` tool of its SDK. `scripts/tooling/noise-fixtures.ts` lists them and makes their PCM, which the test makes again to compare. It needs `ffmpeg` and `wavpack` on `PATH`:
+
+```sh
+npm run fixtures:noise
+```
+
 `rf64/` and `w64/` have the same two tracks as 16 bit PCM (mono, 44.1 kHz) in an RF64 `.wav` (album "Lossless RF64", for `electron/protocols/decoded-track.integration.test.ts`) and in Wave64 `.w64` files, which have no tags (the muxer of ffmpeg writes none), for the integration tests of the decoder proxy:
 
 ```sh

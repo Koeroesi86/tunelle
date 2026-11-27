@@ -173,14 +173,16 @@ const leave = (key: string, job: Job, measured: boolean) => {
 export const stopDecodes = () => jobs.forEach((job, key) => cancel(key, job));
 
 /** What ffprobe said of each file that was asked about, so the ranges of a track do not ask again */
-const floatFiles = new Map<string, boolean>();
+const probedFiles = new Map<string, Awaited<ReturnType<typeof probeFormat>>>();
 
-/** Float samples under a codec that holds integers too, which both have a depth of 32 bit: only the file tells */
-const isFloatFile = async (source: string, version: string, { codec, bitDepth }: Format) => {
-  if (!isMixedCodec(codec) || (bitDepth ?? 0) < 32) return false;
-  const float = floatFiles.get(version) ?? (await probeFormat(source))?.float;
-  if (float !== undefined) floatFiles.set(version, float);
-  return float === true;
+/** Only the file tells whether 32 bit samples are floats, and how deep ALAC in CAF is, whose depth the scan does not read */
+const needsProbe = ({ codec, bitDepth }: Format) => (isMixedCodec(codec) && (bitDepth ?? 0) >= 32) || (codec === 'ALAC' && bitDepth === null);
+
+const askFile = async (source: string, version: string, format: Format) => {
+  if (!needsProbe(format)) return undefined;
+  const found = probedFiles.get(version) ?? (await probeFormat(source));
+  if (found) probedFiles.set(version, found);
+  return found;
 };
 
 /** What names the decoded copy of a source in the cache */
@@ -192,7 +194,8 @@ export const prepareDecode = async (
   if (!stats?.isFile()) return undefined;
 
   const version = `${source}\0${stats.size}\0${stats.mtimeMs}`;
-  const encoder = toEncoder(format, await isFloatFile(source, version, format));
+  const file = await askFile(source, version, format);
+  const encoder = toEncoder({ ...format, bitDepth: format.bitDepth ?? file?.bitDepth ?? null }, file?.float);
   const key = createHash('sha256')
     .update(`${version}\0${encoder.join(' ')}`)
     .digest('hex')

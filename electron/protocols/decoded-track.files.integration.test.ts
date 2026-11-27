@@ -89,7 +89,7 @@ describe('decoded track', () => {
     [16, 'pcm_s16le'],
     [32, 'pcm_s32le'],
   ])('encodes a depth of %s as %s', async (bitDepth, encoder) => {
-    const result = decodeTrack(source(`depth-${bitDepth}.m4a`), { codec: 'ALAC', bitDepth }, never);
+    const result = decodeTrack(source(`depth-${bitDepth}.flac`), { codec: 'FLAC', bitDepth }, never);
     await started();
     children[0].finish();
     await result;

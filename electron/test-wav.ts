@@ -34,7 +34,8 @@ export const readWav = (file: string) => {
   const channelData = Array.from({ length: channels }, (_, channel) =>
     Float64Array.from({ length: frames }, (_, frame) => sample(body.start + (frame * channels + channel) * bytes))
   );
-  return { channels, sampleRate, bytes, float, seconds: frames / sampleRate, samples: channelData[0], channelData };
+  const pcm = data.subarray(body.start, body.start + size);
+  return { channels, sampleRate, bytes, float, seconds: frames / sampleRate, samples: channelData[0], channelData, pcm };
 };
 
 /** The samples at another rate, by cubic interpolation: close enough to the resampling of Chromium for the level of a sine to agree within a few hundredths of a LU. */

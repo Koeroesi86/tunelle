@@ -120,6 +120,15 @@ describe('decodeTrack', () => {
     expect(vi.mocked(spawn).mock.calls[0][1]).toContain('pcm_f32le');
   });
 
+  it('asks ffprobe for the depth of ALAC that the library has none for, as of a CAF file', async () => {
+    vi.mocked(probeFormat).mockResolvedValue({ codec: 'ALAC', bitDepth: 24, float: false });
+    decoder({ code: 0 });
+
+    await decodeTrack(source, { codec: 'ALAC', bitDepth: null }, signal());
+
+    expect(vi.mocked(spawn).mock.calls[0][1]).toContain('pcm_s24le');
+  });
+
   it('asks ffprobe once about a 32 bit file, and again after one that it gave no answer for', async () => {
     vi.mocked(probeFormat).mockReset().mockResolvedValueOnce(undefined).mockResolvedValue({ codec: 'WAVPACK', bitDepth: 32, float: true });
     const wavpack = { codec: 'WAVPACK', bitDepth: 32 };
