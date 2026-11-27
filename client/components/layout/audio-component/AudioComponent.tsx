@@ -30,6 +30,8 @@ interface AudioComponentProps {
   /** How far the measurement of the loudness is: it changes when a track was measured, which may be the one that plays */
   loudnessStatus?: LoudnessProgress;
   trackEnded: () => void;
+  /** Stops the player, as too many files in a row could not be played */
+  stopPlaying: () => void;
   connectNode: (node: HTMLAudioElement | null) => void;
   connectStandbyNode: (node: HTMLAudioElement | null) => void;
   activateNode: (node: HTMLAudioElement) => void;
@@ -62,6 +64,7 @@ const AudioComponent = ({
   loudnessStatus,
   readFormat,
   trackEnded,
+  stopPlaying,
   connectNode,
   connectStandbyNode,
   activateNode,
@@ -137,7 +140,9 @@ const AudioComponent = ({
   // a file that cannot be played, such as one on a drive that is not there, is passed over for the next one
   const skipUnplayable = () => {
     skipped.current += 1;
-    if (skipped.current <= maxSkippedFiles) trackEnded();
+    if (skipped.current > maxSkippedFiles) return stopPlaying();
+
+    trackEnded();
   };
 
   // a stream can break midway, as a decode that fails does: the file is loaded once more where it was, before it is passed over

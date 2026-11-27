@@ -19,6 +19,7 @@ const renderAudio = (currentSong: Track | null, isPlaying = false) =>
       isPlaying={isPlaying}
       volume={1}
       trackEnded={vi.fn()}
+      stopPlaying={vi.fn()}
       connectNode={vi.fn()}
       connectStandbyNode={vi.fn()}
       activateNode={vi.fn()}
@@ -54,6 +55,7 @@ describe('AudioComponent', () => {
         isPlaying={false}
         volume={1}
         trackEnded={vi.fn()}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -80,6 +82,7 @@ describe('AudioComponent', () => {
         isPlaying
         volume={1}
         trackEnded={vi.fn()}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -107,6 +110,7 @@ describe('AudioComponent', () => {
         isPlaying={isPlaying}
         volume={1}
         trackEnded={vi.fn()}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -143,6 +147,7 @@ describe('AudioComponent', () => {
         isPlaying={isPlaying}
         volume={1}
         trackEnded={vi.fn()}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -171,6 +176,7 @@ describe('AudioComponent', () => {
         isPlaying={isPlaying}
         volume={1}
         trackEnded={vi.fn()}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -202,6 +208,7 @@ describe('AudioComponent', () => {
         isPlaying={isPlaying}
         volume={1}
         trackEnded={vi.fn()}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -233,6 +240,7 @@ describe('AudioComponent', () => {
         isPlaying={false}
         volume={1}
         trackEnded={vi.fn()}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -259,6 +267,7 @@ describe('AudioComponent without a track', () => {
       isPlaying={false}
       volume={1}
       trackEnded={vi.fn()}
+      stopPlaying={vi.fn()}
       connectNode={vi.fn()}
       connectStandbyNode={vi.fn()}
       activateNode={vi.fn()}
@@ -302,6 +311,7 @@ describe('AudioComponent end of a track', () => {
         isPlaying={false}
         volume={1}
         trackEnded={trackEnded}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -337,6 +347,7 @@ describe('AudioComponent end of a track', () => {
         isPlaying={false}
         volume={1}
         trackEnded={trackEnded}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -388,6 +399,7 @@ describe('AudioComponent radio reconnect', () => {
         isPlaying
         volume={1}
         trackEnded={vi.fn()}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -518,6 +530,7 @@ describe('AudioComponent radio reconnect', () => {
         isPlaying
         volume={1}
         trackEnded={vi.fn()}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -539,6 +552,7 @@ describe('AudioComponent radio reconnect', () => {
         isPlaying={false}
         volume={1}
         trackEnded={vi.fn()}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -569,6 +583,7 @@ describe('AudioComponent radio reconnect', () => {
         isPlaying
         volume={1}
         trackEnded={trackEnded}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -598,6 +613,7 @@ describe('AudioComponent radio reconnect', () => {
         isPlaying
         volume={1}
         trackEnded={trackEnded}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -637,6 +653,7 @@ describe('AudioComponent radio reconnect', () => {
         isPlaying
         volume={1}
         trackEnded={trackEnded}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -656,6 +673,45 @@ describe('AudioComponent radio reconnect', () => {
     expect(trackEnded).toHaveBeenCalledTimes(1);
   });
 
+  it('stops when more files in a row fail than it passes over', () => {
+    const trackEnded = vi.fn();
+    const stopPlaying = vi.fn();
+    const broken = (index: number) => (
+      <AudioComponent
+        readFormat={noFormat}
+        devices={[]}
+        currentSong={{ ...station, path: `/mnt/usb/${index}.flac` }}
+        isPlaying
+        volume={1}
+        trackEnded={trackEnded}
+        stopPlaying={stopPlaying}
+        connectNode={vi.fn()}
+        connectStandbyNode={vi.fn()}
+        activateNode={vi.fn()}
+        normalization="album"
+        setNormalization={vi.fn()}
+        outputDevice={undefined}
+        setOutputDevice={vi.fn().mockResolvedValue(undefined)}
+        addOutputChangeListener={vi.fn()}
+        removeOutputChangeListener={vi.fn()}
+        upNext={null}
+      />
+    );
+    const view = render(broken(0));
+    const failTwice = (index: number) => {
+      view.rerender(broken(index));
+      fireEvent.error(view.container.querySelector('audio') as HTMLAudioElement);
+      fireEvent.error(view.container.querySelector('audio') as HTMLAudioElement);
+    };
+
+    Array.from({ length: 10 }, (_, index) => index).forEach(failTwice);
+    expect(stopPlaying).not.toHaveBeenCalled();
+    failTwice(10);
+
+    expect(trackEnded).toHaveBeenCalledTimes(10);
+    expect(stopPlaying).toHaveBeenCalledTimes(1);
+  });
+
   it('does not move on from a restored track that is paused', () => {
     const trackEnded = vi.fn();
     const file = { ...station, path: '/mnt/usb/a.flac' };
@@ -667,6 +723,7 @@ describe('AudioComponent radio reconnect', () => {
         isPlaying={false}
         volume={1}
         trackEnded={trackEnded}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -697,6 +754,7 @@ describe('AudioComponent radio reconnect', () => {
         isPlaying
         volume={1}
         trackEnded={trackEnded}
+        stopPlaying={vi.fn()}
         connectNode={vi.fn()}
         connectStandbyNode={vi.fn()}
         activateNode={vi.fn()}
@@ -742,6 +800,7 @@ describe('AudioComponent gapless', () => {
       normalization={normalization}
       upNext={upNext}
       trackEnded={trackEnded}
+      stopPlaying={vi.fn()}
       connectNode={vi.fn()}
       connectStandbyNode={vi.fn()}
       activateNode={activateNode}
@@ -1000,6 +1059,7 @@ describe('AudioComponent output device', () => {
       isPlaying={false}
       volume={1}
       trackEnded={vi.fn()}
+      stopPlaying={vi.fn()}
       connectNode={vi.fn()}
       connectStandbyNode={vi.fn()}
       activateNode={vi.fn()}
@@ -1047,6 +1107,7 @@ describe('AudioComponent audio context replaced', () => {
         isPlaying={isPlaying}
         volume={0.5}
         trackEnded={vi.fn()}
+        stopPlaying={vi.fn()}
         connectNode={connectNode}
         connectStandbyNode={connectStandbyNode}
         activateNode={vi.fn()}

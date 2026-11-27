@@ -479,6 +479,19 @@ describe('audio context', () => {
     });
   });
 
+  it('stays playing when the element fails, as the player loads it again or moves on', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { audio } = await setup();
+    const element = document.createElement('audio');
+    const listener = vi.fn();
+    audio.connectNode(element);
+    audio.addPlayStatusListener(listener);
+
+    element.dispatchEvent(new Event('error'));
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+
   it('shares one analyser however often it is asked for', async () => {
     const { audio, analysers } = await setup();
     audio.connectNode(document.createElement('audio'));

@@ -44,6 +44,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [Remote access: following the host](docs/app/remote-access-follow.md)
 - [Database migrations](docs/app/migrations.md)
 - [The audio context and the sample rate](docs/app/audio-context.md)
+- [When something does not play](docs/app/playback-failures.md)
 - [Library queries](docs/app/library-queries.md)
 - [Artist photos](docs/app/artist-photos.md)
 - [Album covers](docs/app/album-covers.md)
