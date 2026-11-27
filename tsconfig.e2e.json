@@ -16,6 +16,7 @@
     "shared/types",
     "e2e",
     "playwright.config.ts",
+    "scripts/tooling/audio-joins.ts",
     "scripts/screenshots/screenshot-media.ts",
     "scripts/screenshots/screenshot-fixtures.ts"
   ]

@@ -19,6 +19,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [Screenshots of the website](docs/development/screenshots.md)
 - [Keeping the usage of Claude Code down](docs/development/claude-usage.md)
 - [Testing the app](docs/development/end-to-end-tests.md)
+- [Measuring gapless playback](docs/development/gapless-measurement.md)
 - [Test plan: remote listening](docs/development/remote-listening-test-plan.md)
 - [Unit tests](docs/development/unit-tests.md)
 - [Property tests](docs/development/property-tests.md)
