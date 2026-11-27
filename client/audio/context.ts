@@ -31,6 +31,9 @@ const wrappedElements = new Set<HTMLAudioElement>();
 const normalizers = new Map<HTMLAudioElement, GainNode>();
 const normalizationRamp = 0.05;
 let analyser: AnalyserNode | undefined;
+// the end of the filters, with an analyser that reads what leaves them
+let output: { end: AudioNode; probe: AnalyserNode } | undefined;
+const probed = new Float32Array(32);
 let mounted = false;
 const playStatus = createListeners<boolean>();
 // a track or a station that does not play: the status only says it is not playing, which a listener cannot tell from a pause
@@ -84,11 +87,27 @@ const startTimeChanges = () => {
 
 document.addEventListener('visibilitychange', () => mounted && startTimeChanges());
 
+// one sample that is no number stays in the memory of a filter, so its channel is silent until the filters are new. See docs/app/audio-context.md
+const repairOutput = () => {
+  if (!output) return;
+
+  output.probe.getFloatTimeDomainData(probed);
+  if (probed.every(Number.isFinite)) return;
+
+  console.warn('the filters give no sound, they are made again', audioNode?.src);
+  input.disconnect();
+  output.end.disconnect();
+  if (analyser) input.connect(analyser);
+  audioMountListeners.forEach((listener) => listener());
+};
+
 const wrapNode = (node: HTMLAudioElement) => {
   if (wrappedElements.has(node)) return;
 
   wrappedElements.add(node);
   listenToPlayStatus(node);
+  // comes a few times a second while the element plays, in a hidden window too
+  node.addEventListener('timeupdate', () => node === audioNode && repairOutput());
   const normalizer = audioContext.createGain();
   normalizers.set(node, normalizer);
   audioContext.createMediaElementSource(node).connect(normalizer);
@@ -243,7 +262,13 @@ const createAnalyser = (): AnalyserNode | undefined => {
 
 const createBiquadFilter = () => audioContext.createBiquadFilter();
 const createGain = () => audioContext.createGain();
-const connectDestination = (node: AudioNode) => node.connect(audioContext.destination);
+const connectDestination = (node: AudioNode) => {
+  const probe = audioContext.createAnalyser();
+  probe.fftSize = probed.length;
+  node.connect(probe);
+  node.connect(audioContext.destination);
+  output = { end: node, probe };
+};
 
 export const Audio = createContext({
   addPlayStatusListener: (listener: PlayStatusListener) => void playStatus.add(listener),
