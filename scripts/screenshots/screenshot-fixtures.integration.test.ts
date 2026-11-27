@@ -51,7 +51,7 @@ describe('startDirectory', () => {
     const { stations: listed } = await radio.searchStations({});
 
     expect(listed.every((station) => station.hasLogo)).toBe(true);
-    expect((await fetch(radio.getLogoUrl(listed[0]?.uuid ?? '') ?? '')).headers.get('content-type')).toBe('image/png');
+    expect((await fetch((await radio.getLogoUrl(listed[0]?.uuid ?? '')) ?? '')).headers.get('content-type')).toBe('image/png');
     expect(albums.every((album) => album.genre)).toBe(true);
   });
 

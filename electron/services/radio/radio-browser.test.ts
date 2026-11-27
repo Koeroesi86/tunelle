@@ -51,8 +51,8 @@ describe('radio-browser client', () => {
         ['abc-3', false],
       ]);
       expect(JSON.stringify(stations)).not.toContain('logo.example');
-      expect(browser.getLogoUrl('abc-1')).toBe('https://logo.example/jazz.png');
-      expect(browser.getLogoUrl('abc-2')).toBeUndefined();
+      expect(await browser.getLogoUrl('abc-1')).toBe('https://logo.example/jazz.png');
+      expect(await browser.getLogoUrl('abc-2')).toBeUndefined();
     });
   });
 
@@ -301,6 +301,33 @@ describe('radio-browser client', () => {
     it('does not ask the directory about no stations', async () => {
       expect(await createRadioBrowser('Tunelle').findStations([])).toEqual([]);
       expect(fetchMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getLogoUrl', () => {
+    const logosPath = '/radio/logos.json';
+    const withLogo = { ...station, favicon: 'https://logo.example/a.png' };
+
+    it('knows the logo of a station the directory was asked about when the directory can not be asked', async () => {
+      const options = { logosPath, findMirrors: () => Promise.resolve([]) };
+      fetchMock.mockResolvedValueOnce(json(servers)).mockResolvedValueOnce(json([withLogo]));
+      await createRadioBrowser('Tunelle', undefined, options).findStations(['abc-1']);
+      fetchMock.mockReset();
+
+      const radio = createRadioBrowser('Tunelle', undefined, options);
+
+      expect(await radio.getLogoUrl('abc-1')).toBe('https://logo.example/a.png');
+      expect(await radio.getLogoUrl('never-seen')).toBeUndefined();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('does not store the logo of a station that was only found by a search', async () => {
+      fetchMock.mockResolvedValueOnce(json(servers)).mockResolvedValueOnce(json([withLogo]));
+      const radio = createRadioBrowser('Tunelle', undefined, { logosPath });
+      await radio.searchStations({});
+
+      expect(await radio.getLogoUrl('abc-1')).toBe('https://logo.example/a.png');
+      expect(await createRadioBrowser('Tunelle', undefined, { logosPath }).getLogoUrl('abc-1')).toBeUndefined();
     });
   });
 

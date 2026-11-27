@@ -69,14 +69,17 @@ const queriesOf = (streamTitle: string) => {
 
 const searchUrl = (query: string) => `https://musicbrainz.org/ws/2/recording?${new URLSearchParams({ query, fmt: 'json', limit: '5' })}`;
 
-export const getImage = async (url: string, cancel?: AbortSignal): Promise<RadioArtImage> => {
-  const response = await fetchOk(url, { timeout: lookupTimeout, cancel });
+/** The image an answer carries, an answer without a usable one throws */
+export const toImage = async (response: Response): Promise<RadioArtImage> => {
+  if (!response.ok) throw new Error(`The image address answered ${response.status}`);
   const type = response.headers.get('content-type') ?? '';
   const data = Buffer.from(await response.arrayBuffer());
   if (!type.startsWith('image/') || data.length === 0 || data.length > maxImageBytes) throw new Error('Not a usable image');
 
   return { type, data };
 };
+
+const getImage = async (url: string, cancel?: AbortSignal) => toImage(await fetchOk(url, { timeout: lookupTimeout, cancel }));
 
 const isHttpUrl = (value: string | undefined): value is string => value !== undefined && URL.canParse(value) && /^https?:$/.test(new URL(value).protocol);
 

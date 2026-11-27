@@ -182,6 +182,7 @@ const libraryLocation = resolve(appDataPath, './library.sqlite');
 const radio = createRadioBrowser(`Tunelle/${app.getVersion()}`, directoryUrlSchema.parse(process.env.TUNELLE_RADIO_DIRECTORY), {
   cachePath: resolve(appDataPath, './radio-mirrors.json'),
   streamsPath: resolve(appDataPath, './radio-streams.json'),
+  logosPath: resolve(appDataPath, './radio-logos.json'),
 });
 
 const radioArt = createRadioArt(`Tunelle/${app.getVersion()} ( https://github.com/Koeroesi86/tunelle )`);
