@@ -9,6 +9,8 @@ Depth, float samples, files over 4 GiB, FLAC and DSD. Part of [The decoder proxy
 - An integer file keeps its depth: 16 bit or less is `pcm_s16le`, up to 24 `pcm_s24le`, above `pcm_s32le`, and 16 when the depth is not known.
 - Lossy (MP3, MP2, Opus, Vorbis, AC-3, WMA) and float audio is `pcm_f32le`. Its samples can go over full scale, and an integer WAV clipped them before ReplayGain could turn them down ([#576](https://github.com/Koeroesi86/tunelle/issues/576)). WMA Lossless shares the name `WMA`; a float holds its 24 bit exactly. ADPCM, A-law and µ-law decode to integers and stay 16 bit. A 64 bit float file loses what a 32 bit float can not hold, as the audio context would.
 - WavPack, AIFF-C and CAF hold integers or floats, both with a depth of 32 in the library, so `ffprobe` is asked for a file of that depth, once for each file.
+- ALAC in CAF has no depth in the library, as `music-metadata` reads none, so `ffprobe` is asked for it. Without that a 24 bit file was decoded to 16 bit and lost its low bits ([#597](https://github.com/Koeroesi86/tunelle/issues/597)). The library still shows no depth for such a file.
+- `music-metadata` reads 48 kHz for a 96 kHz ALAC in an `.m4a` that ffmpeg wrote (its sample entry can not hold a rate above 65535; other rates and encoders were not tried). Only the label is wrong: the decoder takes the rate from the file. Both are checked by `bit-exact.integration.test.ts`.
 - DSD and DST have their own format (see [DSD](#dsd)).
 
 The windowed WAV has the 44 byte header with the format 3 (IEEE float) and no `fact` chunk. Measured on Linux in the built app, a float WAV with a sine of 1.5 of full scale kept that peak through `<audio>` into Web Audio and through `decodeAudioData`.
