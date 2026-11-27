@@ -3,6 +3,7 @@ import fs from 'fs';
 import http from 'http';
 import os from 'os';
 import path from 'path';
+import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import type { AddressInfo } from 'net';
 import { readWav, toneShare } from '../test-wav';
@@ -23,6 +24,12 @@ vi.mock('electron', () => ({
     },
   },
 }));
+
+// the real ffmpeg runs: the spy only gives the process that a request started
+vi.mock('child_process', async (importOriginal) => {
+  const original = await importOriginal<typeof import('child_process')>();
+  return { ...original, spawn: vi.fn(original.spawn) };
+});
 
 const { serveRadio } = await import('./radio-protocol');
 const { serveSource } = await import('./source-protocol');
@@ -53,6 +60,7 @@ describe('the streaming decode of radio stations and server tracks', () => {
   let station: http.Server;
   let stationUrl: string;
   let closed = 0;
+  let live: http.ServerResponse | undefined;
   const resolved = (uuid: string) => Promise.resolve(`${stationUrl}${uuid}`);
   const radio = (name: string, signal = new AbortController().signal) =>
     serveRadio('abc', signal, { resolveStream: () => resolved(name), onTitle: vi.fn(), onSampleRate: rates });
@@ -63,6 +71,7 @@ describe('the streaming decode of radio stations and server tracks', () => {
       const found = stations[request.url ?? ''];
       if (request.url === '/live') {
         // a station that never ends
+        live = response;
         response.writeHead(200, { 'content-type': 'audio/mpeg' });
         response.write(stations['/mp3'].body.subarray(0, 40_000));
         response.on('close', () => (closed += 1));
@@ -123,6 +132,32 @@ describe('the streaming decode of radio stations and server tracks', () => {
     await response.body?.cancel();
 
     await vi.waitFor(() => expect(closed).toBe(1));
+  });
+
+  const lastDecoder = () => vi.mocked(spawn).mock.results.at(-1)?.value;
+
+  // ffmpeg that waits for input stays after a SIGTERM on Linux
+  it('ends the decoder when the player leaves a station', async () => {
+    const response = await radio('/live');
+    const decoder = lastDecoder();
+    const player = new AbortController();
+    const playing = response.body?.pipeTo(new WritableStream(), { signal: player.signal }).catch(() => undefined);
+    // the player has taken all there is, so ffmpeg waits for more of the station
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    player.abort();
+    await playing;
+
+    await vi.waitFor(() => expect(decoder?.signalCode ?? decoder?.exitCode).not.toBeNull(), { timeout: 5000 });
+  });
+
+  it('ends the audio and the decoder when the connection of a station breaks', async () => {
+    const response = await radio('/live');
+    const decoder = lastDecoder();
+    const body = response.arrayBuffer();
+    live?.destroy();
+
+    await expect(body).resolves.toBeInstanceOf(ArrayBuffer);
+    await vi.waitFor(() => expect(decoder?.signalCode ?? decoder?.exitCode).not.toBeNull(), { timeout: 5000 });
   });
 
   it('downloads a server track, decodes it, and serves a range of the WAV', async () => {

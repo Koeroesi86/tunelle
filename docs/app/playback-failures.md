@@ -16,18 +16,23 @@ Seen on Linux with the built app (2026-11-27):
 | --- | --- |
 | The file is gone, or holds no audio | `error` |
 | A FLAC file is cut short | nothing: `waiting` where the data ends, and the next track starts when the full length has passed, as the gapless hand-off is timed |
-| The connection of a station breaks | nothing: `waiting`, so it is asked again by the 15 s stall watch, like a silent one |
+| The connection of a station breaks | `ended` for a decoded station, as its decoder is killed; it is asked again |
 
 So a cut short file is silent for the rest of its length. A single track at the end of a queue that is cut short has no next one to take over, which no test covers.
 
-On Linux the decoder of a station (ffmpeg) outlives a broken connection: `child.kill()` (SIGTERM) does not end it while it waits for input, so the answer to the page never ends. The old process was still there after the player had connected again, beside the one of the new connection. On Windows the same call ends the process at once, so there the answer ends and the element raises `ended`.
+## A decoder that stayed after its station
+
+- **Symptom:** on Linux, a broken connection raised nothing in the page, so only the 15 s stall watch brought the station back. The old ffmpeg stayed beside the new one. A station that was left while it sent nothing kept its ffmpeg too.
+- **Cause:** `child.kill()` sends SIGTERM, which does not end an ffmpeg that waits for input on `pipe:0` (measured with ffmpeg 9.0.2: the process ended only at the fourth one). On Windows the same call ends the process at once.
+- **Fix:** `stream-decode.ts` kills it with SIGKILL. It writes to a pipe only, so no file is left half written; audio that it had not written yet is dropped. Not measured on macOS.
+- **Check:** the two decoder tests of `stream-decode.integration.test.ts` fail with `child.kill()`.
 
 ## A station that dropped and did not come back
 
 - **Symptom:** `radio-failures.spec.ts` failed on Windows in CI: after a drop the new tone was never heard, with the player showing a station at 00:00:01.
 - **Cause:** the stream had ended, and Chromium played it again from its cache when the same address was set, `Cache-Control: no-store` or not. The station was not asked: the element replayed the last seconds, with a growing pause in between.
 - **Fix:** each connection of a station has an address of its own (`loadAddressOf` in `client/audio/track-source.ts`). The query is ignored by the route.
-- **Check:** on Linux, change both `child.kill()` of `out/electron/protocols/stream-decode.js` to `child.kill('SIGKILL')` after `npm run build` and run `e2e/functional/radio-failures.spec.ts`, which fails without the fix. A replay shows as `loadedmetadata` right after `loadstart`, with the length of the ended stream.
+- **Check:** `e2e/functional/radio-failures.spec.ts` fails without the fix. A replay shows as `loadedmetadata` right after `loadstart`, with the length of the ended stream.
 
 ## A queue that stopped on a broken file
 

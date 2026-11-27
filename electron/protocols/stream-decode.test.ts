@@ -110,7 +110,7 @@ describe('decodeStream', () => {
     audio?.destroy();
     await new Promise((resolve) => setImmediate(resolve));
 
-    expect(child.kill).toHaveBeenCalled();
+    expect(child.kill).toHaveBeenCalledWith('SIGKILL');
     expect(rest.destroyed).toBe(true);
   });
 
@@ -136,7 +136,7 @@ describe('decodeStream', () => {
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(await decodeStream(Buffer.from('head'), rest, ['-c:a', 'pcm_s16le'], vi.fn())).toBeUndefined();
-    expect(child.kill).toHaveBeenCalled();
+    expect(child.kill).toHaveBeenCalledWith('SIGKILL');
   });
 
   it.each(losses)('ends ffmpeg of an input that is %s while it decodes', async (_name, error) => {
@@ -149,7 +149,7 @@ describe('decodeStream', () => {
     rest.destroy(error);
     await new Promise((resolve) => setImmediate(resolve));
 
-    expect(child.kill).toHaveBeenCalled();
+    expect(child.kill).toHaveBeenCalledWith('SIGKILL');
   });
 
   it('lets ffmpeg finish an input that ended before it starts', async () => {
