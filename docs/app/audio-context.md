@@ -32,3 +32,12 @@ A station has no file, so no rate in the library. The proxy of the stream (`elec
 A station has no end, so the player asks the same address again when its stream ends or fails (`reconnect` in `AudioComponent.tsx`). Symptom of a station that is dropped every few seconds: a loop of a few seconds. Cause: a reconnect makes the station send its burst of recent audio again, and the counter of attempts was reset by every `playing`, so the pause stayed at one second. The counter now resets only after `stableAfter` (20 s) of playing without a break, so a station that keeps dropping is asked less and less often (up to 30 s).
 
 A connection that stays open without sending never ends or fails. The player starts a watch on `waiting` and asks the station again after `stallTimeout` (15 s) when the element still has no data (not on `stalled`, which Chromium also sends when its buffer is full). The proxy (`radio-proxy.ts`) cuts the upstream socket after 20 s without data and sends `User-Agent: Tunelle`, as some stations refuse a client with none. To check a station by hand: `curl -s -D - -H 'Icy-MetaData: 1' <stream> -o /dev/null --max-time 30` shows whether it closes on its own.
+
+## A mono track on the left only
+
+- **Symptom:** a mono track plays on the left only. It starts when an element holds a track of 3, 5, 7 or 8 channels, such as the next one that waits in the second element, and it can stay after that element lets go of the track.
+- **Cause:** a node takes as many channels as the widest of its sources, and a gain or a filter hands that number on. Web Audio mixes mono to 2, 4 or 6 channels by name (both fronts, or the centre), but to other numbers by position: the mono signal is the first channel, which is the left one. With 4 or 6 channels held, both sides played, but quieter.
+- **Fix:** the input of the graph takes two channels (`channelCountMode = 'explicit'`, `createInput`), so each element is mixed to stereo on its way in and the equalizer never gets wider. A track of more channels sounds as before: the destination, which has two channels, mixed it the same way.
+- **Check:** `e2e/functional/channel-mixing.spec.ts` plays a mono track with a three channel track next and listens to both sides.
+
+It was found while looking into [#591](https://github.com/Koeroesi86/tunelle/issues/591); that this is what happened there is not known.
