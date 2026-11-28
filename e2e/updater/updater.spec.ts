@@ -105,12 +105,12 @@ test.describe('the macOS updater', () => {
   });
 
   test.afterEach(async ({}, testInfo) => {
-    if (testInfo.status !== testInfo.expectedStatus && existsSync(join(folder, 'app.log')))
-      console.log(`Log of the app:\n${readFileSync(join(folder, 'app.log'), 'utf8')}`);
+    const logs = [join(folder, 'app.log'), appData('update-failed.log')].filter((log) => existsSync(log));
+    if (testInfo.status !== testInfo.expectedStatus) logs.forEach((log) => console.log(`${log}:\n${readFileSync(log, 'utf8')}`));
     app?.kill('SIGKILL');
-    // the apps that the swap script opened are not children of the test
+    // the apps that the swap script opened are not children of the test. One that stays holds the instance lock that the next such app needs
     try {
-      run('pkill', ['-f', folder]);
+      run('pkill', ['-KILL', '-f', folder]);
     } catch {
       // nothing was running
     }

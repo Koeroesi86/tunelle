@@ -17,6 +17,10 @@ const giveUp = (main: BrowserWindow) => {
 /** Loads the page again when its process is gone, a few times a minute at most. See docs/app/system-events.md */
 export const recoverRenderer = (main: BrowserWindow) => {
   let reloads: number[] = [];
+  let quitting = false;
+  app.on('before-quit', () => {
+    quitting = true;
+  });
 
   main.webContents.on('render-process-gone', (_, { reason, exitCode }) => {
     if (reason === 'clean-exit') return;
@@ -26,7 +30,7 @@ export const recoverRenderer = (main: BrowserWindow) => {
     reloads = [...reloads.filter((at) => Date.now() - at < reloadWindow), Date.now()];
     if (reloads.length > maxReloads) return giveUp(main);
 
-    // not from within the event of the process that is gone
-    setTimeout(() => !main.isDestroyed() && main.webContents.reload(), 0);
+    // not from within the event of the process that is gone; a page loaded during a quit keeps the app running
+    setTimeout(() => !quitting && !main.isDestroyed() && main.webContents.reload(), 0);
   });
 };
