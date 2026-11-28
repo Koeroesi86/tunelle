@@ -25,10 +25,17 @@ declare global {
     audioProbe?: Probe;
     /** Makes the probe listen or not: a processor that is pulled wakes the page about fifty times a second, which a measurement of the idle processor must not include */
     listenWithProbe?: (listening: boolean) => void;
+    /** Keeps every sample of the left channel from now on, from a tap on the audio thread; the app has to be started with `bypassCSP` */
+    startRecording?: () => Promise<void>;
+    /** The samples since `startRecording` */
+    recordedSamples?: () => number[];
   }
 }
 
 export const installAudioProbe = () => {
+  // the launcher adds this to the context and to the page, so it can run twice on one load: a second tap would count everything twice
+  if (window.audioProbe) return;
+
   const probe: Probe = { sampleRate: 0, windows: [] };
   window.audioProbe = probe;
   let listening = true;
@@ -43,7 +50,32 @@ export const installAudioProbe = () => {
   const originalDisconnect = AudioNode.prototype.disconnect;
   const buses = new WeakMap<BaseAudioContext, GainNode>();
 
-  // everything that is connected to the destination is connected to the bus too, which the worklet listens to
+  // the context of the player, and what reaches its destination: the one that was connected last, as the player may replace its context
+  let tapped: { context: AudioContext; bus: GainNode } | undefined;
+
+  const recorder = `registerProcessor('tunelle-recorder', class extends AudioWorkletProcessor {
+    process([[left]]) {
+      this.port.postMessage(left ? left.slice() : new Float32Array(128));
+      return true;
+    }
+  });`;
+
+  // a script processor drops and repeats blocks when the page is busy, an audio worklet does not. See docs/development/gapless-measurement.md
+  window.startRecording = async () => {
+    if (!tapped) throw new Error('Nothing was connected to an audio context yet');
+
+    const { context, bus } = tapped;
+    const blocks: Float32Array[] = [];
+    await context.audioWorklet.addModule(URL.createObjectURL(new Blob([recorder], { type: 'text/javascript' })));
+    const node = new AudioWorkletNode(context, 'tunelle-recorder');
+    node.port.onmessage = ({ data }: MessageEvent<Float32Array>) => blocks.push(data);
+    Reflect.apply(originalConnect, bus, [node]);
+    // it writes nothing, so nothing is added to what is heard: a node is only run when it leads to the destination
+    Reflect.apply(originalConnect, node, [context.destination]);
+    window.recordedSamples = () => blocks.flatMap((block) => Array.from(block));
+  };
+
+  // everything that is connected to the destination is connected to the bus too, which the processor listens to
   const busOf = (context: BaseAudioContext) => {
     const existing = buses.get(context);
     if (existing) return existing;
@@ -52,6 +84,7 @@ export const installAudioProbe = () => {
     buses.set(context, bus);
     probe.sampleRate = context.sampleRate;
     if (!(context instanceof AudioContext)) return bus;
+    tapped = { context, bus };
 
     const windowLength = 1024;
     // a script processor needs no module, which the policy of the page (script-src 'self') would refuse a worklet to load from a blob

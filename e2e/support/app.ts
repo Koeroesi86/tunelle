@@ -29,7 +29,7 @@ interface Fixtures {
   /** A folder of the generated albums, outside of the profile of the app */
   music: string;
   /** Starts the app on the profile of the test: a second start finds what the first one left; the options are those of `launchApp` */
-  start: (options?: Pick<LaunchOptions, 'measureStart' | 'env' | 'files' | 'onFirstLoad'>) => Promise<Session>;
+  start: (options?: Pick<LaunchOptions, 'measureStart' | 'env' | 'files' | 'onFirstLoad' | 'bypassCSP'>) => Promise<Session>;
   /** The app started on a profile whose library holds the albums of `music` */
   session: Session;
   /** The fake station directory the app is pointed to; the first station plays silence and announces a song */
@@ -155,6 +155,8 @@ interface LaunchOptions {
   files?: string[];
   /** Runs on the first load of the page, which the reload below replaces: only that load is given the files of the start */
   onFirstLoad?: (page: Page) => Promise<void>;
+  /** Lets the page load what its content security policy refuses, which the recorder of the audio probe needs */
+  bypassCSP?: boolean;
 }
 
 /** The language of the app in the run: English, or another file of shared/locales/ with SCREENSHOTS_LANG=hu (the pictures of the Store listing) */
@@ -178,7 +180,7 @@ export const ui = (english: string) => {
 
 /** Starts the built app (npm run build first, PERF_APP_OUT=<folder> for the build of another checkout, which the perf runs compare with) on a profile, and answers when its window shows the page */
 export const launchApp = async (options: LaunchOptions): Promise<Session> => {
-  const { home, radioDirectory, initScripts, offline = false, measureStart = false, env = {}, files = [], onFirstLoad } = options;
+  const { home, radioDirectory, initScripts, offline = false, measureStart = false, env = {}, files = [], onFirstLoad, bypassCSP = false } = options;
   const { ELECTRON_RUN_AS_NODE, ...inherited } = process.env;
   // Windows keeps its profile folders (chromium needs them, and the app data folder does not follow the variables there)
   const profile: Record<string, string> =
@@ -213,7 +215,7 @@ export const launchApp = async (options: LaunchOptions): Promise<Session> => {
   };
 
   const spawnedAt = Date.now();
-  const app = await electron.launch({ args: [...args, ...files], env: variables });
+  const app = await electron.launch({ bypassCSP, args: [...args, ...files], env: variables });
   await Promise.all([installNoNotifications, ...initScripts].map((script) => app.context().addInitScript(script)));
   const page = await findPage(app);
   // before the reload below, which starts the page again
