@@ -99,6 +99,14 @@ describe('readableAccent', () => {
     expect(contrastRatio(readable, accentSurfaces.light)).toBeGreaterThanOrEqual(4.5);
   });
 
+  it('lightens an accent that reads on a dark panel and not on its own tint over it', () => {
+    // #98a2bb has 4.9 to 1 on the panel, and 4.46 on the panel with 6% of it, which is #393a3b
+    const readable = readableAccent('#98a2bb', 'dark');
+
+    expect(readable).not.toBe('#98a2bb');
+    expect(contrastRatio(readable, '#393a3b')).toBeGreaterThanOrEqual(4.5);
+  });
+
   it.each(accentPresets.flatMap((preset) => (['dark', 'light'] as const).map((theme) => [preset, theme] as const)))(
     'reads %s on %s panels',
     (preset, theme) => {

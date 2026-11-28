@@ -110,8 +110,13 @@ const Row = ({ favourite, play, renderFavourite, addToQueue, getFavouriteTracks 
   return (
     <div className={classNames(style.row, { [style.unavailable]: !favourite.available })} onDoubleClick={() => favourite.available && play([favourite])}>
       {renderFavourite(favourite)}
-      <span className={classNames(style.kind, style[favourite.kind])} title={t(kindTitles[favourite.kind])}>
-        <KindIcon size="14px" />
+      <span
+        className={classNames(style.kind, style[favourite.kind])}
+        role="img"
+        aria-label={t(kindTitles[favourite.kind])}
+        title={t(kindTitles[favourite.kind])}
+      >
+        <KindIcon size="14px" aria-hidden />
       </span>
       <span className={style.name} title={nameOf(favourite)}>
         {nameOf(favourite)}

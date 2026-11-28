@@ -33,4 +33,30 @@ describe('useDialogFocus', () => {
     expect(document.activeElement).toBe(opener);
     opener.remove();
   });
+
+  it('leaves Tab to a dialog that opened over it', () => {
+    render(
+      <>
+        <Dialog open />
+        <div aria-modal="true">
+          <button type="button">Over one</button>
+          <button type="button">Over two</button>
+        </div>
+      </>
+    );
+    screen.getByText('Over one').focus();
+
+    expect(fireEvent.keyDown(document, { key: 'Tab' })).toBe(true);
+    expect(document.activeElement).toBe(screen.getByText('Over one'));
+  });
+
+  it('does not hold Tab while the dialog is on a page that is hidden', () => {
+    render(
+      <div style={{ visibility: 'hidden' }}>
+        <Dialog open />
+      </div>
+    );
+
+    expect(fireEvent.keyDown(document, { key: 'Tab' })).toBe(true);
+  });
 });

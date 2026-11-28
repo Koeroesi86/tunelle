@@ -14,7 +14,10 @@ export const useDialogFocus = (open: boolean) => {
     element.querySelector<HTMLElement>(focusable)?.focus();
 
     const keepInside = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab') return;
+      // a dialog on a hidden page can not take the focus, and one that opened over this one keeps it
+      if (event.key !== 'Tab' || getComputedStyle(element).visibility === 'hidden') return;
+      const modal = document.activeElement?.closest('[aria-modal="true"]');
+      if (modal && modal !== element) return;
       const items = [...element.querySelectorAll<HTMLElement>(focusable)];
       const edge = event.shiftKey ? items.at(0) : items.at(-1);
       const target = event.shiftKey ? items.at(-1) : items.at(0);

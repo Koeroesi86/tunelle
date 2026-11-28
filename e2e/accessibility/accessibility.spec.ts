@@ -1,10 +1,71 @@
 // Needs the real app: axe reads the colours and the layout that Chromium renders from the styles
 import type { Page } from '@playwright/test';
-import { expect, navigate, test } from '../support/app';
+import { expect, navigate, test, ui } from '../support/app';
 import { accessibilityViolations } from '../support/accessibility';
 import { albums } from '../support/library';
+import { player } from '../support/player';
+
+const shown = (page: Page, name: string) =>
+  page
+    .getByRole('button', { name: ui(name), exact: true })
+    .filter({ visible: true })
+    .first();
+
+/** An album that is liked, played and in a playlist, so that home, Liked and the playlists have rows to look at */
+const fill = async (page: Page) => {
+  await navigate(page, 'Albums');
+  await shown(page, 'Add to favourites').click();
+  await shown(page, 'Add to a playlist').click();
+  const adding = page.getByRole('dialog', { name: ui('Add to playlist') });
+  await adding.getByPlaceholder(ui('Playlist name')).fill('Evening');
+  await adding.getByRole('button', { name: ui('Create') }).click();
+  await player(page).playAlbum(albums[0].title);
+  await navigate(page, 'Home');
+  await expect(page.getByRole('button', { name: ui('Clear history') })).toBeEnabled();
+};
 
 const scenes: { name: string; open: (page: Page) => Promise<void> }[] = [
+  { name: 'home', open: fill },
+  {
+    name: 'liked',
+    open: async (page) => {
+      await fill(page);
+      await navigate(page, 'Liked');
+    },
+  },
+  {
+    name: 'playlists',
+    open: async (page) => {
+      await fill(page);
+      await navigate(page, 'Playlists');
+    },
+  },
+  {
+    name: 'a playlist',
+    open: async (page) => {
+      await fill(page);
+      await navigate(page, 'Playlists');
+      await page.locator('[class*="Navigation__label"]').getByText('Evening', { exact: true }).click();
+      await expect(shown(page, 'Play all')).toBeVisible();
+    },
+  },
+  { name: 'folders', open: (page) => navigate(page, 'Folders') },
+  {
+    name: 'add to playlist dialog',
+    open: async (page) => {
+      await navigate(page, 'Albums');
+      await shown(page, 'Add to a playlist').click();
+      await expect(page.getByRole('dialog', { name: ui('Add to playlist') })).toBeVisible();
+    },
+  },
+  {
+    name: 'a question dialog',
+    open: async (page) => {
+      await navigate(page, 'Folders');
+      await shown(page, 'Remove').click();
+      await expect(page.getByRole('alertdialog')).toBeVisible();
+    },
+  },
   { name: 'library', open: (page) => navigate(page, 'Albums') },
   {
     name: 'album details',

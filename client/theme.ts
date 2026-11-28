@@ -66,13 +66,19 @@ export const contrastRatio = (first: string, second: string) => {
 /** Black or white, whichever reads better on the colour (for a label on an accent background) */
 export const pickContrastColor = (background: string) => (contrastRatio(background, '#ffffff') >= contrastRatio(background, '#000000') ? '#ffffff' : '#000000');
 
+/** `--accent-tint` of ThemeProvider.scss, which the playing row of a list has behind its accent text */
+const accentTint = 0.06;
+
+// a tint lightens a dark panel, the surface of the light theme has it in already
+const textSurface = (accent: string, theme: ResolvedTheme) => (theme === 'dark' ? mix(accentSurfaces.dark, accent, accentTint) : accentSurfaces.light);
+
 /** The accent, moved toward white on dark surfaces and toward black on light ones just far enough to be readable as text there */
 export const readableAccent = (accent: string, theme: ResolvedTheme) => {
   const toward = theme === 'dark' ? '#ffffff' : '#000000';
 
   return (
     Array.from({ length: 21 }, (_, step) => mix(accent, toward, step / 20)).find(
-      (candidate) => contrastRatio(candidate, accentSurfaces[theme]) >= minTextContrast
+      (candidate) => contrastRatio(candidate, textSurface(candidate, theme)) >= minTextContrast
     ) ?? toward
   );
 };

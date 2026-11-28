@@ -1,7 +1,9 @@
+import { useEffect, useId, useRef } from 'react';
 import type { MouseEventHandler } from 'react';
 import classNames from 'classnames';
 import style from './Confirm.scss';
 import { useTranslation } from '../../../i18n';
+import { useDialogFocus } from '../../../hooks/use-dialog-focus';
 
 interface ConfirmProps {
   message?: string | null;
@@ -18,15 +20,46 @@ interface ConfirmProps {
 
 function Confirm({ message, confirm = () => {}, cancel, confirmLabel, cancelLabel, alternate, alternateLabel, hideConfirm = false }: ConfirmProps) {
   const { t } = useTranslation();
+  const open = !!message;
+  const messageId = useId();
+  const dialog = useDialogFocus(open);
+  const decline = useRef<HTMLButtonElement>(null);
+
+  // after the hook, which takes the first button: Enter on a question that was just asked must not agree to it
+  useEffect(() => {
+    if (open) decline.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    // captured and marked as used, so the page behind does not close on the same key
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+
+      event.preventDefault();
+      decline.current?.click();
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [open]);
 
   return (
     <>
       <div
+        ref={dialog}
         className={classNames(style.confirm, {
-          [style.show]: message,
+          [style.show]: open,
         })}
+        role={open ? 'alertdialog' : undefined}
+        aria-modal={open || undefined}
+        aria-labelledby={open ? messageId : undefined}
+        // it stays in the page while it is not shown, out of sight: neither Tab nor a screen reader may reach it then
+        inert={!open}
       >
-        <div className={style.message}>{message}</div>
+        <div id={messageId} className={style.message}>
+          {message}
+        </div>
         <div className={style.buttons}>
           {!hideConfirm && (
             <button onClick={confirm} className={style.button}>
@@ -38,12 +71,12 @@ function Confirm({ message, confirm = () => {}, cancel, confirmLabel, cancelLabe
               {alternateLabel}
             </button>
           )}
-          <button onClick={cancel} className={style.button}>
+          <button ref={decline} onClick={cancel} className={style.button}>
             {cancelLabel ?? t('confirm.no')}
           </button>
         </div>
       </div>
-      {message && <div className={style.scrim} aria-hidden />}
+      {open && <div className={style.scrim} aria-hidden />}
     </>
   );
 }
