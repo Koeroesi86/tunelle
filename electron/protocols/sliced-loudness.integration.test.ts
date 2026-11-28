@@ -1,3 +1,4 @@
+// Needs the real ffmpeg: the pieces cut from a long file decode to the level of the whole
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

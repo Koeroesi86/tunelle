@@ -1,3 +1,4 @@
+// Needs the real database: which pictures the SQL picks and stores a colour for
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

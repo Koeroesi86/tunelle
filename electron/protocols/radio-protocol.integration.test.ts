@@ -1,3 +1,4 @@
+// Needs the real network and ffmpeg: a stream over sockets, cut from its metadata and decoded
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import http from 'http';
 import type { AddressInfo } from 'net';

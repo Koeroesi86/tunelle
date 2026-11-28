@@ -1,3 +1,4 @@
+// Needs the real ffmpeg: every sample of the decode equals the source
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createHash } from 'crypto';
 import fs from 'fs';

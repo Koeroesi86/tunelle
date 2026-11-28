@@ -1,3 +1,4 @@
+// Needs the real database and files: images told apart by their bytes and kept on disk
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'fs';
 import os from 'os';

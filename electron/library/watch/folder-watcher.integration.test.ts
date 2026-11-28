@@ -1,3 +1,4 @@
+// Needs the real files: the events that the watch of the system raises
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

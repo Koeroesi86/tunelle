@@ -1,3 +1,4 @@
+// Needs the real files: the media written to files read back with music-metadata
 import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';

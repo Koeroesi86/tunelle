@@ -1,3 +1,4 @@
+// Needs the real app: the pictures are of the running app
 import { type Page } from '@playwright/test';
 import { expect, navigate, ui } from '../support/app';
 import { albums } from '../../scripts/screenshots/screenshot-fixtures';

@@ -1,3 +1,4 @@
+// Needs the real database: the row that SQLite keeps of a track
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'sqlite3';
 import type { Track } from '@shared/types/library';

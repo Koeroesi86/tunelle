@@ -1,3 +1,4 @@
+// Needs the real app: the level where the audio leaves the app, after the gain of Web Audio
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';

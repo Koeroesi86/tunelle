@@ -1,3 +1,4 @@
+// Needs the real database: the schema that the shipped migrations make in SQLite
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { copyFileSync, mkdtempSync, readdirSync, rmSync } from 'fs';
 import os from 'os';

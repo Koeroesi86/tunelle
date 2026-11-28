@@ -1,3 +1,4 @@
+// Needs the real app: the window, the single instance lock, the media controls of the desktop and the content policy as Chromium applies it
 import { spawn } from 'child_process';
 import { expect, quit, test } from '../support/app';
 import { player } from '../support/player';

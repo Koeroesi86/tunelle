@@ -1,3 +1,4 @@
+// Needs the real network: the server of the redirect answers a request
 import { describe, expect, it } from 'vitest';
 import { serveRedirect } from './plex-redirect';
 

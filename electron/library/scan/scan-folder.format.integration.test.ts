@@ -1,3 +1,4 @@
+// Needs the real database and files: the format that the scan of a folder leaves in SQLite
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

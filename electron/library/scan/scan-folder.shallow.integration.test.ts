@@ -1,3 +1,4 @@
+// Needs the real files: which files of a folder tree a scan reaches
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

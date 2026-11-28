@@ -1,3 +1,4 @@
+// Needs the real shell: the hooks are bash scripts that run jq, git and tsx on files
 import { spawnSync } from 'child_process';
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
@@ -104,6 +105,31 @@ describe.skipIf(!hasTools)('claude hooks', () => {
 
     it('allows a comment of 4 lines and lines of code between comments', () => {
       expect(edit('scripts/x.js', '// a\n// b\n// c\n// d\nconst a = 1\n// e\n// f').status).toBe(0);
+    });
+  });
+
+  describe('guard-test-tier', () => {
+    const repository = resolve(__dirname, '../..');
+    const write = (file: string, input: object) =>
+      run('guard-test-tier.sh', { file_path: join(repository, file), ...input }, { CLAUDE_PROJECT_DIR: repository });
+    const reason = '// Needs the real app: Chromium raises the media error';
+
+    it.each(['e2e/functional/new.spec.ts', 'electron/new.integration.test.ts'])('blocks creating %s without its reason', (file) => {
+      const { status, stderr } = write(file, { content: 'const a = 1;\n' });
+
+      expect(status).toBe(2);
+      expect(stderr).toMatch(/Needs the real/);
+    });
+
+    it('blocks an edit that drops the reason of a spec', () => {
+      const edit = { old_string: '// Needs the real app:', new_string: '//' };
+
+      expect(write('e2e/functional/library.spec.ts', edit).status).toBe(2);
+    });
+
+    it('allows a new spec with its reason, and a unit test without one', () => {
+      expect(write('e2e/functional/new.spec.ts', { content: `${reason}\n` }).status).toBe(0);
+      expect(write('electron/new.test.ts', { content: 'const a = 1;\n' }).status).toBe(0);
     });
   });
 

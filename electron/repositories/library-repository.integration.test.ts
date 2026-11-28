@@ -1,3 +1,4 @@
+// Needs the real database: the SQL of the library
 import path from 'path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'sqlite3';

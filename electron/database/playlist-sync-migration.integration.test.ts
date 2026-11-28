@@ -1,3 +1,4 @@
+// Needs the real database: what migration 019 makes of rows that are there
 import { copyFileSync, mkdtempSync, readdirSync, rmSync } from 'fs';
 import os from 'os';
 import path from 'path';

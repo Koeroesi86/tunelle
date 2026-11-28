@@ -1,3 +1,4 @@
+// Needs the real app: the layout as Chromium draws it at each size of the window
 import { resolve } from 'path';
 import type { Page } from '@playwright/test';
 import { albums } from '../../scripts/screenshots/screenshot-fixtures';

@@ -1,3 +1,4 @@
+// Needs the real app: the measurements are of the running app with a big library
 import { expect, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';

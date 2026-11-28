@@ -1,3 +1,4 @@
+// Needs the real database: the SQL of the settings
 import { describe, expect, it } from 'vitest';
 import { getSettings, saveSettings } from './settings-repository';
 import { createTestDatabase } from '../test-database';

@@ -1,3 +1,4 @@
+// Needs the real database and files: the modification times of real folders against the stored ones
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

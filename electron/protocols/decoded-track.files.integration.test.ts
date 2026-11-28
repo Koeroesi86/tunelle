@@ -1,3 +1,4 @@
+// Needs the real files: the cache on disk: its part files, renames and the removal of old ones
 import { EventEmitter } from 'events';
 import fs from 'fs';
 import os from 'os';

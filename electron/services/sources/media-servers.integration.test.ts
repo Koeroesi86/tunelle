@@ -1,3 +1,4 @@
+// Needs the real network: logins, ranges and a stopped server over sockets
 import { once } from 'node:events';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { text } from 'node:stream/consumers';

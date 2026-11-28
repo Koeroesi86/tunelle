@@ -1,3 +1,4 @@
+// Needs the real shell: the update script swaps the app folders, and back when the new one fails
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { spawnSync } from 'child_process';
 import { tmpdir } from 'os';

@@ -1,3 +1,4 @@
+// Needs the real app: the audio that leaves a second app that listens to the first one
 import type { Page } from '@playwright/test';
 import { expect, navigate, test, ui } from '../support/app';
 import { expectSilence, expectTone } from '../support/audio';

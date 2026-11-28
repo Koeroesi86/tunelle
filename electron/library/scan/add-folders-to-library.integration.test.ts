@@ -1,3 +1,4 @@
+// Needs the real database and files: which paths of a real disk are stored as folders
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

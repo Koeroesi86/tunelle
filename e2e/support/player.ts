@@ -18,7 +18,6 @@ export const player = (page: Page) => {
     pause: () => page.getByTitle('Pause', { exact: true }).click(),
     next: () => page.getByTitle('Next', { exact: true }).click(),
     previous: () => page.getByTitle('Previous', { exact: true }).click(),
-    shuffle: () => page.getByTitle('Shuffle', { exact: true }).click(),
     repeat: () => page.getByTitle('Repeat', { exact: true }).click(),
     mute: () => page.getByRole('button', { name: 'Mute' }).click(),
     unmute: () => page.getByRole('button', { name: 'Unmute' }).click(),

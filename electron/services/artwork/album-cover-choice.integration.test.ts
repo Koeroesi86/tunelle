@@ -1,3 +1,4 @@
+// Needs the real database and files: the image copied on disk and the rows that take it
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

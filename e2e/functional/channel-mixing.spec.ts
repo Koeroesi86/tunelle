@@ -1,3 +1,4 @@
+// Needs the real app: how Web Audio mixes the channels of the two media elements into the output
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { addFolder, expect, test } from '../support/app';

@@ -1,3 +1,4 @@
+// Needs the real app: a packaged app on macOS replacing its own bundle and starting again
 import { expect, test } from '@playwright/test';
 import { execFileSync, spawn, type ChildProcess } from 'child_process';
 import { createHash, generateKeyPairSync, sign } from 'crypto';

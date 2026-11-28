@@ -1,3 +1,4 @@
+// Needs the real database and files: the scan, the queue and SQLite following changes of the disk
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

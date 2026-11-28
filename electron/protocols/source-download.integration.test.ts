@@ -1,3 +1,4 @@
+// Needs the real network: ending a request fails the body of its answer in the HTTP client of Node
 import fs from 'fs';
 import { createServer, type Server } from 'http';
 import os from 'os';

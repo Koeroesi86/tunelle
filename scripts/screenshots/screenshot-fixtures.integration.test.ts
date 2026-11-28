@@ -1,3 +1,4 @@
+// Needs the real files: the tags written to files read back with music-metadata
 import { mkdtempSync, readdirSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';

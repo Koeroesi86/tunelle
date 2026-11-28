@@ -1,3 +1,4 @@
+// Needs the real app: Chromium and Electron telling the main process that the page let a request go
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';

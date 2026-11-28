@@ -1,3 +1,4 @@
+// Needs the real files: what the system answers for a file or folder that is empty or gone
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

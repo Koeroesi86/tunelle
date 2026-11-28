@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Database } from 'sqlite3';
 import createDatabase from './create-database';
 import { migrate } from './migrate';
 import backfillSortKeys from './backfill-sort-keys';
+import { fakeDatabase } from '../test-fake-database';
 
-const database = { close: vi.fn((callback: (err: Error | null) => void) => callback(null)) };
+const database = fakeDatabase();
 
 vi.mock('./connect-database', () => ({ default: () => Promise.resolve(database) }));
 vi.mock('./migrate');
@@ -13,14 +13,14 @@ vi.mock('./backfill-sort-keys');
 describe('createDatabase', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    database.close.mockImplementation((callback) => callback(null));
+    vi.spyOn(database, 'close').mockImplementation((callback) => callback?.(null));
   });
 
   it('returns the open database once it is migrated', async () => {
     vi.mocked(migrate).mockResolvedValue(undefined);
     vi.mocked(backfillSortKeys).mockResolvedValue(undefined);
 
-    await expect(createDatabase('/library.sqlite')).resolves.toBe<Database | typeof database>(database);
+    await expect(createDatabase('/library.sqlite')).resolves.toBe(database);
 
     expect(database.close).not.toHaveBeenCalled();
   });

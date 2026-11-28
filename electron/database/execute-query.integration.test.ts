@@ -1,3 +1,4 @@
+// Needs the real database: what SQLite answers and refuses for a statement
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import type { Database } from 'sqlite3';

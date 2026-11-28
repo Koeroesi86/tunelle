@@ -1,3 +1,4 @@
+// Needs the real app: a renderer process that really crashes; the pause on suspend and the limit on reloads are unit tested
 import type { ElectronApplication } from '@playwright/test';
 import { expect, test } from '../support/app';
 import { expectTone } from '../support/audio';
@@ -21,7 +22,6 @@ const shown = `({
 
 const press = (app: ElectronApplication, title: string) => inWindow(app, `document.querySelector('[title="${title}"]').click()`);
 
-// the pause on suspend and the limit on reloads are tried in electron/listeners/register-window-listeners.test.ts and electron/windows/recover-renderer.test.ts; what stays here is a real process that crashes
 test('loads the page again after it crashes, with the queue, the track and the position, paused', async ({ session }) => {
   const controls = player(session.page);
   await controls.playAlbum('Pitch Perfect');

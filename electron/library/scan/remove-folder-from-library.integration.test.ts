@@ -1,3 +1,4 @@
+// Needs the real database: which folders and tracks the SQL deletes below a path
 import path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WebContents } from 'electron';

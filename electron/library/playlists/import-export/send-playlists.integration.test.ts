@@ -1,3 +1,4 @@
+// Needs the real database: the entries that SQL joins to the library
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Database } from 'sqlite3';
 import type { WebContents } from 'electron';

@@ -49,6 +49,17 @@ Three things that cost time in `scripts/release/check-dist.test.ts` and `scripts
 
 `scripts/checks/unit-test-isolation.integration.test.ts` fails on a unit test that uses `createTestDatabase`, `sqlite3`, `mkdtemp`/`os.tmpdir()`, `createServer`, `execSync`, `execFileSync` or `spawnSync`, unless the test mocks the module that has it (`vi.mock('http')`, `vi.spyOn(net, …)`, `vi.mock('child_process')`, `vi.spyOn(fs, …)`). It matches the text, so `import type { Database } from 'sqlite3'` is found too: use `fakeDatabase()` or mock the module. There is no list of exceptions: the baseline of the files that were not isolated yet is gone (#388), and a file that needs the real thing is `name.integration.test.ts`. The guard is an integration test as it reads the tree of the repository; `npm run test:integration` and `verify.ts` run it.
 
+## The reason line
+
+The tier is chosen before the test is written, and an issue that asks for an end to end test does not waive this: write the test at the lowest tier that can show the behaviour and say so on the issue or in the pull request. Every file of the two upper tiers states what the tier below can not show, on a line of its own that starts the comment, normally the first line of the file:
+
+| File | Line |
+| --- | --- |
+| `e2e/**/*.spec.ts` | `// Needs the real app: Chromium raises the media error` |
+| `*.integration.test.ts(x)` | `// Needs the real database: the order SQLite gives` (name the real thing: `files`, `ffmpeg`, `shell`, …) |
+
+`scripts/checks/test-tier-reason.ts` finds a file without it: `test-tier-reason.integration.test.ts` fails on one in the repository, and the hook `guard-test-tier.sh` ([claude-usage.md](claude-usage.md)) blocks Claude from writing a new file without it or editing the line away. The hook does not see a file made by a shell command; the check does. Neither judges whether the reason is true, which is for the review: if the sentence can not be written honestly, the test belongs one tier down. A test added to a file that has the line must be covered by that reason too.
+
 ## Why a unit test was slow
 
 Measured with `npx vitest run --reporter=json`, the whole suite takes about 17 s on 16 threads. The time went to:

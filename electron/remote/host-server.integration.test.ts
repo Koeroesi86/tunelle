@@ -1,3 +1,4 @@
+// Needs the real network: requests and event streams over TLS
 import { randomUUID } from 'node:crypto';
 import { request } from 'node:https';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

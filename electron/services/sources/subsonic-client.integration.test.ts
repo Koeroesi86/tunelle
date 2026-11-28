@@ -1,3 +1,4 @@
+// Needs the real network: signed calls, ranges and a pinned certificate over sockets
 import { createHash } from 'node:crypto';
 import { once } from 'node:events';
 import { createServer as createHttpServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';

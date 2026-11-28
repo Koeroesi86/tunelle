@@ -1,3 +1,4 @@
+// Needs the real database: the availability that SQL finds for what is liked
 import path from 'path';
 import { describe, expect, it } from 'vitest';
 import type { StoredFavourite } from '@shared/types/favourites';

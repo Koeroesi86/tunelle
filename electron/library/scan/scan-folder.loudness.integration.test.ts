@@ -1,3 +1,4 @@
+// Needs the real database: the ReplayGain columns as SQLite fills them in for stored rows
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

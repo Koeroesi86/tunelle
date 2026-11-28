@@ -1,3 +1,4 @@
+// Needs the real files: the pages built from the templates and strings of site/
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
