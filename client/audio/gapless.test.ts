@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createLeadMeter, defaultLead, msUntilHandoff } from './gapless';
+import { createLeadMeter, defaultLead, liveEdgeTarget, msUntilHandoff } from './gapless';
 
 describe('createLeadMeter', () => {
   it('starts with the default lead until a start has been measured', () => {
@@ -8,7 +8,7 @@ describe('createLeadMeter', () => {
 
   it('leads by the median of the last starts, so one slow start does not move it', () => {
     const meter = createLeadMeter();
-    [0.04, 0.05, 0.3].forEach(meter.record);
+    [0.3, 0.04, 0.05].forEach(meter.record);
 
     expect(meter.lead()).toBe(0.05);
   });
@@ -16,6 +16,13 @@ describe('createLeadMeter', () => {
   it('forgets the starts before the last five', () => {
     const meter = createLeadMeter();
     [0.4, 0.4, 0.02, 0.02, 0.02, 0.02, 0.02].forEach(meter.record);
+
+    expect(meter.lead()).toBe(0.02);
+  });
+
+  it('keeps five starts', () => {
+    const meter = createLeadMeter();
+    [0.02, 0.4, 0.4, 0.02, 0.02].forEach(meter.record);
 
     expect(meter.lead()).toBe(0.02);
   });
@@ -49,5 +56,15 @@ describe('msUntilHandoff', () => {
 
   it.each([Infinity, NaN, 0])('has no wait for a duration of %s', (duration) => {
     expect(msUntilHandoff(duration, 1, 0.1)).toBeUndefined();
+  });
+});
+
+describe('liveEdgeTarget', () => {
+  it.each([
+    { bufferedEnd: undefined, target: undefined },
+    { bufferedEnd: 18, target: undefined },
+    { bufferedEnd: 18.5, target: 17.5 },
+  ])('from 10 s with audio held up to $bufferedEnd s goes to $target', ({ bufferedEnd, target }) => {
+    expect(liveEdgeTarget(bufferedEnd, 10)).toBe(target);
   });
 });

@@ -20,7 +20,10 @@
     "site/**",
     // run by Playwright (npm run test:e2e), the helpers they import are reached from there
     "playwright.config.ts",
-    "e2e/**/*.spec.ts"
+    "e2e/**/*.spec.ts",
+    // named by stryker.config.json (npm run test:mutation), and the setup file of the Vitest project of vitest.frontend.ts, which it shares with vitest.config.ts
+    "vitest.mutation.config.ts",
+    "client/test/test-setup-frontend.ts"
   ],
   "ignoreDependencies": [
     // the TypeScript 6 API for typescript-eslint, loaded through the hook in eslint.config.js

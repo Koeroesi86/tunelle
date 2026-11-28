@@ -10,7 +10,7 @@ const jsxA11y = require('eslint-plugin-jsx-a11y');
 
 module.exports = [
   {
-    ignores: ['**/dist/**', '**/build/**', '**/out/**', 'icons/**', '.idea/**', '.cache/**', 'coverage/**', 'electron/schemas/database/**', '**/node_modules/**', '**/*.js'],
+    ignores: ['**/dist/**', '**/build/**', '**/out/**', 'icons/**', '.idea/**', '.cache/**', 'coverage/**', '.stryker-tmp/**', 'reports/**', 'electron/schemas/database/**', '**/node_modules/**', '**/*.js'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

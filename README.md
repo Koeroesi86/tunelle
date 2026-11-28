@@ -22,6 +22,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [Measuring gapless playback](docs/development/gapless-measurement.md)
 - [Test plan: remote listening](docs/development/remote-listening-test-plan.md)
 - [Unit tests](docs/development/unit-tests.md)
+- [Mutation testing](docs/development/mutation-testing.md)
 - [Property tests](docs/development/property-tests.md)
 - [What is an integration test](docs/development/integration-test-scope.md)
 - [Containers (the components connected to the store)](docs/development/containers.md)

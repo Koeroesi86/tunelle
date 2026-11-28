@@ -13,4 +13,6 @@ out
 coverage
 test-results
 playwright-report
+.stryker-tmp
+reports
 electron/schemas/database

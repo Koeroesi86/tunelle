@@ -1,5 +1,6 @@
 import path from 'path';
 import { configDefaults, defineConfig } from 'vitest/config';
+import { frontend } from './vitest.frontend';
 
 export default defineConfig({
   oxc: { jsx: { runtime: 'automatic' } },
@@ -68,16 +69,7 @@ export default defineConfig({
         extends: true,
         test: { name: 'timing', environment: 'node', include: ['electron/**/*.timing.test.ts', 'client/**/*.timing.test.ts'], testTimeout: 120_000 },
       },
-      {
-        extends: true,
-        test: {
-          name: 'frontend',
-          environment: 'jsdom',
-          setupFiles: ['client/test/test-setup-frontend.ts'],
-          include: ['client/**/*.test.{ts,tsx}'],
-          exclude: [...configDefaults.exclude, '**/*.timing.test.ts'],
-        },
-      },
+      frontend,
     ],
   },
 });
