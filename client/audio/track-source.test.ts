@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { unusualNames } from '@shared/test-unusual-names';
 import type { Track } from '@shared/types/library';
 import { toRemoteTrack } from '../domain/remote-track';
 import { isFileTrack, loadAddressOf, sourceOf } from './track-source';
@@ -11,6 +12,12 @@ describe('track source', () => {
     expect(sourceOf(track('/music/a b.flac'))).toBe('tunelle://app/track?path=%2Fmusic%2Fa%20b.flac');
     expect(sourceOf(track('radio:abc'))).toBe('tunelle://app/radio/abc');
     expect(sourceOf(track('http://example.com/s'))).toBe('http://example.com/s');
+  });
+
+  it.each(unusualNames)('keeps the whole path of a file with $kind in its address', ({ name }) => {
+    const path = `/music/${name}/${name}.flac`;
+
+    expect(new URL(sourceOf(track(path))).searchParams.get('path')).toBe(path);
   });
 
   it('plays the track of the host through the relay with its key', () => {

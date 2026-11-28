@@ -101,7 +101,7 @@ describe('parsePlaylist with untrusted text', () => {
     fc.assert(
       fc.property(fc.array(fileName, { maxLength: 8 }), (names) => {
         const written = formatPlaylist(format, { name: 'A list', folder: '/music', entries: names.map((name) => ({ path: `/music/${name}` })) });
-        const read = parsePlaylist(format, written).entries.map(({ location }) => (format === 'xspf' ? decodeURIComponent(location) : location));
+        const read = parsePlaylist(format, written).entries.map(({ location }) => location);
 
         expect(read).toEqual(names);
       }),

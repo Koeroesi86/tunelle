@@ -10,6 +10,9 @@ describe('resolveLocation', () => {
     ['file:///home/me/Music/a%20b.flac', '/lists', '/home/me/Music/a b.flac'],
     ['file:///C:/Music/a.flac', '/lists', 'C:/Music/a.flac'],
     ['file://nas/share/a.flac', '/lists', '//nas/share/a.flac'],
+    ['file:///music/100%.flac', '/lists', '/music/100%.flac'],
+    ['./#1.flac', '/lists', '/lists/#1.flac'],
+    ['a%20b.flac', '/lists', '/lists/a%20b.flac'],
   ])('takes %s in %s as %s', (location, folder, expected) => {
     expect(resolveLocation(location, folder)).toEqual({ kind: 'file', path: expected });
   });

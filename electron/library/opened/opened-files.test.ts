@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import type { WebContents } from 'electron';
+import { unusualNames } from '../../../shared/test-unusual-names';
 
 const reader = vi.hoisted(() => ({ read: vi.fn(), close: vi.fn() }));
 
@@ -37,6 +38,13 @@ describe('findOpenableFiles', () => {
       abs('/home/me/a.flac'),
       music,
     ]);
+  });
+
+  it.each(unusualNames)('takes a file with $kind, as a path and as an address', ({ name }) => {
+    const file = abs(`/music/${name}/${name}.flac`);
+
+    expect(findOpenableFiles([file], abs('/'))).toEqual([file]);
+    expect(findOpenableFiles([pathToFileURL(file).href], abs('/'))).toEqual([file]);
   });
 
   it('leaves out an address that is not a file', () => {

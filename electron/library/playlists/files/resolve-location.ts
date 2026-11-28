@@ -1,5 +1,6 @@
 import path from 'path';
 import normalizePath from '../../../utils/normalize-path';
+import { decodePercent } from './decode-percent';
 
 export type ResolvedLocation = { kind: 'file'; path: string } | { kind: 'stream' };
 
@@ -17,7 +18,7 @@ const fileUriToPath = (location: string) => {
   const url = URL.canParse(location) ? new URL(location) : undefined;
   if (!url) return undefined;
 
-  const pathname = decodeURIComponent(url.pathname).replace(/^\/([A-Za-z]:)/, '$1');
+  const pathname = decodePercent(url.pathname).replace(/^\/([A-Za-z]:)/, '$1');
   return url.hostname && url.hostname !== 'localhost' ? `//${url.hostname}${pathname}` : pathname;
 };
 

@@ -1,3 +1,4 @@
+import { decodePercent } from '../files/decode-percent';
 import type { ParsedEntry, ParsedPlaylist } from './playlist-types';
 
 const namedEntities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
@@ -18,8 +19,12 @@ const childText = (markup: string, name: string) => {
   return found === undefined ? undefined : textOf(found) || undefined;
 };
 
+/** An address with a scheme is read as one where it is resolved, which a drive (`C:`) is not: any other location is a relative reference, encoded as one */
+const readLocation = (location: string) => (/^[a-z][a-z0-9+.-]+:/i.test(location) ? location : decodePercent(location));
+
 const toEntry = (markup: string): ParsedEntry[] => {
-  const location = childText(markup, 'location');
+  const written = childText(markup, 'location');
+  const location = written === undefined ? undefined : readLocation(written);
   const milliseconds = Number(childText(markup, 'duration'));
   const duration = milliseconds > 0 && Number.isFinite(milliseconds) ? milliseconds / 1000 : undefined;
 
