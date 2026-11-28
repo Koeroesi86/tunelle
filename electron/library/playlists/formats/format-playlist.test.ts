@@ -11,6 +11,14 @@ const playlist = {
   ],
 };
 
+describe('formatPlaylist with a file name', () => {
+  it('writes a file that is named like a property of every object', () => {
+    const text = formatPlaylist('m3u', { name: 'A list', folder: '/music', entries: [{ path: '/music/constructor' }] });
+
+    expect(parsePlaylist('m3u', text).entries.map(({ location }) => location)).toEqual(['constructor']);
+  });
+});
+
 describe('locationOf', () => {
   it('is relative inside the folder and the path as it is elsewhere', () => {
     expect(locationOf('/music/lists/a/one.flac', '/music/lists')).toBe('a/one.flac');

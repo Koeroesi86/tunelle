@@ -69,7 +69,9 @@ const soundEnd = async (read: ReadRange, size: number) => {
  */
 export const sliceFlac: Slicer = async function* (read, size, sliceBytes) {
   const { header, firstFrame } = await headerOf(read, await tagLength(read));
-  const cuts = await cutsOf(read, firstFrame, await soundEnd(read, size), sliceBytes, startsFrame);
+  const end = await soundEnd(read, size);
+  if (firstFrame > end) throw new SliceError('A FLAC file with metadata that goes past its end');
+  const cuts = await cutsOf(read, firstFrame, end, sliceBytes, startsFrame);
 
   for (let index = 0; index < cuts.length - 1; index++) {
     const frames = await mustRead(read, cuts[index], cuts[index + 1], 'A piece of a FLAC file');

@@ -122,4 +122,32 @@ describe('sliceMp4', () => {
 
     await expect(collect(sliceMp4, huge, 10_000)).rejects.toThrow('ADTS header');
   });
+
+  /** The file with `value` in the 32 bits that are `at` bytes behind the type of a box */
+  const withWord = (file: Uint8Array, type: string, at: number, value: number) => {
+    const bytes = Uint8Array.from(file);
+    new DataView(bytes.buffer).setUint32(Buffer.from(bytes).indexOf(type) + 4 + at, value);
+    return bytes;
+  };
+  const constantSizes = withWord(movieLast(), 'stsz', 4, 100);
+  const inFragments = join(
+    movie({ sizes: [], perChunk: 1, offsetOfFirstChunk: 0, fragments: true }),
+    fragment({ samples: samples.slice(0, 2), defaultSize: true })
+  );
+
+  it.each([
+    ['one size for more samples than any file has', withWord(constantSizes, 'stsz', 8, 0xffffffff), 'does not fit its box'],
+    [
+      'one size for more samples than the file has bytes',
+      withWord(withWord(movieLast({ perChunk: 0x7fffffff }), 'stsz', 4, 100), 'stsz', 8, 1_000_000),
+      'more samples than it has bytes',
+    ],
+    ['more chunks than their table holds', withWord(movieLast(), 'stco', 4, 0xffffff), 'does not fit its box'],
+    ['a run of more samples than are read', withWord(inFragments, 'trun', 4, 0xffffffff), 'too many samples'],
+    ['a run in front of the start of the file', withWord(inFragments, 'trun', 8, 0x80000000), 'in front of its start'],
+    ['a box that ends in its own header', join(ftyp, movie({ sizes: [], perChunk: 1, offsetOfFirstChunk: 0 }).subarray(0, 8)), 'does not fit'],
+    ['a large box that ends in its size', Uint8Array.from([0, 0, 0, 1, ...Buffer.from('moov'), 0, 0]), 'points outside'],
+  ])('refuses a file with %s', async (_, file, message) => {
+    await expect(collect(sliceMp4, file, 10_000)).rejects.toThrow(message);
+  });
 });

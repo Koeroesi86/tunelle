@@ -6,10 +6,10 @@ const close = vi.fn();
 
 vi.mock('fs', () => {
   const open = async () => ({
-    read: async (buffer: Buffer, offset: number, length: number, position: number) => ({
-      buffer,
-      bytesRead: file.subarray(position, position + length).copy(buffer, offset),
-    }),
+    read: async (buffer: Buffer, offset: number, length: number, position: number) => {
+      if (!Number.isSafeInteger(position)) throw new RangeError(`ERR_OUT_OF_RANGE position ${position}`);
+      return { buffer, bytesRead: file.subarray(position, position + length).copy(buffer, offset) };
+    },
     close,
   });
   return { default: { promises: { open } }, promises: { open } };
@@ -47,6 +47,7 @@ describe('readDstDuration', () => {
     ['whose DST chunk does not start with FRTE', dsdiff(chunk('DST ', chunk('DSTF', Buffer.alloc(8))))],
     ['that ends in the FRTE chunk', dsdiff(chunk('DST ', Buffer.from('FRTE')))],
     ['with no frames per second', dsdiff(chunk('DST ', frameInfo(450, 0)))],
+    ['with a chunk that is longer than a file can be read', dsdiff(Buffer.concat([Buffer.from('JUNK'), Buffer.alloc(8, 0x7f)]))],
   ])('gives nothing for a file %s', async (_, content) => {
     file = content;
 

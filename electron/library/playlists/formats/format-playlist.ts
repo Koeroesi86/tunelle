@@ -60,7 +60,9 @@ const formatM3u = (playlist: ExportPlaylist) => {
     ...kept.header,
     ...playlist.entries.flatMap((entry) => {
       const location = oneLine(writtenLocation(entry.path, playlist));
-      return [...(kept.before[location] ?? []), `#EXTINF:${seconds(entry.duration)},${displayName(entry)}`, location];
+      // a file can be named like a property that every object has
+      const before = Object.hasOwn(kept.before, location) ? kept.before[location] : [];
+      return [...before, `#EXTINF:${seconds(entry.duration)},${displayName(entry)}`, location];
     }),
     ...kept.tail,
   ].join('\n');

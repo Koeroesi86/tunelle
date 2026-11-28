@@ -1,6 +1,6 @@
 import type { ParsedEntry, ParsedPlaylist } from './playlist-types';
 
-const extinfPattern = /^#EXTINF:\s*(-?\d+(?:\.\d+)?)\s*(?:[^,]*)?,(.*)$/i;
+const extinfPattern = /^#EXTINF:\s*(-?\d+(?:\.\d+)?)\s*(?:[^,]*)?,(.*)$/is;
 
 /** "Artist - Title" as the extended M3U puts them in one text; a text without the separator is the title */
 const splitDisplayName = (text: string): Pick<ParsedEntry, 'artist' | 'title'> => {
@@ -13,7 +13,7 @@ const readInfo = (line: string): Partial<ParsedEntry> | undefined => {
   if (text === undefined) return undefined;
 
   const duration = Number(seconds);
-  return { ...(text.trim() ? splitDisplayName(text) : {}), ...(duration > 0 ? { duration } : {}) };
+  return { ...(text.trim() ? splitDisplayName(text) : {}), ...(duration > 0 && Number.isFinite(duration) ? { duration } : {}) };
 };
 
 /** M3U and M3U8: a line is a location, a line that starts with # is a comment or an extended directive for the location after it */

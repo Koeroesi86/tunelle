@@ -4,7 +4,7 @@ const namedEntities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot
 
 const decodeEntities = (text: string) =>
   text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
-    if (!entity.startsWith('#')) return namedEntities[entity] ?? match;
+    if (!entity.startsWith('#')) return Object.hasOwn(namedEntities, entity) ? namedEntities[entity] : match;
 
     const code = entity[1]?.toLowerCase() === 'x' ? parseInt(entity.slice(2), 16) : Number(entity.slice(1));
     return Number.isInteger(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
@@ -21,7 +21,7 @@ const childText = (markup: string, name: string) => {
 const toEntry = (markup: string): ParsedEntry[] => {
   const location = childText(markup, 'location');
   const milliseconds = Number(childText(markup, 'duration'));
-  const duration = milliseconds > 0 ? milliseconds / 1000 : undefined;
+  const duration = milliseconds > 0 && Number.isFinite(milliseconds) ? milliseconds / 1000 : undefined;
 
   return location ? [{ location, title: childText(markup, 'title'), artist: childText(markup, 'creator'), album: childText(markup, 'album'), duration }] : [];
 };

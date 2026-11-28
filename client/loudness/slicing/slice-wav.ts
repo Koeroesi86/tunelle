@@ -1,4 +1,4 @@
-import { SliceError, mustRead } from './types';
+import { SliceError, asSliceError, mustRead } from './types';
 import type { ReadRange, Slicer } from './types';
 
 const chunkHeader = 8;
@@ -6,6 +6,8 @@ const chunkHeader = 8;
 const inDs64 = 0xffffffff;
 /** The chunks before the sound that say what it is */
 const keptChunks = ['fmt ', 'ds64'];
+/** More than either holds: a longer one would have the file read into memory */
+const maxKeptBytes = 64 * 1024;
 
 type Chunks = Partial<Record<string, Uint8Array>>;
 
@@ -39,7 +41,9 @@ const layoutFrom = async (read: ReadRange, size: number, offset: number, chunks:
   const next = offset + chunkHeader + length + (length % 2);
   const id = text(header, 0);
   if (id === 'data') return dataLayout(chunks['fmt '], offset + chunkHeader, soundLength(length, chunks.ds64), size);
-  return layoutFrom(read, size, next, keptChunks.includes(id) ? { ...chunks, [id]: await read(offset, next) } : chunks);
+  if (!keptChunks.includes(id)) return layoutFrom(read, size, next, chunks);
+  if (length > maxKeptBytes) throw new SliceError('A WAV file with a format chunk of more than 64 KB');
+  return layoutFrom(read, size, next, { ...chunks, [id]: await read(offset, next) });
 };
 
 /** The header of a WAV file of its own for `dataLength` bytes of the sound, with the format chunk of the file */
@@ -66,7 +70,7 @@ const headerOf = (format: Uint8Array, dataLength: number) => {
 
 /** A WAV file is cut anywhere between two samples of all the channels, so each piece is the file with its own header and a part of the sound */
 export const sliceWav: Slicer = async function* (read, size, sliceBytes) {
-  const { format, blockAlign, dataStart, dataEnd } = await layoutFrom(read, size, 12, {});
+  const { format, blockAlign, dataStart, dataEnd } = await layoutFrom(read, size, 12, {}).catch(asSliceError);
   if (blockAlign === 0) throw new SliceError('A WAV file with no size of a sample');
   const step = Math.max(Math.floor(sliceBytes / blockAlign), 1) * blockAlign;
 

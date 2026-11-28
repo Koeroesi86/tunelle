@@ -98,9 +98,13 @@ const toLayout = (start: Buffer) => {
 };
 
 /** The size of the `data` chunk of an RF64 file is in `ds64` when the chunk itself says that it is too big */
-const toDataSize = (size: number, ds64: Buffer | undefined) => (size === unknownSize && ds64 ? Number(ds64.readBigUInt64LE(8)) : size);
+const toDataSize = (size: number, ds64: Buffer | undefined) => (size === unknownSize && ds64 && ds64.length >= 16 ? Number(ds64.readBigUInt64LE(8)) : size);
 
-const toFormat = (fmt: Buffer, dataSize: number): LargeWave['format'] => {
+const invalid = (fileName: string) => new Error(`${fileName} has a header that is not valid`);
+
+const toFormat = (fileName: string, fmt: Buffer, dataSize: number): LargeWave['format'] => {
+  // 16 bytes are the fields up to the bits of a sample, without bytes a second there is no length
+  if (fmt.length < 16 || fmt.readUInt32LE(8) === 0) throw invalid(fileName);
   const tag = fmt.readUInt16LE(0);
   const waveCodec = waveCodecs[tag === extensible && fmt.length >= 26 ? fmt.readUInt16LE(24) : tag];
   if (!waveCodec) throw new Error(`Wave format ${tag} is not supported`);
@@ -122,9 +126,13 @@ interface Header {
 
 /** The chunks up to `data`, which is not read: the audio follows it */
 const readChunks = async (handle: fs.promises.FileHandle, layout: Layout, position: number, chunks = new Map<string, Buffer>()): Promise<Header> => {
+  // a chunk can say that the next one is further than a file can be read
+  if (position > maxHeaderBytes) return { chunks, dataSize: undefined };
   const header = await read(handle, layout.headerLength, position);
-  if (header.length < layout.headerLength || position > maxHeaderBytes) return { chunks, dataSize: undefined };
+  if (header.length < layout.headerLength) return { chunks, dataSize: undefined };
   const { id, size } = layout.parse(header);
+  // a Wave64 chunk whose size does not even count its header
+  if (size < 0) return { chunks, dataSize: undefined };
   if (id === 'data') return { chunks, dataSize: toDataSize(size, chunks.get('ds64')) };
   const body = size > maxHeaderBytes ? Buffer.alloc(0) : await read(handle, size, position + layout.headerLength);
   chunks.set(id === 'LIST' && body.toString('latin1', 0, 4) === 'INFO' ? 'INFO' : id, body);
@@ -138,7 +146,7 @@ const readWave = async (handle: fs.promises.FileHandle, fileName: string): Promi
   const { chunks, dataSize } = await readChunks(handle, layout, layout === rf64Layout ? 12 : 40);
   const fmt = chunks.get('fmt ');
   if (!fmt || dataSize === undefined) throw new Error(`${fileName} has no fmt or data chunk in the header`);
-  return { common: toInfo(chunks.get('INFO') ?? Buffer.alloc(4)), format: toFormat(fmt, dataSize) };
+  return { common: toInfo(chunks.get('INFO') ?? Buffer.alloc(4)), format: toFormat(fileName, fmt, dataSize) };
 };
 
 /**

@@ -19,6 +19,12 @@ export class SliceError extends Error {}
 /** Thrown for a file of a format that is cut, in a variant that is not: its measurement is `too-large`, as for a format that is not cut at all */
 export class NotSliceable extends SliceError {}
 
+/** A read past the bytes that a part of a file says it has (`RangeError` of a `DataView`) is a file that is not what its header says */
+export const asSliceError = (error: unknown): never => {
+  if (!(error instanceof RangeError)) throw error;
+  throw new SliceError('A file with a header that points outside of what it holds');
+};
+
 /** The bytes of a range, or the end of the measurement of a file that cannot be read whole */
 export const mustRead = async (read: ReadRange, start: number, end: number, what: string) => {
   const bytes = await read(start, end);

@@ -7,6 +7,9 @@ export interface Box {
   end: number;
 }
 
+/** The most samples that a track is read with, 100 hours of AAC: a count of a file says how much memory is taken */
+export const maxSamples = 16 * 1024 * 1024;
+
 const type = (bytes: Uint8Array, offset: number) => String.fromCharCode(...bytes.subarray(offset, offset + 4));
 
 /** The box at `offset` of the bytes, with its content: a size of 1 is followed by one of 64 bits, a size of 0 goes to `limit`, which is the end of what holds it */
@@ -19,6 +22,13 @@ export const boxAt = (bytes: Uint8Array, offset: number, limit = bytes.length): 
   const length = isLarge ? data.getUint32(offset + 8) * 2 ** 32 + data.getUint32(offset + 12) : size || limit - offset;
   if (length < header || offset + length > limit) throw new SliceError('An MP4 file with a box of a size that does not fit');
   return { type: type(bytes, offset + 4), start: offset + header, end: offset + length };
+};
+
+/** The number of entries of a table, after `before` bytes of its box, each `width` bytes: no more than the box holds */
+export const countOf = (bytes: Uint8Array, box: Box, before: number, width: number) => {
+  const count = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(box.start + before - 4);
+  if (count > maxSamples || box.start + before + count * width > box.end) throw new SliceError('An MP4 file with a table that does not fit its box');
+  return count;
 };
 
 /** The boxes inside a box, one after the other */

@@ -84,6 +84,16 @@ describe('openRadioStream', () => {
     expect(dependencies.onTitle).toHaveBeenCalledWith('abc', 'Artist - Song', undefined);
   });
 
+  it.each(['1.5', '-1', '0', 'Infinity', 'x'])('takes a station that names %s bytes between its metadata for one without', async (metaint) => {
+    const dependencies = deps();
+    answerWith(http, respond(200, { 'icy-metaint': metaint }, Buffer.from('aaaabbbb')));
+
+    const { audio } = await openRadioStream('abc', new AbortController().signal, dependencies);
+
+    expect(await read(audio)).toBe('aaaabbbb');
+    expect(dependencies.onTitle).not.toHaveBeenCalled();
+  });
+
   it('follows a redirect, and gives up after too many', async () => {
     answerWith(http, respond(302, { location: '/other' }), respond(200, { 'content-type': 'audio/ogg' }));
     expect((await openRadioStream('abc', new AbortController().signal, deps())).contentType).toBe('audio/ogg');

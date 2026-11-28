@@ -21,6 +21,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [Testing the app](docs/development/end-to-end-tests.md)
 - [Test plan: remote listening](docs/development/remote-listening-test-plan.md)
 - [Unit tests](docs/development/unit-tests.md)
+- [Property tests](docs/development/property-tests.md)
 - [What is an integration test](docs/development/integration-test-scope.md)
 - [Containers (the components connected to the store)](docs/development/containers.md)
 - [Checks in CI](docs/development/ci.md)
