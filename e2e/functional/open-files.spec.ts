@@ -1,11 +1,10 @@
+// Needs the real app: a start of the app with a file and a second start (the arguments: electron/library/opened/opened-files.test.ts)
 import { join } from 'path';
 import type { Page } from '@playwright/test';
 import { expect, quit, test } from '../support/app';
 import { expectTone } from '../support/audio';
 import { writeTrack } from '../support/library';
 import { player } from '../support/player';
-
-// which arguments are files and how they are read is tried in electron/library/opened/opened-files.test.ts; what stays here is the start of the app with a file and the second start
 
 const album = {
   title: 'Handed Over',

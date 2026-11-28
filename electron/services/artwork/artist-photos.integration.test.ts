@@ -1,3 +1,4 @@
+// Needs the real database and files: the photos stored on disk and in SQLite
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

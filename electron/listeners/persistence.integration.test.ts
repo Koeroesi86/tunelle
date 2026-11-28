@@ -1,3 +1,4 @@
+// Needs the real database: what the listeners keep is there after the database file is opened again
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

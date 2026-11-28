@@ -1,3 +1,4 @@
+// Needs the real database: the gains pooled over the albums that SQL groups
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'sqlite3';
 import type { Track } from '@shared/types/library';

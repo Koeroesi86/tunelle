@@ -1,3 +1,4 @@
+// Needs the real database and files: sizes and times of real files against the stored rows
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

@@ -1,3 +1,4 @@
+// Needs the real network: the listener and the host agree over TLS
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AccessControl } from './access';

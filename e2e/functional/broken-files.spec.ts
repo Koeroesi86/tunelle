@@ -1,3 +1,4 @@
+// Needs the real app: what Chromium raises, or does not, for each way a file of the queue goes bad
 import { readFileSync, rmSync, truncateSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { addFolder, expect, test } from '../support/app';

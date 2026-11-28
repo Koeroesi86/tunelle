@@ -1,3 +1,4 @@
+// Needs the real app: a filter of Web Audio keeps a sample that is no number
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { addFolder, expect, navigate, test } from '../support/app';

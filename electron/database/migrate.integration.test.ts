@@ -1,3 +1,4 @@
+// Needs the real database: the SQL of the migrations applied in order, and what a failure leaves
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';

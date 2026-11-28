@@ -1,3 +1,4 @@
+// Needs the real app: axe reads the colours and the layout that Chromium renders from the styles
 import type { Page } from '@playwright/test';
 import { expect, navigate, test } from '../support/app';
 import { accessibilityViolations } from '../support/accessibility';

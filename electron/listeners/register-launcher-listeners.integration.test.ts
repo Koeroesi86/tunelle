@@ -1,3 +1,4 @@
+// Needs the real files: the menu entry and icons written into a home folder
 import { mkdir, mkdtemp, readFile, readlink, rm, stat, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { posix } from 'path';

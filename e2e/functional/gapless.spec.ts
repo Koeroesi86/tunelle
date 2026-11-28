@@ -1,3 +1,4 @@
+// Needs the real app: the samples that leave Web Audio at a change of track
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';

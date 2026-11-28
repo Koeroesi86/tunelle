@@ -1,3 +1,4 @@
+// Needs the real image library: sharp renders the icon to every file and size
 import { mkdtempSync, readFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { resolve } from 'path';

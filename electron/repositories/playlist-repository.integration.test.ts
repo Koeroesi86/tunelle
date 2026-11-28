@@ -1,3 +1,4 @@
+// Needs the real database: the SQL of the playlists
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addEntries, createPlaylist, deletePlaylist, getPlaylists, movedTo, moveEntry, movePlaylist, removeEntry, renamePlaylist } from './playlist-repository';
 import { createTestDatabase } from '../test-database';

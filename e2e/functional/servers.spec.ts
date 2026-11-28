@@ -1,3 +1,4 @@
+// Needs the real app: a track of a server playing and seeking in Chromium once the server is gone (the other kinds: media-servers.integration.test.ts)
 import type { Locator } from '@playwright/test';
 import { expect, navigate, test } from '../support/app';
 import { clearProbe, expectSilence, expectTone } from '../support/audio';

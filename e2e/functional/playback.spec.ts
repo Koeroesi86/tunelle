@@ -1,3 +1,4 @@
+// Needs the real app: that the controls change what is heard where the audio leaves the app (the order of the queue: client/redux/uiState)
 import { expect, navigate, test } from '../support/app';
 import { clearProbe, expectSilence, expectTone, levelNow, steadyLevel } from '../support/audio';
 import { player } from '../support/player';
@@ -70,30 +71,6 @@ test('starts the queue again from the first track with repeat on', async ({ sess
 
   await expectTone(page, 440);
   await expect(controls.title()).toHaveText('Concert A');
-});
-
-test('plays the queue in a shuffled order, each track once, and steps back through it', async ({ session: { page } }) => {
-  const controls = player(page);
-  // the last of the tracks that were not played is picked each time, which is not the order of the album
-  await page.evaluate(() => {
-    Math.random = () => 0.99;
-  });
-  await controls.shuffle();
-  await controls.playAlbum('Pitch Perfect');
-  await expectTone(page, 440);
-
-  await controls.next();
-  await expectTone(page, 100);
-  await controls.skipToEnd();
-  await expectTone(page, 880);
-  await controls.previous();
-  await expectTone(page, 100);
-  await controls.next();
-  await expectTone(page, 880);
-
-  await controls.skipToEnd();
-  await expectSilence(page);
-  await controls.expectPaused();
 });
 
 test('seeks inside the track and goes on playing from there', async ({ session: { page } }) => {

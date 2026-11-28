@@ -1,3 +1,4 @@
+// Needs the real database and files: files are matched to the tracks of the library by SQL
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

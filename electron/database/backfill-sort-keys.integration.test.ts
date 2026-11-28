@@ -1,3 +1,4 @@
+// Needs the real database: which rows the SQL finds without keys and what it leaves in them
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'sqlite3';
 import backfillSortKeys from './backfill-sort-keys';

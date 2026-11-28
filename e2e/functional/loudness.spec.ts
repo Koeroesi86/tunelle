@@ -1,3 +1,4 @@
+// Needs the real app: the hidden window of Chromium measures the track, and the level is read where the audio leaves
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';

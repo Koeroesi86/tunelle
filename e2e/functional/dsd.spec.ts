@@ -1,3 +1,4 @@
+// Needs the real app: Chromium plays and measures the 24 bit, 88.2 kHz WAV of the decoder
 import { join } from 'path';
 import { addFolder, expect, libraryTracks, test } from '../support/app';
 import { expectTone } from '../support/audio';

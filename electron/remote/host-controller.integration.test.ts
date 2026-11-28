@@ -1,3 +1,4 @@
+// Needs the real network and files: the socket of the host and the key file with its mode
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';

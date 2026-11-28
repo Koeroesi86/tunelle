@@ -93,8 +93,9 @@ describe('isDecodedCodec', () => {
         'OPUS',
         'MP2',
         'AC-3',
+        'CAF',
       ].map(isDecodedCodec)
-    ).toEqual(Array(20).fill(true));
+    ).toEqual(Array(21).fill(true));
     expect(['AAC', 'SPEEX', null, undefined].map(isDecodedCodec)).toEqual([false, false, false, false]);
   });
 });

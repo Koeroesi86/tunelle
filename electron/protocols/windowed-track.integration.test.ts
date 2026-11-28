@@ -1,3 +1,4 @@
+// Needs the real ffmpeg: a decode from an offset gives the same samples
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { execFileSync } from 'child_process';
 import fs from 'fs';

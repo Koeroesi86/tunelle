@@ -1,7 +1,7 @@
+// Needs the real app: Chromium playing a live stream as it arrives (the list and the codecs: RadioStations.test.tsx)
 import { expect, navigate, test } from '../support/app';
 import { player } from '../support/player';
 
-// the list of the stations and their codecs are tried in client/components/pages/radio-stations/RadioStations.test.tsx
 test('plays a station live, with the title its stream announces', async ({ start }) => {
   const { page } = await start();
   const controls = player(page);

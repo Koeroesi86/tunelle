@@ -27,7 +27,7 @@ Pull requests also run `fallow audit --base`, CodeQL, dependency review and OSV 
 
 ## Guards
 
-Claude Code hooks (`.claude/hooks/`, wired in `.claude/settings.json`, tested in `.claude/hooks/claude-hooks.integration.test.ts`) block what the rules below forbid: `--no-verify`, `prettier --write`, `continue-on-error`, renaming `release.yml`, pushing to `master`, editing `version` of `package.json` or a migration that has shipped, and writing a comment block over 4 lines. `git push` and `gh pr create` run lint and typecheck first. `.github/workflows/workflows.test.ts` checks the workflow rules, and `pr-description.yml` fails a pull request without **Not verified:**.
+Claude Code hooks (`.claude/hooks/`, wired in `.claude/settings.json`, tested in `.claude/hooks/claude-hooks.integration.test.ts`) block what the rules below forbid: `--no-verify`, `prettier --write`, `continue-on-error`, renaming `release.yml`, pushing to `master`, editing `version` of `package.json` or a migration that has shipped, writing a comment block over 4 lines, and writing an e2e spec or integration test without its reason line. `git push` and `gh pr create` run lint and typecheck first. `.github/workflows/workflows.test.ts` checks the workflow rules, and `pr-description.yml` fails a pull request without **Not verified:**.
 
 ## Context
 
@@ -35,6 +35,7 @@ Every call re-reads the whole session, so keep it small ([docs/development/claud
 
 ## Conventions
 
+- Choose the tier before writing a test: unit; integration only for what a unit test can not show; end to end only for what neither can, and an issue that asks for an end to end test does not waive this. Each spec and integration test file says it on its `// Needs the real …:` line ([docs/development/unit-tests.md](docs/development/unit-tests.md)).
 - The code of the app does not take a parameter, an option or a default only so that a test can replace it (`fetcher = fetch`, `now = Date.now`, `pause`, `random`, `gap`, a date that no caller passes, or a fallback for when Electron is not there): it calls `fetch`, `Date.now()`, `setTimeout`, `Math.random` and `utilityProcess` itself, and the test replaces the global (`vi.stubGlobal('fetch', …)`, `vi.useFakeTimers({ toFake: ['Date', 'setTimeout'] })` with `vi.setSystemTime`, `vi.spyOn(Math, 'random')`) or the module (`vi.mock('electron')`; the backend tests get a fake `utilityProcess` from `electron/test-utility-process.ts`). A wait is a `setTimeout` promise, as the fake timers do not cover `timers/promises`. A parameter that the app passes, or that the user sets (a `TUNELLE_` variable), is not a test seam.
 - User-facing text goes in `shared/locales/en.json` (the complete source of truth) and is shown with `useTranslation()` in the renderer or `getMainTranslator()` in `electron/`, never written into a component; a new language is a `shared/locales/<tag>.json` that is added to `shared/locales/index.ts`, and a key it lacks shows the English text.
 - Lint runs on TypeScript 6 through a hook in `eslint.config.js` while the compiler is TypeScript 7 ([docs/development/typescript-eslint.md](docs/development/typescript-eslint.md)).

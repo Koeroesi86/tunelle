@@ -1,3 +1,4 @@
+// Needs the real app: the window of the whole app opening on a machine without a network
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';

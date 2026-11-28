@@ -1,3 +1,4 @@
+// Needs the real database: the album artist and genre keys as SQLite stores and updates them
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

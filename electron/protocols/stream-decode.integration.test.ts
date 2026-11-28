@@ -1,3 +1,4 @@
+// Needs the real ffmpeg: what it makes of stations in each format, and of damaged ones
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import http from 'http';

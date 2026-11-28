@@ -1,3 +1,4 @@
+// Needs the real database: the copy that SQLite writes holds the data
 import { mkdtemp, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';

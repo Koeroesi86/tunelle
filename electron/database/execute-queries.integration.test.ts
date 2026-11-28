@@ -1,3 +1,4 @@
+// Needs the real database: what SQLite answers and refuses for a list of statements
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'sqlite3';
 import executeQueries from './execute-queries';

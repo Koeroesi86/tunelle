@@ -1,3 +1,4 @@
+// Needs the real files: the backup, the temporary file and a read only folder as the system treats them
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

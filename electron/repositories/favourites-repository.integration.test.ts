@@ -1,3 +1,4 @@
+// Needs the real database: the SQL of the favourites
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addFavourite, getFavourites, removeFavourite } from './favourites-repository';
 import { createTestDatabase } from '../test-database';

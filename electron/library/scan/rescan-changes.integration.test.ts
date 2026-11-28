@@ -1,3 +1,4 @@
+// Needs the real database and files: the rows removed for what is gone from a real disk
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

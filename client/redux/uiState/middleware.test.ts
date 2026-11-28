@@ -163,6 +163,23 @@ describe('uiState middleware', () => {
     });
   });
 
+  it('plays a shuffled queue each track once, steps back through it and stops when all were played', () => {
+    // the last of the tracks that were not played is picked each time, which is not the order of the queue
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
+    const store = createTestStore({ currentSong: a, shuffle: true, isPlaying: true });
+    const after = (type: 'NEXT_SONG' | 'TRACK_ENDED' | 'PREVIOUS_SONG') => {
+      dispatch(store, { type, payload: {} });
+      return store.getState().uiState.currentSong;
+    };
+
+    expect(after('NEXT_SONG')).toEqual(c);
+    expect(after('TRACK_ENDED')).toEqual(b);
+    expect(after('PREVIOUS_SONG')).toEqual(c);
+    expect(after('NEXT_SONG')).toEqual(b);
+    expect(after('TRACK_ENDED')).toEqual(b);
+    expect(store.getState().uiState.isPlaying).toBe(false);
+  });
+
   describe('PREVIOUS_SONG', () => {
     it('plays the preceding track', () => {
       const store = createTestStore({ currentSong: b });

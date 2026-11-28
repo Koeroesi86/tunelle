@@ -1,3 +1,4 @@
+// Needs the real app: the ALAC decoded by the app is heard from its media element; the other formats are rows of the integration tests
 import { join } from 'path';
 import { addFolder, expect, test } from '../support/app';
 import { expectTone } from '../support/audio';

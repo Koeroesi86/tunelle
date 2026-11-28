@@ -1,3 +1,4 @@
+// Needs the real files: the unit tests that the repository holds
 import { describe, expect, it } from 'vitest';
 import { findRealWorldTests, usesRealWorld } from './unit-test-isolation';
 

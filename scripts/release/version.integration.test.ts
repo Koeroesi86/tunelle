@@ -1,3 +1,4 @@
+// Needs the real process: what the script prints and its exit code when run by node
 import { execFileSync } from 'child_process';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';

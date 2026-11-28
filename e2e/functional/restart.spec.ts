@@ -1,8 +1,7 @@
+// Needs the real app: a real quit, and the media element taking the position again (the kept settings: client/redux/persisted-settings.test.ts)
 import { expect, navigate, quit, test } from '../support/app';
 import { expectSilence, expectTone } from '../support/audio';
 import { player } from '../support/player';
-
-// which settings are kept and which are refused is tried in client/redux/persisted-settings.test.ts; what stays here is a real quit and the element that takes the position again
 
 test('brings back the queue, the track and the position after a restart, paused', async ({ session, start }) => {
   const before = player(session.page);

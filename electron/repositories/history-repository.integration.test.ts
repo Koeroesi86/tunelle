@@ -1,3 +1,4 @@
+// Needs the real database: the SQL of the history
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearHistory, getHistory, historyLimit, recordPlayed } from './history-repository';
 import { createTestDatabase } from '../test-database';

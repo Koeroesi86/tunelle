@@ -1,3 +1,4 @@
+// Needs the real app: what the media element of Chromium does with a stream that drops or goes silent
 import { expect, navigate, test as base } from '../support/app';
 import { expectSilence, expectTone } from '../support/audio';
 import { player } from '../support/player';

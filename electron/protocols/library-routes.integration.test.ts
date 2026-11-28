@@ -1,3 +1,4 @@
+// Needs the real database: the groups, sorts and filters that SQL answers
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'sqlite3';
 import addTrack from '../library/scan/add-track';

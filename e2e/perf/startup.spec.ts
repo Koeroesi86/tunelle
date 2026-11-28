@@ -1,3 +1,4 @@
+// Needs the real app: the measurements are of the app as it starts and stands still
 import { expect, type Page } from '@playwright/test';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';

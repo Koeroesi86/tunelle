@@ -1,3 +1,4 @@
+// Needs the real database and files: the playlist files of a folder joined to the tracks the scan stored
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

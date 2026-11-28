@@ -1,3 +1,4 @@
+// Needs the real database and files: a folder walked on disk, read and stored as one scan
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';

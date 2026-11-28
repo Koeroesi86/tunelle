@@ -1,3 +1,4 @@
+// Needs the real network: TLS accepts the pinned certificate and refuses another
 import { once } from 'node:events';
 import { createServer, request, type Server } from 'node:https';
 import { TLSSocket } from 'node:tls';
