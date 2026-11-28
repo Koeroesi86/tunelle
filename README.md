@@ -58,6 +58,7 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [The background task queue](docs/app/task-queue.md)
 - [Loudness measurement](docs/app/loudness-measurement.md)
 - [Loudness: measuring in the background](docs/app/loudness-background.md)
+- [Loudness: the EBU reference cases](docs/app/loudness-reference-cases.md)
 - [Saving power](docs/app/power-saving.md)
 - [Software rendering (no GPU)](docs/app/software-rendering.md)
 - [Servers of the user (Subsonic)](docs/app/sources.md)
