@@ -80,6 +80,7 @@ describe('library routes for browsing', () => {
     expect(vi.mocked(getAlbumPage).mock.calls[0][3]).toMatchObject({ group: { kind: 'artist', key: 'adam' }, sort: { field: 'title', direction: 'asc' } });
     expect(vi.mocked(getAlbumPage).mock.calls[1][3]).toMatchObject({ group: undefined });
     expect((await answer('/library/albums', 'by=artist')).status).toBe(400);
+    expect((await answer('/library/albums', 'group=adam')).status).toBe(400);
     expect((await answer('/library/albums', 'by=title&group=x')).status).toBe(400);
     expect((await answer('/library/albums', 'sort=nope')).status).toBe(400);
   });
@@ -104,6 +105,15 @@ describe('library routes for browsing', () => {
     expect(getGroupCover).toHaveBeenCalledWith(database, 'artist', 'adam');
     expect((await answer('/library/group-cover', 'by=artist')).status).toBe(400);
     expect((await answer('/library/group-cover', 'key=adam')).status).toBe(400);
+  });
+
+  it.each([
+    ['/library/tracks', 'sort=title&dir=up'],
+    ['/library/tracks', 'sort=title'],
+    ['/library/albums', 'sort=track&dir=asc'],
+    ['/library', 'sort=x&dir=asc'],
+  ])('refuses at %s the %s that is not a known field with a known direction', async (route, query) => {
+    expect((await answer(route, query)).status).toBe(400);
   });
 
   it('lists the tracks of an album by its folder and title', async () => {

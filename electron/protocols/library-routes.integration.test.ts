@@ -34,15 +34,13 @@ describe('library routes for browsing', () => {
     await addTrack(database, track('/m/b/1.flac', { artist: 'Bea', album: 'Two', genre: 'Pop' }));
   });
 
-  it('answers with the cover of one group, none for a name without tracks, and refuses a request without a kind or a key', async () => {
+  it('answers with the cover of one group, and none for a name without tracks', async () => {
     await addTrack(database, track('/m/a/2.flac', { artist: 'Adam', album: 'One', picture: 'one.png' }));
     await executeQuery(database, { query: "INSERT INTO artist_photos (key, picture, checkedAt) VALUES ('bea', 'artist-bea.jpg', 1)", variables: [] });
 
     expect(await (await answer('/library/group-cover', 'by=artist&key=adam')).json()).toEqual({ cover: 'one.png' });
     expect(await (await answer('/library/group-cover', 'by=artist&key=bea')).json()).toEqual({ cover: 'artist-bea.jpg' });
     expect(await (await answer('/library/group-cover', 'by=artist&key=nobody')).json()).toEqual({ cover: null });
-    expect((await answer('/library/group-cover', 'by=artist')).status).toBe(400);
-    expect((await answer('/library/group-cover', 'key=adam')).status).toBe(400);
   });
 
   it('lists the groups of a kind with a sort and a filter', async () => {
@@ -52,19 +50,10 @@ describe('library routes for browsing', () => {
     expect(await response.json()).toMatchObject({ total: 1, items: [{ key: 'bea', name: 'Bea', albumCount: 1, trackCount: 1 }] });
   });
 
-  it('refuses a kind or a sort that is not known', async () => {
-    expect((await answer('/library/groups', 'by=title')).status).toBe(400);
-    expect((await answer('/library/groups', '')).status).toBe(400);
-    expect((await answer('/library/groups', 'by=genre&sort=name&dir=up')).status).toBe(400);
-  });
-
-  it('limits the albums to a group, and refuses a group that is half given or of an unknown kind', async () => {
+  it('limits the albums to a group', async () => {
     const response = await answer('/library/albums', 'by=genre&group=rock');
 
     expect(await response.json()).toMatchObject({ total: 1, items: [{ title: 'One' }] });
-    expect((await answer('/library/albums', 'by=genre')).status).toBe(400);
-    expect((await answer('/library/albums', 'group=rock')).status).toBe(400);
-    expect((await answer('/library/albums', 'by=path&group=rock')).status).toBe(400);
     expect(((await (await answer('/library/albums', '')).json()) as { total: number }).total).toBe(2);
   });
 
@@ -74,7 +63,6 @@ describe('library routes for browsing', () => {
     expect(found.status).toBe(200);
     expect(await found.json()).toMatchObject({ trackGain: null, albumGain: null });
     expect((await answer('/library/track', 'path=%2Fm%2Fnone.flac')).status).toBe(404);
-    expect((await answer('/library/track', '')).status).toBe(400);
   });
 
   it('gives the analysis of a track that was measured, and not found for one that was not', async () => {
@@ -110,10 +98,5 @@ describe('library routes for browsing', () => {
     expect(found.status).toBe(200);
     expect(await found.json()).toEqual(analysis);
     expect((await answer('/library/loudness', `path=${encodeURIComponent('/m/b/1.flac')}`)).status).toBe(404);
-    expect((await answer('/library/loudness', '')).status).toBe(400);
-  });
-
-  it('serves nothing before the database is connected', async () => {
-    expect((await libraryRoutes['/library/groups'](undefined, new URLSearchParams('by=artist'))).status).toBe(403);
   });
 });

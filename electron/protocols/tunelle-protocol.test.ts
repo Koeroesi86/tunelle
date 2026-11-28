@@ -71,6 +71,8 @@ describe('the tunelle protocol', () => {
   it('answers only for its host, and only to GET and HEAD', async () => {
     expect((await ask('/', { host: 'other' })).status).toBe(404);
     expect((await ask('/', { method: 'POST' })).status).toBe(405);
+    expect((await ask('/library', { method: 'PUT' })).status).toBe(405);
+    expect((await ask('/library', { method: 'DELETE' })).status).toBe(405);
     expect((await ask('/', { method: 'OPTIONS' })).status).toBe(204);
   });
 
@@ -96,14 +98,29 @@ describe('the tunelle protocol', () => {
     expect(signal.aborted).toBe(true);
   });
 
-  it('allows the dev server to ask across origins, and no other origin', async () => {
+  it('allows the dev server to ask across origins, with its preflight', async () => {
     const preflight = await ask('/library', { method: 'OPTIONS', headers: { origin: 'http://localhost:3000' } });
     const response = await ask('/library', { headers: { origin: 'http://localhost:3000' } });
-    const other = await ask('/library', { headers: { origin: 'http://evil.example' } });
 
+    expect(preflight.status).toBe(204);
     expect(preflight.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:3000');
+    expect(preflight.headers.get('Access-Control-Allow-Headers')).toContain('Range');
     expect(response.headers.get('Access-Control-Expose-Headers')).toContain('Content-Range');
-    expect(other.headers.get('Access-Control-Allow-Origin')).toBeNull();
+    expect(response.headers.get('Vary')).toBe('Origin');
+  });
+
+  it.each(['https://example.com', 'http://localhost.example.com', 'http://localhost:3001'])('does not allow the origin %s', async (origin) => {
+    const response = await ask('/library', { headers: { origin } });
+
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  });
+
+  it('allows no origin outside of a development run', async () => {
+    const packaged = handleTunelleRequest({ getDatabase: () => database, radio, sources, appRoot: path.resolve('/app/out') });
+
+    const response = await packaged(new Request('tunelle://app/library', { headers: { origin: 'http://localhost:3000' } }));
+
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
   });
 
   it('routes the library, the tracks and the remote audio', async () => {
