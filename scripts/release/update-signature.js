@@ -32,8 +32,8 @@ const checkFile = (file, publicKeys) => {
   return publicKeys.some(key => verifyText(text, signature, key))
 }
 
-if (require.main === module) {
-  const [command, file] = process.argv.slice(2)
+/** @param {string[]} args the command line behind the name of the script */
+const main = ([command, file]) => {
   if (command === 'generate') {
     const { privateKey, publicKey } = generateKeys()
     console.log(`${privateKey}\n${publicKey}`)
@@ -49,4 +49,6 @@ if (require.main === module) {
   }
 }
 
-module.exports = { checkFile, generateKeys, readPublicKeys, signFile, signText, verifyText }
+if (require.main === module) main(process.argv.slice(2))
+
+module.exports = { checkFile, generateKeys, main, readPublicKeys, signFile, signText, verifyText }

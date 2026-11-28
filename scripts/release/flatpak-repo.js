@@ -107,18 +107,19 @@ const buildRepo = (bundlesFolder, repoFolder, privateKey) => {
   }
 }
 
+/** @param {string[]} args the command line behind the name of the script */
+const main = ([bundlesFolder, repoFolder]) => {
+  if (!bundlesFolder || !repoFolder) throw new Error('usage: node scripts/release/flatpak-repo.js <bundles folder> <repo folder>')
+  buildRepo(bundlesFolder, repoFolder, process.env.FLATPAK_GPG_PRIVATE_KEY)
+}
+
 if (require.main === module) {
-  const [bundlesFolder, repoFolder] = process.argv.slice(2)
-  if (!bundlesFolder || !repoFolder) {
-    console.error('usage: node scripts/release/flatpak-repo.js <bundles folder> <repo folder>')
-    process.exit(1)
-  }
   try {
-    buildRepo(bundlesFolder, repoFolder, process.env.FLATPAK_GPG_PRIVATE_KEY)
+    main(process.argv.slice(2))
   } catch (error) {
     console.error(error.message)
     process.exit(1)
   }
 }
 
-module.exports = { comment, description, findBranch, findKey, refFile, repoFile }
+module.exports = { comment, description, findBranch, findKey, main, refFile, repoFile }
