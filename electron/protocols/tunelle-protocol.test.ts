@@ -1,6 +1,7 @@
 import path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { protocol } from 'electron';
+import { unusualNames } from '../../shared/test-unusual-names';
 import { resolveAlbumArt } from '../library/art/album-art';
 import { getCoverAccent } from '../library/art/album-art-accents';
 import { serveRemoteAudio, serveRemoteCover } from '../remote/remote-media';
@@ -132,6 +133,14 @@ describe('the tunelle protocol', () => {
 
     expect(await (await ask('/remote/audio')).text()).toBe('remote audio');
     expect(await (await ask('/remote/cover')).text()).toBe('remote cover');
+  });
+
+  it.each(unusualNames)('reads the path of a track with $kind from the address', async ({ name }) => {
+    const file = `/m/${name}/${name}.flac`;
+
+    await ask(`/track?path=${encodeURIComponent(file)}`);
+
+    expect(vi.mocked(serveTrack).mock.calls[0][1]).toBe(file);
   });
 
   it('serves a station with its key, and the art and the logo of a station only for a key that is valid', async () => {

@@ -6,7 +6,7 @@ Playlist files (`.m3u`, `.m3u8`, `.pls`, `.xspf`) become playlists of the app, i
 
 - **M3U and M3U8** (`parse-m3u.ts`): a line is a location, `#EXTINF:<seconds>,<artist> - <title>` and `#PLAYLIST:<name>` are read, other comments are skipped.
 - **PLS** (`parse-pls.ts`): the `FileN`, `TitleN` and `LengthN` keys, in the order of `N`.
-- **XSPF** (`parse-xspf.ts`): `location` (a URI), `title`, `creator`, `album` and `duration` (milliseconds) of each `track`, and the `title` of the playlist. It is read with a small tokenizer, not an XML parser, so a file that is not well formed still gives the tracks that can be read.
+- **XSPF** (`parse-xspf.ts`): `location` (a URI: a relative one is percent-decoded as it is read, one with a scheme as it is resolved), `title`, `creator`, `album` and `duration` (milliseconds) of each `track`, and the `title` of the playlist. It is read with a small tokenizer, not an XML parser, so a file that is not well formed still gives the tracks that can be read.
 
 ## Encoding
 
@@ -16,7 +16,7 @@ The user can choose the encoding of a playlist that has a file (the "Encoding" l
 
 ## Matching the library
 
-The library stores paths with forward slashes on every system (`normalizePath`). A location is turned into such a path (`resolve-location.ts`: `file:` URIs are decoded, backslashes become slashes, a relative path is taken from the folder of the playlist file), then looked up in the library (`library-index.ts`):
+The library stores paths with forward slashes on every system (`normalizePath`). A location is turned into such a path (`resolve-location.ts`: `file:` URIs are decoded, where a `%` that starts no sequence stays as it is, backslashes become slashes, a relative path is taken from the folder of the playlist file; [file names with signs](../development/file-names.md)), then looked up in the library (`library-index.ts`):
 
 1. the same path (composed Unicode, as macOS stores file names decomposed);
 2. the same path without regard to the case, when only one file is that;

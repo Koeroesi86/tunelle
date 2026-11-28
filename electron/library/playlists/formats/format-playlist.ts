@@ -59,7 +59,8 @@ const formatM3u = (playlist: ExportPlaylist) => {
     `#PLAYLIST:${oneLine(playlist.name)}`,
     ...kept.header,
     ...playlist.entries.flatMap((entry) => {
-      const location = oneLine(writtenLocation(entry.path, playlist));
+      // a line that starts with # is a comment, so a relative location that does is written from `./`
+      const location = oneLine(writtenLocation(entry.path, playlist)).replace(/^#/, './#');
       // a file can be named like a property that every object has
       const before = Object.hasOwn(kept.before, location) ? kept.before[location] : [];
       return [...before, `#EXTINF:${seconds(entry.duration)},${displayName(entry)}`, location];
