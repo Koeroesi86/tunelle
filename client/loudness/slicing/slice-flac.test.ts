@@ -59,4 +59,36 @@ describe('sliceFlac', () => {
   it('rejects a file whose metadata goes past its end', async () => {
     await expect(collect(sliceFlac, join(marker, Uint8Array.from([0x80, 0, 1, 0])), 50)).rejects.toThrow('goes past its end');
   });
+
+  /** A frame with a header of its own: the byte of block size and rate, the bytes of its number, and the ones that give the size and rate in full */
+  const frameWith = (sizes: number, number: number[], extra: number[], length = 900) => {
+    const header = [0xff, 0xf8, sizes, 0x18, ...number, ...extra];
+    const sound = Array.from({ length: length - header.length - 1 }, (_, index) => 1 + (index % 200));
+    return Uint8Array.from([...header, crc8(header), ...sound]);
+  };
+  const framesWith = (sizes: number, number: number[], extra: number[]) =>
+    join(metadata, ...Array.from({ length: 100 }, () => frameWith(sizes, number, extra)));
+
+  it.each([
+    ['a number of two bytes', 0xc9, [0xc2, 0x80], []],
+    ['a number of seven bytes', 0xc9, [0xfe, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80], []],
+    ['a block size in one more byte', 0x69, [1], [200]],
+    ['a block size in two more bytes', 0x79, [1], [1, 0]],
+    ['a rate in kHz in one more byte', 0xcc, [1], [44]],
+    ['a rate in Hz in two more bytes', 0xcd, [1], [172, 68]],
+    ['a rate in tens of Hz in two more bytes', 0xce, [1], [17, 58]],
+  ])('cuts at frames with %s', async (_, sizes, number, extra) => {
+    expect((await collect(sliceFlac, framesWith(sizes, number, extra), 10_000)).length).toBeGreaterThan(5);
+  });
+
+  it.each([
+    ['starts like a later byte of one', [0x80]],
+    ['is longer than seven bytes', [0xff]],
+  ])('does not cut where the number of the frame %s', async (_, number) => {
+    expect(await collect(sliceFlac, framesWith(0xc9, number, []), 10_000)).toHaveLength(1);
+  });
+
+  it('rejects metadata of more than 16 MB before reading it', async () => {
+    await expect(collect(sliceFlac, join(marker, Uint8Array.from([0x80, 0xff, 0xff, 0xff])), 50)).rejects.toThrow('more than 16 MB');
+  });
 });

@@ -43,6 +43,19 @@ describe('parsePlaylist', () => {
     });
   });
 
+  it.each([
+    ['a decimal number', '&#233;', '\u00e9'],
+    ['a hexadecimal number', '&#xE9;', '\u00e9'],
+    ['a character past the first plane', '&#x1F3B5;', '\ud83c\udfb5'],
+    ['the number 0, which is no character', '&#0;', '&#0;'],
+    ['a number past the last character', '&#x110000;', '&#x110000;'],
+    ['a name that XML does not have', '&nbsp;', '&nbsp;'],
+  ])('reads %s in a title of XSPF', (_, written, title) => {
+    const text = `<trackList><track><location>a.flac</location><title>${written}</title></track></trackList>`;
+
+    expect(parsePlaylist('xspf', text).entries).toEqual([{ location: 'a.flac', title }]);
+  });
+
   it('skips a comment as a whole, also one that holds the markup of a track list', () => {
     const text =
       '<playlist><!-- <trackList><track><location>x.flac</location></track> --><title>T</title><trackList><track><location>a.flac</location></track></trackList></playlist>';

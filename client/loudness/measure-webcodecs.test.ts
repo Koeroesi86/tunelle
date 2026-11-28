@@ -5,9 +5,17 @@ import { box, description, esds, movie, sample } from './slicing/mp4-fixture';
 import { join, memoryReader } from './slicing/memory-reader';
 import { summarise } from './summarise';
 
-const file = { bytes: new Uint8Array(0) };
+/** The file that is read: `unreadable` says a range of it could not be fetched, `goneAfter` is the offset from which reading it throws */
+const file = { bytes: new Uint8Array(0), unreadable: false, goneAfter: Infinity };
 vi.mock('./measure-sliced', () => ({
-  rangeReader: () => ({ read: memoryReader(file.bytes), size: async () => file.bytes.length, state: { unreadable: false } }),
+  rangeReader: () => ({
+    read: async (start: number, end: number) => {
+      if (start >= file.goneAfter) throw new Error('gone');
+      return memoryReader(file.bytes)(start, end);
+    },
+    size: async () => file.bytes.length,
+    state: { unreadable: file.unreadable },
+  }),
 }));
 vi.mock('./block-energies', () => ({ createBlockMeter: vi.fn() }));
 vi.mock('./summarise', () => ({ summarise: vi.fn() }));
@@ -30,7 +38,7 @@ class FakeDecoder {
   static isConfigSupported = vi.fn(() => Promise.resolve({ supported: true }));
   state = 'configured';
   decodeQueueSize = 0;
-  constructor(private init: { output: (audio: unknown) => void; error: () => void }) {}
+  constructor(protected init: { output: (audio: unknown) => void; error: () => void }) {}
   configure = (config: AudioDecoderConfig) => {
     fake.configured = config;
   };
@@ -40,14 +48,14 @@ class FakeDecoder {
   };
   flush = () => Promise.resolve();
   close = () => undefined;
-  addEventListener = () => undefined;
+  addEventListener: (name: string, listener: () => void) => void = () => undefined;
 }
 
 beforeEach(() => {
   vi.resetAllMocks();
   fake.configured = undefined;
   fake.chunks = [];
-  file.bytes = mp4();
+  Object.assign(file, { bytes: mp4(), unreadable: false, goneAfter: Infinity });
   FakeDecoder.isConfigSupported = vi.fn(() => Promise.resolve({ supported: true }));
   vi.stubGlobal('AudioDecoder', FakeDecoder);
   vi.stubGlobal(
@@ -109,5 +117,94 @@ describe('measureWebCodecs', () => {
     );
 
     expect(await measureWebCodecs(1, 'url', vi.fn())).toEqual({ id: 1, outcome: 'undecodable' });
+  });
+
+  it('measures sound that is at the rate of the measurement as it is', async () => {
+    vi.stubGlobal(
+      'AudioDecoder',
+      class extends FakeDecoder {
+        decode = () => this.init.output({ numberOfChannels: 2, numberOfFrames: 1024, sampleRate: 48_000, copyTo: () => undefined, close: () => undefined });
+      }
+    );
+    vi.stubGlobal('OfflineAudioContext', undefined);
+
+    await measureWebCodecs(1, 'url', vi.fn());
+
+    expect(push).toHaveBeenCalledWith([new Float32Array(sizes.length * 1024), new Float32Array(sizes.length * 1024)]);
+  });
+
+  it('gives the decoder no more while its queue is full', async () => {
+    const waited = vi.fn();
+    vi.stubGlobal(
+      'AudioDecoder',
+      class extends FakeDecoder {
+        decodeQueueSize = 100;
+        addEventListener = (name: string, listener: () => void) => {
+          waited(name, fake.chunks.length);
+          this.decodeQueueSize = 0;
+          listener();
+        };
+      }
+    );
+
+    await measureWebCodecs(1, 'url', vi.fn());
+
+    expect(waited.mock.calls).toEqual([['dequeue', 0]]);
+    expect(fake.chunks).toHaveLength(sizes.length);
+  });
+
+  it('is undefined for an MP4 that cannot be read as a track of samples', async () => {
+    file.bytes = join(ftyp, mdat);
+
+    expect(await measureWebCodecs(1, 'url', vi.fn())).toBeUndefined();
+  });
+
+  it('fails with an error of reading that says nothing about the file', async () => {
+    file.goneAfter = ftyp.length;
+
+    await expect(measureWebCodecs(1, 'url', vi.fn())).rejects.toThrow('gone');
+  });
+
+  it.each([
+    ['undecodable', false],
+    ['unreadable', true],
+  ])('is %s when the decoder reports a failure, and does not close what it closed itself', async (outcome, unreadable) => {
+    const close = vi.fn();
+    file.unreadable = unreadable;
+    vi.stubGlobal(
+      'AudioDecoder',
+      class extends FakeDecoder {
+        close = close;
+        decode = () => {
+          this.state = 'closed';
+          this.init.error();
+        };
+      }
+    );
+
+    expect(await measureWebCodecs(1, 'url', vi.fn())).toEqual({ id: 1, outcome });
+    expect(close).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['silent', false],
+    ['unreadable', true],
+  ])('is %s when nothing of the sound passes the gate', async (outcome, unreadable) => {
+    file.unreadable = unreadable;
+    vi.mocked(summarise).mockReturnValue(undefined);
+
+    expect(await measureWebCodecs(1, 'url', vi.fn())).toEqual({ id: 1, outcome });
+  });
+
+  it('is silent when the decoder gives no sound', async () => {
+    vi.stubGlobal(
+      'AudioDecoder',
+      class extends FakeDecoder {
+        decode = () => undefined;
+      }
+    );
+
+    expect(await measureWebCodecs(1, 'url', vi.fn())).toEqual({ id: 1, outcome: 'silent' });
+    expect(createBlockMeter).not.toHaveBeenCalled();
   });
 });
