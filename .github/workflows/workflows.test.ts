@@ -452,4 +452,10 @@ describe('workflows', () => {
   it('perf.yml runs every measurement three times, the base branch and the pull request alike, for the median of the summary', () => {
     expect(read('perf.yml').match(/PERF_REPEAT: 3\n/g)).toHaveLength(2);
   });
+
+  it('soak.yml runs on a schedule and by hand, never for a pull request', () => {
+    expect(read('soak.yml')).toMatch(/\non:\n  schedule:\n    - cron: .+\n  workflow_dispatch:\n\npermissions:/);
+    expect(workflows.filter(([, text]) => text.includes('/soak.yml'))).toEqual([]);
+    expect(read('soak.yml')).toContain('npm run soak -- --global-timeout');
+  });
 });

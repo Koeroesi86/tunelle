@@ -72,5 +72,6 @@ Website and downloads: <https://koeroesi86.github.io/tunelle/>
 - [The AppImage launcher entry](docs/app/appimage-launcher.md)
 - [The Flatpak repository](docs/release/flatpak-repository.md)
 - [The performance summary](docs/development/performance-summary.md)
+- [The soak run](docs/development/soak-run.md)
 - [Media controls on Linux (MPRIS)](docs/app/mpris.md)
 - [Trying a Flatpak of the current code](docs/development/try-flatpak.md)

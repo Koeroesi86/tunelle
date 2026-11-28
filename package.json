@@ -46,6 +46,7 @@
     "test:a11y": "playwright test --project a11y",
     "test:updater": "playwright test --project updater",
     "perf": "playwright test --project perf",
+    "soak": "playwright test --project soak",
     "smoke": "node scripts/checks/smoke.js",
     "smoke:packaged": "node scripts/checks/smoke.js --packaged",
     "smoke:flatpak": "node scripts/checks/smoke.js --flatpak",
