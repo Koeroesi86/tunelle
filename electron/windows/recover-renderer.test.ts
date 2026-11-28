@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrowserWindow } from 'electron';
 import { recoverRenderer } from './recover-renderer';
 
-const electron = vi.hoisted(() => ({ app: { quit: vi.fn() }, dialog: { showErrorBox: vi.fn() } }));
+const electron = vi.hoisted(() => ({ app: { on: vi.fn(), quit: vi.fn() }, dialog: { showErrorBox: vi.fn() } }));
 const opened = vi.hoisted(() => ({ detachOpenedFiles: vi.fn() }));
 
 vi.mock('electron', () => electron);
@@ -52,6 +52,15 @@ describe('recoverRenderer', () => {
     main.isDestroyed.mockReturnValueOnce(true);
 
     lose();
+
+    expect(main.webContents.reload).not.toHaveBeenCalled();
+  });
+
+  // a logout or Ctrl+C ends the page and the app at once
+  it('does not load a page again that is gone while the app quits', () => {
+    electron.app.on.mock.calls.filter(([event]) => event === 'before-quit').forEach(([, quit]) => quit());
+
+    lose('killed');
 
     expect(main.webContents.reload).not.toHaveBeenCalled();
   });

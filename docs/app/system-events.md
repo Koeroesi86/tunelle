@@ -22,3 +22,13 @@ The volume is in the snapshot so that a restored player does not play louder tha
 The restored player is paused. A station that is paused is not loaded at all, after a restart and with a new audio context too: it connects when play is pressed.
 
 Files that the system opens while the page is gone wait for the new one (see [opening files](open-files.md)).
+
+### A quit that ends the page too
+
+No page is loaded after `before-quit`. A signal for all processes of the app (`pkill -f`, `Ctrl+C` in a terminal, a session that ends its processes) ends the page while the app is quitting, and a page loaded then keeps the app running.
+
+- **Symptom**: `puts the old version back when the update installs and does not start` of `npm run test:updater` timed out on macOS waiting for `update-started`. The cleanup of the test before it sent `SIGTERM` to every process of the app that the swap script had opened.
+- **Cause** (not reproduced on macOS): that app stayed alive. It has the default profile, as `open` hands on no `--user-data-dir`, and so does the reopened old app, which then leaves at once on the [instance lock](../../electron/windows/single-instance.ts) without writing the marker.
+- **How to check**: start the built app, `pkill -TERM -f <its --user-data-dir>`, and no process is left. Measured on Linux: 5 of 5 starts stayed alive with the reload during a quit, none without it.
+
+The updater test kills with `SIGKILL`, so an app of one test can not hold the lock in the next, and prints the log of the swap script when it fails.
