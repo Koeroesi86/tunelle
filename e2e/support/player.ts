@@ -18,6 +18,7 @@ export const player = (page: Page) => {
     pause: () => page.getByTitle('Pause', { exact: true }).click(),
     next: () => page.getByTitle('Next', { exact: true }).click(),
     previous: () => page.getByTitle('Previous', { exact: true }).click(),
+    repeat: () => page.getByTitle('Repeat', { exact: true }).click(),
     mute: () => page.getByRole('button', { name: 'Mute' }).click(),
     unmute: () => page.getByRole('button', { name: 'Unmute' }).click(),
     // the volume reaches the audio element a moment after the slider moved, and a level measured before that is the old one

@@ -17,6 +17,7 @@
     "e2e",
     "playwright.config.ts",
     "scripts/tooling/audio-joins.ts",
+    "scripts/tooling/soak-judge.ts",
     "scripts/screenshots/screenshot-media.ts",
     "scripts/screenshots/screenshot-fixtures.ts"
   ]

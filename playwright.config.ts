@@ -26,5 +26,7 @@ export default defineConfig({
     // the own updater of macOS replaces a packaged app, so it runs after npm run dist: npm run test:updater
     { name: 'updater', testDir: 'e2e/updater', timeout: 900_000 },
     { name: 'screenshots', testDir: 'e2e/screenshots' },
+    // hundreds of changes of track, weekly (soak.yml) and by hand: npm run soak. A trace of so long a run would fill the memory. See docs/development/soak-run.md
+    { name: 'soak', testDir: 'e2e/soak', timeout: 50 * 60_000, use: { trace: 'off' } },
   ],
 });

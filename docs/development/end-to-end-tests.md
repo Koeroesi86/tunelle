@@ -13,6 +13,7 @@ One folder per Playwright project (`playwright.config.ts`), and every test file 
 | `e2e/perf/` | `perf` | `npm run perf` |
 | `e2e/updater/` | `updater` | `npm run test:updater` |
 | `e2e/screenshots/` | `screenshots` | `npm run screenshots` |
+| `e2e/soak/` | `soak` | `npm run soak` (weekly, [the soak run](soak-run.md)) |
 
 `e2e/support/` (shared helpers, not tests) and `e2e/fixtures/` are used by all of them. A new test goes in the folder of its project, and a new kind of check is a new folder with its own project.
 

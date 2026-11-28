@@ -1,0 +1,56 @@
+name: Soak
+
+# hundreds of changes of track and of the output on the built app of each system, watched for what builds up. See docs/development/soak-run.md
+# weekly on Mondays and by hand, never for a pull request: it takes long, and it measures what time does and not what a change does
+on:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # the run plays albums that the ffmpeg of the app decodes (docs/app/decoder-proxy.md); its build is cached
+  ffmpeg:
+    uses: ./.github/workflows/ffmpeg.yml
+    permissions:
+      # the planning job of ffmpeg.yml lists the caches
+      actions: read
+      contents: read
+
+  soak:
+    name: Soak (${{ matrix.os }})
+    needs: ffmpeg
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, platform: linux, arch: x64 }
+          - { os: macos-15, platform: macos, arch: arm64 }
+          - { os: windows-2025, platform: windows, arch: x64 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - uses: ./.github/actions/install-dependencies
+      - uses: ./.github/actions/restore-ffmpeg
+        with:
+          platform: ${{ matrix.platform }}
+          arch: ${{ matrix.arch }}
+      - run: npm run build
+      # the limit of Playwright for the whole run is set for the end to end tests: this one may take longer
+      - run: npm run soak -- --global-timeout 3600000
+      # the numbers of every round are in the log, the trace of a failed run is not taken (playwright.config.ts)
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: soak-${{ matrix.os }}
+          path: playwright-report
+          if-no-files-found: ignore

@@ -29,6 +29,8 @@ declare global {
     startRecording?: () => Promise<void>;
     /** The samples since `startRecording` */
     recordedSamples?: () => number[];
+    /** Ends the recording and drops its samples */
+    stopRecording?: () => void;
   }
 }
 
@@ -41,6 +43,8 @@ export const installAudioProbe = () => {
   let listening = true;
   const connected = new Set<{ node: ScriptProcessorNode; context: BaseAudioContext }>();
   window.listenWithProbe = (on) => {
+    // a node that is not connected can not be disconnected
+    if (listening === on) return;
     listening = on;
     // the processor is only pulled when it leads to the destination
     connected.forEach(({ node, context }) => Reflect.apply(on ? originalConnect : originalDisconnect, node, [context.destination]));
@@ -54,11 +58,20 @@ export const installAudioProbe = () => {
   let tapped: { context: AudioContext; bus: GainNode } | undefined;
 
   const recorder = `registerProcessor('tunelle-recorder', class extends AudioWorkletProcessor {
+    constructor() {
+      super();
+      this.port.onmessage = () => { this.done = true; };
+    }
     process([[left]]) {
+      // a processor that goes on answering true is never dropped
+      if (this.done) return false;
       this.port.postMessage(left ? left.slice() : new Float32Array(128));
       return true;
     }
   });`;
+
+  // a module registers its processor once for each context
+  const withRecorder = new WeakSet<BaseAudioContext>();
 
   // a script processor drops and repeats blocks when the page is busy, an audio worklet does not. See docs/development/gapless-measurement.md
   window.startRecording = async () => {
@@ -66,13 +79,21 @@ export const installAudioProbe = () => {
 
     const { context, bus } = tapped;
     const blocks: Float32Array[] = [];
-    await context.audioWorklet.addModule(URL.createObjectURL(new Blob([recorder], { type: 'text/javascript' })));
+    if (!withRecorder.has(context)) await context.audioWorklet.addModule(URL.createObjectURL(new Blob([recorder], { type: 'text/javascript' })));
+    withRecorder.add(context);
     const node = new AudioWorkletNode(context, 'tunelle-recorder');
     node.port.onmessage = ({ data }: MessageEvent<Float32Array>) => blocks.push(data);
     Reflect.apply(originalConnect, bus, [node]);
     // it writes nothing, so nothing is added to what is heard: a node is only run when it leads to the destination
     Reflect.apply(originalConnect, node, [context.destination]);
     window.recordedSamples = () => blocks.flatMap((block) => Array.from(block));
+    window.stopRecording = () => {
+      node.port.postMessage('stop');
+      node.port.onmessage = null;
+      Reflect.apply(originalDisconnect, bus, [node]);
+      node.disconnect();
+      blocks.length = 0;
+    };
   };
 
   // everything that is connected to the destination is connected to the bus too, which the processor listens to
@@ -104,7 +125,10 @@ export const installAudioProbe = () => {
       });
     };
     Reflect.apply(originalConnect, bus, [node]);
-    connected.add({ node, context });
+    const tap = { node, context };
+    connected.add(tap);
+    // a context that the player replaced is let go, or the test would hold on to every one of them
+    context.addEventListener('statechange', () => context.state === 'closed' && connected.delete(tap));
     if (listening) Reflect.apply(originalConnect, node, [context.destination]);
     return bus;
   };
