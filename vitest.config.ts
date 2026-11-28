@@ -28,8 +28,14 @@ export default defineConfig({
         'electron/test-wav.ts',
         'electron/test-memory-fs.ts',
       ],
-      // just below the current coverage, so it can not drop; raise them as tests are added
-      thresholds: { statements: 85, branches: 84, functions: 82, lines: 86 },
+      // just below the current coverage, so it can not drop; raise them as tests are added. A folder has its own, as the average would hide its drop
+      thresholds: {
+        statements: 90,
+        branches: 86,
+        functions: 89,
+        lines: 91,
+        'client/redux/**': { statements: 97, branches: 96, functions: 98, lines: 98 },
+      },
       reporter: ['text-summary', 'json-summary', 'lcov'],
     },
     projects: [

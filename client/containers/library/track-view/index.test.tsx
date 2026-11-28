@@ -5,11 +5,19 @@ import { createStore } from 'redux';
 import type { Track } from '@shared/types/library';
 import reducers from '../../../redux/reducers';
 import TrackView from './index';
+import View from '../../../components/library/track-view/TrackView';
+import { propsOf, renderContainer } from '../../../test/render-container';
+import { fetchLibrary } from '../../../services/library-api';
+import { trackActions } from '../item-actions';
 import { pageSize } from '../../../constants/library';
 
 vi.mock('../../ui/favourite-button', () => ({ default: () => null }));
 vi.mock('../add-to-playlist', () => ({ default: () => null }));
 vi.mock('../add-to-queue', () => ({ default: () => null }));
+vi.mock('../../../components/library/track-view/TrackView', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../../components/library/track-view/TrackView')>();
+  return { default: vi.fn(original.default) };
+});
 
 const track = (index: number): Track => ({
   path: `/music/${index}.flac`,
@@ -59,5 +67,37 @@ describe('TrackView', () => {
 
     fireEvent.click(screen.getByText('Clear selection'));
     expect(store.getState().uiState.selectedTracks).toEqual({});
+  });
+});
+
+describe('the container of TrackView', () => {
+  it('gives the view how the whole library is fetched and the buttons of a row', () => {
+    renderContainer(<TrackView />);
+
+    expect(propsOf(View)).toMatchObject({ fetchAll: fetchLibrary, renderActions: trackActions });
+  });
+
+  it('plays, sorts, selects and asks for pages', () => {
+    const tracks = [track(1)];
+    const { sent } = renderContainer(<TrackView />);
+    const { playTracks, loadPage, setSort, toggleTrack, selectTracks, clearSelection } = propsOf(View);
+
+    playTracks(tracks);
+    loadPage(2);
+    setSort(undefined);
+    toggleTrack(tracks[0]);
+    selectTracks(tracks);
+    clearSelection();
+
+    expect(sent()).toEqual(
+      expect.arrayContaining([
+        { type: 'PLAY_TRACKS', payload: { tracks } },
+        { type: 'LOAD_LIBRARY_PAGE', payload: { kind: 'tracks', page: 2 } },
+        { type: 'SET_TRACK_SORT', payload: { sort: undefined } },
+        { type: 'TOGGLE_TRACK_SELECTION', payload: { track: tracks[0] } },
+        { type: 'SELECT_TRACKS', payload: { tracks } },
+        { type: 'CLEAR_TRACK_SELECTION', payload: {} },
+      ])
+    );
   });
 });

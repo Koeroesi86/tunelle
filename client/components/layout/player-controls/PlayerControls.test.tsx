@@ -170,4 +170,103 @@ describe('PlayerControls', () => {
 
     expect(screen.getByRole('status').textContent).toBe('Now playing: Teardrop by Massive Attack');
   });
+
+  const song: Track = {
+    ...toRadioTrack({ uuid: 'u6', name: 'Teardrop', country: '', tags: [], codec: 'FLAC', bitrate: 0 }),
+    path: '/music/teardrop.flac',
+    duration: 180,
+  };
+
+  it('shows that nothing plays, with an empty seek bar', () => {
+    renderControls(0.5);
+
+    expect(screen.getAllByText('None')).toHaveLength(3);
+    expect(screen.getByRole('slider', { name: 'Seek' }).getAttribute('aria-valuetext')).toBe('00:00:00 / 00:00:00');
+  });
+
+  it('offers to pause what plays, and shows the toggles that are on', () => {
+    const { props, rerender } = renderControls(0, song);
+
+    rerender(<PlayerControls {...props} isPlaying shuffle repeat />);
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+
+    expect(props.pause).toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Shuffle' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Repeat' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Unmute' })).toBeTruthy();
+  });
+
+  it('moves the position and the volume with their sliders', () => {
+    const { props } = renderControls(0.5, song);
+
+    fireEvent.input(screen.getByRole('slider', { name: 'Seek' }), { target: { value: '30' } });
+    fireEvent.input(screen.getByRole('slider', { name: 'Volume' }), { target: { value: '0.2' } });
+
+    expect(props.setCurrentTime).toHaveBeenCalledWith(30);
+    expect(props.setVolume).toHaveBeenCalledWith('0.2');
+  });
+
+  it('follows the audio when it starts or stops by itself', () => {
+    const { props } = renderControls(0.5, song);
+    const report = props.addPlayStatusListener.mock.calls[0][0];
+
+    act(() => report(false));
+    expect(props.setPlaying).not.toHaveBeenCalled();
+    act(() => report(true));
+
+    expect(props.setPlaying).toHaveBeenCalledWith(true);
+  });
+
+  it('takes over the position of the audio once it moved by a hundredth of a second', () => {
+    const { props } = renderControls(0.5, song, 10);
+    const report = props.addTimeChangeListener.mock.calls[0][0];
+
+    act(() => report(10.001));
+    expect(props.setCurrentTime).not.toHaveBeenCalled();
+    act(() => report(10.5));
+
+    expect(props.setCurrentTime).toHaveBeenCalledWith(10.5);
+  });
+
+  it('seeks, plays and pauses the audio as the state changes, and plays the next track of what plays', () => {
+    const { props, rerender } = renderControls(0.5, song);
+
+    rerender(<PlayerControls {...props} currentTime={20} />);
+    expect(props.seek).toHaveBeenCalledWith(20);
+    rerender(<PlayerControls {...props} currentTime={20} isPlaying />);
+    expect(props.play).toHaveBeenCalledTimes(1);
+    rerender(<PlayerControls {...props} currentTime={20} isPlaying currentSong={{ ...song, path: '/music/next.flac' }} />);
+    expect(props.play).toHaveBeenCalledTimes(2);
+    rerender(<PlayerControls {...props} currentTime={20} currentSong={{ ...song, path: '/music/next.flac' }} />);
+
+    expect(props.pause).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts nothing for a track that is loaded while paused', () => {
+    const { props, rerender } = renderControls(0.5, song);
+
+    rerender(<PlayerControls {...props} currentSong={{ ...song, path: '/music/next.flac' }} />);
+
+    expect(props.play).not.toHaveBeenCalled();
+  });
+
+  it('plays with the space bar only while a track is loaded', () => {
+    const { props, rerender } = renderControls(0.5);
+
+    fireEvent.keyDown(window, { key: ' ' });
+    expect(props.play).not.toHaveBeenCalled();
+    rerender(<PlayerControls {...props} currentSong={song} />);
+    fireEvent.keyDown(window, { key: ' ' });
+
+    expect(props.play).toHaveBeenCalled();
+  });
+
+  it('leaves the host from the button that names it', () => {
+    const { props, rerender } = renderControls(0.5);
+
+    rerender(<PlayerControls {...props} hostName="Desk" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Stop listening' }));
+
+    expect(props.leaveRemoteHost).toHaveBeenCalled();
+  });
 });

@@ -25,5 +25,10 @@ describe('the connected FavouriteButton', () => {
 
     expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(2);
     expect(store.getState().favourites).toHaveLength(1);
+
+    fireEvent.click(screen.getAllByRole('button')[1]);
+
+    expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(2);
+    expect(store.getState().favourites).toHaveLength(0);
   });
 });
