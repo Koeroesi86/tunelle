@@ -38,7 +38,7 @@ describe('findMissingReason', () => {
 
   it.each([
     [spec, code + appReason],
-    [spec, appReason.replace('\n', '\r\n')],
+    [spec, appReason.replaceAll('\n', '\r\n')],
     [integration, databaseReason + code],
     ['electron/new.test.ts', code],
     ['e2e/support/app.ts', code],
