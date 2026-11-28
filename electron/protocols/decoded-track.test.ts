@@ -82,10 +82,13 @@ describe('decodeTrack', () => {
     expect(program).toBe(path.join('/app', '.cache', 'ffmpeg', 'install', 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'));
     expect(args).toEqual(expect.arrayContaining(['-i', source, '-map', '0:a:0', '-map_metadata', '-1', '-f', 'wav']));
     expect(args.join(' ')).toContain('-rf64 auto -f wav');
+    // written under another name, so that a copy that is not whole is never served
+    expect(args.at(-1)).toMatch(/[0-9a-f]{32}\.wav\..+\.part$/);
   });
 
   it.each([
     [{ codec: 'DSD', bitDepth: 1 }, ['-ar', '88200', '-c:a', 'pcm_s24le']],
+    [{ codec: 'DSD', bitDepth: 8 }, ['-ar', '88200', '-c:a', 'pcm_s24le']],
     [{ codec: 'DST', bitDepth: 1 }, ['-ar', '88200', '-c:a', 'pcm_s24le']],
     [{ codec: 'ALAC', bitDepth: null }, ['-c:a', 'pcm_s16le']],
     [{ codec: 'ALAC', bitDepth: 16 }, ['-c:a', 'pcm_s16le']],
@@ -168,6 +171,16 @@ describe('decodeTrack', () => {
     expect(one).toBeDefined();
     expect(two).toBe(one);
     expect(spawn).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the decoded copy of a DSD file apart from a PCM decode of the same file', async () => {
+    decoder({ code: 0 });
+    decoder({ code: 0 });
+
+    const [dsd, pcm] = await Promise.all([decodeTrack(source, format, signal()), decodeTrack(source, { codec: 'ALAC', bitDepth: 16 }, signal())]);
+
+    expect(pcm).toBeDefined();
+    expect(dsd).not.toBe(pcm);
   });
 
   it('decodes again when the file changed', async () => {

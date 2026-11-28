@@ -62,6 +62,8 @@ describe('readAudioFormat', () => {
     [{ codec: 'PCM', container: 'AIFF' }, 'AIFF'],
     [{ codec: 'PCM (byte swapped)', container: 'AIFF-C' }, 'AIFF-C'],
     [{ codec: 'AAC LC', container: 'M4A' }, 'AAC'],
+    [{ codec: 'ALAC', container: 'M4A/isom' }, 'ALAC'],
+    [{ codec: "Monkey's Audio", container: "Monkey's Audio" }, "MONKEY'S"],
     [{ codec: 'Vorbis I', container: 'Ogg' }, 'VORBIS'],
     [{ container: 'Matroska' }, 'MATROSKA'],
     [{ container: 'DSF' }, 'DSD'],

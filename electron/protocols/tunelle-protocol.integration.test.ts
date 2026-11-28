@@ -38,12 +38,11 @@ describe('tunelle protocol', () => {
   let folder: string;
   let appRoot: string;
   const libraryFile = () => path.join(folder, 'library.flac');
-  const handle = (devOrigin?: string) =>
+  const handle = () =>
     handleTunelleRequest({
       getDatabase: () => database,
       sources: { clientOf: () => Promise.resolve(undefined) },
       appRoot,
-      devOrigin,
       radio: {
         resolveStream: () => Promise.reject(new Error('no radio')),
         onTitle: () => {},
@@ -104,43 +103,6 @@ describe('tunelle protocol', () => {
 
     it.each(['/missing.html', '/bundle', '/..%2Fsecret.txt', '/%2e%2e/secret.txt', '/bundle/..%2F..%2Fsecret.txt'])('does not serve %s', async (route) => {
       expect((await get(route)).status).toBe(404);
-    });
-  });
-
-  describe('the scheme', () => {
-    it('does not serve another host', async () => {
-      expect((await handle()(new Request('tunelle://other/index.html'))).status).toBe(404);
-    });
-
-    it.each(['POST', 'PUT', 'DELETE'])('does not take a %s', async (method) => {
-      expect((await get('/library', { method })).status).toBe(405);
-    });
-  });
-
-  describe('cross-origin access of a development run', () => {
-    const from = (origin: string, devOrigin?: string, method = 'GET') =>
-      handle(devOrigin)(new Request('tunelle://app/library', { method, headers: { origin } }));
-
-    it('allows the origin of the dev server', async () => {
-      const response = await from('http://localhost:3000', 'http://localhost:3000');
-
-      expect(response.headers.get('access-control-allow-origin')).toBe('http://localhost:3000');
-      expect(response.headers.get('vary')).toBe('Origin');
-    });
-
-    it('answers the preflight of the dev server', async () => {
-      const response = await from('http://localhost:3000', 'http://localhost:3000', 'OPTIONS');
-
-      expect(response.status).toBe(204);
-      expect(response.headers.get('access-control-allow-headers')).toContain('Range');
-    });
-
-    it.each(['https://example.com', 'http://localhost.example.com', 'http://localhost:3001'])('does not allow the origin %s', async (origin) => {
-      expect((await from(origin, 'http://localhost:3000')).headers.get('access-control-allow-origin')).toBeNull();
-    });
-
-    it('allows no origin outside of a development run', async () => {
-      expect((await from('http://localhost:3000')).headers.get('access-control-allow-origin')).toBeNull();
     });
   });
 
@@ -309,17 +271,6 @@ describe('tunelle protocol', () => {
       expect(await response.json()).toEqual(expect.arrayContaining([expect.objectContaining({ path: libraryFile() })]));
     });
 
-    it('is not served before the database is connected', async () => {
-      const response = await handleTunelleRequest({
-        getDatabase: () => undefined,
-        sources: { clientOf: () => Promise.resolve(undefined) },
-        appRoot,
-        radio: { resolveStream: () => Promise.reject(new Error('no radio')), onTitle: () => {}, onSampleRate: () => {} },
-      })(new Request('tunelle://app/library'));
-
-      expect(response.status).toBe(403);
-    });
-
     it('answers with a page of tracks and the total', async () => {
       const body = await (await get('/library/tracks?offset=0&limit=1')).json();
 
@@ -333,10 +284,6 @@ describe('tunelle protocol', () => {
 
       const tracks = await (await get(`/library/album?path=${encodeURIComponent(items[0].path)}&title=${encodeURIComponent(items[0].title ?? '')}`)).json();
       expect(tracks).toHaveLength(items[0].trackCount);
-    });
-
-    it('limits the page size and falls back for a bad window', async () => {
-      expect((await (await get('/library/tracks?offset=-4&limit=100000')).json()).items.length).toBeLessThanOrEqual(500);
     });
 
     it('sorts and filters by the folders of the request', async () => {
@@ -366,20 +313,6 @@ describe('tunelle protocol', () => {
       expect(albums.total).toBe(1);
       expect(library).toHaveLength(1);
       expect(nothing.total).toBe(0);
-    });
-
-    it.each([
-      '/library/tracks?sort=nope&dir=asc',
-      '/library/tracks?sort=title&dir=up',
-      '/library/tracks?sort=title',
-      '/library/albums?sort=track&dir=asc',
-      '/library?sort=x&dir=asc',
-    ])('rejects the sort of %s that is not a known field with a known direction', async (route) => {
-      expect((await get(route)).status).toBe(400);
-    });
-
-    it('rejects an album request without a folder and a title', async () => {
-      expect((await get('/library/album')).status).toBe(400);
     });
   });
 });

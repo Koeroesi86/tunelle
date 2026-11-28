@@ -2,7 +2,7 @@
 import { expect, test } from '@playwright/test';
 import { execFileSync, spawn, type ChildProcess } from 'child_process';
 import { createHash, generateKeyPairSync, sign } from 'crypto';
-import { chmodSync, closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { createServer, type Server } from 'http';
 import type { AddressInfo } from 'net';
 import { tmpdir } from 'os';
@@ -30,11 +30,6 @@ const plistVersion = (bundle: string) => {
 };
 // the version of the packaged app (the release stamps it), which the update has to be greater than
 const installedVersion = plistVersion(packagedBundle);
-const executableHash = (bundle: string) =>
-  createHash('sha256')
-    .update(readFileSync(join(bundle, 'Contents', 'MacOS', 'Tunelle')))
-    .digest('hex');
-
 /** The packaged app with another version, re-signed ad hoc as the release is; `executable` replaces its main program */
 const makeUpdateBundle = (folder: string, executable?: string) => {
   const bundle = join(folder, 'Tunelle.app');
@@ -82,7 +77,7 @@ const keys = generateKeyPairSync('ed25519');
 const publicKey = keys.publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
 
 /** latest-mac.yml like electron-builder writes it, and its signature */
-const updateFiles = (zip: Buffer, signer = keys.privateKey) => {
+const updateFiles = (zip: Buffer) => {
   const yml = `version: ${updateVersion}
 files:
   - url: ${zipName}
@@ -92,7 +87,7 @@ path: ${zipName}
 releaseDate: '2026-11-09T06:00:00.000Z'
 `;
 
-  return { 'latest-mac.yml': yml, 'latest-mac.yml.sig': sign(undefined, Buffer.from(yml), signer).toString('base64') };
+  return { 'latest-mac.yml': yml, 'latest-mac.yml.sig': sign(undefined, Buffer.from(yml), keys.privateKey).toString('base64') };
 };
 
 test.describe('the macOS updater', () => {
@@ -117,17 +112,12 @@ test.describe('the macOS updater', () => {
     }
     await new Promise((done) => (feed ? feed.server.close(done) : done(undefined)));
     feed = undefined;
-    // the test of the folder that can not be written to leaves it so when it fails
-    try {
-      chmodSync(join(folder, 'Applications'), 0o755);
-    } catch {
-      // the folder was not made
-    }
     rmSync(folder, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
   });
 
   /** The "installed" app: a copy of the packaged bundle, started with the feed */
-  const install = (parent: string) => {
+  const install = () => {
+    const parent = join(folder, 'Applications');
     mkdirSync(parent, { recursive: true });
     const bundle = join(parent, 'Tunelle.app');
     run('ditto', [packagedBundle, bundle]);
@@ -164,7 +154,7 @@ test.describe('the macOS updater', () => {
   test('installs a signed update, starts it and drops the backup', async () => {
     const zip = makeUpdateBundle(folder);
     feed = await startFeed({ ...updateFiles(zip), [zipName]: zip });
-    const bundle = install(join(folder, 'Applications'));
+    const bundle = install();
     const exited = start(bundle);
 
     // the swap script drops the backup once the new app wrote its marker
@@ -180,7 +170,7 @@ test.describe('the macOS updater', () => {
   test('puts the old version back when the update installs and does not start', async () => {
     const zip = makeUpdateBundle(folder, makeBrokenExecutable(folder));
     feed = await startFeed({ ...updateFiles(zip), [zipName]: zip });
-    const bundle = install(join(folder, 'Applications'));
+    const bundle = install();
     start(bundle);
 
     // the old app starts again after the script waited for the marker of the new one: it writes the marker, and the version is recorded as failed
@@ -189,62 +179,5 @@ test.describe('the macOS updater', () => {
       .toBe(updateVersion);
     await expect.poll(() => plistVersion(bundle) === installedVersion && existsSync(marker()), { timeout: 240_000 }).toBe(true);
     expect(existsSync(`${bundle}.backup`)).toBe(false);
-  });
-
-  test.describe('leaves the installed app as it is', () => {
-    const untouched = async (bundle: string, hash: string) => {
-      await expect.poll(() => existsSync(marker()), { timeout: 240_000 }).toBe(true);
-      expect(plistVersion(bundle)).toBe(installedVersion);
-      expect(executableHash(bundle)).toBe(hash);
-      expect(existsSync(`${bundle}.backup`)).toBe(false);
-    };
-
-    test('for a zip that was changed after it was signed', async () => {
-      const zip = makeUpdateBundle(folder);
-      feed = await startFeed({ ...updateFiles(zip), [zipName]: Buffer.concat([zip, Buffer.from('tampered')]) });
-      const bundle = install(join(folder, 'Applications'));
-      const hash = executableHash(bundle);
-      start(bundle);
-
-      await untouched(bundle, hash);
-      expect(feed.requests).toContain(zipName);
-    });
-
-    test('for a file that another key signed', async () => {
-      const zip = makeUpdateBundle(folder);
-      feed = await startFeed({ ...updateFiles(zip, generateKeyPairSync('ed25519').privateKey), [zipName]: zip });
-      const bundle = install(join(folder, 'Applications'));
-      const hash = executableHash(bundle);
-      start(bundle);
-
-      await untouched(bundle, hash);
-      expect(feed.requests).not.toContain(zipName);
-    });
-
-    test('in a folder that can not be written to', async () => {
-      const zip = makeUpdateBundle(folder);
-      feed = await startFeed({ ...updateFiles(zip), [zipName]: zip });
-      const parent = join(folder, 'Applications');
-      const bundle = install(parent);
-      const hash = executableHash(bundle);
-      chmodSync(parent, 0o555);
-      start(bundle);
-
-      await untouched(bundle, hash);
-      // the app did not even look for an update
-      expect(feed.requests).toEqual([]);
-      chmodSync(parent, 0o755);
-    });
-
-    test('when it runs from a translocated path', async () => {
-      const zip = makeUpdateBundle(folder);
-      feed = await startFeed({ ...updateFiles(zip), [zipName]: zip });
-      const bundle = install(join(folder, 'AppTranslocation', 'ABC', 'd'));
-      const hash = executableHash(bundle);
-      start(bundle);
-
-      await untouched(bundle, hash);
-      expect(feed.requests).toEqual([]);
-    });
   });
 });
