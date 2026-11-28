@@ -29,6 +29,24 @@ describe('describePlaylistImport', () => {
     expect(lines.slice(1)).toEqual(['  First', '  gone1.flac', '  gone2.flac', '  gone3.flac', '  gone4.flac', '  playlists.importMore{"count":2}']);
   });
 
+  it.each([
+    { status: 'created' as const, key: 'playlists.importCreated' },
+    { status: 'updated' as const, key: 'playlists.importUpdated' },
+  ])('says only that a playlist was $status when nothing else happened', ({ status, key }) => {
+    const tracks = 'playlists.trackCount{"count":3}';
+
+    expect(describePlaylistImport(t as never, [report({ status })])).toBe(t(key, { name: 'Mix', tracks }));
+  });
+
+  it('names five missing entries without counting more', () => {
+    const unmatched = Array.from({ length: 5 }, (_, index) => ({ location: `gone${index}.flac`, title: undefined }));
+
+    const lines = describePlaylistImport(t as never, [report({ unmatched })]).split('\n');
+
+    expect(lines).toHaveLength(6);
+    expect(lines.at(-1)).toBe('  gone4.flac');
+  });
+
   it('separates the playlists with an empty line', () => {
     expect(describePlaylistImport(t as never, [report({ status: 'updated' }), report({ name: 'Other', status: 'unchanged' })])).toContain(
       '\n\nplaylists.importUnchanged'

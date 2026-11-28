@@ -10,7 +10,15 @@ describe('remote track', () => {
   });
 
   it('has an empty artist, album and no duration for a host that does not say', () => {
-    expect(toRemoteTrack({ state: 'paused', title: 'Song', position: 0, at: 1 })).toMatchObject({ artist: '', album: '', duration: null });
+    expect(toRemoteTrack({ state: 'paused', title: 'Song', position: 0, at: 1 })).toMatchObject({
+      artist: '',
+      album: '',
+      year: '',
+      track: '',
+      disk: '',
+      genre: '',
+      duration: null,
+    });
   });
 
   it('gives a new key to a new track and the same key to the same one', () => {
@@ -18,6 +26,16 @@ describe('remote track', () => {
     expect(toRemoteTrack({ ...snapshot, position: 90, at: 5000 }).path).toBe(path);
     expect(toRemoteTrack({ ...snapshot, title: 'Other' }).path).not.toBe(path);
     expect(toRemoteTrack({ ...snapshot, duration: 201 }).path).not.toBe(path);
+  });
+
+  it.each([{ artist: 'Other' }, { album: 'Other' }, { live: true }])('gives a new key when $0 changes', (change) => {
+    expect(toRemoteTrack({ ...snapshot, ...change }).path).not.toBe(toRemoteTrack(snapshot).path);
+  });
+
+  it('gives the same key to a host that leaves a detail out and one that says it is empty', () => {
+    const bare = { state: 'paused' as const, title: 'Song', position: 0, at: 1 };
+
+    expect(toRemoteTrack(bare).path).toBe(toRemoteTrack({ ...bare, artist: '', album: '', duration: 0, live: false }).path);
   });
 
   it('keeps a key that is safe in an address', () => {

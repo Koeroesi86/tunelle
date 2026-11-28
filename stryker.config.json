@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "vitest",
+  "plugins": ["@stryker-mutator/vitest-runner"],
+  "vitest": { "configFile": "vitest.mutation.config.ts" },
+  "tsconfigFile_comment": "Stryker rewrites the tsconfig with the JavaScript API that TypeScript 7 does not have: a name that matches no file skips that. See docs/development/mutation-testing.md",
+  "tsconfigFile": "tsconfig.none.json",
+  "mutate": [
+    "client/{audio,domain,loudness}/**/*.{ts,tsx}",
+    "!client/**/*.test.{ts,tsx}",
+    "!client/loudness/slicing/*-fixture.ts"
+  ],
+  "ignorePatterns": [
+    ".cache",
+    ".fallow",
+    "build",
+    "coverage",
+    "dist",
+    "out",
+    "e2e",
+    "icons",
+    "resources",
+    "site",
+    "test-results",
+    "playwright-report"
+  ],
+  "reporters": ["progress", "clear-text", "json", "html"],
+  "clearTextReporter": { "reportTests": false, "reportMutants": false }
+}
