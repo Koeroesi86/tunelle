@@ -8,6 +8,7 @@ import type { RadioStation } from '@shared/types/radio';
 import { stationFavourite, trackFavourite } from '../../../domain/favourites';
 import type { GetFavouriteTracks } from '../../../domain/favourite-tracks';
 import { toRadioTrack } from '../../../domain/radio-track';
+import { expectNoViolations } from '../../../test/expect-no-violations';
 import HomeView from './HomeView';
 
 const renderFavourite = () => null;
@@ -62,6 +63,16 @@ describe('HomeView', () => {
     render(<HomeView history={history} currentSong={currentSong} {...props} {...extra} />);
     return props;
   };
+
+  it('has no accessibility violation with everything it can show', async () => {
+    renderView([played(stationFavourite(station)), played(trackFavourite(track))], track, {
+      favourites: [liked(trackFavourite(track))],
+      playlists: [playlistOf(1, 'Road', [track])],
+      hasFolders: false,
+    });
+
+    await expectNoViolations(document.body.firstElementChild ?? document.body);
+  });
 
   it('tells that nothing was played yet and has nothing to clear', () => {
     renderView([]);

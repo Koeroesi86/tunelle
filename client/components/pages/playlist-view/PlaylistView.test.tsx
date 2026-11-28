@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { Track } from '@shared/types/library';
 import type { Playlist } from '@shared/types/playlists';
+import { expectNoViolations } from '../../../test/expect-no-violations';
 import PlaylistView from './PlaylistView';
 
 const queued = vi.fn();
@@ -51,6 +52,12 @@ describe('PlaylistView', () => {
     return props;
   };
   const rows = () => Array.from(document.querySelectorAll<HTMLElement>('.entry'));
+
+  it('has no accessibility violation with a file and a track that is gone', async () => {
+    renderView({ ...playlist, file: { path: '/music/mix.m3u', sync: true, encoding: 'windows-1250', canUndo: true } });
+
+    await expectNoViolations(screen.getByRole('button', { name: 'Road' }).closest('.playlist') ?? document.body);
+  });
 
   it('exports the playlist, and offers the sync only for one that has a file', () => {
     const props = renderView();

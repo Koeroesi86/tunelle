@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { Track } from '@shared/types/library';
+import { expectNoViolations } from '../../../test/expect-no-violations';
 import AddToPlaylist from './AddToPlaylist';
 
 const track: Track = { path: '/music/a.flac', artist: '', album: '', title: 'A', year: '', track: '', disk: '', genre: '', picture: null, duration: 1 };
@@ -19,6 +20,24 @@ describe('AddToPlaylist', () => {
     return { add, create, onRowClick };
   };
   const open = () => fireEvent.click(screen.getByRole('button', { name: 'Add to a playlist' }));
+
+  it('has no accessibility violation while it is open', async () => {
+    renderButton();
+    open();
+
+    await expectNoViolations(screen.getByRole('dialog'));
+  });
+
+  it('opens a dialog with the field of a new playlist, and a menu of the playlists in it', () => {
+    renderButton();
+    expect(screen.getByRole('button', { name: 'Add to a playlist' }).getAttribute('aria-haspopup')).toBe('dialog');
+
+    open();
+
+    const dialog = screen.getByRole('dialog', { name: 'Add to playlist' });
+    expect(dialog.contains(screen.getByRole('textbox', { name: 'Playlist name' }))).toBe(true);
+    expect(dialog.contains(screen.getByRole('menu', { name: 'Playlists' }))).toBe(true);
+  });
 
   it('lists the playlists once it is opened', () => {
     renderButton();
@@ -69,6 +88,16 @@ describe('AddToPlaylist', () => {
     fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
 
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Add to a playlist' }));
+  });
+
+  it('keeps Tab inside while it is open, so that a page behind it does not take the focus', () => {
+    renderButton();
+    open();
+    screen.getByRole('menuitem', { name: /Night/ }).focus();
+
+    fireEvent.keyDown(document, { key: 'Tab' });
+
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Playlist name' }));
   });
 
   it('creates the playlist with Enter in the name field', () => {

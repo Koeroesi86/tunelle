@@ -8,6 +8,7 @@ import { albumFavourite, stationFavourite, trackFavourite } from '../../../domai
 import { toRadioTrack } from '../../../domain/radio-track';
 import type { GetFavouriteTracks } from '../../../domain/favourite-tracks';
 import type { FavouritesOrder, FavouritesSource } from '../../../domain/navigation';
+import { expectNoViolations } from '../../../test/expect-no-violations';
 import FavouritesView from './FavouritesView';
 
 const renderFavourite = () => null;
@@ -72,6 +73,19 @@ describe('FavouritesView', () => {
     render(<StatefulView getFavouriteTracks={tracksOf} favourites={favourites} playTracks={playTracks} playStation={playStation} />);
     return { playTracks, playStation };
   };
+
+  it('has no accessibility violation with tracks, albums and one that is gone', async () => {
+    renderView([stored(trackFavourite(track)), stored(albumFavourite(album)), stored(trackFavourite({ ...track, path: '/music/gone.flac' }), false)]);
+
+    await expectNoViolations(screen.getByRole('heading', { name: 'Liked' }).closest('.favourites') ?? document.body);
+  });
+
+  it('names the kind of each favourite, which its row shows as an icon', () => {
+    renderView([stored(trackFavourite(track)), stored(albumFavourite(album))]);
+
+    expect(screen.getByRole('img', { name: 'Track' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Album' })).toBeTruthy();
+  });
 
   it('shows the format of a track and of a station, and none of an album', () => {
     renderView([stored(trackFavourite({ ...track, codec: 'FLAC', lossless: 1, bitDepth: 16, sampleRate: 44100 })), stored(albumFavourite(album))]);

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { LoudnessProgress } from '@shared/types/loudness';
 import MeasureLoudness from './MeasureLoudness';
+import { expectNoViolations } from '../../../test/expect-no-violations';
 
 const view = (props: Partial<Parameters<typeof MeasureLoudness>[0]> = {}) => {
   // the connected component's dispatch answers with the action, which an effect must not hand back to React
@@ -83,6 +84,19 @@ describe('MeasureLoudness', () => {
     expect(screen.getByText('/music/Eurythmics/01 - I Did It.flac')).toBeTruthy();
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('moves the focus into the list of files, and back to the link when it closes', async () => {
+    view({ status: progress({ measured: 8, failed: 1 }), failed: [{ path: '/music/a.flac', reason: 'silent' }] });
+    const link = screen.getByRole('button', { name: 'Show the files' });
+    link.focus();
+
+    fireEvent.click(link);
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }));
+    await expectNoViolations(screen.getByRole('dialog'));
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(document.activeElement).toBe(link);
   });
 
   it('says it is looking while the list is not there yet, and has no link when nothing failed', () => {

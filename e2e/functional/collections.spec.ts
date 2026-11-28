@@ -7,8 +7,9 @@ test('keeps a playlist of an album, and plays it', async ({ session, start }) =>
   await navigate(page, 'Albums');
   // the menu of the album creates the playlist with the album in it
   await page.getByRole('button', { name: 'Add to a playlist' }).first().click();
-  await page.getByRole('menu').getByPlaceholder('Playlist name').fill('Evening');
-  await page.getByRole('menu').getByRole('button', { name: 'Create' }).click();
+  const adding = page.getByRole('dialog', { name: 'Add to playlist' });
+  await adding.getByPlaceholder('Playlist name').fill('Evening');
+  await adding.getByRole('button', { name: 'Create' }).click();
   await navigate(page, 'Playlists');
   await expect(page.getByText('Evening', { exact: true }).first()).toBeVisible();
   await quit(session.app);

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Confirm from './Confirm';
+import { expectNoViolations } from '../../../test/expect-no-violations';
 
 describe('Confirm', () => {
   it('renders the message with default labels', () => {
@@ -39,6 +40,63 @@ describe('Confirm', () => {
 
     rerender(<Confirm message="Hi" cancel={() => {}} />);
     expect(container.querySelector('[aria-hidden]')).not.toBeNull();
+  });
+
+  it('is a dialog named by its question only while it is shown', async () => {
+    const { container, rerender } = render(<Confirm message={null} cancel={() => {}} />);
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+
+    rerender(<Confirm message="Delete?" cancel={() => {}} />);
+
+    expect(screen.getByRole('alertdialog', { name: 'Delete?' }).getAttribute('aria-modal')).toBe('true');
+    await expectNoViolations(container);
+  });
+
+  it('takes its buttons out of reach while it is not shown', () => {
+    const { container, rerender } = render(<Confirm message={null} cancel={() => {}} />);
+    expect(container.firstElementChild?.hasAttribute('inert')).toBe(true);
+
+    rerender(<Confirm message="Delete?" cancel={() => {}} />);
+
+    expect(container.firstElementChild?.hasAttribute('inert')).toBe(false);
+  });
+
+  it('starts on the button that declines, and gives the focus back when it closes', () => {
+    const view = (message: string | null) => (
+      <>
+        <button>Delete</button>
+        <Confirm message={message} cancel={() => {}} />
+      </>
+    );
+    const { rerender } = render(view(null));
+    screen.getByRole('button', { name: 'Delete' }).focus();
+
+    rerender(view('Sure?'));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'No' }));
+
+    rerender(view(null));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Delete' }));
+  });
+
+  it('declines with Escape, and keeps the key from what is behind it', () => {
+    const cancel = vi.fn();
+    const behind = vi.fn((event: KeyboardEvent) => event.defaultPrevented);
+    document.addEventListener('keydown', behind);
+    render(<Confirm message="Sure?" cancel={cancel} />);
+
+    fireEvent.keyDown(screen.getByRole('button', { name: 'No' }), { key: 'Escape' });
+    document.removeEventListener('keydown', behind);
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(behind).toHaveReturnedWith(true);
+  });
+
+  it('leaves Escape alone while it is not shown', () => {
+    const cancel = vi.fn();
+    render(<Confirm message={null} cancel={cancel} />);
+
+    expect(fireEvent.keyDown(document.body, { key: 'Escape' })).toBe(true);
+    expect(cancel).not.toHaveBeenCalled();
   });
 
   it('calls confirm and cancel handlers', () => {

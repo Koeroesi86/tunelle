@@ -1,10 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { expectNoViolations } from '../../../test/expect-no-violations';
 import FolderManagement from './FolderManagement';
 
 const folders = [{ path: '/music/a', lastModified: 1 }];
 
 describe('FolderManagement', () => {
+  it('has no accessibility violation while it asks about a folder', async () => {
+    const { container } = render(<FolderManagement folders={folders} offlineFolders={['/music/a']} addFolders={() => {}} removeFolder={() => {}} />);
+    fireEvent.click(screen.getByText('Remove'));
+
+    await expectNoViolations(container);
+  });
+
   it('removes a folder only after it is confirmed', () => {
     const removeFolder = vi.fn();
     render(<FolderManagement folders={folders} offlineFolders={[]} addFolders={() => {}} removeFolder={removeFolder} />);

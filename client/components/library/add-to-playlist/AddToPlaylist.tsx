@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import classNames from 'classnames';
@@ -8,6 +8,7 @@ import type { PlaylistSource } from '../../../domain/playlists';
 import { useTranslation } from '../../../i18n';
 import style from './AddToPlaylist.scss';
 import NameField from '../../ui/name-field';
+import { useDialogFocus } from '../../../hooks/use-dialog-focus';
 import { clamp } from '@shared/utils/clamp';
 
 interface AddToPlaylistProps {
@@ -22,12 +23,14 @@ interface AddToPlaylistProps {
 
 const menuWidth = 220;
 
-/** The button of a track or album that opens a menu of the playlists, with a field to start a new one */
+/** The button of a track or album that opens the playlists to add it to, with a field to start a new one */
 const AddToPlaylist = ({ source, playlists, add, create, className, tabIndex }: AddToPlaylistProps) => {
   const { t } = useTranslation();
   const button = useRef<HTMLButtonElement>(null);
-  const menu = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | undefined>(undefined);
+  // the effect below runs after the one of the hook, and picks what has the focus first
+  const menu = useDialogFocus(position !== undefined);
+  const titleId = useId();
   const [name, setName] = useState('');
   const close = (returnFocus = false) => {
     setPosition(undefined);
@@ -94,7 +97,7 @@ const AddToPlaylist = ({ source, playlists, add, create, className, tabIndex }: 
         className={classNames(style.addToPlaylist, className)}
         title={t('playlists.add')}
         aria-label={t('playlists.add')}
-        aria-haspopup="menu"
+        aria-haspopup="dialog"
         aria-expanded={position !== undefined}
         // the button sits in rows that select and play on click
         onClick={(event) => {
@@ -109,9 +112,13 @@ const AddToPlaylist = ({ source, playlists, add, create, className, tabIndex }: 
       {position &&
         createPortal(
           // a portal still passes events up the React tree, to the row that holds the button
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the dialog only stops those clicks, and takes the keys of what it holds
           <div
             ref={menu}
-            role="menu"
+            // a menu may hold nothing but its items, so the field of a new playlist makes this a dialog around one
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
             tabIndex={-1}
             className={style.menu}
             style={{ ...position, width: menuWidth }}
@@ -119,7 +126,9 @@ const AddToPlaylist = ({ source, playlists, add, create, className, tabIndex }: 
             onDoubleClick={(event) => event.stopPropagation()}
             onKeyDown={navigate}
           >
-            <div className={style.title}>{t('playlists.addTo')}</div>
+            <div id={titleId} className={style.title}>
+              {t('playlists.addTo')}
+            </div>
             <NameField
               className={style.create}
               value={name}
@@ -129,7 +138,7 @@ const AddToPlaylist = ({ source, playlists, add, create, className, tabIndex }: 
               onSubmit={submit}
             />
             {playlists.length > 0 && (
-              <div className={style.list}>
+              <div role="menu" aria-label={t('nav.playlists')} className={style.list}>
                 {playlists.map(({ id, name: playlistName, entries }) => (
                   <button
                     key={id}
